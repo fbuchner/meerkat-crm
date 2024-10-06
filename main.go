@@ -45,6 +45,7 @@ func sendBirthdayReminders(db *gorm.DB) {
 	}
 }
 
+// We are using Twillio Sendgrid to send e-mails. Thef free tier allows for up to 100 mails per day.
 func sendEmail(to, subject, body string) {
 
 }

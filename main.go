@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"perema/controllers"
 	"perema/models"
 
 	"time"
@@ -17,7 +18,11 @@ import (
 )
 
 func main() {
+	log.Println("Loading server...")
+
 	s := gocron.NewScheduler(time.UTC)
+
+	log.Println("Loading database...")
 
 	// Open a connection to the SQLite database
 	dbPath := os.Getenv("SQLITE_DB_PATH")
@@ -30,20 +35,29 @@ func main() {
 	}
 
 	// Migrate the schema
+	log.Println("Loading migrations...")
 	db.AutoMigrate(&models.Contact{})
 
+	log.Println("Running scheduler...")
 	// Schedule the birthday reminder task daily
 	s.Every(1).Day().At("08:00").Do(sendBirthdayReminders, db)
-
-	// Start the scheduler
-	s.StartBlocking()
+	// Start the scheduler in a separate goroutine
+	go s.StartBlocking()
 
 	r := gin.Default()
 
-	// Add routes here
+	// Inject db into context
+	r.Use(func(c *gin.Context) {
+		c.Set("db", db)
+		c.Next()
+	})
 
+	// Add routes here
 	r.Static("/static", "./static")
 
+	r.GET("/contacts", controllers.ShowContacts)
+
+	log.Println("Server listening on Port 8080...")
 	r.Run() // listen and serve on 0.0.0.0:8080
 
 }

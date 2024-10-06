@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"perema/models"
 	"text/template"
@@ -105,9 +106,25 @@ func CreateRelationship(c *gin.Context) {
 
 func ShowContacts(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
+
 	var contacts []models.Contact
 	db.Find(&contacts)
 
-	tmpl := template.Must(template.ParseFiles("templates/contacts.html", "templates/layout.html"))
-	tmpl.Execute(c.Writer, contacts)
+	// Parse both templates at once
+	tmpl, err := template.ParseFiles("templates/baselayout.html", "templates/contacts.html")
+	if err != nil {
+		fmt.Printf("Error parsing templates: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to parse templates"})
+		return
+	}
+	data := map[string]interface{}{
+		"Contacts": contacts,
+	}
+
+	// Execute the template, which includes the content template
+	err = tmpl.Execute(c.Writer, data)
+	if err != nil {
+		fmt.Printf("Error executing template: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to load template"})
+	}
 }

@@ -1,0 +1,13 @@
+<!-- templates/contacts.html -->
+{{ define "title" }}Contacts{{ end }}
+
+{{ define "content" }}
+<h2>Contacts</h2>
+<ul>
+    {{ range . }}
+    <li>{{ .Name }} - {{ .Phone }} - {{ .Email }}</li>
+    {{ else }}
+    <li>No contacts found</li>
+    {{ end }}
+</ul>
+{{ end }}

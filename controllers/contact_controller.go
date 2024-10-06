@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"perema/models"
+	"text/template"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -100,4 +101,13 @@ func CreateRelationship(c *gin.Context) {
 
 	db.Create(&relationship)
 	c.JSON(http.StatusOK, relationship)
+}
+
+func ShowContacts(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	var contacts []models.Contact
+	db.Find(&contacts)
+
+	tmpl := template.Must(template.ParseFiles("templates/contacts.html", "templates/layout.html"))
+	tmpl.Execute(c.Writer, contacts)
 }

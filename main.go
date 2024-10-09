@@ -9,6 +9,7 @@ import (
 
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-co-op/gocron"
 	"github.com/sendgrid/sendgrid-go"
@@ -46,6 +47,9 @@ func main() {
 
 	r := gin.Default()
 
+	// Enable CORS for all origins, methods, and headers
+	r.Use(cors.Default()) // Add CORS middleware
+
 	// Inject db into context
 	r.Use(func(c *gin.Context) {
 		c.Set("db", db)
@@ -53,9 +57,13 @@ func main() {
 	})
 
 	// Add routes here
-	r.Static("/static", "./static")
+	r.Static("/static", "./frontend/dist")
 
-	r.GET("/contacts", controllers.ShowContacts)
+	r.GET("/contacts", controllers.GetAllContacts)
+	r.POST("/contacts", controllers.CreateContact)
+	r.GET("/contacts/:id", controllers.GetContact)
+	r.PUT("/contacts/:id", controllers.UpdateContact)
+	r.DELETE("/contacts/:id", controllers.DeleteContact)
 
 	log.Println("Server listening on Port 8080...")
 	r.Run() // listen and serve on 0.0.0.0:8080
@@ -70,9 +78,9 @@ func sendBirthdayReminders(db *gorm.DB) {
 		age := "unknown age"
 		zeroTime := time.Time{}
 
-		contactBirthday := contact.Birthday.Format("2006")
+		contactBirthday := contact.Birthday.ToTime().Format("2006")
 		if contactBirthday != zeroTime.Format("2006") {
-			age = fmt.Sprintf("%d years old", time.Now().Year()-contact.Birthday.Year())
+			age = fmt.Sprintf("%d years old", time.Now().Year()-contact.Birthday.ToTime().Year())
 		}
 
 		nickname := contact.Nickname

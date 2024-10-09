@@ -1,10 +1,9 @@
 package controllers
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 	"perema/models"
-	"text/template"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -13,23 +12,30 @@ import (
 func CreateContact(c *gin.Context) {
 	var contact models.Contact
 	if err := c.ShouldBindJSON(&contact); err != nil {
+		log.Println("Error binding JSON for create contact:", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Handle file upload
-	file, _ := c.FormFile("photo")
-	if file != nil {
-		filePath := "./static/" + file.Filename
-		c.SaveUploadedFile(file, filePath)
-		contact.Photo = filePath
-	}
+	//file, _ := c.FormFile("photo")
+	//if file != nil {
+	//	filePath := "./static/" + file.Filename
+	//	c.SaveUploadedFile(file, filePath)
+	//	contact.Photo = filePath
+	//}
 
 	// Save to the database
 	db := c.MustGet("db").(*gorm.DB)
-	db.Create(&contact)
 
-	c.JSON(http.StatusOK, contact)
+	// Save the new contact to the database
+	if err := db.Create(&contact).Error; err != nil {
+		log.Println("Error saving to database:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save contact"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Contact created successfully", "contact": contact})
 }
 
 func GetAllContacts(c *gin.Context) {
@@ -102,29 +108,4 @@ func CreateRelationship(c *gin.Context) {
 
 	db.Create(&relationship)
 	c.JSON(http.StatusOK, relationship)
-}
-
-func ShowContacts(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
-
-	var contacts []models.Contact
-	db.Find(&contacts)
-
-	// Parse both templates at once
-	tmpl, err := template.ParseFiles("templates/baselayout.html", "templates/contacts.html")
-	if err != nil {
-		fmt.Printf("Error parsing templates: %v\n", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to parse templates"})
-		return
-	}
-	data := map[string]interface{}{
-		"Contacts": contacts,
-	}
-
-	// Execute the template, which includes the content template
-	err = tmpl.Execute(c.Writer, data)
-	if err != nil {
-		fmt.Printf("Error executing template: %v\n", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to load template"})
-	}
 }

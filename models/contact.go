@@ -1,8 +1,6 @@
 package models
 
 import (
-	"time"
-
 	"gorm.io/gorm"
 )
 
@@ -31,7 +29,7 @@ type Contact struct {
 	Nickname           string         `json:"nickname"`
 	Email              string         `json:"email"`
 	Phone              string         `json:"phone"`
-	Birthday           time.Time      `json:"birthday"`
+	Birthday           Date           `json:"birthday"`
 	Photo              string         `json:"photo"`                                     // Path to the profile photo
 	Partner            Partner        `gorm:"embedded" json:"partner"`                   // Embedded struct for partner info
 	Relationships      []Relationship `gorm:"foreignKey:ContactID" json:"relationships"` // Has many relationships

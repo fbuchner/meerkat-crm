@@ -35,9 +35,27 @@ func CreateContact(c *gin.Context) {
 }
 
 func GetAllContacts(c *gin.Context) {
-	var contacts []models.Contact
 	db := c.MustGet("db").(*gorm.DB)
-	db.Find(&contacts)
+
+	// Get pagination parameters from query
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "25"))
+
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 25
+	}
+
+	// Calculate offset
+	offset := (page - 1) * limit
+
+	var contacts []models.Contact
+	if err := db.Limit(limit).Offset(offset).Find(&contacts).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve contacts"})
+		return
+	}
 
 	c.JSON(http.StatusOK, contacts)
 }
@@ -83,7 +101,6 @@ func DeleteContact(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Contact deleted"})
 }
 
-// AddProfilePictureToContact adds a profile picture to an existing contact
 func AddProfilePictureToContact(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 

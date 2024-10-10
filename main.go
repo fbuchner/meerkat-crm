@@ -66,6 +66,7 @@ func main() {
 	r.PUT("/contacts/:id", controllers.UpdateContact)
 	r.DELETE("/contacts/:id", controllers.DeleteContact)
 	r.POST("/contacts/:id/relationships", controllers.AddRelationshipToContact)
+	r.POST("/contacts/:id/profile_picture", controllers.AddProfilePictureToContact)
 
 	// Note routes
 	r.GET("/contacts/:id/notes", controllers.GetNotesForContact)

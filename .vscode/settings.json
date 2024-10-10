@@ -1,0 +1,16 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "perema",
+            "database": "${workspaceFolder:perema}/perema.db"
+        },
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "database": "${workspaceFolder:perema}/static/perema.db",
+            "name": "perema_static"
+        }
+    ]
+}

@@ -37,13 +37,15 @@ type Contact struct {
 	Email              string         `json:"email"`
 	Phone              string         `json:"phone"`
 	Birthday           Date           `json:"birthday"`
-	Photo              string         `json:"photo"`                                     // Path to the profile photo
-	Partner            Partner        `gorm:"embedded" json:"partner"`                   // Embedded struct for partner info
-	Relationships      []Relationship `gorm:"foreignKey:ContactID" json:"relationships"` // Has many relationships
-	Address            string         `json:"address"`                                   // Full address as a string
-	HowWeMet           string         `json:"how_we_met"`                                // Text field
-	FoodPreference     string         `json:"food_preference"`                           // Text field
-	WorkInformation    string         `json:"work_information"`                          // Text field
-	ContactInformation string         `json:"contact_information"`                       // Additional contact information
-	Circles            []Circle       `gorm:"many2many:contact_circles" json:"circles"`  // Many-to-many relationship with circles
+	Photo              string         `json:"photo"`                                                    // Path to the profile photo
+	Partner            Partner        `gorm:"embedded" json:"partner"`                                  // Embedded struct for partner info
+	Relationships      []Relationship `gorm:"foreignKey:ContactID" json:"relationships"`                // Has many relationships
+	Address            string         `json:"address"`                                                  // Full address as a string
+	HowWeMet           string         `json:"how_we_met"`                                               // Text field
+	FoodPreference     string         `json:"food_preference"`                                          // Text field
+	WorkInformation    string         `json:"work_information"`                                         // Text field
+	ContactInformation string         `json:"contact_information"`                                      // Additional contact information
+	Circles            []Circle       `gorm:"many2many:contact_circles" json:"circles"`                 // Many-to-many relationship with circles
+	Activities         []Activity     `gorm:"many2many:activity_contacts;" json:"activities,omitempty"` // Reverse relationship
+	Notes              []Note         `json:"notes,omitempty"`                                          // One-to-many relationship with notes
 }

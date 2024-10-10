@@ -37,7 +37,7 @@ func main() {
 
 	// Migrate the schema
 	log.Println("Loading migrations...")
-	db.AutoMigrate(&models.Contact{})
+	db.AutoMigrate(&models.Activity{}, &models.Contact{}, &models.Note{}, &models.Circle{})
 
 	log.Println("Running scheduler...")
 	// Schedule the birthday reminder task daily

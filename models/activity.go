@@ -11,13 +11,5 @@ type Activity struct {
 	Description string    `json:"description"`
 	Location    string    `json:"location"`
 	Date        Date      `json:"date"`
-	Contacts    []Contact `gorm:"foreignKey:ContactID" json:"contact,omitempty"`
-}
-
-// Note struct to represent notes attached to a contact
-type Note struct {
-	gorm.Model
-	Content string  `json:"content"`
-	Date    Date    `json:"date"`
-	Contact Contact `gorm:"foreignKey:ContactID" json:"contact,omitempty"`
+	Contacts    []Contact `gorm:"many2many:activity_contacts;" json:"contacts,omitempty"` // Define many-to-many relationship
 }

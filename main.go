@@ -65,6 +65,7 @@ func main() {
 	r.GET("/contacts/:id", controllers.GetContact)
 	r.PUT("/contacts/:id", controllers.UpdateContact)
 	r.DELETE("/contacts/:id", controllers.DeleteContact)
+	r.POST("/contacts/:id/relationships", controllers.AddRelationshipToContact)
 
 	// Note routes
 	r.GET("/contacts/:id/notes", controllers.GetNotesForContact)
@@ -72,6 +73,14 @@ func main() {
 	r.GET("/notes/:id", controllers.GetNote)
 	r.PUT("/notes/:id", controllers.UpdateNote)
 	r.DELETE("/notes/:id", controllers.DeleteNote)
+
+	// Activity routes
+	r.POST("/activities", controllers.CreateActivity)
+	r.GET("/activities/:id", controllers.GetActivity)
+	r.PUT("/activities/:id", controllers.UpdateActivity)
+	r.DELETE("/activities/:id", controllers.DeleteActivity)
+	r.POST("/activities/:id/contacts/:contact_id", controllers.AddContactToActivity)
+	r.DELETE("/activities/:id/contacts/:contact_id", controllers.RemoveContactFromActivity)
 
 	log.Println("Server listening on Port 8080...")
 	r.Run() // listen and serve on 0.0.0.0:8080

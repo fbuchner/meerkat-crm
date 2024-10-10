@@ -16,6 +16,15 @@
           <label for="nickname">Nickname:</label>
           <input type="text" v-model="contact.nickname" id="nickname" />
         </div>
+
+        <div>
+          <label for="gender">Gender:</label>
+          <select v-model="contact.gender" id="gender">
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Unknown">Unknown</option>
+          </select>
+        </div>
   
         <div>
           <label for="email">Email:</label>
@@ -75,6 +84,7 @@
           firstname: '',
           lastname: '',
           nickname: '',
+          gender: '',
           email: '',
           phone: '',
           birthday: '',

@@ -56,14 +56,22 @@ func main() {
 		c.Next()
 	})
 
-	// Add routes here
+	// Asset routes
 	r.Static("/static", "./frontend/dist")
 
+	// Contact routes
 	r.GET("/contacts", controllers.GetAllContacts)
 	r.POST("/contacts", controllers.CreateContact)
 	r.GET("/contacts/:id", controllers.GetContact)
 	r.PUT("/contacts/:id", controllers.UpdateContact)
 	r.DELETE("/contacts/:id", controllers.DeleteContact)
+
+	// Note routes
+	r.GET("/contacts/:id/notes", controllers.GetNotesForContact)
+	r.POST("/contacts/:id/notes", controllers.CreateNote)
+	r.GET("/notes/:id", controllers.GetNote)
+	r.PUT("/notes/:id", controllers.UpdateNote)
+	r.DELETE("/notes/:id", controllers.DeleteNote)
 
 	log.Println("Server listening on Port 8080...")
 	r.Run() // listen and serve on 0.0.0.0:8080

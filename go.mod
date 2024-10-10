@@ -6,6 +6,7 @@ require (
 	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-co-op/gocron v1.37.0
+	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/sendgrid/sendgrid-go v3.16.0+incompatible
 	gorm.io/driver/sqlite v1.5.6
 	gorm.io/gorm v1.25.12

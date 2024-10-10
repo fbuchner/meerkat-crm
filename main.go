@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"perema/controllers"
 	"perema/models"
@@ -12,6 +13,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-co-op/gocron"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"gorm.io/driver/sqlite" // or use the appropriate driver
@@ -56,36 +58,61 @@ func main() {
 		c.Next()
 	})
 
-	// Asset routes
+	authorized := r.Group("/")
 	r.Static("/static", "./frontend/dist")
 
-	// Contact routes
-	r.GET("/contacts", controllers.GetAllContacts)
-	r.POST("/contacts", controllers.CreateContact)
-	r.GET("/contacts/:id", controllers.GetContact)
-	r.PUT("/contacts/:id", controllers.UpdateContact)
-	r.DELETE("/contacts/:id", controllers.DeleteContact)
-	r.POST("/contacts/:id/relationships", controllers.AddRelationshipToContact)
-	r.POST("/contacts/:id/profile_picture", controllers.AddProfilePictureToContact)
+	authorized.Use(AuthMiddleware())
+	{
+		// Contact routes
+		r.GET("/contacts", controllers.GetAllContacts)
+		r.POST("/contacts", controllers.CreateContact)
+		r.GET("/contacts/:id", controllers.GetContact)
+		r.PUT("/contacts/:id", controllers.UpdateContact)
+		r.DELETE("/contacts/:id", controllers.DeleteContact)
+		r.POST("/contacts/:id/relationships", controllers.AddRelationshipToContact)
+		r.POST("/contacts/:id/profile_picture", controllers.AddProfilePictureToContact)
 
-	// Note routes
-	r.GET("/contacts/:id/notes", controllers.GetNotesForContact)
-	r.POST("/contacts/:id/notes", controllers.CreateNote)
-	r.GET("/notes/:id", controllers.GetNote)
-	r.PUT("/notes/:id", controllers.UpdateNote)
-	r.DELETE("/notes/:id", controllers.DeleteNote)
+		// Note routes
+		r.GET("/contacts/:id/notes", controllers.GetNotesForContact)
+		r.POST("/contacts/:id/notes", controllers.CreateNote)
+		r.GET("/notes/:id", controllers.GetNote)
+		r.PUT("/notes/:id", controllers.UpdateNote)
+		r.DELETE("/notes/:id", controllers.DeleteNote)
 
-	// Activity routes
-	r.POST("/activities", controllers.CreateActivity)
-	r.GET("/activities/:id", controllers.GetActivity)
-	r.PUT("/activities/:id", controllers.UpdateActivity)
-	r.DELETE("/activities/:id", controllers.DeleteActivity)
-	r.POST("/activities/:id/contacts/:contact_id", controllers.AddContactToActivity)
-	r.DELETE("/activities/:id/contacts/:contact_id", controllers.RemoveContactFromActivity)
+		// Activity routes
+		r.POST("/activities", controllers.CreateActivity)
+		r.GET("/activities/:id", controllers.GetActivity)
+		r.PUT("/activities/:id", controllers.UpdateActivity)
+		r.DELETE("/activities/:id", controllers.DeleteActivity)
+		r.POST("/activities/:id/contacts/:contact_id", controllers.AddContactToActivity)
+		r.DELETE("/activities/:id/contacts/:contact_id", controllers.RemoveContactFromActivity)
+	}
 
-	log.Println("Server listening on Port 8080...")
-	r.Run() // listen and serve on 0.0.0.0:8080
+	jwt_debug, err := GenerateDebugJWT()
+	if err != nil {
+		panic("Unable to create JWT token based on your secret.")
+	}
+	log.Println("Use this token for testing: ", jwt_debug)
 
+	log.Println("Server listening on Port 8443...")
+
+	//TODO setup https
+	// Start HTTP server to redirect to HTTPS
+	//go func() {
+	//	if err := http.ListenAndServe(":80", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	//		http.Redirect(w, r, "https://"+r.Host+r.RequestURI, http.StatusMovedPermanently)
+	//	})); err != nil {
+	//		log.Fatalf("Failed to start HTTP server: %s", err)
+	//	}
+	//}()
+
+	// Listen and serve on HTTPS
+	//err = r.RunTLS(":8443", "./cert.pem", "./key.pem")
+	//if err != nil {
+	//	log.Fatalf("Failed to start HTTPS server: %s", err)
+	//}
+
+	r.Run(":8080")
 }
 
 func sendBirthdayReminders(db *gorm.DB) {
@@ -133,4 +160,48 @@ func sendBirthdayMail(birthday_person_nick, birthday_person, birthday_age string
 		fmt.Println(response.Body)
 		fmt.Println(response.Headers)
 	}
+}
+
+func AuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tokenString := c.GetHeader("Authorization")
+		if tokenString == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required"})
+			c.Abort()
+			return
+		}
+
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			// Validate the algorithm
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method")
+			}
+			return []byte(os.Getenv("JWT_SECRET_KEY")), nil
+		})
+
+		if err != nil || !token.Valid {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+// GenerateDebugJWT generates a JWT token for debugging purposes
+func GenerateDebugJWT() (string, error) {
+	claims := jwt.MapClaims{
+		"authorized": true,
+		"user":       "debug_user",
+		"exp":        time.Now().Add(time.Hour * 96).Unix(), // Token expires in 96 hours
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET_KEY")))
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
 }

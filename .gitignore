@@ -1,4 +1,4 @@
-sendgrid.env
+my_environment.env
 static/perema.db
 perema.db
 .vscode/

@@ -16,7 +16,7 @@ type Relationship struct {
 	Name           string   `json:"name"`                                                  // Name of the related person
 	Type           string   `json:"type"`                                                  // Relationship type (e.g., "Child", "Mother")
 	Gender         string   `json:"gender"`                                                // Gender of the related person
-	Birthday       string   `json:"birthday"`                                              // Birthday of the related person
+	Birthday       *Date    `json:"birthday"`                                              // Birthday of the related person
 	ContactID      *uint    `json:"contact_id"`                                            // Optional link to an existing Contact
 	RelatedContact *Contact `gorm:"foreignKey:ContactID" json:"related_contact,omitempty"` // Linked Contact if exists
 }
@@ -36,7 +36,7 @@ type Contact struct {
 	Gender             string         `json:"gender"`
 	Email              string         `json:"email"`
 	Phone              string         `json:"phone"`
-	Birthday           Date           `json:"birthday"`
+	Birthday           *Date          `json:"birthday"`
 	Photo              string         `json:"photo"`                                                    // Path to the profile photo
 	Partner            Partner        `gorm:"embedded" json:"partner"`                                  // Embedded struct for partner info
 	Relationships      []Relationship `gorm:"foreignKey:ContactID" json:"relationships"`                // Has many relationships

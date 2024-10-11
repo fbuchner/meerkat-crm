@@ -61,6 +61,7 @@ func main() {
 	authorized := r.Group("/")
 	r.Static("/static", "./frontend/dist")
 
+	//TODO: check why secret is not being required
 	authorized.Use(AuthMiddleware())
 	{
 		// Contact routes
@@ -80,6 +81,7 @@ func main() {
 		r.DELETE("/notes/:id", controllers.DeleteNote)
 
 		// Activity routes
+		r.GET("/contacts/:id/activities", controllers.GetActivitiesForContact)
 		r.POST("/activities", controllers.CreateActivity)
 		r.GET("/activities/:id", controllers.GetActivity)
 		r.PUT("/activities/:id", controllers.UpdateActivity)
@@ -94,7 +96,7 @@ func main() {
 	}
 	log.Println("Use this token for testing: ", jwt_debug)
 
-	log.Println("Server listening on Port 8443...")
+	log.Println("Server listening on Port 8080...")
 
 	//TODO setup https
 	// Start HTTP server to redirect to HTTPS
@@ -123,9 +125,9 @@ func sendBirthdayReminders(db *gorm.DB) {
 		age := "unknown age"
 		zeroTime := time.Time{}
 
-		contactBirthday := contact.Birthday.ToTime().Format("2006")
-		if contactBirthday != zeroTime.Format("2006") {
-			age = fmt.Sprintf("%d years old", time.Now().Year()-contact.Birthday.ToTime().Year())
+		contactBirthday, validBirthday := contact.Birthday.ToTime()
+		if validBirthday && !contactBirthday.Equal(zeroTime) {
+			age = fmt.Sprintf("%d years old", time.Now().Year()-contact.Birthday.Time.Year())
 		}
 
 		nickname := contact.Nickname

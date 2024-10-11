@@ -171,3 +171,31 @@ func RemoveContactFromActivity(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Contact removed from activity successfully"})
 }
+
+func GetActivitiesForContact(c *gin.Context) {
+	// Get contact ID from the request URL
+	contactID := c.Param("id")
+
+	// Get the database instance from the context
+	db := c.MustGet("db").(*gorm.DB)
+
+	// Initialize a variable to store the contact
+	var contact models.Contact
+
+	// Find the contact and preload associated activities
+	if err := db.Preload("Activities").First(&contact, contactID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			// If no contact found, return a 404 error
+			c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
+		} else {
+			// For any other errors, return a 500 error
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	// If successful, return the contact and its notes as JSON
+	c.JSON(http.StatusOK, gin.H{
+		"activities": contact.Activities,
+	})
+}

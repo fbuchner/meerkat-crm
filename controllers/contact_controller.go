@@ -64,7 +64,7 @@ func GetContact(c *gin.Context) {
 	id := c.Param("id")
 	var contact models.Contact
 	db := c.MustGet("db").(*gorm.DB)
-	if err := db.First(&contact, id).Error; err != nil {
+	if err := db.Preload("Notes").Preload("Activities").First(&contact, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
 		return
 	}

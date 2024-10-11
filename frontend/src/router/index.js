@@ -1,10 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import AddContact from '@/components/AddContact.vue'; // Import AddContact component
-import ContactList from '@/components/ContactList.vue'; // Example: if you have a contact list component
+import AddContact from '@/components/ContactAdd.vue'; // Import AddContact component
+import ContactList from '@/components/ContactList.vue'; // Import ContactList component
+import ContactView from '@/components/ContactView.vue'; // Import ContactView component
 
 const routes = [
-  { path: '/add-contact', component: AddContact }, // Route for adding a contact
-  { path: '/contacts', component: ContactList },   // Example: Route for listing contacts
+  { path: '/add-contact', component: AddContact },
+  { path: '/contacts', component: ContactList },
+  { path: '/contacts/:ID', name: 'ContactView', component: ContactView, props: true }, // Route for viewing a contact
 ];
 
 const router = createRouter({

@@ -9,7 +9,7 @@
   
         <div>
           <label for="lastname">Last Name:</label>
-          <input type="text" v-model="contact.lastname" id="lastname" required />
+          <input type="text" v-model="contact.lastname" id="lastname" />
         </div>
   
         <div>
@@ -28,7 +28,7 @@
   
         <div>
           <label for="email">Email:</label>
-          <input type="email" v-model="contact.email" id="email" required />
+          <input type="email" v-model="contact.email" id="email" />
         </div>
   
         <div>
@@ -38,7 +38,7 @@
   
         <div>
           <label for="birthday">Birthday:</label>
-          <input type="date" v-model="contact.birthday" id="birthday" required />
+          <input type="date" v-model="contact.birthday" id="birthday" />
         </div>
   
         <div>
@@ -75,7 +75,7 @@
   </template>
   
   <script>
-  import contactsService from '@/services/contactService';
+  import contactService from '@/services/contactService';
   
   export default {
     data() {
@@ -84,7 +84,7 @@
           firstname: '',
           lastname: '',
           nickname: '',
-          gender: '',
+          gender: 'Unknown',
           email: '',
           phone: '',
           birthday: '',
@@ -100,8 +100,8 @@
     },
     methods: {
       submitForm() {
-        contactsService
-          .createContact(this.contact)
+        contactService
+          .addContact(this.contact)
           .then(() => {
             this.successMessage = 'Contact added successfully!';
             this.errorMessage = '';

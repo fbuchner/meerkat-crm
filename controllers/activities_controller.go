@@ -11,23 +11,57 @@ import (
 )
 
 func CreateActivity(c *gin.Context) {
-	var activity models.Activity
-	if err := c.ShouldBindJSON(&activity); err != nil {
+	var requestBody struct {
+		Name        string      `json:"name"`
+		Date        models.Date `json:"date"`
+		Description string      `json:"description"`
+		Location    string      `json:"location"`
+		ContactIDs  []uint      `json:"contact_ids"` // Accept an array of contact IDs for many-to-many association
+	}
+
+	// Bind the incoming JSON to the requestBody
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		log.Println("Error binding JSON for create activity:", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Save to the database
+	// Fetch the contacts from the database using the ContactIDs
 	db := c.MustGet("db").(*gorm.DB)
+	var contacts []models.Contact
+	if len(requestBody.ContactIDs) > 0 {
+		if err := db.Where("id IN ?", requestBody.ContactIDs).Find(&contacts).Error; err != nil {
+			log.Println("Error finding contacts with IDs:", requestBody.ContactIDs, err)
+			c.JSON(http.StatusNotFound, gin.H{"error": "One or more contacts not found"})
+			return
+		}
+	}
+
+	// Create a new activity without the associations initially
+	activity := models.Activity{
+		Name:        requestBody.Name,
+		Date:        requestBody.Date,
+		Description: requestBody.Description,
+		Location:    requestBody.Location,
+	}
 
 	// Save the new activity to the database
 	if err := db.Create(&activity).Error; err != nil {
-		log.Println("Error saving to database:", err)
+		log.Println("Error saving activity to the database:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save activity"})
 		return
 	}
 
+	// Update the activity's contacts association
+	if len(contacts) > 0 {
+		if err := db.Model(&activity).Association("Contacts").Append(contacts); err != nil {
+			log.Println("Error creating relationship between activity and contacts:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to associate contacts with activity"})
+			return
+		}
+	}
+
+	// Respond with success
 	c.JSON(http.StatusOK, gin.H{"message": "Activity created successfully", "activity": activity})
 }
 

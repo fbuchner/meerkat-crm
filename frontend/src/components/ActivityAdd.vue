@@ -3,6 +3,8 @@
       <h3>Add an Activity</h3>
       <input v-model="newActivityName" placeholder="Activity name" />
       <input v-model="newActivityDate" type="date" />
+      <input v-model="newActivityDescription" placeholder="Activity description" />
+      <input v-model="newActivityLocation" placeholder="Activity location" />
       <button @click="addActivity">Add Activity</button>
     </div>
   </template>
@@ -16,14 +18,16 @@ import activityService from '@/services/activityService';
     name: 'AddActivity',
     props: {
       contactId: {
-        type: Number,
         required: true,
       },
     },
     data() {
+      const today = new Date().toISOString().split('T')[0]; // Get today's date in 'YYYY-MM-DD' format
       return {
         newActivityName: '',
-        newActivityDate: '',
+        newActivityDate: today,
+        newActivityDescription: '',
+        newActivityLocation: '',
       };
     },
     
@@ -32,11 +36,15 @@ import activityService from '@/services/activityService';
             try {
                 await activityService.addActivity({
                     name: this.newActivityName,
+                    description: this.newDescription,
                     date: this.newActivityDate,
-                    contacts: [this.contactId],
+                    location: this.newActivityLocation,
+                    contact_ids: [Number(this.contactId)],
                 });
                 this.newActivityName = ''; // Clear the field
                 this.newActivityDate = '';
+                this.newActivityDescription = ''; 
+                this.newActivityLocation = '';
                 this.$emit('activityAdded'); // Emit event to refresh contact
             } catch (error) {
                 console.error('Error adding activity:', error);

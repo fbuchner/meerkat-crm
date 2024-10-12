@@ -35,6 +35,9 @@
             </ul>
         </div>
 
+        <!-- Add the ActivityAdd component here -->
+        <ActivityAdd :contactId="ID" @activityAdded="fetchContact" />
+
         <!-- Displaying Activities with Edit/Delete Options -->
         <div v-if="contact.activities?.length">
             <h3>Activities</h3>
@@ -43,17 +46,24 @@
                     <div v-if="editingActivityId === activity.ID">
                         <input v-model="activity.name" placeholder="Activity name" />
                         <input v-model="activity.date" type="date" />
+                        <input v-model="activity.description" placeholder="Activity description" />
+                        <input v-model="activity.location" placeholder="Activity location" />
                         <button @click="saveActivity(activity)">Save</button>
                         <button @click="cancelEditActivity">Cancel</button>
                     </div>
                     <div v-else>
                         {{ activity.name }} - {{ activity.date }}
+                        <p>{{ activity.description }}</p>
+                        <p>{{ activity.location }}</p>
                         <button @click="editActivity(activity.ID)">Edit</button>
                         <button @click="deleteActivity(activity.ID)">Delete</button>
                     </div>
                 </li>
             </ul>
         </div>
+
+       <!-- Add the NoteAdd component here -->
+        <NoteAdd :contactId="ID" @noteAdded="fetchContact" />
 
         <div v-if="contact.notes?.length">
             <h3>Notes</h3>
@@ -77,6 +87,8 @@
 
 <script>
 import contactService from '@/services/contactService';
+import ActivityAdd from '@/components/ActivityAdd.vue'; 
+import NoteAdd from '@/components/NoteAdd.vue'; 
 
 export default {
     name: 'ContactView',
@@ -84,6 +96,10 @@ export default {
         ID: {
             required: true,
         },
+    },
+    components: {
+        ActivityAdd, 
+        NoteAdd,
     },
     data() {
         return {

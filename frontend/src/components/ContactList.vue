@@ -6,51 +6,48 @@
     </div>
 
     <div class="search-and-circles">
-      <input
-        type="text"
-        v-model="searchQuery"
-        placeholder="Search contacts..."
-        class="search-input"
-      />
+      <input type="text" v-model="searchQuery" placeholder="Search contacts..." class="search-input" />
       <div class="circles">
-        <button
-          v-for="circle in circles"
-          :key="circle"
-          @click="filterByCircle(circle)"
-          class="circle-button"
-          :class="{ active: activeCircle === circle }"
-        >
+        <button v-for="circle in circles" :key="circle" @click="filterByCircle(circle)" class="circle-button"
+          :class="{ active: activeCircle === circle }">
           {{ circle }}
         </button>
-        <button
-          @click="clearCircleFilter"
-          class="circle-button"
-          :class="{ active: activeCircle === null }"
-        >
+        <button @click="clearCircleFilter" class="circle-button" :class="{ active: activeCircle === null }">
           All
         </button>
       </div>
     </div>
 
     <ul class="contacts-list">
-      <li
-        v-for="contact in filteredContacts"
-        :key="contact.ID"
-        class="contact-item"
-      >
-        <router-link
-          :to="{ name: 'ContactView', params: { ID: contact.ID } }"
-          class="contact-link"
-        >
+      <router-link v-for="contact in filteredContacts" :key="contact.ID"
+        :to="{ name: 'ContactView', params: { ID: contact.ID } }" class="contact-link">
+        <li class="contact-item">
           <div class="contact-info">
             {{ contact.firstname }} {{ contact.lastname }}
           </div>
-        </router-link>
-        <button @click.stop="deleteContact(contact.ID)" class="delete-button">
-          Delete
-        </button>
-      </li>
+          <button @click.stop="deleteContact(contact.ID)" class="delete-button">
+            Delete
+          </button>
+        </li>
+      </router-link>
     </ul>
+
+    <div class="pagination">
+      <button :disabled="page === 1" @click="previousPage" class="pagination-button">
+        Previous
+      </button>
+
+      <button v-for="pageNumber in totalPages" :key="pageNumber" @click="goToPage(pageNumber)" class="pagination-button"
+        :class="{ active: page === pageNumber }">
+        {{ pageNumber }}
+      </button>
+
+      <button :disabled="page === totalPages" @click="nextPage" class="pagination-button">
+        Next
+      </button>
+    </div>
+
+
   </div>
 </template>
 
@@ -64,6 +61,9 @@ export default {
       circles: [],
       searchQuery: '',
       activeCircle: null, // Active circle filter
+      page: 1,
+      limit: 25,
+      total: 0,
     };
   },
   computed: {
@@ -80,14 +80,19 @@ export default {
         return matchesSearch && matchesCircle;
       });
     },
+    totalPages() {
+      return Math.ceil(this.total / this.limit);
+    },
   },
   mounted() {
     this.loadContacts();
+    this.loadCircles();
   },
   methods: {
     loadContacts() {
-      contactService.getContacts().then((response) => {
-        this.contacts = response.data;
+      contactService.getContacts(this.page, this.limit).then((response) => {
+        this.contacts = response.data.contacts;
+        this.total = response.data.total;
       });
     },
     loadCircles() {
@@ -102,9 +107,29 @@ export default {
     },
     filterByCircle(circle) {
       this.activeCircle = circle;
+      this.loadContacts();
     },
     clearCircleFilter() {
       this.activeCircle = null;
+      this.loadContacts();
+    },
+    nextPage() {
+      if (this.page < this.totalPages) {
+        this.page++;
+        this.loadContacts();
+      }
+    },
+    previousPage() {
+      if (this.page > 1) {
+        this.page--;
+        this.loadContacts();
+      }
+    },
+    goToPage(pageNumber) {
+      if (pageNumber !== this.page) {
+        this.page = pageNumber;
+        this.loadContacts();
+      }
     },
   },
 };
@@ -223,4 +248,38 @@ export default {
 .delete-button:hover {
   background-color: #1e2d8c;
 }
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 1rem;
+  gap: 1rem;
+}
+
+.pagination-button {
+  background-color: #e5e7eb;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.pagination-button:disabled {
+  background-color: #d1d5db;
+  cursor: not-allowed;
+}
+
+.contact-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.contact-item:hover {
+  background-color: #f9fafb;
+  cursor: pointer;
+}
+
 </style>

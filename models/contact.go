@@ -39,7 +39,7 @@ type Contact struct {
 	FoodPreference     string         `json:"food_preference"`                                          // Text field
 	WorkInformation    string         `json:"work_information"`                                         // Text field
 	ContactInformation string         `json:"contact_information"`                                      // Additional contact information
-	Circles            []string       `gorm:"type:text" json:"circles"`                                 // Store circles as a JSON array
+	Circles            []string       `gorm:"type:text;serializer:json" json:"circles"`                 // Serialize Circles properly
 	Activities         []Activity     `gorm:"many2many:activity_contacts;" json:"activities,omitempty"` // Reverse relationship
 	Notes              []Note         `json:"notes,omitempty"`                                          // One-to-many relationship with notes
 }

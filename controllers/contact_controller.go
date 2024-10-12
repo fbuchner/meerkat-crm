@@ -52,12 +52,24 @@ func GetAllContacts(c *gin.Context) {
 	offset := (page - 1) * limit
 
 	var contacts []models.Contact
+	var total int64
+
+	// Get the total count of contacts
+	db.Model(&models.Contact{}).Count(&total)
+
+	// Get the paginated contacts
 	if err := db.Limit(limit).Offset(offset).Find(&contacts).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve contacts"})
 		return
 	}
 
-	c.JSON(http.StatusOK, contacts)
+	// Include pagination metadata in response
+	c.JSON(http.StatusOK, gin.H{
+		"contacts": contacts,
+		"total":    total,
+		"page":     page,
+		"limit":    limit,
+	})
 }
 
 func GetContact(c *gin.Context) {

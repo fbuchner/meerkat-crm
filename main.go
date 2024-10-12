@@ -39,7 +39,7 @@ func main() {
 
 	// Migrate the schema
 	log.Println("Loading migrations...")
-	db.AutoMigrate(&models.Activity{}, &models.Contact{}, &models.Note{}, &models.Circle{})
+	db.AutoMigrate(&models.Activity{}, &models.Contact{}, &models.Note{})
 
 	log.Println("Running scheduler...")
 	// Schedule the birthday reminder task daily
@@ -67,6 +67,7 @@ func main() {
 		// Contact routes
 		r.GET("/contacts", controllers.GetAllContacts)
 		r.POST("/contacts", controllers.CreateContact)
+		r.POST("/contacts/circles", controllers.CreateContact)
 		r.GET("/contacts/:id", controllers.GetContact)
 		r.PUT("/contacts/:id", controllers.UpdateContact)
 		r.DELETE("/contacts/:id", controllers.DeleteContact)

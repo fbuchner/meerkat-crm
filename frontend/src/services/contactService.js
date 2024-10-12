@@ -12,6 +12,15 @@ export default {
       throw error;
     }
   },
+  async getCircles() {
+    try {
+      const response = await apiClient.get(`${API_URL}/circles`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching circles:', error);
+      throw error;
+    }
+  },
   async getContact(contactId) {
     try {
       const response = await apiClient.get(`${API_URL}/${contactId}`);

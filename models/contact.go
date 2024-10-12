@@ -21,12 +21,6 @@ type Relationship struct {
 	RelatedContact *Contact `gorm:"foreignKey:ContactID" json:"related_contact,omitempty"` // Linked Contact if exists
 }
 
-// Circle struct to represent a circle of contacts
-type Circle struct {
-	ID   uint   `json:"id"`
-	Name string `json:"name"`
-}
-
 // Contact struct updated with relationships potentially linking to other contacts
 type Contact struct {
 	gorm.Model
@@ -45,7 +39,7 @@ type Contact struct {
 	FoodPreference     string         `json:"food_preference"`                                          // Text field
 	WorkInformation    string         `json:"work_information"`                                         // Text field
 	ContactInformation string         `json:"contact_information"`                                      // Additional contact information
-	Circles            []Circle       `gorm:"many2many:contact_circles" json:"circles"`                 // Many-to-many relationship with circles
+	Circles            []string       `gorm:"type:text" json:"circles"`                                 // Store circles as a JSON array
 	Activities         []Activity     `gorm:"many2many:activity_contacts;" json:"activities,omitempty"` // Reverse relationship
 	Notes              []Note         `json:"notes,omitempty"`                                          // One-to-many relationship with notes
 }

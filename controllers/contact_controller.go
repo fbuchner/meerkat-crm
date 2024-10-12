@@ -216,3 +216,20 @@ func AddRelationshipToContact(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Relationship added to contact successfully"})
 }
+
+// GetCircles returns all unique circles associated with contacts.
+func GetCircles(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	var circleNames []string
+
+	// Raw SQL query to extract unique circle names
+	err := db.Raw(`SELECT DISTINCT json_each.value AS circle 
+	               FROM contacts, json_each(contacts.circles)`).Scan(&circleNames).Error
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve circles"})
+		return
+	}
+
+	// Return the list of unique circle names
+	c.JSON(http.StatusOK, circleNames)
+}

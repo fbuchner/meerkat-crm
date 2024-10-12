@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"perema/controllers"
 	"perema/models"
+	"perema/routes"
 
 	"time"
 
@@ -58,44 +58,10 @@ func main() {
 		c.Next()
 	})
 
-	authorized := r.Group("/")
 	r.Static("/static", "./frontend/dist")
 
-	//TODO: check why secret is not being required
-	authorized.Use(AuthMiddleware())
-	{
-		// Contact routes
-		r.GET("/contacts", controllers.GetAllContacts)
-		r.POST("/contacts", controllers.CreateContact)
-		r.POST("/contacts/circles", controllers.CreateContact)
-		r.GET("/contacts/:id", controllers.GetContact)
-		r.PUT("/contacts/:id", controllers.UpdateContact)
-		r.DELETE("/contacts/:id", controllers.DeleteContact)
-		r.POST("/contacts/:id/relationships", controllers.AddRelationshipToContact)
-		r.POST("/contacts/:id/profile_picture", controllers.AddProfilePictureToContact)
-
-		// Note routes
-		r.GET("/contacts/:id/notes", controllers.GetNotesForContact)
-		r.POST("/contacts/:id/notes", controllers.CreateNote)
-		r.GET("/notes/:id", controllers.GetNote)
-		r.PUT("/notes/:id", controllers.UpdateNote)
-		r.DELETE("/notes/:id", controllers.DeleteNote)
-
-		// Activity routes
-		r.GET("/contacts/:id/activities", controllers.GetActivitiesForContact)
-		r.POST("/activities", controllers.CreateActivity)
-		r.GET("/activities/:id", controllers.GetActivity)
-		r.PUT("/activities/:id", controllers.UpdateActivity)
-		r.DELETE("/activities/:id", controllers.DeleteActivity)
-		r.POST("/activities/:id/contacts/:contact_id", controllers.AddContactToActivity)
-		r.DELETE("/activities/:id/contacts/:contact_id", controllers.RemoveContactFromActivity)
-	}
-
-	jwt_debug, err := GenerateDebugJWT()
-	if err != nil {
-		panic("Unable to create JWT token based on your secret.")
-	}
-	log.Println("Use this token for testing: ", jwt_debug)
+	// Register all routes from routes.go
+	routes.RegisterRoutes(r)
 
 	log.Println("Server listening on Port 8080...")
 
@@ -165,6 +131,7 @@ func sendBirthdayMail(birthday_person_nick, birthday_person, birthday_age string
 	}
 }
 
+// TODO: use this middleware to protect routes
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := c.GetHeader("Authorization")

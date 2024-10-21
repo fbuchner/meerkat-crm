@@ -32,6 +32,7 @@ func main() {
 	if dbPath == "" {
 		dbPath = "perema.db" // Default path if environment variable is not set
 	}
+
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
@@ -39,7 +40,9 @@ func main() {
 
 	// Migrate the schema
 	log.Println("Loading migrations...")
-	db.AutoMigrate(&models.Activity{}, &models.Contact{}, &models.Note{})
+	if err := db.AutoMigrate(&models.Contact{}, &models.Activity{}, &models.Note{}); err != nil {
+		log.Fatalf("failed to migrate database schema: %v", err)
+	}
 
 	log.Println("Running scheduler...")
 	// Schedule the birthday reminder task daily
@@ -59,6 +62,8 @@ func main() {
 	})
 
 	r.Static("/static", "./frontend/dist")
+
+	//test.InjectTestData(db)
 
 	// Register all routes from routes.go
 	routes.RegisterRoutes(r)
@@ -82,6 +87,7 @@ func main() {
 	//}
 
 	r.Run(":8080")
+
 }
 
 func sendBirthdayReminders(db *gorm.DB) {

@@ -1,14 +1,18 @@
 <template>
-  <div id="app">
+  <v-app>
     <HeaderNav @search="handleSearch" />
-    <router-view></router-view> <!-- Router will inject the matched component here -->
-  </div>
+    <v-main>
+      <router-view /> <!-- Router will inject the matched component here -->
+    </v-main>
+  </v-app>
 </template>
+
 
 <script>
 import HeaderNav from './components/HeaderNav.vue';
 
 export default {
+  name: 'App',
   components: {
     HeaderNav,
   },

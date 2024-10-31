@@ -1,10 +1,24 @@
 <template>
-    <div class="add-note">
-      <h3>Add a Note</h3>
-      <textarea v-model="newNoteContent" placeholder="Write a note..."></textarea>
-      <button @click="addNote">Add Note</button>
-    </div>
+    <v-container>
+      <v-card>
+        <v-card-title>Add a Note</v-card-title>
+        <v-card-text>
+          <v-form @submit.prevent="addNote">
+            <v-textarea
+              v-model="newNoteContent"
+              label="Write a note..."
+              auto-grow
+              clearable
+              required
+            ></v-textarea>
+  
+            <v-btn type="submit" color="primary" class="mt-3">Add Note</v-btn>
+          </v-form>
+        </v-card-text>
+      </v-card>
+    </v-container>
   </template>
+  
   
   <script>
 
@@ -37,14 +51,3 @@ export default {
 };
   </script>
   
-  <style scoped>
-  .add-note {
-    margin-top: 20px;
-  }
-  
-  textarea {
-    width: 100%;
-    height: 80px;
-    margin-bottom: 10px;
-  }
-  </style>

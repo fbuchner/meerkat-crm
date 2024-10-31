@@ -1,11 +1,15 @@
 import { createVuetify } from 'vuetify'
-import 'vuetify/styles' // Ensure you are using CSS styles
-import { mdi } from 'vuetify/iconsets/mdi' // Use the Material Design Icons (mdi)
+import { aliases, mdi } from 'vuetify/iconsets/mdi' // Use the Material Design Icons (mdi)
+import * as components from 'vuetify/components';
+import * as directives from 'vuetify/directives';
 
 const vuetify = createVuetify({
-  icons: {
-    defaultSet: 'mdi', // Set the default icon pack to mdi
-    sets: { mdi },
+    components,
+    directives,
+    icons: {
+        defaultSet: 'mdi', // Set the default icon pack to mdi
+        aliases,
+        sets: { mdi },
   },
 })
 

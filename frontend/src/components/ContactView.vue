@@ -1,94 +1,86 @@
 <template>
-    <div class="contact-view" v-if="contact">
-        <h1>{{ contact.firstname }} {{ contact.lastname }}</h1>
-        <img :src="contact.photo" alt="Profile Photo" class="contact-photo" />
-        <p><strong>Nickname:</strong> {{ contact.nickname }}</p>
-        <p><strong>Email:</strong> {{ contact.email }}</p>
-        <p><strong>Phone:</strong> {{ contact.phone }}</p>
-        <p><strong>Birthday:</strong> {{ contact.birthday }}</p>
-        <p><strong>Gender:</strong> {{ contact.gender }}</p>
-        <p><strong>Address:</strong> {{ contact.address }}</p>
-        <strong>Partner:</strong>
-        <div v-if="contact.partner"> {{ contact.partner.name }} ({{ contact.partner.gender }} - {{
-            contact.partner.birthday }})</div>
-        <p><strong>How We Met:</strong> {{ contact.how_we_met }}</p>
-        <p><strong>Food Preference:</strong> {{ contact.food_preference }}</p>
-        <p><strong>Work Information:</strong> {{ contact.work_information }}</p>
-        <p><strong>Additional Contact Information:</strong> {{ contact.contact_information }}</p>
+    <v-container v-if="contact">
+        <!-- Top Section with Profile and Edit Button -->
+        <v-row class="d-flex flex-column flex-md-row align-center text-center text-md-left">
+            <v-col cols="12" md="3" class="d-flex justify-center">
+                <v-img :src="contact.photo || ''" alt="Profile Photo" width="150" height="150"
+                    class="circular-frame mb-2 fixed-square" contain></v-img>
+            </v-col>
+            <v-col cols="12" md="9" class="d-flex flex-column justify-center text-center text-md-left">
+                <div class="d-flex align-center justify-center justify-md-start">
+                    <h1 class="text-h4 font-weight-bold">{{ contact.firstname }} {{ contact.lastname }}</h1>
+                    <v-btn color="primary" class="ml-4" @click="editContact">Edit Contact</v-btn>
+                </div>
+                <div v-if="contact.circles && contact.circles.length">
+                    <v-chip-group row>
+                        <v-chip v-for="circle in contact.circles" :key="circle" class="mr-2">{{ circle }}</v-chip>
+                    </v-chip-group>
+                </div>
+            </v-col>
+        </v-row>
 
-        <div v-if="contact.relationships?.length">
-            <h3>Relationships</h3>
-            <ul>
-                <li v-for="relationship in contact.relationships" :key="relationship.name">
-                    {{ relationship.type }}: {{ relationship.name }} ({{ relationship.gender }} - {{
-                        relationship.birthday }})
-                </li>
-            </ul>
-        </div>
 
-        <div v-if="contact.circles?.length">
-            <h3>Circles</h3>
-            <ul>
-                <li v-for="circle in contact.circles" :key="circle.ID">
-                    {{ circle.name }}
-                </li>
-            </ul>
-        </div>
+        <!-- Main Layout with Details and Timeline -->
+        <v-row class="mt-4">
+            <!-- Left Column: Details -->
+            <v-col cols="12" md="4">
+                <v-card outlined>
+                    <v-card-title>Contact Details</v-card-title>
+                    <v-card-text>
+                        <v-list dense>
+                            <v-list-item><strong>Nickname:</strong> {{ contact.nickname }}</v-list-item>
+                            <v-list-item><strong>Gender:</strong> {{ contact.gender }}</v-list-item>
+                            <v-list-item><strong>Birthday:</strong> {{ contact.birthday }}</v-list-item>
+                            <v-list-item><strong>Email:</strong> {{ contact.email }}</v-list-item>
+                            <v-list-item><strong>Phone:</strong> {{ contact.phone }}</v-list-item>
+                            <v-list-item><strong>Address:</strong> {{ contact.address }}</v-list-item>
+                            <v-list-item><strong>How We Met:</strong> {{ contact.how_we_met }}</v-list-item>
+                            <v-list-item><strong>Food Preference:</strong> {{ contact.food_preference }}</v-list-item>
+                            <v-list-item><strong>Work Information:</strong> {{ contact.work_information }}</v-list-item>
+                            <v-list-item><strong>Additional Information:</strong> {{ contact.contact_information
+                                }}</v-list-item>
+                        </v-list>
+                    </v-card-text>
+                </v-card>
+            </v-col>
 
-        <!-- Add the ActivityAdd component here -->
-        <ActivityAdd :contactId="ID" @activityAdded="fetchContact" />
+            <!-- Right Column: Timeline for Notes and Activities -->
+            <v-col cols="12" md="8">
+                <v-card outlined>
+                    <v-card-title>Timeline</v-card-title>
+                    <v-card-text>
+                        <v-list dense>
+                            <!-- Activities Timeline -->
+                            <v-subheader>Activities</v-subheader>
+                            <v-list-item v-for="activity in contact.activities" :key="activity.ID">
+                                <v-list-item-content>
+                                    <v-list-item-title>{{ activity.date }} - {{ activity.name }}</v-list-item-title>
+                                    <v-list-item-subtitle>{{ activity.description }} at {{ activity.location
+                                        }}</v-list-item-subtitle>
+                                    <v-btn small text @click="editActivity(activity.ID)">Edit</v-btn>
+                                    <v-btn small text color="error" @click="deleteActivity(activity.ID)">Delete</v-btn>
+                                </v-list-item-content>
+                            </v-list-item>
 
-        <!-- Displaying Activities with Edit/Delete Options -->
-        <div v-if="contact.activities?.length">
-            <h3>Activities</h3>
-            <ul>
-                <li v-for="activity in contact.activities" :key="activity.ID">
-                    <div v-if="editingActivityId === activity.ID">
-                        <input v-model="activity.name" placeholder="Activity name" />
-                        <input v-model="activity.date" type="date" />
-                        <input v-model="activity.description" placeholder="Activity description" />
-                        <input v-model="activity.location" placeholder="Activity location" />
-                        <button @click="saveActivity(activity)">Save</button>
-                        <button @click="cancelEditActivity">Cancel</button>
-                    </div>
-                    <div v-else>
-                        {{ activity.name }} - {{ activity.date }}
-                        <p>{{ activity.description }}</p>
-                        <p>{{ activity.location }}</p>
-                        <button @click="editActivity(activity.ID)">Edit</button>
-                        <button @click="deleteActivity(activity.ID)">Delete</button>
-                    </div>
-                </li>
-            </ul>
-        </div>
-
-       <!-- Add the NoteAdd component here -->
-        <NoteAdd :contactId="ID" @noteAdded="fetchContact" />
-
-        <div v-if="contact.notes?.length">
-            <h3>Notes</h3>
-            <ul>
-                <li v-for="note in contact.notes" :key="note.ID">
-                    <div v-if="editingNoteId === note.ID">
-                        <textarea v-model="note.content"></textarea>
-                        <button @click="saveNote(note)">Save</button>
-                        <button @click="cancelEditNote">Cancel</button>
-                    </div>
-                    <div v-else>
-                        {{ note.date }}: {{ note.content }}
-                        <button @click="editNote(note.ID)">Edit</button>
-                        <button @click="deleteNote(note.ID)">Delete</button>
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </div>
+                            <!-- Notes Timeline -->
+                            <v-subheader class="mt-4">Notes</v-subheader>
+                            <v-list-item v-for="note in contact.notes" :key="note.ID">
+                                <v-list-item-content>
+                                    <v-list-item-title>{{ note.date }}: {{ note.content }}</v-list-item-title>
+                                    <v-btn small text @click="editNote(note.ID)">Edit</v-btn>
+                                    <v-btn small text color="error" @click="deleteNote(note.ID)">Delete</v-btn>
+                                </v-list-item-content>
+                            </v-list-item>
+                        </v-list>
+                    </v-card-text>
+                </v-card>
+            </v-col>
+        </v-row>
+    </v-container>
 </template>
 
 <script>
 import contactService from '@/services/contactService';
-import ActivityAdd from '@/components/ActivityAdd.vue'; 
-import NoteAdd from '@/components/NoteAdd.vue'; 
 
 export default {
     name: 'ContactView',
@@ -96,10 +88,6 @@ export default {
         ID: {
             required: true,
         },
-    },
-    components: {
-        ActivityAdd, 
-        NoteAdd,
     },
     data() {
         return {
@@ -120,28 +108,16 @@ export default {
                 console.error('Error fetching contact:', error);
             }
         },
+        editContact() {
+            // Trigger edit contact functionality
+        },
         editActivity(activityId) {
             this.editingActivityId = activityId;
-        },
-        cancelEditActivity() {
-            this.editingActivityId = null;
-        },
-        async saveActivity(activity) {
-            try {
-                await contactService.updateActivity(activity.ID, {
-                    name: activity.name,
-                    date: activity.date,
-                });
-                this.editingActivityId = null;
-                this.fetchContact(); // Refresh contact to get the updated activity
-            } catch (error) {
-                console.error('Error saving activity:', error);
-            }
         },
         async deleteActivity(activityId) {
             try {
                 await contactService.deleteActivity(activityId);
-                this.fetchContact(); // Refresh contact to remove deleted activity
+                this.fetchContact();
             } catch (error) {
                 console.error('Error deleting activity:', error);
             }
@@ -149,22 +125,10 @@ export default {
         editNote(noteId) {
             this.editingNoteId = noteId;
         },
-        cancelEditNote() {
-            this.editingNoteId = null;
-        },
-        async saveNote(note) {
-            try {
-                await contactService.updateNote(note.ID, { content: note.content });
-                this.editingNoteId = null;
-                this.fetchContact(); // Refresh contact data
-            } catch (error) {
-                console.error('Error saving note:', error);
-            }
-        },
         async deleteNote(noteId) {
             try {
                 await contactService.deleteNote(noteId);
-                this.fetchContact(); // Refresh contact data
+                this.fetchContact();
             } catch (error) {
                 console.error('Error deleting note:', error);
             }
@@ -174,18 +138,25 @@ export default {
 </script>
 
 <style scoped>
-.contact-view {
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 20px;
-    border: 1px solid #ccc;
+.rounded {
     border-radius: 8px;
 }
 
-.contact-photo {
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    object-fit: cover;
+.mb-2 {
+    margin-bottom: 16px;
 }
+
+.circular-frame {
+  border-radius: 50%;
+  background-color: #f0f0f0; /* Light gray background for empty frame */
+  border: 2px solid #ccc;    /* Optional: subtle border */
+}
+
+.fixed-square {
+  width: 150px;
+  height: 150px;
+  max-width: 150px;
+  max-height: 150px;
+}
+
 </style>

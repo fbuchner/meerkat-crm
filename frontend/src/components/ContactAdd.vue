@@ -1,93 +1,138 @@
 <template>
-  <div class="add-contact">
-    <h2>Add New Contact</h2>
-    <form @submit.prevent="submitForm">
-      <div>
-        <label for="firstname">First Name:</label>
-        <input type="text" v-model="contact.firstname" id="firstname" required />
-      </div>
+  <v-container>
+    <v-row>
+      <v-col>
+        <v-card>
+          <v-card-title>Add New Contact</v-card-title>
+          <v-card-text>
+            <v-form @submit.prevent="submitForm">
+              <v-text-field
+                label="First Name"
+                v-model="contact.firstname"
+                required
+              ></v-text-field>
 
-      <div>
-        <label for="lastname">Last Name:</label>
-        <input type="text" v-model="contact.lastname" id="lastname" />
-      </div>
+              <v-text-field
+                label="Last Name"
+                v-model="contact.lastname"
+              ></v-text-field>
 
-      <div>
-        <label for="nickname">Nickname:</label>
-        <input type="text" v-model="contact.nickname" id="nickname" />
-      </div>
+              <v-text-field
+                label="Nickname"
+                v-model="contact.nickname"
+              ></v-text-field>
 
-      <div>
-        <label for="gender">Gender:</label>
-        <select v-model="contact.gender" id="gender">
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
-          <option value="Unknown">Unknown</option>
-        </select>
-      </div>
+              <v-select
+                label="Gender"
+                v-model="contact.gender"
+                :items="['Male', 'Female', 'Unknown']"
+              ></v-select>
 
-      <div>
-        <label for="circles">Circles:</label>
-        <div class="circles-input">
-          <input type="text" v-model="circleInput" @keyup.space="addCircle"
-            placeholder="Add a circle and press Space" />
-          <div class="circles-list">
-            <span v-for="(circle, index) in contact.circles" :key="index" class="circle-tag">
-              {{ circle }}
-              <button type="button" @click="removeCircle(index)" class="remove-circle-button">x</button>
-            </span>
-          </div>
-        </div>
-      </div>
+              <v-text-field
+                label="Circles"
+                v-model="circleInput"
+                @keyup.space="addCircle"
+                placeholder="Add a circle and press Space"
+              ></v-text-field>
+
+              <v-chip-group v-if="contact.circles.length">
+                <v-chip
+                  v-for="(circle, index) in contact.circles"
+                  :key="index"
+                  close
+                  @click:close="removeCircle(index)"
+                >
+                  {{ circle }}
+                </v-chip>
+              </v-chip-group>
+
+              <v-text-field
+                label="Email"
+                v-model="contact.email"
+                type="email"
+              ></v-text-field>
+
+              <v-text-field
+                label="Phone"
+                v-model="contact.phone"
+                type="tel"
+              ></v-text-field>
+
+              <v-menu
+                ref="menu"
+                v-model="menu"
+                :close-on-content-click="false"
+                transition="scale-transition"
+                offset-y
+                min-width="290px"
+              >
+                <template v-slot:activator="{ on, attrs }">
+                  <v-text-field
+                    v-model="formattedBirthday"
+                    label="Birthday"
+                    prepend-icon="mdi-calendar"
+                    readonly
+                    v-bind="attrs"
+                    v-on="on"
+                  ></v-text-field>
+                </template>
+                <v-date-picker 
+                  v-model="contact.birthday" 
+                  no-title 
+                  @input="updateBirthday"
+                ></v-date-picker>
+              </v-menu>
 
 
+              <v-text-field
+                label="Address"
+                v-model="contact.address"
+              ></v-text-field>
 
-      <div>
-        <label for="email">Email:</label>
-        <input type="email" v-model="contact.email" id="email" />
-      </div>
+              <v-textarea
+                label="How We Met"
+                v-model="contact.how_we_met"
+              ></v-textarea>
 
-      <div>
-        <label for="phone">Phone:</label>
-        <input type="tel" v-model="contact.phone" id="phone" />
-      </div>
+              <v-text-field
+                label="Food Preference"
+                v-model="contact.food_preference"
+              ></v-text-field>
 
-      <div>
-        <label for="birthday">Birthday:</label>
-        <input type="date" v-model="contact.birthday" id="birthday" />
-      </div>
+              <v-text-field
+                label="Work Information"
+                v-model="contact.work_information"
+              ></v-text-field>
 
-      <div>
-        <label for="address">Address:</label>
-        <input type="text" v-model="contact.address" id="address" />
-      </div>
+              <v-textarea
+                label="Additional Contact Information"
+                v-model="contact.contact_information"
+              ></v-textarea>
 
-      <div>
-        <label for="howWeMet">How We Met:</label>
-        <textarea v-model="contact.how_we_met" id="howWeMet"></textarea>
-      </div>
+              <v-btn type="submit" color="primary">Add Contact</v-btn>
 
-      <div>
-        <label for="foodPreference">Food Preference:</label>
-        <input type="text" v-model="contact.food_preference" id="foodPreference" />
-      </div>
-
-      <div>
-        <label for="workInformation">Work Information:</label>
-        <input type="text" v-model="contact.work_information" id="workInformation" />
-      </div>
-
-      <div>
-        <label for="contactInformation">Additional Contact Information:</label>
-        <textarea v-model="contact.contact_information" id="contactInformation"></textarea>
-      </div>
-
-      <button type="submit">Add Contact</button>
-    </form>
-
-    <p v-if="successMessage" class="success-message">{{ successMessage }}</p>
-    <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-  </div>
+              <v-alert
+                v-if="successMessage"
+                type="success"
+                dismissible
+                class="mt-3"
+              >
+                {{ successMessage }}
+              </v-alert>
+              <v-alert
+                v-if="errorMessage"
+                type="error"
+                dismissible
+                class="mt-3"
+              >
+                {{ errorMessage }}
+              </v-alert>
+            </v-form>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script>
@@ -103,7 +148,7 @@ export default {
         gender: 'Unknown',
         email: '',
         phone: '',
-        birthday: '',
+        birthday: '', // stores the selected date in YYYY-MM-DD format
         address: '',
         how_we_met: '',
         food_preference: '',
@@ -114,6 +159,8 @@ export default {
       successMessage: '',
       errorMessage: '',
       circleInput: '',
+      menu: false, // controls the open/close state of the date picker menu
+      formattedBirthday: '', // formatted birthday for display
     };
   },
   methods: {
@@ -157,79 +204,18 @@ export default {
         circles: [],
       };
       this.circleInput = '';
+      this.formattedBirthday = '';
+    },
+    updateBirthday(date) {
+      // Update the contact's birthday and format it for display
+      this.contact.birthday = date;
+      this.formattedBirthday = this.formatDate(date);
+      this.menu = false;
+    },
+    formatDate(date) {
+      const options = { year: 'numeric', month: 'long', day: 'numeric' };
+      return new Date(date).toLocaleDateString(undefined, options);
     },
   },
 };
 </script>
-
-<style scoped>
-.add-contact {
-  max-width: 600px;
-  margin: auto;
-}
-
-form div {
-  margin-bottom: 15px;
-}
-
-form label {
-  display: block;
-  font-weight: bold;
-}
-
-form input,
-form textarea {
-  width: 100%;
-  padding: 8px;
-  box-sizing: border-box;
-}
-
-.circles-input {
-  display: flex;
-  flex-direction: column;
-}
-
-.circles-list {
-  margin-top: 10px;
-}
-
-.circle-tag {
-  display: inline-block;
-  background-color: #e0e0e0;
-  padding: 5px 10px;
-  margin-right: 5px;
-  margin-bottom: 5px;
-  border-radius: 20px;
-  font-size: 0.9em;
-}
-
-button {
-  padding: 10px 20px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #0056b3;
-}
-
-.success-message {
-  color: green;
-}
-
-.error-message {
-  color: red;
-}
-
-
-.remove-circle-button {
-  background: none;
-  border: none;
-  color: #ff0000;
-  margin-left: 5px;
-  cursor: pointer;
-  font-weight: bold;
-}
-</style>

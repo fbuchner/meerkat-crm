@@ -51,23 +51,31 @@
 </template>
 
 <script>
+import { inject, ref } from 'vue';
+
 export default {
-  data() {
+  emits: ['search'], // Declare the search event here
+  setup() {
+    const searchQuery = ref('');
+    const setSearchQuery = inject('setSearchQuery'); // Use the injected function
+
+    function searchContacts() {
+      setSearchQuery(searchQuery.value); // Directly update the provided search query
+    }
+
+    const isMobile = ref(window.innerWidth <= 960);
+
+    function handleResize() {
+      isMobile.value = window.innerWidth <= 960;
+    }
+
+    window.addEventListener('resize', handleResize);
+
     return {
-      searchQuery: '',
-      isMobile: window.innerWidth <= 960, // Assumes 960px and below is mobile
+      searchQuery,
+      isMobile,
+      searchContacts,
     };
-  },
-  methods: {
-    searchContacts() {
-      this.$emit('search', this.searchQuery);
-    },
-    handleResize() {
-      this.isMobile = window.innerWidth <= 960;
-    },
-  },
-  mounted() {
-    window.addEventListener('resize', this.handleResize);
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.handleResize);

@@ -7,21 +7,28 @@
   </v-app>
 </template>
 
-
 <script>
 import HeaderNav from './components/HeaderNav.vue';
+import { ref, provide } from 'vue';
 
 export default {
   name: 'App',
   components: {
     HeaderNav,
   },
-  methods: {
-    handleSearch(query) {
-      // Handle the search logic, e.g., filter contacts based on query
+  setup() {
+    const searchQuery = ref('');
+
+    // Define handleSearch as a function to update the search query
+    function handleSearch(query) {
+      searchQuery.value = query;
       console.log('Search query:', query);
-    },
+    }
+
+    provide('searchQuery', searchQuery); // Provide searchQuery to child components
+    provide('setSearchQuery', handleSearch); // Provide the search update function
+
+    return { handleSearch }; // Return handleSearch for use in template
   },
 };
 </script>
-

@@ -12,7 +12,7 @@ import (
 
 func CreateActivity(c *gin.Context) {
 	var requestBody struct {
-		Name        string      `json:"name"`
+		Title       string      `json:"title"`
 		Date        models.Date `json:"date"`
 		Description string      `json:"description"`
 		Location    string      `json:"location"`
@@ -39,7 +39,7 @@ func CreateActivity(c *gin.Context) {
 
 	// Create a new activity without the associations initially
 	activity := models.Activity{
-		Name:        requestBody.Name,
+		Title:       requestBody.Title,
 		Date:        requestBody.Date,
 		Description: requestBody.Description,
 		Location:    requestBody.Location,

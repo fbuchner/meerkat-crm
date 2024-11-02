@@ -39,10 +39,11 @@
                         <v-list dense>
                             <v-list-item v-for="(value, key) in contactDetails" :key="key" class="field-label">
                                 <div>
-                                    <strong>{{ key }}:</strong>
+                                    <strong>{{ key }}: </strong>
                                     <span v-if="!isEditing[key]" @click="startEditing(key)">
                                         {{ value }}
-                                        <v-icon small class="edit-icon" @click.stop="startEditing(key)">mdi-pencil</v-icon>
+                                        <v-icon small class="edit-icon"
+                                            @click.stop="startEditing(key)">mdi-pencil</v-icon>
                                     </span>
                                     <div v-else class="edit-field">
                                         <v-text-field v-model="editValues[key]" dense hide-details></v-text-field>
@@ -59,44 +60,63 @@
             <!-- Right Column: Timeline for Notes and Activities -->
             <v-col cols="12" md="8">
                 <v-card outlined>
-                    <v-card-title>Timeline</v-card-title>
+                    <v-card-title>
+                        Timeline
+                        <v-spacer></v-spacer>
+                        <v-btn @click="openAddNote" density="compact" prepend-icon="mdi-note-plus-outline">Add
+                            note</v-btn>
+                        <v-btn @click="openAddActivity" density="compact"
+                            prepend-icon="mdi-account-multiple-plus-outline" class="ml-2">Add activity</v-btn>
+                    </v-card-title>
                     <v-card-text>
-                        <v-list dense>
-                            <!-- Activities Timeline -->
-                            <v-card-subtitle>Activities</v-card-subtitle>
-                            <v-divider></v-divider>
-                            <v-list-item v-for="activity in contact.activities" :key="activity.ID">
-                                <div>
-                                    <strong>{{ activity.date }} - {{ activity.name }}</strong><br>
-                                    <span>{{ activity.description }} at {{ activity.location }}</span>
+                        <v-timeline density="compact" side="end">
+                            <v-timeline-item v-for="item in sortedTimelineItems" :key="item.id"
+                                :color="item.type === 'activity' ? 'blue lighten-3' : 'green lighten-3'"
+                                :icon="item.type === 'activity' ? 'mdi-calendar' : 'mdi-note-text'">
+                                <template v-slot:opposite>
+                                    <strong>{{ item.date }}</strong>
+                                </template>
+                                <div v-if="item.type === 'activity'">
+                                    <h3 class="text-subtitle-1">{{ item.title }}</h3>
+                                    <p>{{ item.description }} at {{ item.location }}</p>
+                                    <v-icon small class="edit-icon" @click="editActivity(item.id)">mdi-pencil</v-icon>
+                                    <v-icon small class="delete-icon" color="error"
+                                        @click="deleteActivity(item.id)">mdi-delete</v-icon>
                                 </div>
-                                <v-btn small text @click="editActivity(activity.ID)">Edit</v-btn>
-                                <v-btn small text color="error" @click="deleteActivity(activity.ID)">Delete</v-btn>
-                            </v-list-item>
-
-                            <!-- Divider between sections -->
-                            <v-divider class="my-4"></v-divider>
-
-                            <!-- Notes Timeline -->
-                            <v-card-subtitle>Notes</v-card-subtitle>
-                            <v-list-item v-for="note in contact.notes" :key="note.ID">
-                                <div>
-                                    <strong>{{ note.date }}:</strong> {{ note.content }}
+                                <div v-else>
+                                    <h3 class="text-subtitle-1">Note</h3>
+                                    <p>{{ item.content }}</p>
+                                    <v-icon small class="edit-icon" @click="editNote(item.id)">mdi-pencil</v-icon>
+                                    <v-icon small class="delete-icon" color="error"
+                                        @click="deleteNote(item.id)">mdi-delete</v-icon>
                                 </div>
-                                <v-btn small text @click="editNote(note.ID)">Edit</v-btn>
-                                <v-btn small text color="error" @click="deleteNote(note.ID)">Delete</v-btn>
-                            </v-list-item>
-                        </v-list>
+                            </v-timeline-item>
+                        </v-timeline>
                     </v-card-text>
                 </v-card>
             </v-col>
         </v-row>
+
+        <!-- Dialog Modals for Adding Activity and Note -->
+        <v-dialog v-model="showAddActivity" max-width="500px" persistent>
+            <ActivityAdd :contactId="contact.ID" @activityAdded="refreshContact" @close="showAddActivity = false" />
+        </v-dialog>
+
+        <v-dialog v-model="showAddNote" max-width="500px" persistent>
+            <NoteAdd :contactId="contact.ID" @noteAdded="refreshContact" @close="showAddNote = false" />
+        </v-dialog>
+
+
     </v-container>
 </template>
 
 <script>
 import contactService from '@/services/contactService';
 import { reactive } from 'vue';
+import ActivityAdd from '@/components/ActivityAdd.vue';
+import NoteAdd from '@/components/NoteAdd.vue';
+import activityService from '@/services/activityService';
+import noteService from '@/services/noteService';
 
 export default {
     name: 'ContactView',
@@ -105,15 +125,16 @@ export default {
             required: true,
         },
     },
+    components: { ActivityAdd, NoteAdd },
     data() {
         return {
             contact: null,
-            editingActivityId: null,
-            editingNoteId: null,
-            isEditing: reactive({}), // Track edit state for each field
-            editValues: reactive({}), // Store current edit values for each field
-            isEditingName: false, // Track edit state for name
-            editName: '', // Temp storage for editing the name
+            showAddActivity: false,
+            showAddNote: false,
+            isEditing: reactive({}),
+            editValues: reactive({}),
+            isEditingName: false,
+            editName: '',
         };
     },
     computed: {
@@ -131,6 +152,26 @@ export default {
                 'Additional Information': this.contact.contact_information,
             };
         },
+        sortedTimelineItems() {
+            const activities = (this.contact.activities || []).map(activity => ({
+                id: activity.ID,
+                type: 'activity',
+                date: activity.date,
+                title: activity.title,
+                description: activity.description,
+                location: activity.location,
+            }));
+
+            const notes = (this.contact.notes || []).map(note => ({
+                id: note.ID,
+                type: 'note',
+                date: note.date,
+                content: note.content,
+            }));
+
+            return [...activities, ...notes].sort((a, b) => new Date(a.date) - new Date(b.date));
+        },
+
     },
     mounted() {
         this.fetchContact();
@@ -140,14 +181,10 @@ export default {
             try {
                 const response = await contactService.getContact(this.ID);
                 this.contact = response.data;
-
-                // Initialize editing states and edit values based on contact details
                 Object.keys(this.contactDetails).forEach((key) => {
                     this.isEditing[key] = false;
                     this.editValues[key] = this.contactDetails[key];
                 });
-
-                // Set up the name for editing
                 this.editName = `${this.contact.firstname} ${this.contact.lastname}`;
             } catch (error) {
                 console.error('Error fetching contact:', error);
@@ -159,11 +196,7 @@ export default {
         async saveNameEdit() {
             const [firstname, lastname] = this.editName.split(' ');
             try {
-                await contactService.updateContact(this.ID, {
-                    ...this.contact,
-                    firstname,
-                    lastname,
-                });
+                await contactService.updateContact(this.ID, { ...this.contact, firstname, lastname });
                 this.contact.firstname = firstname || this.contact.firstname;
                 this.contact.lastname = lastname || this.contact.lastname;
                 this.isEditingName = false;
@@ -175,27 +208,48 @@ export default {
             this.isEditingName = false;
             this.editName = `${this.contact.firstname} ${this.contact.lastname}`;
         },
-        startEditing(key) {
-            this.isEditing[key] = true;
-            this.editValues[key] = this.contactDetails[key];
+        openAddActivity() {
+            this.showAddActivity = true;
         },
-        async saveEdit(key) {
-            const updatedData = { ...this.contact, [key.toLowerCase()]: this.editValues[key] };
+        openAddNote() {
+            this.showAddNote = true;
+        },
+        async editActivity(activityId) {
+            this.showAddActivity = true;
+            this.editingActivityId = activityId;
+        },
+        async deleteActivity(activityId) {
             try {
-                await contactService.updateContact(this.ID, updatedData);
-                this.contact[key.toLowerCase()] = this.editValues[key];
-                this.isEditing[key] = false;
+                await activityService.deleteActivity(activityId);
+                this.refreshContact(); // Refresh contact details after deletion
             } catch (error) {
-                console.error(`Error updating ${key}:`, error);
+                console.error('Error deleting activity:', error);
             }
         },
-        cancelEdit(key) {
-            this.isEditing[key] = false;
-            this.editValues[key] = this.contactDetails[key];
+        async editNote(noteId) {
+            this.showAddNote = true;
+            this.editingNoteId = noteId;
+        },
+        async deleteNote(noteId) {
+            try {
+                await noteService.deleteNote(noteId);
+                this.refreshContact(); // Refresh contact details after deletion
+            } catch (error) {
+                console.error('Error deleting note:', error);
+            }
+        },
+        // Refresh the contact details after adding, editing, or deleting
+        refreshContact() {
+            this.showAddActivity = false;
+            this.showAddNote = false;
+            this.editingActivityId = null;
+            this.editingNoteId = null;
+            this.fetchContact();
         },
     },
 };
 </script>
+
 
 <style scoped>
 .field-label {
@@ -206,12 +260,14 @@ export default {
 
 .edit-icon {
     cursor: pointer;
-    opacity: 0; /* Hide by default */
+    opacity: 0;
+    /* Hide by default */
     transition: opacity 0.3s ease;
 }
 
 .field-label:hover .edit-icon {
-    opacity: 1; /* Show on hover */
+    opacity: 1;
+    /* Show on hover */
 }
 
 .edit-field {

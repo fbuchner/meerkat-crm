@@ -12,9 +12,10 @@ export default {
       throw error;
     }
   },
-  async addNote(contactId, content) {
+  async addNote(contactId, noteData) {
+    console.log('noteData:', noteData);
     try {
-      await apiClient.post(`/contacts/${contactId}/notes`, { content });
+      await apiClient.post(`/contacts/${contactId}/notes`, noteData);
     } catch (error) {
       console.error('Error adding note:', error);
       throw error;

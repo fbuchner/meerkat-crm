@@ -7,7 +7,7 @@ import (
 // Activity struct to represent shared activities with one or more contacts
 type Activity struct {
 	gorm.Model
-	Name        string    `json:"name"`
+	Title       string    `json:"title"`
 	Description string    `json:"description"`
 	Location    string    `json:"location"`
 	Date        Date      `json:"date"`

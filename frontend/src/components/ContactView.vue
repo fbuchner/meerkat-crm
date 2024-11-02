@@ -71,24 +71,26 @@
                     <v-card-text>
                         <v-timeline density="compact" side="end">
                             <v-timeline-item v-for="item in sortedTimelineItems" :key="item.id"
-                                :color="item.type === 'activity' ? 'blue lighten-3' : 'green lighten-3'"
+                                :dot-color="item.type === 'activity' ? 'blue lighten-3' : 'green lighten-3'"
                                 :icon="item.type === 'activity' ? 'mdi-calendar' : 'mdi-note-text'">
-                                <template v-slot:opposite>
+
+                                <div class="timeline-date-section" v-if="item.type === 'activity'">
                                     <strong>{{ item.date }}</strong>
-                                </template>
-                                <div v-if="item.type === 'activity'">
-                                    <h3 class="text-subtitle-1">{{ item.title }}</h3>
-                                    <p>{{ item.description }} at {{ item.location }}</p>
-                                    <v-icon small class="edit-icon" @click="editActivity(item.id)">mdi-pencil</v-icon>
-                                    <v-icon small class="delete-icon" color="error"
+                                    <v-icon small class="edit-icon ml-2"
+                                        @click="editActivity(item.id)">mdi-pencil</v-icon>
+                                    <v-icon small class="delete-icon ml-2" color="error"
                                         @click="deleteActivity(item.id)">mdi-delete</v-icon>
+                                    <h3 class="text-subtitle-1">{{ item.title }}</h3>
+                                    <p>{{ item.description }}<span v-if="item.location"> at {{ item.location }}</span>
+                                    </p>
                                 </div>
-                                <div v-else>
-                                    <h3 class="text-subtitle-1">Note</h3>
-                                    <p>{{ item.content }}</p>
-                                    <v-icon small class="edit-icon" @click="editNote(item.id)">mdi-pencil</v-icon>
-                                    <v-icon small class="delete-icon" color="error"
+
+                                <div class="timeline-date-section" v-else>
+                                    <strong>{{ item.date }}</strong><v-icon small class="edit-icon ml-2"
+                                        @click="editNote(item.id)">mdi-pencil</v-icon>
+                                    <v-icon small class="delete-icon ml-2" color="error"
                                         @click="deleteNote(item.id)">mdi-delete</v-icon>
+                                    <p>{{ item.content }}</p>
                                 </div>
                             </v-timeline-item>
                         </v-timeline>
@@ -169,7 +171,7 @@ export default {
                 content: note.content,
             }));
 
-            return [...activities, ...notes].sort((a, b) => new Date(a.date) - new Date(b.date));
+            return [...activities, ...notes].sort((a, b) => new Date(b.date) - new Date(a.date));
         },
 
     },
@@ -258,11 +260,18 @@ export default {
     justify-content: space-between;
 }
 
-.edit-icon {
-    cursor: pointer;
+.edit-icon,
+.delete-icon {
     opacity: 0;
-    /* Hide by default */
+    /* Hide icons by default */
     transition: opacity 0.3s ease;
+    cursor: pointer;
+}
+
+.timeline-date-section:hover .edit-icon,
+.timeline-date-section:hover .delete-icon {
+    opacity: 1;
+    /* Show icons on hover */
 }
 
 .field-label:hover .edit-icon {
@@ -270,11 +279,6 @@ export default {
     /* Show on hover */
 }
 
-.edit-field {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
 
 .circular-frame {
     border-radius: 50%;

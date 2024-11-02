@@ -195,6 +195,29 @@ export default {
         startEditingName() {
             this.isEditingName = true;
         },
+        startEditing(key) {
+            this.isEditing[key] = true;
+            this.editValues[key] = this.contactDetails[key];
+        },
+        async saveEdit(key) {
+            try {
+                // Update the local contact data with the edited value
+                this.contact[key.toLowerCase()] = this.editValues[key];
+
+                // Send the updated data to the backend
+                await contactService.updateContact(this.ID, { [key.toLowerCase()]: this.editValues[key] });
+
+                // End the editing mode for this attribute
+                this.isEditing[key] = false;
+            } catch (error) {
+                console.error('Error saving edit:', error);
+                // Optionally, show an error message to the user
+            }
+        },
+        cancelEdit(key) {
+            this.isEditing[key] = false;
+            this.editValues[key] = this.contactDetails[key]; // Revert to the original value
+        },
         async saveNameEdit() {
             const [firstname, lastname] = this.editName.split(' ');
             try {

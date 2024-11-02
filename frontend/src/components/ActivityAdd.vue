@@ -83,7 +83,7 @@ export default {
   },
   methods: {
     formatDate(date) {
-      return date ? new Intl.DateTimeFormat('en-GB').format(date) : '';
+      return date ? new Intl.DateTimeFormat('de-DE').format(date) : '';
     },
     updateFormattedDate() {
       this.formattedActivityDate = this.formatDate(this.newActivityDate);

@@ -23,7 +23,7 @@ export default {
   },
   async updateNote(noteId, content) {
     try {
-      await apiClient.put(`${API_URL}/${noteId}`, { content });
+      await apiClient.put(`${API_URL}/${noteId}`, content );
     } catch (error) {
       console.error('Error updating note:', error);
       throw error;

@@ -1,9 +1,9 @@
 <template>
   <v-container>
     <v-card>
-      <v-card-title>Add a Note</v-card-title>
+      <v-card-title>{{ noteId ? 'Edit Note' : 'Add a Note' }}</v-card-title>
       <v-card-text>
-        <v-form @submit.prevent="addNote">
+        <v-form @submit.prevent="saveNote">
           <v-textarea
             v-model="newNoteContent"
             label="Write a note..."
@@ -40,62 +40,73 @@
       <v-card-actions>
         <v-spacer></v-spacer>
         <v-btn text color="primary" @click="$emit('close')">Cancel</v-btn>
-        <v-btn color="primary" @click="addNote">Add Note</v-btn> <!-- Call addNote directly -->
+        <v-btn color="primary" @click="saveNote">{{ noteId ? 'Save Changes' : 'Add Note' }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-container>
 </template>
 
-
 <script>
 import noteService from '@/services/noteService';
 
 export default {
-  name: 'AddNote',
+  name: 'NoteAdd',
   props: {
-    contactId: {
-      type: Number,
-      required: true,
-    },
+    contactId: { type: Number, required: true },
+    noteId: { type: Number, default: null },
+    initialNote: { type: Object, default: () => ({ content: '', date: new Date() }) },
   },
   data() {
     return {
-      newNoteContent: '',
-      newNoteDate: new Date(), // Initialize as Date object for today's date
-      formattedNoteDate: this.formatDate(new Date()), // Initialize formatted date for display
-      menu: false, // Controls the visibility of the date picker dialog
+      newNoteContent: this.initialNote.content || '',
+      newNoteDate: this.initialNote.date ? new Date(this.initialNote.date) : new Date(),
+      formattedNoteDate: this.initialNote.date ? this.formatDate(new Date(this.initialNote.date)) : this.formatDate(new Date()),
+      menu: false,
     };
   },
   watch: {
     newNoteDate(newDate) {
-      this.formattedNoteDate = this.formatDate(newDate); // Update display date when date changes
+      this.formattedNoteDate = this.formatDate(newDate);
     },
   },
   methods: {
     formatDate(date) {
-      return date ? new Intl.DateTimeFormat('de-DE').format(date) : ''; // Format as "DD/MM/YYYY" or similar
+      return date ? new Intl.DateTimeFormat('de-DE').format(date) : '';
     },
     updateFormattedDate() {
-      this.formattedNoteDate = this.formatDate(this.newNoteDate); // Update the display date
+      this.formattedNoteDate = this.formatDate(this.newNoteDate);
     },
     confirmDate() {
-      this.menu = false; // Close the date picker dialog
+      this.menu = false;
     },
-    async addNote() {
+    async saveNote() {
+      const formattedDate = this.newNoteDate.toISOString().split('T')[0];
+      const noteData = {
+        content: this.newNoteContent,
+        date: formattedDate,
+        contact_id: this.contactId,
+      };
+
       try {
-        const formattedDate = this.newNoteDate.toISOString().split('T')[0]; // Format date as "YYYY-MM-DD" for API
-        await noteService.addNote(this.contactId, {
-          content: this.newNoteContent,
-          date: formattedDate,
-          contact_id: this.contactId,
-        });
-        this.newNoteContent = ''; // Clear the content field
-        this.newNoteDate = new Date(); // Reset the date to today's date
-        this.$emit('noteAdded'); // Emit event to refresh the notes
-        this.$emit('close'); // Close dialog after adding the note
+        if (this.noteId) {
+          // Update the existing note
+          await noteService.updateNote(this.noteId, noteData);
+        } else {
+          // Add a new note
+          await noteService.addNote(noteData);
+        }
+
+        this.resetForm();
+        this.$emit('noteAdded'); // Refresh notes
+        this.$emit('close'); // Close dialog
       } catch (error) {
-        console.error('Error adding note:', error);
+        console.error('Error saving note:', error);
       }
+    },
+    resetForm() {
+      this.newNoteContent = '';
+      this.newNoteDate = new Date();
+      this.formattedNoteDate = this.formatDate(new Date());
     },
   },
 };

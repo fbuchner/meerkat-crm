@@ -107,8 +107,10 @@
 
 
         <v-dialog v-model="showAddNote" max-width="500px" persistent>
-            <NoteAdd :contactId="contact.ID" @noteAdded="refreshContact" @close="showAddNote = false" />
+            <NoteAdd :contactId="contact.ID" :noteId="editingNoteId" :initialNote="editingNoteData"
+                @noteAdded="refreshContact" @close="showAddNote = false" />
         </v-dialog>
+
 
 
     </v-container>
@@ -262,8 +264,13 @@ export default {
             }
         },
         async editNote(noteId) {
-            this.showAddNote = true;
+            const note = this.contact.notes.find((n) => n.ID === noteId);
             this.editingNoteId = noteId;
+            this.editingNoteData = {
+                content: note.content,
+                date: note.date,
+            };
+            this.showAddNote = true;
         },
         async deleteNote(noteId) {
             try {
@@ -279,6 +286,8 @@ export default {
             this.showAddNote = false;
             this.editingActivityId = null;
             this.editingActivityData = null;
+            this.editingNoteId = null;
+            this.editingNoteData = null;
             this.fetchContact();
         },
     },

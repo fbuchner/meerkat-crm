@@ -20,19 +20,22 @@
                     </template>
                 </div>
 
-                <!-- Circles Chips -->
-                <div v-if="contact.circles && contact.circles.length">
-                    <v-chip-group column>
-                        <!-- Display Existing Circles with Delete Option -->
+                <!-- Circles Section -->
+                <div>
+                    <!-- Display Existing Circles with Delete Option (Only if there are circles) -->
+                    <v-chip-group v-if="contact.circles && contact.circles.length" column class="mt-2">
                         <v-chip v-for="(circle, index) in contact.circles" :key="index" class="mr-2" closable
                             @click:close="removeCircle(circle)">
                             {{ circle }}
                         </v-chip>
-                        <!-- Plus Icon to Toggle Add Circle Input -->
-                        <v-icon small class="add-circle-icon ml-2" @click="toggleAddCircle">mdi-plus-circle</v-icon>
                     </v-chip-group>
 
-                    <!-- Input Field for Adding New Circle with Add Button -->
+                    <!-- Plus Icon to Toggle Add Circle Input (Always Visible) -->
+                    <v-icon small class="add-circle-icon mt-2" @click="toggleAddCircle">
+                        mdi-plus-circle
+                    </v-icon>
+
+                    <!-- Input Field for Adding New Circle with Add Button (Visible when showAddCircleInput is true) -->
                     <v-text-field v-if="showAddCircleInput" ref="addCircleInput" v-model="newCircle" label="Add Circle"
                         dense hide-details class="mt-2" @keydown.enter="addCircle" @blur="showAddCircleInput = false">
                         <!-- Add Button inside Text Field -->
@@ -43,6 +46,7 @@
                         </template>
                     </v-text-field>
                 </div>
+
             </v-col>
         </v-row>
 
@@ -118,24 +122,15 @@
 
         <!-- Dialog Modals for Adding Activity and Note -->
         <v-dialog v-model="showAddActivity" max-width="500px" persistent>
-    <ActivityAdd
-        :contactId="contact.ID"
-        :activityId="editingActivityId"
-        :initialActivity="editingActivityData || {}"
-        @activityAdded="refreshContact"
-        @close="showAddActivity = false"
-    />
-</v-dialog>
+            <ActivityAdd :contactId="contact.ID" :activityId="editingActivityId"
+                :initialActivity="editingActivityData || {}" @activityAdded="refreshContact"
+                @close="showAddActivity = false" />
+        </v-dialog>
 
-<v-dialog v-model="showAddNote" max-width="500px" persistent>
-    <NoteAdd
-        :contactId="contact.ID"
-        :noteId="editingNoteId" 
-        :initialNote="editingNoteData || {}" 
-        @noteAdded="refreshContact"
-        @close="showAddNote = false"
-    />
-</v-dialog>
+        <v-dialog v-model="showAddNote" max-width="500px" persistent>
+            <NoteAdd :contactId="contact.ID" :noteId="editingNoteId" :initialNote="editingNoteData || {}"
+                @noteAdded="refreshContact" @close="showAddNote = false" />
+        </v-dialog>
 
 
 
@@ -220,6 +215,9 @@ export default {
                     this.isEditing[key] = false;
                     this.editValues[key] = this.contactDetails[key];
                 });
+                if (!this.contact.circles) {
+                    this.contact.circles = [];
+                }
                 this.editName = `${this.contact.firstname} ${this.contact.lastname}`;
             } catch (error) {
                 console.error('Error fetching contact:', error);
@@ -267,15 +265,15 @@ export default {
             this.editName = `${this.contact.firstname} ${this.contact.lastname}`;
         },
         openAddActivity() {
-        this.editingActivityId = null; // Reset for add mode
-        this.editingActivityData = {}; // Reset for add mode
-        this.showAddActivity = true;
-    },
-    openAddNote() {
-        this.editingNoteId = null; // Reset for add mode
-        this.editingNoteData = {}; // Reset for add mode
-        this.showAddNote = true;
-    },
+            this.editingActivityId = null; // Reset for add mode
+            this.editingActivityData = {}; // Reset for add mode
+            this.showAddActivity = true;
+        },
+        openAddNote() {
+            this.editingNoteId = null; // Reset for add mode
+            this.editingNoteData = {}; // Reset for add mode
+            this.showAddNote = true;
+        },
         async editActivity(activityId) {
             const activity = this.contact.activities.find((a) => a.ID === activityId);
             this.editingActivityId = activityId;
@@ -342,6 +340,11 @@ export default {
             const trimmedCircle = this.newCircle.trim();
             if (!trimmedCircle) return;
 
+            // Ensure circles is initialized as an array if it's null or undefined
+            if (!this.contact.circles) {
+                this.contact.circles = [];
+            }
+
             try {
                 // Add the new circle to the backend
                 await contactService.updateContact(this.ID, { circles: [...this.contact.circles, trimmedCircle] });
@@ -372,7 +375,6 @@ export default {
     },
 };
 </script>
-
 
 <style scoped>
 .field-label {

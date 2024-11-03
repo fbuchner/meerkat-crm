@@ -118,15 +118,25 @@
 
         <!-- Dialog Modals for Adding Activity and Note -->
         <v-dialog v-model="showAddActivity" max-width="500px" persistent>
-            <ActivityAdd :contactId="contact.ID" :activityId="editingActivityId" :initialActivity="editingActivityData"
-                @activityAdded="refreshContact" @close="showAddActivity = false" />
-        </v-dialog>
+    <ActivityAdd
+        :contactId="contact.ID"
+        :activityId="editingActivityId"
+        :initialActivity="editingActivityData || {}"
+        @activityAdded="refreshContact"
+        @close="showAddActivity = false"
+    />
+</v-dialog>
 
+<v-dialog v-model="showAddNote" max-width="500px" persistent>
+    <NoteAdd
+        :contactId="contact.ID"
+        :noteId="editingNoteId" 
+        :initialNote="editingNoteData || {}" 
+        @noteAdded="refreshContact"
+        @close="showAddNote = false"
+    />
+</v-dialog>
 
-        <v-dialog v-model="showAddNote" max-width="500px" persistent>
-            <NoteAdd :contactId="contact.ID" :noteId="editingNoteId" :initialNote="editingNoteData"
-                @noteAdded="refreshContact" @close="showAddNote = false" />
-        </v-dialog>
 
 
 
@@ -257,11 +267,15 @@ export default {
             this.editName = `${this.contact.firstname} ${this.contact.lastname}`;
         },
         openAddActivity() {
-            this.showAddActivity = true;
-        },
-        openAddNote() {
-            this.showAddNote = true;
-        },
+        this.editingActivityId = null; // Reset for add mode
+        this.editingActivityData = {}; // Reset for add mode
+        this.showAddActivity = true;
+    },
+    openAddNote() {
+        this.editingNoteId = null; // Reset for add mode
+        this.editingNoteData = {}; // Reset for add mode
+        this.showAddNote = true;
+    },
         async editActivity(activityId) {
             const activity = this.contact.activities.find((a) => a.ID === activityId);
             this.editingActivityId = activityId;

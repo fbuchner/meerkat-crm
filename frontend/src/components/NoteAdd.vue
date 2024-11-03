@@ -89,7 +89,7 @@ export default {
           await noteService.updateNote(this.noteId, noteData);
         } else {
           // Add a new note
-          await noteService.addNote(noteData);
+          await noteService.addNote(this.contactId, noteData);
         }
 
         this.resetForm();

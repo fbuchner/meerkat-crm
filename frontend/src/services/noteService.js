@@ -13,7 +13,6 @@ export default {
     }
   },
   async addNote(contactId, noteData) {
-    console.log('noteData:', noteData);
     try {
       await apiClient.post(`/contacts/${contactId}/notes`, noteData);
     } catch (error) {

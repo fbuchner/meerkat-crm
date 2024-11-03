@@ -50,7 +50,7 @@
       <v-card-actions>
         <v-spacer></v-spacer>
         <v-btn text color="primary" @click="$emit('close')">Cancel</v-btn>
-        <v-btn color="primary" @click="addActivity">Add Activity</v-btn>
+        <v-btn color="primary" @click="addActivity">{{ activityId ? 'Save Changes' : 'Add Activity' }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-container>
@@ -62,20 +62,22 @@ import activityService from '@/services/activityService';
 export default {
   name: 'AddActivity',
   props: {
-    contactId: {
-      required: true,
-    },
-  },
-  data() {
-    return {
-      newActivityName: '',
-      newActivityDate: new Date(),
-      formattedActivityDate: this.formatDate(new Date()),
-      newActivityDescription: '',
-      newActivityLocation: '',
-      menu: false,
-    };
-  },
+  contactId: { required: true },
+  activityId: { type: Number, default: null },
+  initialActivity: { type: Object, default: () => ({}) }
+},
+
+data() {
+  return {
+    newActivityName: this.initialActivity.title || '',
+    newActivityDate: this.initialActivity.date ? new Date(this.initialActivity.date) : new Date(),
+    formattedActivityDate: this.initialActivity.date ? this.formatDate(new Date(this.initialActivity.date)) : this.formatDate(new Date()),
+    newActivityDescription: this.initialActivity.description || '',
+    newActivityLocation: this.initialActivity.location || '',
+    menu: false,
+  };
+},
+
   watch: {
     newActivityDate(newDate) {
       this.formattedActivityDate = this.formatDate(newDate);
@@ -92,22 +94,32 @@ export default {
       this.menu = false;
     },
     async addActivity() {
-      const formattedDate = this.newActivityDate.toISOString().split('T')[0];
-      try {
-        await activityService.addActivity({
-          title: this.newActivityName,
-          description: this.newActivityDescription,
-          date: formattedDate,
-          location: this.newActivityLocation,
-          contact_ids: [Number(this.contactId)],
-        });
-        this.resetForm();
-        this.$emit('activityAdded'); // Emit event to refresh the contact
-        this.$emit('close'); // Close dialog after adding the activity
-      } catch (error) {
-        console.error('Error adding activity:', error);
-      }
-    },
+  const formattedDate = this.newActivityDate.toISOString().split('T')[0];
+  const activityData = {
+    title: this.newActivityName,
+    description: this.newActivityDescription,
+    date: formattedDate,
+    location: this.newActivityLocation,
+    contact_ids: [Number(this.contactId)],
+  };
+
+  try {
+    if (this.activityId) {
+      // Edit existing activity
+      await activityService.updateActivity(this.activityId, activityData);
+    } else {
+      // Add new activity
+      await activityService.addActivity(activityData);
+    }
+
+    this.resetForm();
+    this.$emit('activityAdded'); // Emit event to refresh the contact
+    this.$emit('close'); // Close dialog after adding or updating
+  } catch (error) {
+    console.error('Error saving activity:', error);
+  }
+},
+
     resetForm() {
       this.newActivityName = '';
       this.newActivityDate = new Date();

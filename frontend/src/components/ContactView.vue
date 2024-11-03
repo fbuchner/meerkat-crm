@@ -101,8 +101,10 @@
 
         <!-- Dialog Modals for Adding Activity and Note -->
         <v-dialog v-model="showAddActivity" max-width="500px" persistent>
-            <ActivityAdd :contactId="contact.ID" @activityAdded="refreshContact" @close="showAddActivity = false" />
+            <ActivityAdd :contactId="contact.ID" :activityId="editingActivityId" :initialActivity="editingActivityData"
+                @activityAdded="refreshContact" @close="showAddActivity = false" />
         </v-dialog>
+
 
         <v-dialog v-model="showAddNote" max-width="500px" persistent>
             <NoteAdd :contactId="contact.ID" @noteAdded="refreshContact" @close="showAddNote = false" />
@@ -240,9 +242,17 @@ export default {
             this.showAddNote = true;
         },
         async editActivity(activityId) {
-            this.showAddActivity = true;
+            const activity = this.contact.activities.find((a) => a.ID === activityId);
             this.editingActivityId = activityId;
+            this.editingActivityData = {
+                title: activity.title,
+                description: activity.description,
+                date: activity.date,
+                location: activity.location,
+            };
+            this.showAddActivity = true;
         },
+
         async deleteActivity(activityId) {
             try {
                 await activityService.deleteActivity(activityId);
@@ -268,7 +278,7 @@ export default {
             this.showAddActivity = false;
             this.showAddNote = false;
             this.editingActivityId = null;
-            this.editingNoteId = null;
+            this.editingActivityData = null;
             this.fetchContact();
         },
     },

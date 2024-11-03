@@ -14,12 +14,8 @@
     <v-row class="mb-4">
       <v-col cols="12" sm="12">
         <v-btn-toggle v-model="activeCircle" class="ml-4">
-          <v-btn
-            v-for="circle in circles"
-            :key="circle"
-            @click="filterByCircle(circle)"
-            :class="{ active: activeCircle === circle }"
-          >
+          <v-btn v-for="circle in circles" :key="circle" @click="filterByCircle(circle)"
+            :class="{ active: activeCircle === circle }">
             {{ circle }}
           </v-btn>
           <v-btn @click="clearCircleFilter" :class="{ active: activeCircle === null }">All</v-btn>
@@ -27,56 +23,52 @@
       </v-col>
     </v-row>
 
-    <!-- Contact Cards -->
-    <v-row>
-      <v-col
-        v-for="contact in filteredContacts"
-        :key="contact.ID"
-        cols="12"
-        sm="6"
-        md="4"
-        lg="3"
-      >
-        <v-card
-          class="contact-card"
-          outlined
-          elevation="2"
-          @click="goToContact(contact.ID)" 
-        >
-          <v-card-text>
-            <!-- Profile Photo -->
-            <v-avatar size="80" class="mb-3">
-              <v-img :src="contact.photo || '/placeholder-avatar.png'" alt="Profile Photo"></v-img>
-            </v-avatar>
+   <!-- Contact Cards -->
+<v-row>
+  <v-col
+    v-for="contact in filteredContacts"
+    :key="contact.ID"
+    cols="12"
+    sm="6"
+    md="4"
+    lg="3"
+  >
+    <v-card
+      class="contact-card"
+      outlined
+      elevation="2"
+      @click="goToContact(contact.ID)"
+    >
+      <v-card-text>
+        <!-- Profile Photo -->
+        <v-avatar size="80" class="mb-3">
+          <v-img :src="contact.photo || '/placeholder-avatar.png'" alt="Profile Photo"></v-img>
+        </v-avatar>
 
-            <!-- Contact Name -->
-            <div class="contact-name">
-              {{ contact.firstname }} {{ contact.lastname }}
-            </div>
+        <!-- Contact Name -->
+        <div class="contact-name">
+          {{ contact.firstname }} {{ contact.lastname }}
+        </div>
 
-            <!-- Circles -->
-            <v-chip-group row class="mt-2">
-              <v-chip
-                v-for="circle in contact.circles"
-                :key="circle"
-                @click.stop="filterByCircle(circle)" 
-                class="mr-2 clickable-chip"
-              >
-                {{ circle }}
-              </v-chip>
-            </v-chip-group>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
+        <!-- Circles with Wrapping -->
+        <div class="circle-chips mt-2">
+          <v-chip
+            v-for="circle in contact.circles"
+            :key="circle"
+            class="mr-2 mb-2"
+            @click.stop="filterByCircle(circle)"
+          >
+            {{ circle }}
+          </v-chip>
+        </div>
+      </v-card-text>
+    </v-card>
+  </v-col>
+</v-row>
 
     <!-- Pagination -->
     <v-row justify="center" class="mt-4">
-      <v-pagination
-        v-model="page"
-        :length="totalPages"
-        @input="loadContacts"
-      ></v-pagination>
+      <v-pagination v-model="page" :length="totalPages" @input="loadContacts"></v-pagination>
     </v-row>
   </v-container>
 </template>
@@ -174,7 +166,8 @@ export default {
   padding-top: 16px;
   padding-bottom: 16px;
   position: relative;
-  cursor: pointer; /* Show pointer cursor for clickable card */
+  cursor: pointer;
+  /* Show pointer cursor for clickable card */
 }
 
 .contact-name {
@@ -190,4 +183,11 @@ export default {
 .v-avatar img {
   object-fit: cover;
 }
+
+.circle-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px; 
+}
+
 </style>

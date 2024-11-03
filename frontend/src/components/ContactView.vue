@@ -22,9 +22,26 @@
 
                 <!-- Circles Chips -->
                 <div v-if="contact.circles && contact.circles.length">
-                    <v-chip-group row>
-                        <v-chip v-for="circle in contact.circles" :key="circle" class="mr-2">{{ circle }}</v-chip>
+                    <v-chip-group column>
+                        <!-- Display Existing Circles with Delete Option -->
+                        <v-chip v-for="(circle, index) in contact.circles" :key="index" class="mr-2" closable
+                            @click:close="removeCircle(circle)">
+                            {{ circle }}
+                        </v-chip>
+                        <!-- Plus Icon to Toggle Add Circle Input -->
+                        <v-icon small class="add-circle-icon ml-2" @click="toggleAddCircle">mdi-plus-circle</v-icon>
                     </v-chip-group>
+
+                    <!-- Input Field for Adding New Circle with Add Button -->
+                    <v-text-field v-if="showAddCircleInput" ref="addCircleInput" v-model="newCircle" label="Add Circle"
+                        dense hide-details class="mt-2" @keydown.enter="addCircle" @blur="showAddCircleInput = false">
+                        <!-- Add Button inside Text Field -->
+                        <template v-slot:append-inner>
+                            <v-btn icon @click="addCircle">
+                                <v-icon>mdi-check</v-icon>
+                            </v-btn>
+                        </template>
+                    </v-text-field>
                 </div>
             </v-col>
         </v-row>
@@ -141,6 +158,8 @@ export default {
             editValues: reactive({}),
             isEditingName: false,
             editName: '',
+            newCircle: '', // Holds the new circle being added
+            showAddCircleInput: false, // Controls visibility of the add circle input
         };
     },
     computed: {
@@ -289,6 +308,52 @@ export default {
             this.editingNoteId = null;
             this.editingNoteData = null;
             this.fetchContact();
+        },
+        // Toggle the add circle input visibility
+        toggleAddCircle() {
+            this.showAddCircleInput = !this.showAddCircleInput;
+
+            if (this.showAddCircleInput) {
+                // Use $nextTick to wait for the DOM to render the input
+                this.$nextTick(() => {
+                    if (this.$refs.addCircleInput) {
+                        this.$refs.addCircleInput.focus();
+                    }
+                });
+            }
+        },
+
+        // Add a New Circle
+        async addCircle() {
+            const trimmedCircle = this.newCircle.trim();
+            if (!trimmedCircle) return;
+
+            try {
+                // Add the new circle to the backend
+                await contactService.updateContact(this.ID, { circles: [...this.contact.circles, trimmedCircle] });
+
+                // Update the local contact data and reset input
+                this.contact.circles.push(trimmedCircle);
+                this.newCircle = '';
+                this.showAddCircleInput = false;
+            } catch (error) {
+                console.error('Error adding circle:', error);
+            }
+        },
+
+        // Remove a Circle
+        async removeCircle(circle) {
+            const updatedCircles = this.contact.circles.filter((c) => c !== circle);
+
+            try {
+                // Update the backend with the new list of circles
+                await contactService.updateContact(this.ID, { circles: updatedCircles });
+
+                // Update the local contact data
+                this.contact.circles = updatedCircles;
+            } catch (error) {
+                console.error('Error removing circle:', error);
+            }
         },
     },
 };

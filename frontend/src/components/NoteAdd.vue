@@ -4,31 +4,15 @@
       <v-card-title>{{ noteId ? 'Edit Note' : 'Add a Note' }}</v-card-title>
       <v-card-text>
         <v-form @submit.prevent="saveNote">
-          <v-textarea
-            v-model="newNoteContent"
-            label="Write a note..."
-            auto-grow
-            clearable
-            required
-          ></v-textarea>
+          <v-textarea v-model="newNoteContent" label="Write a note..." auto-grow clearable required></v-textarea>
 
           <v-dialog v-model="menu" max-width="290" persistent>
             <template v-slot:activator="{ props }">
-              <v-text-field
-                v-model="formattedNoteDate"
-                label="Note Date"
-                prepend-icon="mdi-calendar"
-                readonly
-                v-bind="props"
-                @click="menu = true"
-                :rules="[v => !!newNoteDate || 'Note date is required']"
-              ></v-text-field>
+              <v-text-field v-model="formattedNoteDate" label="Note Date" prepend-icon="mdi-calendar" readonly
+                v-bind="props" @click="menu = true"
+                :rules="[v => !!newNoteDate || 'Note date is required']"></v-text-field>
             </template>
-            <v-date-picker
-              v-model="newNoteDate"
-              no-title
-              @input="updateFormattedDate"
-            >
+            <v-date-picker v-model="newNoteDate" no-title @input="updateFormattedDate">
               <template v-slot:actions>
                 <v-btn text color="primary" @click="menu = false">Cancel</v-btn>
                 <v-btn text color="primary" @click="confirmDate">OK</v-btn>
@@ -52,9 +36,21 @@ import noteService from '@/services/noteService';
 export default {
   name: 'NoteAdd',
   props: {
-    contactId: { type: Number, required: true },
-    noteId: { type: Number, default: null },
-    initialNote: { type: Object, default: () => ({ content: '', date: new Date() }) },
+    contactId: {
+      type: Number,
+      required: true,
+    },
+    noteId: {
+      type: Number,
+      default: null, // Default to null if no specific note is being edited
+    },
+    initialNote: {
+      type: Object,
+      default: () => ({
+        content: '',
+        date: new Date(),
+      }),
+    },
   },
   data() {
     return {

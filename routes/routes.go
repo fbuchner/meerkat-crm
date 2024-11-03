@@ -21,6 +21,8 @@ func RegisterRoutes(router *gin.Engine) {
 	router.GET("/contacts/:id/notes", controllers.GetNotesForContact)
 	router.POST("/contacts/:id/notes", controllers.CreateNote)
 	router.GET("/notes/:id", controllers.GetNote)
+	router.GET("/notes", controllers.GetUnassignedNotes)
+	router.POST("/notes", controllers.CreateUnassignedNote)
 	router.PUT("/notes/:id", controllers.UpdateNote)
 	router.DELETE("/notes/:id", controllers.DeleteNote)
 

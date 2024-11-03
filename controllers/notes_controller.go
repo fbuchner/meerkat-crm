@@ -36,7 +36,30 @@ func CreateNote(c *gin.Context) {
 	}
 
 	// Assign the ContactID to the note to link it to the contact
-	note.ContactID = contact.ID
+	note.ContactID = &contact.ID
+
+	// Save the new note to the database
+	if err := db.Create(&note).Error; err != nil {
+		log.Println("Error saving to database:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save note"})
+		return
+	}
+
+	// Respond with success and the created note
+	c.JSON(http.StatusOK, gin.H{"message": "Note created successfully", "note": note})
+}
+
+func CreateUnassignedNote(c *gin.Context) {
+	// Get the database instance from the context
+	db := c.MustGet("db").(*gorm.DB)
+
+	// Bind the incoming JSON request to the Note struct
+	var note models.Note
+	if err := c.ShouldBindJSON(&note); err != nil {
+		log.Println("Error binding JSON for create note:", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	// Save the new note to the database
 	if err := db.Create(&note).Error; err != nil {
@@ -61,6 +84,19 @@ func GetNote(c *gin.Context) {
 	c.JSON(http.StatusOK, note)
 }
 
+func GetUnassignedNotes(c *gin.Context) {
+	var notes []models.Note
+	db := c.MustGet("db").(*gorm.DB)
+
+	// Retrieve notes where contact_id is NULL
+	if err := db.Where("contact_id IS NULL").Find(&notes).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving unassigned notes"})
+		return
+	}
+
+	c.JSON(http.StatusOK, notes)
+}
+
 func UpdateNote(c *gin.Context) {
 	id := c.Param("id")
 	var note models.Note
@@ -76,7 +112,8 @@ func UpdateNote(c *gin.Context) {
 	}
 
 	db.Save(&note)
-	c.JSON(http.StatusOK, note)
+	c.JSON(http.StatusOK, gin.H{"message": "Note updated successfully", "note": note})
+
 }
 
 func DeleteNote(c *gin.Context) {

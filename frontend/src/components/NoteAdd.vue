@@ -1,16 +1,27 @@
 <template>
   <v-container>
     <v-card>
-      <v-card-title>{{ noteId ? 'Edit Note' : 'Add a Note' }}</v-card-title>
+      <v-card-title>{{ noteId ? 'Edit Note' : 'Add Note' }}</v-card-title>
       <v-card-text>
         <v-form @submit.prevent="saveNote">
-          <v-textarea v-model="newNoteContent" label="Write a note..." auto-grow clearable required></v-textarea>
-
+          <v-textarea
+            v-model="newNoteContent"
+            label="Write a note..."
+            auto-grow
+            clearable
+            required
+          ></v-textarea>
           <v-dialog v-model="menu" max-width="290" persistent>
             <template v-slot:activator="{ props }">
-              <v-text-field v-model="formattedNoteDate" label="Note Date" prepend-icon="mdi-calendar" readonly
-                v-bind="props" @click="menu = true"
-                :rules="[v => !!newNoteDate || 'Note date is required']"></v-text-field>
+              <v-text-field
+                v-model="formattedNoteDate"
+                label="Note Date"
+                prepend-icon="mdi-calendar"
+                readonly
+                v-bind="props"
+                @click="menu = true"
+                :rules="[v => !!newNoteDate || 'Note date is required']"
+              ></v-text-field>
             </template>
             <v-date-picker v-model="newNoteDate" no-title @input="updateFormattedDate">
               <template v-slot:actions>
@@ -38,7 +49,7 @@ export default {
   props: {
     contactId: {
       type: Number,
-      required: true,
+      required: false,
     },
     noteId: {
       type: Number,
@@ -84,16 +95,22 @@ export default {
       };
 
       try {
+        let response
         if (this.noteId) {
           // Update the existing note
-          await noteService.updateNote(this.noteId, noteData);
+          response = await noteService.updateNote(this.noteId, noteData);
         } else {
           // Add a new note
-          await noteService.addNote(this.contactId, noteData);
+          if(this.contactId) {
+            response = await noteService.addNote(this.contactId, noteData);
+          } else {
+            // If no contact ID is provided, add an unassigned note
+            response = await noteService.addUnassignedNote(noteData);
+          }
         }
 
         this.resetForm();
-        this.$emit('noteAdded'); // Refresh notes
+        this.$emit('noteAdded', response.data.note); // Ensure the response has `note`
         this.$emit('close'); // Close dialog
       } catch (error) {
         console.error('Error saving note:', error);

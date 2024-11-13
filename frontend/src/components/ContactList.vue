@@ -6,7 +6,7 @@
         <v-toolbar-title>Contacts</v-toolbar-title>
       </v-col>
       <v-col class="text-right">
-        <v-btn color="primary" to="/add-contact">Add Contact</v-btn>
+        <v-btn color="primary" to="/add-contact" prepend-icon="mdi-account-plus-outline">Add Contact</v-btn>
       </v-col>
     </v-row>
 

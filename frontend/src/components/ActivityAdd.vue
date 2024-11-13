@@ -96,22 +96,25 @@ export default {
       };
 
       try {
+        let savedActivity;
+
         if (this.activityId) {
-          // Edit existing activity
-          await activityService.updateActivity(this.activityId, activityData);
+          // Edit existing activity and store the updated activity
+          savedActivity = await activityService.updateActivity(this.activityId, activityData);
         } else {
-          // Add new activity
-          await activityService.addActivity(activityData);
+          // Add new activity and store the newly created activity
+          savedActivity = await activityService.addActivity(activityData);
         }
 
-        this.resetForm();
-        this.$emit('activityAdded'); // Emit event to refresh the contact
+        // Emit the newly saved or updated activity data
+        this.$emit('activityAdded', savedActivity.data); 
         this.$emit('close'); // Close dialog after adding or updating
+
+        this.resetForm();
       } catch (error) {
         console.error('Error saving activity:', error);
       }
     },
-
     resetForm() {
       this.newActivityName = '';
       this.newActivityDate = new Date();

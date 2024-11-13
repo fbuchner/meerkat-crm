@@ -11,5 +11,5 @@ type Activity struct {
 	Description string    `json:"description"`
 	Location    string    `json:"location"`
 	Date        Date      `json:"date"`
-	Contacts    []Contact `gorm:"many2many:activity_contacts;" json:"contacts,omitempty"` // Define many-to-many relationship
+	Contacts    []Contact `gorm:"many2many:activity_contacts;foreignKey:ID;joinForeignKey:ActivityID;References:ID;joinReferences:ContactID" json:"contacts,omitempty"`
 }

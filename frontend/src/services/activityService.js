@@ -13,9 +13,19 @@ export default {
       throw error;
     }
   },
+  async getAllActivities(page = 1, limit = 25) {
+    try {
+      const response = await apiClient.get(`${API_URL}?include=contacts&page=${page}&limit=${limit}`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      throw error;
+    }
+  },
   async addActivity(activityData) {
     try {
-      await apiClient.post(API_URL, activityData);
+      const response = await apiClient.post(API_URL, activityData);
+      return response; // Return the response from the update operation
     } catch (error) {
       console.error('Error adding activity:', error);
       throw error;
@@ -23,7 +33,8 @@ export default {
   },
   async updateActivity(activityId, activityData) {
     try {
-      await apiClient.put(`${API_URL}/${activityId}`, activityData);
+      const response = await apiClient.put(`${API_URL}/${activityId}`, activityData);
+      return response; // Return the response from the update operation
     } catch (error) {
       console.error('Error updating activity:', error);
       throw error;

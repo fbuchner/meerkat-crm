@@ -29,6 +29,7 @@ func RegisterRoutes(router *gin.Engine) {
 	// Activity routes
 	router.GET("/contacts/:id/activities", controllers.GetActivitiesForContact)
 	router.POST("/activities", controllers.CreateActivity)
+	router.GET("/activities", controllers.GetActivities)
 	router.GET("/activities/:id", controllers.GetActivity)
 	router.PUT("/activities/:id", controllers.UpdateActivity)
 	router.DELETE("/activities/:id", controllers.DeleteActivity)

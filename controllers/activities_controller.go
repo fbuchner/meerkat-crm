@@ -77,6 +77,57 @@ func GetActivity(c *gin.Context) {
 	c.JSON(http.StatusOK, activity)
 }
 
+func GetActivities(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB).Debug()
+
+	// Get pagination parameters from query
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "25"))
+
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 25
+	}
+
+	// Calculate offset
+	offset := (page - 1) * limit
+
+	includeContacts := c.DefaultQuery("include", "") == "contacts"
+
+	var activities []models.Activity
+	var total int64
+
+	// Get the total count of activities
+	db.Model(&models.Activity{}).Count(&total)
+
+	// Build the query with optional preloading and ordering by date in descending order
+	query := db.Model(&models.Activity{}).
+		Order("date DESC").
+		Limit(limit).
+		Offset(offset)
+
+	if includeContacts {
+		query = query.Preload("Contacts")
+		log.Println("Preloading contacts")
+	}
+
+	// Execute the query
+	if err := query.Find(&activities).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve activities"})
+		return
+	}
+
+	// Include pagination metadata in response
+	c.JSON(http.StatusOK, gin.H{
+		"activities": activities,
+		"total":      total,
+		"page":       page,
+		"limit":      limit,
+	})
+}
+
 func UpdateActivity(c *gin.Context) {
 	id := c.Param("id")
 	var activity models.Activity

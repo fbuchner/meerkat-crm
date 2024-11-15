@@ -34,36 +34,101 @@ func CreateContact(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Contact created successfully", "contact": contact})
 }
 
+// GetAllContacts handles GET requests to fetch contact records with optional field selection, relationships, and pagination.
+//
+// Query Parameters:
+// - `page` (int, optional): The page number for pagination (default: 1).
+// - `limit` (int, optional): The number of records per page (default: 25).
+// - `fields` (string, optional): A comma-separated list of fields to include in the response.
+//   - Example: "firstname,lastname,email"
+//   - If omitted, all fields are included.
+//
+// - `includes` (string, optional): A comma-separated list of related data to preload.
+//   - Example: "notes,activities"
+//   - If omitted, no relationships are preloaded.
+//
+// Response:
+//   - JSON object with the following structure:
+//     {
+//     "contacts": [ /* Array of contact records */ ],
+//     "total": <total number of contacts>,
+//     "page": <current page number>,
+//     "limit": <number of records per page>
+//     }
+//
+// Error Handling:
+// - Returns HTTP 500 with an error message if the database query fails.
+//
+// Example Requests:
+// - Fetch all fields: GET /contacts?page=1&limit=10
+// - Fetch specific fields: GET /contacts?fields=firstname,lastname,email&page=1&limit=5
+// - Fetch relationships: GET /contacts?include=notes,activities
 func GetAllContacts(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
-	// Get pagination parameters from query
+	// Get pagination parameters
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "25"))
-
 	if page < 1 {
 		page = 1
 	}
 	if limit < 1 {
 		limit = 25
 	}
-
-	// Calculate offset
 	offset := (page - 1) * limit
 
+	// Parse requested fields
+	fields := c.Query("fields") // Example: "firstname,lastname,email"
+	var selectedFields []string
+	includeAllFields := fields == ""
+
+	if !includeAllFields {
+		selectedFields = strings.Split(fields, ",")
+	}
+
+	// Parse relationships to include
+	includes := c.Query("includes") // Example: "notes,activities"
+	includedRelationships := strings.Split(includes, ",")
+	relationshipMap := map[string]bool{
+		"notes":      false,
+		"activities": false,
+	}
+
+	for _, rel := range includedRelationships {
+		if _, exists := relationshipMap[rel]; exists {
+			relationshipMap[rel] = true
+		}
+	}
+
+	// Base query
 	var contacts []models.Contact
-	var total int64
 
-	// Get the total count of contacts
-	db.Model(&models.Contact{}).Count(&total)
+	query := db.Model(&models.Contact{}).Limit(limit).Offset(offset)
 
-	// Get the paginated contacts
-	if err := db.Limit(limit).Offset(offset).Find(&contacts).Error; err != nil {
+	// Include all fields if none are specified
+	if !includeAllFields {
+		query = query.Select(strings.Join(selectedFields, ", "))
+	}
+
+	// Preload requested relationships
+	if relationshipMap["notes"] {
+		query = query.Preload("Notes")
+	}
+	if relationshipMap["activities"] {
+		query = query.Preload("Activities")
+	}
+
+	// Execute query
+	if err := query.Find(&contacts).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve contacts"})
 		return
 	}
 
-	// Include pagination metadata in response
+	// Get total count of contacts
+	var total int64
+	db.Model(&models.Contact{}).Count(&total)
+
+	// Respond with contacts and pagination metadata
 	c.JSON(http.StatusOK, gin.H{
 		"contacts": contacts,
 		"total":    total,

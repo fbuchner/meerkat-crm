@@ -27,7 +27,8 @@
             <p v-if="activity.contacts && activity.contacts.length">
               with
               <span v-for="(contact, index) in activity.contacts" :key="contact.ID">
-                <router-link :to="`/contacts/${contact.ID}`">{{ contact.firstname }} {{ contact.lastname }}</router-link>
+                <router-link :to="`/contacts/${contact.ID}`">{{ contact.firstname }} {{ contact.lastname
+                  }}</router-link>
                 <span v-if="index < activity.contacts.length - 1">, </span>
               </span>
             </p>
@@ -39,21 +40,13 @@
     </v-timeline>
 
     <!-- Pagination Controls -->
-    <v-pagination
-      v-model="page"
-      :length="totalPages"
-      @input="fetchActivities(page)"
-      class="mt-4"
-    ></v-pagination>
+    <v-pagination v-model="page" :length="totalPages" @input="fetchActivities(page)" class="mt-4"></v-pagination>
 
     <!-- ActivityAdd Component for Adding and Editing Activities -->
     <v-dialog v-model="showActivityDialog" max-width="500px" persistent>
-      <ActivityAdd
-        :activityId="editingActivity ? editingActivity.ID : null"
+      <ActivityAdd :activityId="editingActivity ? editingActivity.ID : null"
         :initialActivity="editingActivity || { title: '', description: '', date: new Date(), location: '', contacts: [] }"
-        @activityAdded="handleActivityAdded"
-        @close="closeDialog"
-      />
+        @activityAdded="handleActivityAdded" @close="closeDialog" />
     </v-dialog>
   </v-container>
 </template>
@@ -105,15 +98,17 @@ export default {
       this.showActivityDialog = true;
     },
     handleActivityAdded(newActivity) {
+      // Check if this is an edit or a new activity
       if (this.editingActivity) {
-        const index = this.activities.findIndex(a => a.ID === newActivity.ID);
+        const index = this.activities.findIndex(activity => activity.ID === newActivity.ID);
         if (index !== -1) {
-          this.activities[index] = newActivity;
+          this.activities.splice(index, 1, newActivity); // Replace the existing activity
         }
       } else {
-        this.activities.push(newActivity);
+        this.activities.unshift(newActivity);
+        this.total += 1;
       }
-
+      // Sort activities by date in descending order
       this.activities.sort((a, b) => new Date(b.date) - new Date(a.date));
       this.closeDialog();
     },
@@ -131,10 +126,10 @@ export default {
     formatDate(date) {
       return date
         ? new Intl.DateTimeFormat('de-DE', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-          }).format(new Date(date))
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        }).format(new Date(date))
         : '';
     },
   },

@@ -145,7 +145,6 @@ export default {
         location: this.newActivityLocation,
         contact_ids: this.selectedContacts
       };
-      console.log('Activity Data:', activityData);
       try {
         let savedActivity;
         if (this.activityId) {
@@ -153,8 +152,7 @@ export default {
         } else {
           savedActivity = await activityService.addActivity(activityData);
         }
-
-        this.$emit('activityAdded', savedActivity.data);
+        this.$emit('activityAdded', savedActivity.data.activity);
         this.$emit('close');
         this.resetForm();
       } catch (error) {

@@ -14,6 +14,7 @@
             placeholder="Search contacts..."
             hide-details
             clearable
+            density="compact"
             append-icon="mdi-magnify"
             @input="searchContacts"
           ></v-text-field>

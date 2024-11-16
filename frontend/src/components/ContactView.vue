@@ -52,26 +52,37 @@
 
         <!-- Main Layout with Details and Timeline -->
         <v-row class="mt-4">
-            <!-- Left Column: Details -->
             <v-col cols="12" md="4">
                 <v-card outlined>
                     <v-card-title>Contact Details</v-card-title>
                     <v-card-text>
                         <v-list dense>
-                            <v-list-item v-for="(value, key) in contactDetails" :key="key" class="field-label">
+                            <v-list-item v-for="field in contactFieldSchema" :key="field.key" class="field-label">
                                 <div>
-                                    <strong>{{ key }}: </strong>
-                                    <span v-if="!isEditing[key]" @click="startEditing(key)">
-                                        {{ value }}
-                                        <v-icon small class="edit-icon"
-                                            @click.stop="startEditing(key)">mdi-pencil</v-icon>
-                                    </span>
-                                    <div v-else class="edit-field">
-                                        <v-text-field v-model="editValues[key]" dense hide-details></v-text-field>
-                                        <v-icon small class="confirm-icon" @click="saveEdit(key)">mdi-check</v-icon>
-                                        <v-icon small class="cancel-icon" @click="cancelEdit(key)">mdi-close</v-icon>
-                                    </div>
+                                    <strong>{{ field.label }}: </strong>
+                                    <template v-if="!isEditing[field.key]">
+                                        <span>
+                                            {{ formatField(field, contact[field.key]) }}
+                                            <v-icon small class="edit-icon ml-2" @click="startEditing(field.key)">
+                                                mdi-pencil
+                                            </v-icon>
+                                        </span>
+                                    </template>
+
                                 </div>
+                                <template v-if="isEditing[field.key]">
+                                    <component :is="getFieldComponent(field)" v-model="editValues[field.key]"
+                                        :items="field.options || []"
+                                        :rules="field.key === 'birthday' ? [birthdayValidationRule] : []"
+                                        :placeholder="field.key === 'birthday' ? 'DD.MM.YYYY or DD.MM.' : ''"
+                                        density="compact" 
+                                        style="max-width: 300px; min-width: 200px; height: auto;">
+                                    </component>
+                                    <v-icon small class="confirm-icon ml-2"
+                                        @click="saveEdit(field.key)">mdi-check</v-icon>
+                                    <v-icon small class="cancel-icon ml-2"
+                                        @click="cancelEdit(field.key)">mdi-close</v-icon>
+                                </template>
                             </v-list-item>
                         </v-list>
                     </v-card-text>
@@ -182,6 +193,20 @@ export default {
                 'Additional Information': this.contact.contact_information,
             };
         },
+        contactFieldSchema() {
+            return [
+                { key: "nickname", label: "Nickname", type: "text" },
+                { key: "gender", label: "Gender", type: "select", options: ["Male", "Female", "Unknown"] },
+                { key: "birthday", label: "Birthday", type: "date", format: "DD.MM.YYYY" },
+                { key: "email", label: "Email", type: "email" },
+                { key: "phone", label: "Phone", type: "tel" },
+                { key: "address", label: "Address", type: "text" },
+                { key: "how_we_met", label: "How We Met", type: "textarea" },
+                { key: "food_preference", label: "Food Preference", type: "text" },
+                { key: "work_information", label: "Work Information", type: "text" },
+                { key: "contact_information", label: "Additional Information", type: "textarea" },
+            ];
+        },
         sortedTimelineItems() {
             const activities = (this.contact.activities || []).map(activity => ({
                 id: activity.ID,
@@ -211,10 +236,7 @@ export default {
             try {
                 const response = await contactService.getContact(this.ID);
                 this.contact = response.data;
-                Object.keys(this.contactDetails).forEach((key) => {
-                    this.isEditing[key] = false;
-                    this.editValues[key] = this.contactDetails[key];
-                });
+                this.editValues = { ...this.contact };
                 if (!this.contact.circles) {
                     this.contact.circles = [];
                 }
@@ -228,22 +250,23 @@ export default {
         },
         startEditing(key) {
             this.isEditing[key] = true;
-            this.editValues[key] = this.contactDetails[key];
+            this.editValues[key] = this.contact[key]; 
+            //FIXME: use formatted birthday. Redo for submit.
         },
-        async saveEdit(key) {
-            try {
-                // Update the local contact data with the edited value
-                this.contact[key.toLowerCase()] = this.editValues[key];
+        saveEdit(key) {
+            // Save only if there are no validation errors
+            const fieldRules = key === "birthday" ? [this.birthdayValidationRule] : [];
+            const validationResult = fieldRules.every((rule) => rule(this.editValues[key]) === true);
 
-                // Send the updated data to the backend
-                await contactService.updateContact(this.ID, { [key.toLowerCase()]: this.editValues[key] });
-
-                // End the editing mode for this attribute
-                this.isEditing[key] = false;
-            } catch (error) {
-                console.error('Error saving edit:', error);
-                // Optionally, show an error message to the user
+            if (!validationResult) {
+                console.warn("Validation failed for field:", key);
+                return;
             }
+
+            this.contact[key] = this.editValues[key];
+            this.isEditing[key] = false;
+
+            contactService.updateContact(this.ID, { [key]: this.contact[key] });
         },
         cancelEdit(key) {
             this.isEditing[key] = false;
@@ -371,6 +394,27 @@ export default {
             } catch (error) {
                 console.error('Error removing circle:', error);
             }
+        },
+        formatField(field, value) {
+            if (field.type === 'date' && value) {
+                const [year, month, day] = value.split('-');
+                return `${day}.${month}${year !== '0001' ? '.' + year : ''}`;
+            }
+            return value;
+        },
+        getFieldComponent(field) {
+            switch (field.type) {
+                case 'select': return 'v-select';
+                case 'textarea': return 'v-textarea';
+                case 'email': case 'tel': case 'text': default: return 'v-text-field';
+            }
+        },
+        birthdayValidationRule(value) {
+            const datePattern = /^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])\.(\d{4})?$/;
+            if (!datePattern.test(value)) {
+                return "Invalid format. Use DD.MM.YYYY or DD.MM.";
+            }
+            return true; // No error
         },
     },
 };

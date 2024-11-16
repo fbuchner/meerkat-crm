@@ -12,9 +12,15 @@
           <!-- Date Picker -->
           <v-dialog v-model="menu" max-width="290" persistent>
             <template v-slot:activator="{ props }">
-              <v-text-field v-model="formattedActivityDate" label="Activity Date" prepend-icon="mdi-calendar" readonly
-                v-bind="props" :rules="[v => !!newActivityDate || 'Activity date is required']"
-                @click="menu = true"></v-text-field>
+              <v-text-field
+                v-model="formattedActivityDate"
+                label="Activity Date"
+                prepend-icon="mdi-calendar"
+                readonly
+                v-bind="props"
+                @click="menu = true"
+                :rules="[v => !!newActivityDate || 'Activity date is required']"
+              ></v-text-field>
             </template>
             <v-date-picker v-model="newActivityDate" no-title @input="updateFormattedDate">
               <template v-slot:actions>
@@ -23,6 +29,7 @@
               </template>
             </v-date-picker>
           </v-dialog>
+          
 
           <!-- Contact Selector -->
           <v-autocomplete v-model="selectedContacts" :items="filteredContacts" item-title="name" item-value="ID"
@@ -103,6 +110,11 @@ export default {
     if (this.contactId) {
       this.preselectCurrentContact();
     }
+  },
+  watch: {
+    newActivityDate(newDate) {
+      this.formattedActivityDate = this.formatDate(newDate);
+    },
   },
   methods: {
     async loadContacts() {

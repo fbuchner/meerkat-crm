@@ -94,9 +94,9 @@
                     <v-card-title>
                         Timeline
                         <v-spacer></v-spacer>
-                        <v-btn @click="openAddNote" density="compact" prepend-icon="mdi-note-plus-outline">Add
+                        <v-btn @click="openAddNote" color="primary" density="compact" prepend-icon="mdi-note-plus-outline">Add
                             note</v-btn>
-                        <v-btn @click="openAddActivity" density="compact"
+                        <v-btn @click="openAddActivity" color="primary" density="compact"
                             prepend-icon="mdi-account-multiple-plus-outline" class="ml-2">Add activity</v-btn>
                     </v-card-title>
                     <v-card-text>
@@ -262,7 +262,7 @@ export default {
         },
         saveEdit(key) {
             if (key === 'birthday') {
-                const datePattern = /^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])(?:\.(\d{4}))?$/;
+                const datePattern = /^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])\.(\d{4})?$/;
                 const match = this.editValues[key].match(datePattern);
                 if (match) {
                     const [, day, month, year] = match;
@@ -407,7 +407,7 @@ export default {
         formatField(field, value) {
             if (field.key === 'birthday' && value) {
                 const [year, month, day] = value.split('-');
-                return `${day}.${month}${year !== '0001' ? '.' + year : ''}`;
+                return `${day}.${month}.${year !== '0001' ? year : ''}`;
             }
             return value;
         },

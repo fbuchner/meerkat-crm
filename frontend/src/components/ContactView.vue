@@ -75,8 +75,7 @@
                                         :items="field.options || []"
                                         :rules="field.key === 'birthday' ? [birthdayValidationRule] : []"
                                         :placeholder="field.key === 'birthday' ? 'DD.MM.YYYY or DD.MM.' : ''"
-                                        density="compact" 
-                                        style="max-width: 300px; min-width: 200px; height: auto;">
+                                        density="compact" style="max-width: 300px; min-width: 200px; height: auto;">
                                     </component>
                                     <v-icon small class="confirm-icon ml-2"
                                         @click="saveEdit(field.key)">mdi-check</v-icon>
@@ -193,6 +192,11 @@ export default {
                 'Additional Information': this.contact.contact_information,
             };
         },
+        formattedBirthday() {
+            if (!this.contact || !this.contact.birthday) return '';
+            const [year, month, day] = this.contact.birthday.split('-');
+            return `${day}.${month}${year && year !== '0001' ? '.' + year : ''}`;
+        },
         contactFieldSchema() {
             return [
                 { key: "nickname", label: "Nickname", type: "text" },
@@ -250,22 +254,27 @@ export default {
         },
         startEditing(key) {
             this.isEditing[key] = true;
-            this.editValues[key] = this.contact[key]; 
-            //FIXME: use formatted birthday. Redo for submit.
+            if (key === 'birthday') {
+                this.editValues[key] = this.formattedBirthday;
+            } else {
+                this.editValues[key] = this.contact[key];
+            }
         },
         saveEdit(key) {
-            // Save only if there are no validation errors
-            const fieldRules = key === "birthday" ? [this.birthdayValidationRule] : [];
-            const validationResult = fieldRules.every((rule) => rule(this.editValues[key]) === true);
-
-            if (!validationResult) {
-                console.warn("Validation failed for field:", key);
-                return;
+            if (key === 'birthday') {
+                const datePattern = /^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])(?:\.(\d{4}))?$/;
+                const match = this.editValues[key].match(datePattern);
+                if (match) {
+                    const [, day, month, year] = match;
+                    this.contact[key] = `${year || '0001'}-${month}-${day}`;
+                } else {
+                    console.warn("Invalid birthday format:", this.editValues[key]);
+                    return; // Abort saving
+                }
+            } else {
+                this.contact[key] = this.editValues[key];
             }
-
-            this.contact[key] = this.editValues[key];
             this.isEditing[key] = false;
-
             contactService.updateContact(this.ID, { [key]: this.contact[key] });
         },
         cancelEdit(key) {
@@ -396,7 +405,7 @@ export default {
             }
         },
         formatField(field, value) {
-            if (field.type === 'date' && value) {
+            if (field.key === 'birthday' && value) {
                 const [year, month, day] = value.split('-');
                 return `${day}.${month}${year !== '0001' ? '.' + year : ''}`;
             }

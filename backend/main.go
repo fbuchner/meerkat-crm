@@ -63,12 +63,10 @@ func main() {
 
 	r.Static("/static", "./frontend/dist")
 
-	//test.InjectTestData(db)
+	// test.InjectTestData(db)
 
 	// Register all routes from routes.go
 	routes.RegisterRoutes(r)
-
-	log.Println("Server listening on Port 8080...")
 
 	//TODO setup https
 	// Start HTTP server to redirect to HTTPS
@@ -90,8 +88,10 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	r.Run(fmt.Sprintf(":%s"))
 
+	log.Println(fmt.Sprintf("Server listening on Port %s...", port))
+
+	r.Run(fmt.Sprintf(":%s", port))
 }
 
 func sendBirthdayReminders(db *gorm.DB) {

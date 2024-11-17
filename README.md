@@ -18,13 +18,10 @@ The **Pe**rsonal **Re**lationship **Ma**nager is a simple self-hosted solution t
 **Yet to come**
 - Set custom reminders for contacts and get e-mail notifications
 - Keep in touch for contacts at regular intervals
-
 - LinkedIn sync
 - Google contacts sync
 
-
 ## Installation
-
 
 ## Contributing
 
@@ -38,7 +35,7 @@ To set up this repository for development, follow these steps:
     ```
 
 1. **Run the backend:**
-    Ensure you have [Go](https://golang.org/doc/install) installed. Then, install the required Go packages, load the environment variables and run the backend. The project uses an sqlite database for storage, it will be automatically created if it does not exist.:
+Ensure you have [Go](https://golang.org/doc/install) installed. Then, install the required Go packages, load the environment variables and run the backend (consider creating a copy of the environment.env named my_environment.env to store your personal configuration. It will be ignored by git). The project uses an sqlite database for storage, it will be automatically created if it does not exist.:
     ```sh
     cd backend
     go mod tidy

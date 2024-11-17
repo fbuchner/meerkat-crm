@@ -5,7 +5,8 @@
       <v-card-text>
         <v-form @submit.prevent="addActivity">
           <!-- Activity Details -->
-          <v-text-field v-model="newActivityName" label="Activity Name" required></v-text-field>
+          <v-text-field v-model="newActivityName" label="Activity Name" 
+          :rules="[() => !!newActivityName || 'Activity name is required']"></v-text-field>
           <v-textarea v-model="newActivityDescription" label="Activity Description" rows="3" auto-grow></v-textarea>
           <v-text-field v-model="newActivityLocation" label="Activity Location"></v-text-field>
 

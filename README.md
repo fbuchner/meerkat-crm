@@ -20,6 +20,7 @@ The **Pe**rsonal **Re**lationship **Ma**nager is a simple self-hosted solution t
 - Keep in touch for contacts at regular intervals
 - LinkedIn sync
 - Google contacts sync
+- I18N (English, German)
 
 ## Installation
 

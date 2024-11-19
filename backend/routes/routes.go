@@ -15,7 +15,8 @@ func RegisterRoutes(router *gin.Engine) {
 	router.PUT("/contacts/:id", controllers.UpdateContact)
 	router.DELETE("/contacts/:id", controllers.DeleteContact)
 	router.POST("/contacts/:id/relationships", controllers.AddRelationshipToContact)
-	router.POST("/contacts/:id/profile_picture", controllers.AddProfilePictureToContact)
+	router.POST("/contacts/:id/profile_picture", controllers.AddPhotoToContact)
+	router.GET("/contacts/:id/profile_picture.jpg", controllers.GetProfilePicture)
 
 	// Note routes
 	router.GET("/contacts/:id/notes", controllers.GetNotesForContact)

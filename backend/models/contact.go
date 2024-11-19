@@ -32,6 +32,7 @@ type Contact struct {
 	Phone              string         `json:"phone"`
 	Birthday           *Date          `json:"birthday"`
 	Photo              string         `json:"photo"`                                     // Path to the profile photo
+	PhotoThumbnail     string         `json:"photo_thumnbnail"`                          // Path to the profile photo thumbnail
 	Partner            Partner        `gorm:"embedded" json:"partner"`                   // Embedded struct for partner info
 	Relationships      []Relationship `gorm:"foreignKey:ContactID" json:"relationships"` // Has many relationships
 	Address            string         `json:"address"`                                   // Full address as a string

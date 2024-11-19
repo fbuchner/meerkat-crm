@@ -61,8 +61,6 @@ func main() {
 		c.Next()
 	})
 
-	r.Static("/static", "./frontend/dist")
-
 	// test.InjectTestData(db)
 
 	// Register all routes from routes.go

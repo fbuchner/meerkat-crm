@@ -3,8 +3,6 @@ package controllers
 import (
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
 	"perema/models"
 	"strconv"
 	"strings"
@@ -176,67 +174,6 @@ func DeleteContact(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Contact deleted"})
-}
-
-func AddProfilePictureToContact(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
-
-	// Parse contact ID from the request parameters
-	contactIDParam := c.Param("id")
-	contactID, err := strconv.Atoi(contactIDParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid contact ID"})
-		return
-	}
-
-	// Find the contact by ID
-	var contact models.Contact
-	if err := db.First(&contact, contactID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find contact"})
-		return
-	}
-
-	// Get the uploaded file
-	file, err := c.FormFile("photo")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to upload file"})
-		return
-	}
-
-	// Define the file path to save the uploaded file
-	uploadDir := os.Getenv("PROFILE_PHOTO_DIR")
-	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
-		return
-	}
-
-	// Sanitize the filename to prevent directory traversal
-	filename := filepath.Base(file.Filename)
-	if strings.Contains(filename, "..") {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid file name"})
-		return
-	}
-
-	filePath := filepath.Join(uploadDir, file.Filename)
-
-	// Save the uploaded file to the server
-	if err := c.SaveUploadedFile(file, filePath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
-		return
-	}
-
-	// Update the contact's photo field
-	contact.Photo = filePath
-	if err := db.Save(&contact).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update contact photo"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Profile picture added successfully"})
 }
 
 func AddRelationshipToContact(c *gin.Context) {

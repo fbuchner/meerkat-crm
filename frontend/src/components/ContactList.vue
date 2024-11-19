@@ -42,7 +42,7 @@
       <v-card-text>
         <!-- Profile Photo -->
         <v-avatar size="80" class="mb-3">
-          <v-img :src="contact.photo || '/placeholder-avatar.png'" alt="Profile Photo"></v-img>
+          <v-img :src="`${backendURL}/contacts/${contact.ID}/profile_picture.jpg`" alt="Profile Photo"></v-img>
         </v-avatar>
 
         <!-- Contact Name -->
@@ -77,6 +77,7 @@
 import { inject, computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import contactService from '@/services/contactService';
+import { backendURL } from '@/services/api';
 
 export default {
   setup() {
@@ -148,6 +149,7 @@ export default {
       filterByCircle,
       clearCircleFilter,
       goToContact,
+      backendURL,
     };
   },
   mounted() {

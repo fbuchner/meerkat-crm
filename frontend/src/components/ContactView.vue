@@ -3,9 +3,10 @@
         <!-- Top Section with Profile and Edit Button -->
         <v-row class="d-flex flex-column flex-md-row align-center text-center text-md-left">
             <v-col cols="12" md="3" class="d-flex justify-center">
-                <v-img :src="contact.photo || ''" alt="Profile Photo" width="150" height="150"
-                    class="circular-frame mb-2 fixed-square" contain></v-img>
+                <!-- Profile Photo -->
+                <ProfilePhoto :photo="contact.photo" :contactId="contact.ID"  @photoUploaded="updatePhoto" />
             </v-col>
+
             <v-col cols="12" md="9" class="d-flex flex-column justify-center text-center text-md-left">
                 <div class="d-flex align-center justify-center justify-md-start name-section field-label">
                     <!-- Contact Name with Edit Icon -->
@@ -94,7 +95,8 @@
                     <v-card-title>
                         Timeline
                         <v-spacer></v-spacer>
-                        <v-btn @click="openAddNote" color="primary" density="compact" prepend-icon="mdi-note-plus-outline">Add
+                        <v-btn @click="openAddNote" color="primary" density="compact"
+                            prepend-icon="mdi-note-plus-outline">Add
                             note</v-btn>
                         <v-btn @click="openAddActivity" color="primary" density="compact"
                             prepend-icon="mdi-account-multiple-plus-outline" class="ml-2">Add activity</v-btn>
@@ -153,6 +155,7 @@ import contactService from '@/services/contactService';
 import { reactive } from 'vue';
 import ActivityAdd from '@/components/ActivityAdd.vue';
 import NoteAdd from '@/components/NoteAdd.vue';
+import ProfilePhoto from './ProfilePhoto.vue';
 import activityService from '@/services/activityService';
 import noteService from '@/services/noteService';
 
@@ -163,7 +166,7 @@ export default {
             required: true,
         },
     },
-    components: { ActivityAdd, NoteAdd },
+    components: { ActivityAdd, NoteAdd, ProfilePhoto },
     data() {
         return {
             contact: null,
@@ -424,6 +427,9 @@ export default {
                 return "Invalid format. Use DD.MM.YYYY or DD.MM.";
             }
             return true; // No error
+        },
+        updatePhoto(newPhotoUrl) {
+            this.contact.photo = newPhotoUrl;
         },
     },
 };

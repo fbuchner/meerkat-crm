@@ -72,5 +72,27 @@ export default {
       throw error;
     }
   },
+  async addPhotoToContact(contactId, photoFile) {
+    try {
+      // Prepare FormData
+      const formData = new FormData();
+      formData.append('photo', photoFile);
+
+      // Send the POST request to upload the photo
+      const response = await apiClient.post(
+        `${API_URL}/${contactId}/profile_picture`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error uploading profile picture:', error);
+      throw error;
+    }
+  },
 };
 

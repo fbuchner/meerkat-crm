@@ -12,6 +12,7 @@
     "axios": "^1.7.7",
     "core-js": "^3.8.3",
     "vue": "^3.2.13",
+    "vue-advanced-cropper": "^2.8.9",
     "vue-loader": "^17.3.1",
     "vue-router": "^4.4.5",
     "vuetify": "^3.7.3"

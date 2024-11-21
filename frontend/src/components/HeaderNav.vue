@@ -18,6 +18,7 @@
             append-icon="mdi-magnify"
             autofocus
             @input="handleSearchInput"
+            @click:clear="handleClearSearch"
           ></v-text-field>
         </v-col>
 
@@ -54,19 +55,24 @@
 
 <script>
 import { inject, ref } from 'vue';
-import { useRouter } from 'vue-router'; // Import useRouter
+import { useRouter } from 'vue-router';
 
 export default {
   setup() {
     const searchQuery = ref('');
-    const setSearchQuery = inject('setSearchQuery'); // Use the injected function
-    const router = useRouter(); // Access the router instance
+    const setSearchQuery = inject('setSearchQuery');
+    const router = useRouter();
 
     function handleSearchInput() {
       if (!router.currentRoute.value.path.startsWith('/contacts')) {
-        router.push('/contacts'); // Navigate to the contacts page if not already there
+        router.push('/contacts');
       }
-      setSearchQuery(searchQuery.value); // Directly update the provided search query
+      setSearchQuery(searchQuery.value);
+    }
+
+    function handleClearSearch() {
+      searchQuery.value = '';
+      setSearchQuery('');
     }
 
     const isMobile = ref(window.innerWidth <= 960);
@@ -81,6 +87,7 @@ export default {
       searchQuery,
       isMobile,
       handleSearchInput,
+      handleClearSearch,
     };
   },
   beforeUnmount() {

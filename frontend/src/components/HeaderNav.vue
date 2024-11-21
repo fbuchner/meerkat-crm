@@ -16,7 +16,7 @@
             clearable
             density="compact"
             append-icon="mdi-magnify"
-            @input="searchContacts"
+            @input="handleSearchInput"
           ></v-text-field>
         </v-col>
 
@@ -53,14 +53,18 @@
 
 <script>
 import { inject, ref } from 'vue';
+import { useRouter } from 'vue-router'; // Import useRouter
 
 export default {
-  emits: ['search'], // Declare the search event here
   setup() {
     const searchQuery = ref('');
     const setSearchQuery = inject('setSearchQuery'); // Use the injected function
+    const router = useRouter(); // Access the router instance
 
-    function searchContacts() {
+    function handleSearchInput() {
+      if (!router.currentRoute.value.path.startsWith('/contacts')) {
+        router.push('/contacts'); // Navigate to the contacts page if not already there
+      }
       setSearchQuery(searchQuery.value); // Directly update the provided search query
     }
 
@@ -75,7 +79,7 @@ export default {
     return {
       searchQuery,
       isMobile,
-      searchContacts,
+      handleSearchInput,
     };
   },
   beforeUnmount() {

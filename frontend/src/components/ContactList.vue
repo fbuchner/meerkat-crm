@@ -14,18 +14,11 @@
     <v-row class="mb-4">
       <v-col cols="12" sm="12">
         <v-btn-toggle v-model="activeCircle" class="ml-4">
-          <v-btn 
-            v-for="circle in circles" 
-            :key="circle" 
-            @click="filterByCircle(circle)"
-            :class="{ 'active-circle': activeCircle === circle }"
-          >
+          <v-btn v-for="circle in circles" :key="circle" @click="filterByCircle(circle)"
+            :class="{ 'active-circle': activeCircle === circle }">
             {{ circle }}
           </v-btn>
-          <v-btn 
-            @click="clearCircleFilter" 
-            :class="{ 'active-circle': activeCircle === null }"
-          >
+          <v-btn @click="clearCircleFilter" :class="{ 'active-circle': activeCircle === null }">
             All
           </v-btn>
         </v-btn-toggle>
@@ -35,7 +28,7 @@
     <!-- Display Current Search Query -->
     <v-row v-if="searchQuery && searchQuery.trim()" class="mb-4">
       <v-col cols="12">
-        <v-alert type="info" border="start" class="d-flex align-center">
+        <v-alert type="info" border="start" class="d-flex align-center" @click="clearSearch">
           Showing results for: <strong>"{{ searchQuery }}"</strong>
         </v-alert>
       </v-col>
@@ -100,6 +93,11 @@ export default {
     const limit = ref(25);
     const total = ref(0);
     const router = useRouter(); // Access router to navigate programmatically
+    const setSearchQuery = inject('setSearchQuery');
+
+    function clearSearch() {
+      setSearchQuery('');
+    }
 
     const filteredContacts = computed(() => {
       return contacts.value.filter((contact) => {
@@ -161,6 +159,7 @@ export default {
       clearCircleFilter,
       goToContact,
       backendURL,
+      clearSearch,
     };
   },
   mounted() {

@@ -22,7 +22,6 @@ export default {
     // Define handleSearch as a function to update the search query
     function handleSearch(query) {
       searchQuery.value = query;
-      console.log('Search query:', query);
     }
 
     provide('searchQuery', searchQuery); // Provide searchQuery to child components

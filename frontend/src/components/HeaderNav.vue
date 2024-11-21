@@ -10,7 +10,7 @@
         <!-- Search Bar (hidden on mobile) -->
         <v-col cols="3" class="d-none d-md-flex">
           <v-text-field
-            v-model="searchQuery"
+            v-model="searchQueryLocal"
             placeholder="Search contacts..."
             hide-details
             clearable
@@ -30,50 +30,59 @@
         </v-col>
       </v-row>
     </v-container>
-  </v-app-bar>
 
-  <!-- Bottom Navigation for Mobile -->
-  <v-bottom-navigation
-    v-if="isMobile"
-    app
-    color="primary"
-  >
-    <v-btn icon to="/contacts">
-      <v-icon>mdi-account-multiple</v-icon>
-      <span>Contacts</span>
-    </v-btn>
-    <v-btn icon to="/activities">
-      <v-icon>mdi-calendar-check</v-icon>
-      <span>Activities</span>
-    </v-btn>
-    <v-btn icon to="/notes">
-      <v-icon>mdi-note</v-icon>
-      <span>Notes</span>
-    </v-btn>
-  </v-bottom-navigation>
+    <!-- Bottom Navigation for Mobile -->
+    <v-bottom-navigation
+      v-if="isMobile"
+      app
+      color="primary"
+    >
+      <v-btn icon to="/contacts">
+        <v-icon>mdi-account-multiple</v-icon>
+        <span>Contacts</span>
+      </v-btn>
+      <v-btn icon to="/activities">
+        <v-icon>mdi-calendar-check</v-icon>
+        <span>Activities</span>
+      </v-btn>
+      <v-btn icon to="/notes">
+        <v-icon>mdi-note</v-icon>
+        <span>Notes</span>
+      </v-btn>
+    </v-bottom-navigation>
+  </v-app-bar>
 </template>
 
 <script>
-import { inject, ref, onMounted } from 'vue';
+import { inject, ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 export default {
-  setup() {
-    const searchQuery = ref('');
+  emits: ['search'], // Declare the 'search' event explicitly
+  setup(_, { emit }) { // Add 'emit' to setup function parameters
+    const searchQuery = inject('searchQuery');
     const setSearchQuery = inject('setSearchQuery');
+    const searchQueryLocal = ref(searchQuery.value);
     const router = useRouter();
 
     function handleSearchInput() {
       if (!router.currentRoute.value.path.startsWith('/contacts')) {
         router.push('/contacts');
       }
-      setSearchQuery(searchQuery.value);
+      setSearchQuery(searchQueryLocal.value);
+      emit('search', searchQueryLocal.value);
     }
 
     function handleClearSearch() {
-      searchQuery.value = '';
+      searchQueryLocal.value = '';
       setSearchQuery('');
+      emit('search', ''); // Emit a search event with an empty query when cleared
     }
+
+    // Watch for changes to the injected searchQuery and update the local value
+    watch(searchQuery, (newValue) => {
+      searchQueryLocal.value = newValue;
+    });
 
     const isMobile = ref(window.innerWidth <= 960);
 
@@ -83,7 +92,7 @@ export default {
 
     function handleKeyPress(event) {
       if (document.activeElement === document.body && event.key.length === 1) {
-        searchQuery.value += event.key;
+        searchQueryLocal.value += event.key;
         handleSearchInput();
       }
     }
@@ -96,7 +105,7 @@ export default {
     });
 
     return {
-      searchQuery,
+      searchQueryLocal,
       isMobile,
       handleSearchInput,
       handleClearSearch,
@@ -116,4 +125,3 @@ export default {
   font-size: 12px;
 }
 </style>
-l

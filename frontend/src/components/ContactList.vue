@@ -14,11 +14,20 @@
     <v-row class="mb-4">
       <v-col cols="12" sm="12">
         <v-btn-toggle v-model="activeCircle" class="ml-4">
-          <v-btn v-for="circle in circles" :key="circle" @click="filterByCircle(circle)"
-            :class="{ active: activeCircle === circle }">
+          <v-btn 
+            v-for="circle in circles" 
+            :key="circle" 
+            @click="filterByCircle(circle)"
+            :class="{ 'active-circle': activeCircle === circle }"
+          >
             {{ circle }}
           </v-btn>
-          <v-btn @click="clearCircleFilter" :class="{ active: activeCircle === null }">All</v-btn>
+          <v-btn 
+            @click="clearCircleFilter" 
+            :class="{ 'active-circle': activeCircle === null }"
+          >
+            All
+          </v-btn>
         </v-btn-toggle>
       </v-col>
     </v-row>
@@ -31,7 +40,6 @@
         </v-alert>
       </v-col>
     </v-row>
-
 
     <!-- Contact Cards -->
     <v-row>
@@ -50,7 +58,7 @@
 
             <!-- Circles with Wrapping -->
             <div class="circle-chips mt-2">
-              <v-chip v-for="circle in contact.circles" :key="circle" class="mr-2 mb-2"
+              <v-chip v-for="circle in contact.circles" :key="circle" class="mr-2 mb-2 clickable-chip"
                 @click.stop="filterByCircle(circle)">
                 {{ circle }}
               </v-chip>
@@ -193,5 +201,10 @@ export default {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+}
+
+.active-circle {
+  background-color: #1976d2;
+  color: white;
 }
 </style>

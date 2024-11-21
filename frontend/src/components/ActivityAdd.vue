@@ -37,13 +37,13 @@
             label="Select Contacts" chips closable-chips multiple outlined color="blue-grey-lighten-2">
             <!-- Chip Slot -->
             <template v-slot:chip="{ props, item }">
-              <v-chip v-bind="props" outlined :prepend-avatar="item.photo || '../placeholder-avatar.png'" :text="item.name">
+              <v-chip v-bind="props" outlined :prepend-avatar="getAvatarURL(item.value)" :text="item.title">
               </v-chip>
             </template>
 
             <!-- Dropdown Item Slot -->
             <template v-slot:item="{ props, item }">
-              <v-list-item v-bind="props" :prepend-avatar="item.photo || '../placeholder-avatar.png'" :text="item.name"></v-list-item>
+              <v-list-item v-bind="props" :prepend-avatar="getAvatarURL(item.value)" :text="item.title"></v-list-item>
             </template>
           </v-autocomplete>
         </v-form>
@@ -61,6 +61,7 @@
 
 import activityService from '@/services/activityService';
 import contactService from '@/services/contactService';
+import { backendURL } from '@/services/api';
 
 export default {
   name: 'ActivityAdd',
@@ -96,6 +97,7 @@ export default {
       menu: false,
       selectedContacts: this.initialActivity.contact_ids || [], // Array of selected contact objects
       allContactNames: [], // Array of all available contacts
+      backendURL,
     };
   },
   computed: {
@@ -149,6 +151,9 @@ export default {
     confirmDate() {
       this.menu = false;
     },
+    getAvatarURL(ID) {
+      return `${this.backendURL}/contacts/${ID}/profile_picture.jpg`;
+  },
     async addActivity() {
       const formattedDate = this.newActivityDate.toISOString().split('T')[0];
       const activityData = {

@@ -54,7 +54,7 @@
 </template>
 
 <script>
-import { inject, ref } from 'vue';
+import { inject, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 
 export default {
@@ -81,7 +81,19 @@ export default {
       isMobile.value = window.innerWidth <= 960;
     }
 
+    function handleKeyPress(event) {
+      if (document.activeElement === document.body && event.key.length === 1) {
+        searchQuery.value += event.key;
+        handleSearchInput();
+      }
+    }
+
     window.addEventListener('resize', handleResize);
+    window.addEventListener('keypress', handleKeyPress);
+
+    onMounted(() => {
+      window.addEventListener('keypress', handleKeyPress);
+    });
 
     return {
       searchQuery,
@@ -92,6 +104,7 @@ export default {
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.handleResize);
+    window.removeEventListener('keypress', this.handleKeyPress);
   },
 };
 </script>
@@ -103,3 +116,4 @@ export default {
   font-size: 12px;
 }
 </style>
+l

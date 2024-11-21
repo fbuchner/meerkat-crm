@@ -16,6 +16,7 @@
             clearable
             density="compact"
             append-icon="mdi-magnify"
+            autofocus
             @input="handleSearchInput"
           ></v-text-field>
         </v-col>

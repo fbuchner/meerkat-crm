@@ -23,48 +23,51 @@
       </v-col>
     </v-row>
 
-   <!-- Contact Cards -->
-<v-row>
-  <v-col
-    v-for="contact in filteredContacts"
-    :key="contact.ID"
-    cols="12"
-    sm="6"
-    md="4"
-    lg="3"
-  >
-    <v-card
-      class="contact-card"
-      outlined
-      elevation="2"
-      @click="goToContact(contact.ID)"
-    >
-      <v-card-text>
-        <!-- Profile Photo -->
-        <v-avatar size="80" class="mb-3">
-          <v-img :src="`${backendURL}/contacts/${contact.ID}/profile_picture.jpg`" alt="Profile Photo"></v-img>
-        </v-avatar>
+    <!-- Display Current Search Query -->
+    <v-row v-if="searchQuery && searchQuery.trim()" class="mb-4">
+      <v-col cols="12">
+        <v-alert type="info" border="start" class="d-flex align-center">
+          Showing results for: <strong>"{{ searchQuery }}"</strong>
+        </v-alert>
+      </v-col>
+    </v-row>
 
-        <!-- Contact Name -->
-        <div class="contact-name">
-          {{ contact.firstname }} {{ contact.lastname }}
-        </div>
 
-        <!-- Circles with Wrapping -->
-        <div class="circle-chips mt-2">
-          <v-chip
-            v-for="circle in contact.circles"
-            :key="circle"
-            class="mr-2 mb-2"
-            @click.stop="filterByCircle(circle)"
-          >
-            {{ circle }}
-          </v-chip>
-        </div>
-      </v-card-text>
-    </v-card>
-  </v-col>
-</v-row>
+    <!-- Contact Cards -->
+    <v-row>
+      <v-col v-for="contact in filteredContacts" :key="contact.ID" cols="12" sm="6" md="4" lg="3">
+        <v-card class="contact-card" outlined elevation="2" @click="goToContact(contact.ID)">
+          <v-card-text>
+            <!-- Profile Photo -->
+            <v-avatar size="80" class="mb-3">
+              <v-img :src="`${backendURL}/contacts/${contact.ID}/profile_picture.jpg`" alt="Profile Photo"></v-img>
+            </v-avatar>
+
+            <!-- Contact Name -->
+            <div class="contact-name">
+              {{ contact.firstname }} {{ contact.lastname }}
+            </div>
+
+            <!-- Circles with Wrapping -->
+            <div class="circle-chips mt-2">
+              <v-chip v-for="circle in contact.circles" :key="circle" class="mr-2 mb-2"
+                @click.stop="filterByCircle(circle)">
+                {{ circle }}
+              </v-chip>
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <!-- No Contacts Found -->
+    <v-row v-if="filteredContacts.length === 0" justify="center" class="mt-4">
+      <v-col cols="12" class="text-center">
+        <v-alert type="warning" border="start" class="d-flex align-center">
+          No contacts found matching your search criteria.
+        </v-alert>
+      </v-col>
+    </v-row>
 
     <!-- Pagination -->
     <v-row justify="center" class="mt-4">
@@ -189,7 +192,6 @@ export default {
 .circle-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px; 
+  gap: 4px;
 }
-
 </style>

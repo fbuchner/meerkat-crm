@@ -54,6 +54,8 @@
         <!-- Main Layout with Details and Timeline -->
         <v-row class="mt-4">
             <v-col cols="12" md="4">
+                <RelationshipList :contactId="contact.ID" />
+
                 <v-card outlined>
                     <v-card-title>Contact Details</v-card-title>
                     <v-card-text>
@@ -158,6 +160,7 @@ import NoteAdd from '@/components/NoteAdd.vue';
 import ProfilePhoto from './ProfilePhoto.vue';
 import activityService from '@/services/activityService';
 import noteService from '@/services/noteService';
+import RelationshipList from '@/components/RelationshipList.vue';
 
 export default {
     name: 'ContactView',
@@ -166,7 +169,7 @@ export default {
             required: true,
         },
     },
-    components: { ActivityAdd, NoteAdd, ProfilePhoto },
+    components: { ActivityAdd, NoteAdd, ProfilePhoto, RelationshipList },
     data() {
         return {
             contact: null,

@@ -10,13 +10,16 @@
         <!-- Search Bar (hidden on mobile) -->
         <v-col cols="3" class="d-none d-md-flex">
           <v-text-field
-            v-model="searchQuery"
+            v-model="searchQueryLocal"
             placeholder="Search contacts..."
             hide-details
             clearable
             density="compact"
             append-icon="mdi-magnify"
-            @input="searchContacts"
+            autofocus
+            @keypress="handleKeyPress"
+            @input="handleSearchInput"
+            @click:clear="handleClearSearch"
           ></v-text-field>
         </v-col>
 
@@ -28,41 +31,59 @@
         </v-col>
       </v-row>
     </v-container>
-  </v-app-bar>
 
-  <!-- Bottom Navigation for Mobile -->
-  <v-bottom-navigation
-    v-if="isMobile"
-    app
-    color="primary"
-  >
-    <v-btn icon to="/contacts">
-      <v-icon>mdi-account-multiple</v-icon>
-      <span>Contacts</span>
-    </v-btn>
-    <v-btn icon to="/activities">
-      <v-icon>mdi-calendar-check</v-icon>
-      <span>Activities</span>
-    </v-btn>
-    <v-btn icon to="/notes">
-      <v-icon>mdi-note</v-icon>
-      <span>Notes</span>
-    </v-btn>
-  </v-bottom-navigation>
+    <!-- Bottom Navigation for Mobile -->
+    <v-bottom-navigation
+      v-if="isMobile"
+      app
+      color="primary"
+    >
+      <v-btn icon to="/contacts">
+        <v-icon>mdi-account-multiple</v-icon>
+        <span>Contacts</span>
+      </v-btn>
+      <v-btn icon to="/activities">
+        <v-icon>mdi-calendar-check</v-icon>
+        <span>Activities</span>
+      </v-btn>
+      <v-btn icon to="/notes">
+        <v-icon>mdi-note</v-icon>
+        <span>Notes</span>
+      </v-btn>
+    </v-bottom-navigation>
+  </v-app-bar>
 </template>
 
 <script>
-import { inject, ref } from 'vue';
+import { inject, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 
 export default {
-  emits: ['search'], // Declare the search event here
-  setup() {
-    const searchQuery = ref('');
-    const setSearchQuery = inject('setSearchQuery'); // Use the injected function
+  emits: ['search'], // Declare the 'search' event explicitly
+  setup(_, { emit }) { // Add 'emit' to setup function parameters
+    const searchQuery = inject('searchQuery');
+    const setSearchQuery = inject('setSearchQuery');
+    const searchQueryLocal = ref(searchQuery.value);
+    const router = useRouter();
 
-    function searchContacts() {
-      setSearchQuery(searchQuery.value); // Directly update the provided search query
+    function handleSearchInput() {
+      if (!router.currentRoute.value.path.startsWith('/contacts')) {
+        router.push('/contacts');
+      }
+      setSearchQuery(searchQueryLocal.value);
+      emit('search', searchQueryLocal.value);
     }
+
+    function handleClearSearch() {
+      searchQueryLocal.value = '';
+      setSearchQuery('');
+      emit('search', ''); // Emit a search event with an empty query when cleared
+    }
+
+    // Watch for changes to the injected searchQuery and update the local value
+    watch(searchQuery, (newValue) => {
+      searchQueryLocal.value = newValue;
+    });
 
     const isMobile = ref(window.innerWidth <= 960);
 
@@ -70,16 +91,22 @@ export default {
       isMobile.value = window.innerWidth <= 960;
     }
 
+    function handleKeyPress(event) {
+      if (document.activeElement === document.body && event.key.length === 1) {
+        searchQueryLocal.value += event.key;
+        handleSearchInput();
+      }
+    }
+
     window.addEventListener('resize', handleResize);
 
     return {
-      searchQuery,
+      searchQueryLocal,
       isMobile,
-      searchContacts,
+      handleSearchInput,
+      handleClearSearch,
+      handleKeyPress
     };
-  },
-  beforeUnmount() {
-    window.removeEventListener('resize', this.handleResize);
   },
 };
 </script>

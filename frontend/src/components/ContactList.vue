@@ -15,56 +15,60 @@
       <v-col cols="12" sm="12">
         <v-btn-toggle v-model="activeCircle" class="ml-4">
           <v-btn v-for="circle in circles" :key="circle" @click="filterByCircle(circle)"
-            :class="{ active: activeCircle === circle }">
+            :class="{ 'active-circle': activeCircle === circle }">
             {{ circle }}
           </v-btn>
-          <v-btn @click="clearCircleFilter" :class="{ active: activeCircle === null }">All</v-btn>
+          <v-btn @click="clearCircleFilter" :class="{ 'active-circle': activeCircle === null }">
+            All
+          </v-btn>
         </v-btn-toggle>
       </v-col>
     </v-row>
 
-   <!-- Contact Cards -->
-<v-row>
-  <v-col
-    v-for="contact in filteredContacts"
-    :key="contact.ID"
-    cols="12"
-    sm="6"
-    md="4"
-    lg="3"
-  >
-    <v-card
-      class="contact-card"
-      outlined
-      elevation="2"
-      @click="goToContact(contact.ID)"
-    >
-      <v-card-text>
-        <!-- Profile Photo -->
-        <v-avatar size="80" class="mb-3">
-          <v-img :src="`${backendURL}/contacts/${contact.ID}/profile_picture.jpg`" alt="Profile Photo"></v-img>
-        </v-avatar>
+    <!-- Display Current Search Query -->
+    <v-row v-if="searchQuery && searchQuery.trim()" class="mb-4">
+      <v-col cols="12">
+        <v-alert type="info" border="start" class="d-flex align-center" @click="clearSearch">
+          Showing results for: <strong>"{{ searchQuery }}"</strong>
+        </v-alert>
+      </v-col>
+    </v-row>
 
-        <!-- Contact Name -->
-        <div class="contact-name">
-          {{ contact.firstname }} {{ contact.lastname }}
-        </div>
+    <!-- Contact Cards -->
+    <v-row>
+      <v-col v-for="contact in filteredContacts" :key="contact.ID" cols="12" sm="6" md="4" lg="3">
+        <v-card class="contact-card" outlined elevation="2" @click="goToContact(contact.ID)">
+          <v-card-text>
+            <!-- Profile Photo -->
+            <v-avatar size="80" class="mb-3">
+              <v-img :src="`${backendURL}/contacts/${contact.ID}/profile_picture.jpg`" alt="Profile Photo"></v-img>
+            </v-avatar>
 
-        <!-- Circles with Wrapping -->
-        <div class="circle-chips mt-2">
-          <v-chip
-            v-for="circle in contact.circles"
-            :key="circle"
-            class="mr-2 mb-2"
-            @click.stop="filterByCircle(circle)"
-          >
-            {{ circle }}
-          </v-chip>
-        </div>
-      </v-card-text>
-    </v-card>
-  </v-col>
-</v-row>
+            <!-- Contact Name -->
+            <div class="contact-name">
+              {{ contact.firstname }} {{ contact.lastname }}
+            </div>
+
+            <!-- Circles with Wrapping -->
+            <div class="circle-chips mt-2">
+              <v-chip v-for="circle in contact.circles" :key="circle" class="mr-2 mb-2 clickable-chip"
+                @click.stop="filterByCircle(circle)">
+                {{ circle }}
+              </v-chip>
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <!-- No Contacts Found -->
+    <v-row v-if="filteredContacts.length === 0" justify="center" class="mt-4">
+      <v-col cols="12" class="text-center">
+        <v-alert type="warning" border="start" class="d-flex align-center">
+          No contacts found matching your search criteria.
+        </v-alert>
+      </v-col>
+    </v-row>
 
     <!-- Pagination -->
     <v-row justify="center" class="mt-4">
@@ -89,6 +93,11 @@ export default {
     const limit = ref(25);
     const total = ref(0);
     const router = useRouter(); // Access router to navigate programmatically
+    const setSearchQuery = inject('setSearchQuery');
+
+    function clearSearch() {
+      setSearchQuery('');
+    }
 
     const filteredContacts = computed(() => {
       return contacts.value.filter((contact) => {
@@ -150,6 +159,7 @@ export default {
       clearCircleFilter,
       goToContact,
       backendURL,
+      clearSearch,
     };
   },
   mounted() {
@@ -189,7 +199,11 @@ export default {
 .circle-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px; 
+  gap: 4px;
 }
 
+.active-circle {
+  background-color: #1976d2;
+  color: white;
+}
 </style>

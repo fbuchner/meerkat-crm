@@ -20,9 +20,10 @@
                     </v-list-item-action>
                 </v-list-item>
             </v-list>
-
-            <!-- Button to Add New Relationship -->
-            <v-btn color="primary" @click="openAddRelationshipDialog">Add Relationship</v-btn>
+            <!-- Icon to Add New Relationship -->
+            <v-icon small class="add-circle-icon mt-2" @click="openAddRelationshipDialog">
+                mdi-plus-circle
+            </v-icon>
         </v-card-text>
 
         <!-- Dialog to Add/Edit Relationship -->
@@ -55,8 +56,8 @@
                                 <v-select v-model="relationshipForm.type" :items="relationshipTypes"
                                     label="Relationship Type" required></v-select>
                                 <v-autocomplete v-model="relationshipForm.related_contact" :items="filteredContacts"
-                                    item-title="name" item-value="ID" label="Select Existing Contact"
-                                    return-object outlined color="blue-grey-lighten-2" required></v-autocomplete>
+                                    item-title="name" item-value="ID" label="Select Existing Contact" return-object
+                                    outlined color="blue-grey-lighten-2" required></v-autocomplete>
                             </v-form>
                         </v-tabs-window-item>
                     </v-tabs-window>

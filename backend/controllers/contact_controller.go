@@ -88,8 +88,9 @@ func GetAllContacts(c *gin.Context) {
 	includes := c.Query("includes") // Example: "notes,activities"
 	includedRelationships := strings.Split(includes, ",")
 	relationshipMap := map[string]bool{
-		"notes":      false,
-		"activities": false,
+		"notes":         false,
+		"activities":    false,
+		"relationships": false,
 	}
 
 	for _, rel := range includedRelationships {
@@ -115,6 +116,9 @@ func GetAllContacts(c *gin.Context) {
 	if relationshipMap["activities"] {
 		query = query.Preload("Activities")
 	}
+	if relationshipMap["relationships"] {
+		query = query.Preload("Relationships")
+	}
 
 	// Execute query
 	if err := query.Find(&contacts).Error; err != nil {
@@ -139,7 +143,7 @@ func GetContact(c *gin.Context) {
 	id := c.Param("id")
 	var contact models.Contact
 	db := c.MustGet("db").(*gorm.DB)
-	if err := db.Preload("Notes").Preload("Activities").First(&contact, id).Error; err != nil {
+	if err := db.Preload("Notes").Preload("Activities").Preload("Relationships").First(&contact, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
 		return
 	}

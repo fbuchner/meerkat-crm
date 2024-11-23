@@ -40,7 +40,7 @@ func main() {
 
 	// Migrate the schema
 	log.Println("Loading migrations...")
-	if err := db.AutoMigrate(&models.Contact{}, &models.Activity{}, &models.Note{}); err != nil {
+	if err := db.AutoMigrate(&models.Contact{}, &models.Activity{}, &models.Note{}, models.Relationship{}, models.Date{}); err != nil {
 		log.Fatalf("failed to migrate database schema: %v", err)
 	}
 

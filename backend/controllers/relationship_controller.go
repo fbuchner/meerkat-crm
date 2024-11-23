@@ -34,7 +34,7 @@ func AddRelationshipToContact(c *gin.Context) {
 	// Bind the request body to the Relationship struct
 	var relationship models.Relationship
 	if err := c.ShouldBindJSON(&relationship); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body", "details": err.Error()})
 		return
 	}
 
@@ -49,14 +49,22 @@ func AddRelationshipToContact(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find related contact"})
 			return
 		}
-		relationship.RelatedContact = &relatedContact
 	}
 
-	// Append the relationship to the contact
-	contact.Relationships = append(contact.Relationships, relationship)
+	// Start a transaction to save the relationship properly
+	err = db.Transaction(func(tx *gorm.DB) error {
+		// Append the relationship to the contact
+		contact.Relationships = append(contact.Relationships, relationship)
 
-	// Save the contact with the new relationship
-	if err := db.Save(&contact).Error; err != nil {
+		// Save the contact with the new relationship
+		if err := tx.Save(&contact).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add relationship to contact"})
 		return
 	}

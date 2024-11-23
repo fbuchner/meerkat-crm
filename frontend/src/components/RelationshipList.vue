@@ -4,22 +4,29 @@
         <v-card-text>
             <!-- List of Existing Relationships -->
             <v-list dense>
-                <v-list-item v-for="relationship in relationships" :key="relationship.ID">
-                    <v-list-item-content>
-                        <v-list-item-title>
-                            <strong>{{ relationship.name }}</strong>
-                            <span v-if="relationship.related_contact"> - Linked Contact: {{
-                                relationship.related_contact.firstname }} {{ relationship.related_contact.lastname
-                                }}</span>
-                        </v-list-item-title>
-                        <v-list-item-subtitle>{{ relationship.type }} ({{ relationship.gender }})</v-list-item-subtitle>
-                    </v-list-item-content>
-                    <v-list-item-action>
+                <v-list-item v-for="relationship in relationships" :key="relationship.ID"
+                    subtitle="{{ relationship.type }} ({{ relationship.gender }})">
+                    <template v-slot:prepend>
+                        <v-avatar size="40" color="primary">
+                            <v-icon>mdi-account</v-icon>
+                        </v-avatar>
+                    </template>
+
+                    <v-list-item-title>
+                        <strong>{{ relationship.name }}</strong>
+                        <span v-if="relationship.related_contact">
+                            - Linked Contact: {{ relationship.related_contact.firstname }}
+                            {{ relationship.related_contact.lastname }}
+                        </span>
+                    </v-list-item-title>
+
+                    <template v-slot:append>
                         <v-icon small @click="editRelationship(relationship)">mdi-pencil</v-icon>
                         <v-icon small color="error" @click="deleteRelationship(relationship.id)">mdi-delete</v-icon>
-                    </v-list-item-action>
+                    </template>
                 </v-list-item>
             </v-list>
+
             <!-- Icon to Add New Relationship -->
             <v-icon small class="add-circle-icon mt-2" @click="openAddRelationshipDialog">
                 mdi-plus-circle
@@ -36,9 +43,9 @@
                         <v-tab value="existing">Select Existing Contact</v-tab>
                     </v-tabs>
 
-                    <v-tabs-window v-model="activeTab">
+                    <v-window v-model="activeTab">
                         <!-- Manual Entry Tab -->
-                        <v-tabs-window-item value="manual">
+                        <v-window-item value="manual">
                             <v-form>
                                 <v-select v-model="relationshipForm.type" :items="relationshipTypes"
                                     label="Relationship Type" required></v-select>
@@ -48,19 +55,26 @@
                                 <v-text-field v-model="relationshipForm.birthday" label="Birthday (Optional)"
                                     placeholder="DD.MM.YYYY or DD.MM."></v-text-field>
                             </v-form>
-                        </v-tabs-window-item>
+                        </v-window-item>
 
                         <!-- Select Existing Contact Tab -->
-                        <v-tabs-window-item value="existing">
+                        <v-window-item value="existing">
                             <v-form>
                                 <v-select v-model="relationshipForm.type" :items="relationshipTypes"
                                     label="Relationship Type" required></v-select>
                                 <v-autocomplete v-model="relationshipForm.related_contact" :items="filteredContacts"
                                     item-title="name" item-value="ID" label="Select Existing Contact" return-object
-                                    outlined color="blue-grey-lighten-2" required></v-autocomplete>
+                                    outlined color="blue-grey-lighten-2" required>
+
+                                    <!-- Dropdown Item Slot -->
+                                    <template v-slot:item="{ props, item }">
+                                        <v-list-item v-bind="props" :key="item.ID" :prepend-avatar="getAvatarURL(item.value)"
+                                            :text="item.title"></v-list-item>
+                                    </template>
+                                </v-autocomplete>
                             </v-form>
-                        </v-tabs-window-item>
-                    </v-tabs-window>
+                        </v-window-item>
+                    </v-window>
                 </v-card-text>
                 <v-card-actions>
                     <v-spacer></v-spacer>
@@ -74,6 +88,7 @@
 
 <script>
 import contactService from '@/services/contactService';
+import { backendURL } from '@/services/api';
 
 export default {
     name: 'RelationshipList',
@@ -97,6 +112,7 @@ export default {
             },
             relationshipTypes: ['Child', 'Parent', 'Sibling', 'Partner', 'Friend'],
             contacts: [], // Contacts for existing contact selection
+            backendURL,
         };
     },
     computed: {
@@ -174,6 +190,9 @@ export default {
                 birthday: '',
                 related_contact: null,
             };
+        },
+        getAvatarURL(ID) {
+            return `${this.backendURL}/contacts/${ID}/profile_picture.jpg`;
         },
     },
 };

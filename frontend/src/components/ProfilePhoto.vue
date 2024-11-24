@@ -2,7 +2,7 @@
   <div class="profile-picture" @mouseenter="hovered = true" @mouseleave="hovered = false" @click="openFileSelector">
     <!-- Display profile picture -->
     <img :src="`${backendURL}/contacts/${contactId}/profile_picture.jpg`" alt="Profile Picture" class="profile-img" @click="openFileSelector" />
-    <v-icon v-if="hovered" class="profile-hover-icon">mdi-camera</v-icon>
+    <v-icon v-if="hovered" class="profile-hover-icon">mdi-pencil-circle</v-icon>
 
     <!-- Hidden file input -->
     <input type="file" accept="image/*" ref="fileInput" @change="onFileSelected" style="display: none" />
@@ -311,8 +311,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: black;
-  color: white;
+  background: white;
+  color: black;
   border-radius: 50%;
   transition: opacity 0.3s ease;
 }

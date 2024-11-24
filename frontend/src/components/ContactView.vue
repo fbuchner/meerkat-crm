@@ -13,6 +13,7 @@
                     <template v-if="!isEditingName">
                         <h1 class="text-h4 font-weight-bold">{{ contact.firstname }} {{ contact.lastname }}</h1>
                         <v-icon small class="edit-icon ml-2" @click="startEditingName">mdi-pencil</v-icon>
+                        <v-icon small class="delete-icon ml-2" color="error" @click="deleteContact">mdi-delete</v-icon>
                     </template>
                     <template v-else>
                         <v-text-field v-model="editName" dense hide-details></v-text-field>
@@ -324,7 +325,15 @@ export default {
             };
             this.showAddActivity = true;
         },
-
+        async deleteContact() {
+            try {
+                await contactService.deleteContact(this.contact.ID);
+                // Route to the main page after successfully deleting the contact
+                this.$router.push('/'); 
+            } catch (error) {
+                console.error('Error deleting contact:', error);
+            }
+        },
         async deleteActivity(activityId) {
             try {
                 await activityService.deleteActivity(activityId);
@@ -454,6 +463,8 @@ export default {
     cursor: pointer;
 }
 
+.field-label:hover .edit-icon,
+.field-label:hover .delete-icon,
 .timeline-date-section:hover .edit-icon,
 .timeline-date-section:hover .delete-icon {
     opacity: 1;

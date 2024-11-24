@@ -147,7 +147,6 @@ func GetContact(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
 		return
 	}
-
 	c.JSON(http.StatusOK, contact)
 }
 

@@ -47,6 +47,16 @@ export default {
       throw error;
     }
   },
+  async getRelationships(contactId) {
+    try {
+      const response = await apiClient.get(`${API_URL}/${contactId}/relationships`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching relationships:', error);
+      throw error;
+    }
+  },
+
   async addContact(contactData) {
     try {
       const response = await apiClient.post(API_URL, contactData);
@@ -94,5 +104,15 @@ export default {
       throw error;
     }
   },
+  async addRelationship(contactId, relationshipData) {
+    try {
+      const response = await apiClient.post(`${API_URL}/${contactId}/relationships`, relationshipData);
+      return response;
+    } catch (error) {
+      console.error('Error adding relationship:', error);
+      throw error;
+    }
+  },
+
 };
 

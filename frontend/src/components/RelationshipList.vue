@@ -1,36 +1,33 @@
 <template>
-    <v-card outlined class="mt-4">
+    <v-card outlined class="mt-4 relationship-section">
         <v-card-title>Relationships</v-card-title>
         <v-card-text>
             <!-- List of Existing Relationships -->
             <v-list dense>
-                <v-list-item v-for="relationship in relationships" :key="relationship.ID"
-                    subtitle="{{ relationship.type }} ({{ relationship.gender }})">
-                    <template v-slot:prepend>
-                        <v-avatar size="40" color="primary">
-                            <v-icon>mdi-account</v-icon>
-                        </v-avatar>
-                    </template>
+                <v-list-item v-for="relationship in relationships" :key="relationship.ID" class="field-label">
+                    <div v-if="relationship.contact_id != null && relationship.related_contact">
+                        <strong>{{ relationship.type }}: </strong>
+                        {{ relationship.related_contact.firstname }}
+                        {{ relationship.related_contact.lastname }}
+                    </div>
 
-                    <v-list-item-title>
+                    <div v-else>
                         <strong>{{ relationship.name }}</strong>
-                        <span v-if="relationship.related_contact">
-                            - Linked Contact: {{ relationship.related_contact.firstname }}
-                            {{ relationship.related_contact.lastname }}
-                        </span>
-                    </v-list-item-title>
+                        {{ relationship.type }} ({{ relationship.gender }})
+                        <strong>{{ relationship.name }}</strong>
+                    </div>
 
                     <template v-slot:append>
-                        <v-icon small @click="editRelationship(relationship)">mdi-pencil</v-icon>
-                        <v-icon small color="error" @click="deleteRelationship(relationship.id)">mdi-delete</v-icon>
+                        <v-icon small class="edit-icon ml-2" @click="editRelationship(relationship)">mdi-pencil</v-icon>
+                        <v-icon small class="delete-icon ml-2" color="error"
+                            @click="deleteRelationship(relationship.ID)">mdi-delete</v-icon>
                     </template>
                 </v-list-item>
-            </v-list>
-
-            <!-- Icon to Add New Relationship -->
-            <v-icon small class="add-circle-icon mt-2" @click="openAddRelationshipDialog">
+                    <!-- Icon to Add New Relationship -->
+                    <v-icon small class="add-circle-icon mt-2" @click="openAddRelationshipDialog">
                 mdi-plus-circle
             </v-icon>
+            </v-list>
         </v-card-text>
 
         <!-- Dialog to Add/Edit Relationship -->
@@ -47,8 +44,9 @@
                         <!-- Manual Entry Tab -->
                         <v-window-item value="manual">
                             <v-form>
-                                <v-select v-model="relationshipForm.type" :items="relationshipTypes"
-                                    label="Relationship Type" required></v-select>
+                                <v-combobox v-model="relationshipForm.type" :items="relationshipTypes"
+                                    label="Relationship Type" outlined color="blue-grey-lighten-2"
+                                    required></v-combobox>
                                 <v-text-field v-model="relationshipForm.name" label="Name" required></v-text-field>
                                 <v-select v-model="relationshipForm.gender" :items="['Male', 'Female', 'Unknown']"
                                     label="Gender" required></v-select>
@@ -68,8 +66,8 @@
 
                                     <!-- Dropdown Item Slot -->
                                     <template v-slot:item="{ props, item }">
-                                        <v-list-item v-bind="props" :key="item.ID" :prepend-avatar="getAvatarURL(item.value)"
-                                            :text="item.title"></v-list-item>
+                                        <v-list-item v-bind="props" :key="item.ID"
+                                            :prepend-avatar="getAvatarURL(item.value)" :text="item.title"></v-list-item>
                                     </template>
                                 </v-autocomplete>
                             </v-form>
@@ -100,9 +98,9 @@ export default {
     data() {
         return {
             activeTab: 'manual', // Track which tab is currently active
-            relationships: [],
             showAddRelationshipDialog: false,
             editingRelationship: null,
+            relationships: [],
             relationshipForm: {
                 name: '',
                 type: '',
@@ -121,7 +119,10 @@ export default {
         },
     },
     mounted() {
+        this.loadRelationships();
+
         this.loadContacts();
+        //TODO: only execute the function when a relationship is added
     },
     methods: {
         async loadContacts() {
@@ -138,7 +139,14 @@ export default {
                 console.error('Error fetching contacts:', error);
             }
         },
-
+        async loadRelationships() {
+            try {
+                const response = await contactService.getRelationships(this.contactId)
+                this.relationships = response.data.relationships
+            } catch (error) {
+                console.error('Error fetching relationships:', error);
+            }
+        },
         openAddRelationshipDialog() {
             this.showAddRelationshipDialog = true;
             this.editingRelationship = null;
@@ -163,6 +171,17 @@ export default {
                         throw new Error('Please select an existing contact and provide the relationship type.');
                     }
                 }
+
+                const relationshipData = {
+                    type: this.relationshipForm.type,
+                    name: null,
+                    gender: null,
+                    birthday: null,
+                    contact_id: this.relationshipForm.related_contact.ID
+                }
+
+                await contactService.addRelationship(this.contactId, relationshipData);
+
                 // Emit or call function to save relationship
                 this.$emit('relationship-added');
                 this.closeAddRelationshipDialog();
@@ -197,3 +216,25 @@ export default {
     },
 };
 </script>
+
+<style scoped>
+.field-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.v-list-item .edit-icon,
+.v-list-item .delete-icon {
+    opacity: 0;
+    /* Hide icons by default */
+    transition: opacity 0.3s ease;
+    cursor: pointer;
+}
+
+.v-list-item:hover .edit-icon,
+.v-list-item:hover .delete-icon {
+    opacity: 1;
+    /* Show icons on hover */
+}
+</style>

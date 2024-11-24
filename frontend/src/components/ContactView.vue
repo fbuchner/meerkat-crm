@@ -4,7 +4,7 @@
         <v-row class="d-flex flex-column flex-md-row align-center text-center text-md-left">
             <v-col cols="12" md="3" class="d-flex justify-center">
                 <!-- Profile Photo -->
-                <ProfilePhoto :photo="contact.photo" :contactId="contact.ID"  @photoUploaded="updatePhoto" />
+                <ProfilePhoto :photo="contact.photo" :contactId="contact.ID" @photoUploaded="updatePhoto" />
             </v-col>
 
             <v-col cols="12" md="9" class="d-flex flex-column justify-center text-center text-md-left">
@@ -54,7 +54,7 @@
         <!-- Main Layout with Details and Timeline -->
         <v-row class="mt-4">
             <v-col cols="12" md="4">
-                <RelationshipList :contactId="contact.ID" />
+                <RelationshipList :contactId="contact.ID"/>
 
                 <v-card outlined>
                     <v-card-title>Contact Details</v-card-title>
@@ -121,7 +121,8 @@
                                 </div>
 
                                 <div class="timeline-date-section" v-else>
-                                    <strong>{{ item.date }}</strong><v-icon small class="edit-icon ml-2"
+                                    <strong>{{ item.date }}</strong>
+                                    <v-icon small class="edit-icon ml-2"
                                         @click="editNote(item.id)">mdi-pencil</v-icon>
                                     <v-icon small class="delete-icon ml-2" color="error"
                                         @click="deleteNote(item.id)">mdi-delete</v-icon>

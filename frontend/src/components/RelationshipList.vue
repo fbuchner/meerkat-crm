@@ -5,7 +5,7 @@
             <!-- List of Existing Relationships -->
             <v-list dense>
                 <v-list-item v-for="relationship in relationships" :key="relationship.ID" class="field-label">
-                    <div v-if="relationship.contact_id != null && relationship.related_contact">
+                    <div v-if="relationship.related_contact_id != null && relationship.related_contact">
                         <strong>{{ relationship.type }}: </strong>
                         {{ relationship.related_contact.firstname }}
                         {{ relationship.related_contact.lastname }}
@@ -119,7 +119,7 @@ export default {
         },
     },
     mounted() {
-        this.loadRelationships();
+        this.fetchRelationships();
 
         this.loadContacts();
         //TODO: only execute the function when a relationship is added
@@ -139,7 +139,7 @@ export default {
                 console.error('Error fetching contacts:', error);
             }
         },
-        async loadRelationships() {
+        async fetchRelationships() {
             try {
                 const response = await contactService.getRelationships(this.contactId)
                 this.relationships = response.data.relationships
@@ -158,6 +158,15 @@ export default {
             this.relationshipForm = { ...relationship };
         },
         async saveRelationship() {
+            const relationshipData = {
+                    type: null,
+                    name: null,
+                    gender: null,
+                    birthday: null,
+                    contact_id: this.contactId,
+                    related_contact_id: null
+                }
+
             try {
                 // Implement save logic based on whether it's a manual entry or existing contact
                 if (this.activeTab === 'manual') {
@@ -165,19 +174,20 @@ export default {
                     if (!this.relationshipForm.name || !this.relationshipForm.type) {
                         throw new Error('Please provide both name and relationship type.');
                     }
+
+                    relationshipData.type = this.relationshipForm.type;
+                    relationshipData.name = this.relationshipForm.name;
+                    relationshipData.gender = this.relationshipForm.gender;
+                    relationshipData.birthday = this.relationshipForm.birthday;
+
                 } else if (this.activeTab === 'existing') {
                     // Select Existing Contact - Save with linked contact
                     if (!this.relationshipForm.related_contact || !this.relationshipForm.type) {
                         throw new Error('Please select an existing contact and provide the relationship type.');
                     }
-                }
 
-                const relationshipData = {
-                    type: this.relationshipForm.type,
-                    name: null,
-                    gender: null,
-                    birthday: null,
-                    contact_id: this.relationshipForm.related_contact.ID
+                    relationshipData.type = this.relationshipForm.type,
+                    relationshipData.related_contact_id = this.relationshipForm.related_contact.ID
                 }
 
                 await contactService.addRelationship(this.contactId, relationshipData);

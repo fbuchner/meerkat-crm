@@ -16,7 +16,9 @@ func RegisterRoutes(router *gin.Engine) {
 	router.DELETE("/contacts/:id", controllers.DeleteContact)
 
 	router.GET("/contacts/:id/relationships", controllers.GetRelationships)
-	router.POST("/contacts/:id/relationships", controllers.AddRelationshipToContact)
+	router.POST("/contacts/:id/relationships", controllers.CreateRelationship)
+	router.PUT("/contacts/:id/relationships/:rid", controllers.UpdateRelationship)
+	router.DELETE("/contacts/:id/relationships/:rid", controllers.DeleteRelationship)
 
 	router.POST("/contacts/:id/profile_picture", controllers.AddPhotoToContact)
 	router.GET("/contacts/:id/profile_picture.jpg", controllers.GetProfilePicture)

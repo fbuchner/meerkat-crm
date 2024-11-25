@@ -82,6 +82,14 @@ export default {
       throw error;
     }
   },
+  async deleteRelationship(contactId, relationshipId) {
+    try {
+      await apiClient.delete(`${API_URL}/${contactId}/relationships/${relationshipId}`);
+    } catch (error) {
+      console.error('Error deleting relationship:', error);
+      throw error;
+    }
+  },
   async addPhotoToContact(contactId, photoFile) {
     try {
       // Prepare FormData

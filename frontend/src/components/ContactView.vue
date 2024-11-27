@@ -61,7 +61,7 @@
                     <v-card-title>Contact Details</v-card-title>
                     <v-card-text>
                         <v-list dense>
-                            <v-list-item v-for="field in contactFieldSchema" :key="field.key" class="field-label">
+                            <v-list-item dense v-for="field in contactFieldSchema" :key="field.key" class="field-label">
                                 <div>
                                     <strong>{{ field.label }}: </strong>
                                     <template v-if="!isEditing[field.key]">

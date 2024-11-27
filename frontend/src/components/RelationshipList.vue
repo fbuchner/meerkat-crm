@@ -1,35 +1,48 @@
 <template>
-    <v-card outlined class="mt-4 relationship-section">
-        <v-card-title>Relationships</v-card-title>
-        <v-card-text>
-            <!-- List of Existing Relationships -->
-            <v-list dense>
-                <v-list-item v-for="relationship in relationships" :key="relationship.ID" class="field-label">
-                    <div v-if="relationship.related_contact_id != null && relationship.related_contact">
-                        <strong>{{ relationship.type }}: </strong>
-                        {{ relationship.related_contact.firstname }}
-                        {{ relationship.related_contact.lastname }}
-                        <span v-if="relationship.related_contact.birthday">( {{ formatBirthday(relationship.birthday) }} )</span>
-                    </div>
+    <v-card outlined class="mb-4 relationship-section">
+        <v-card-title>
+            Relationships
+            <v-icon class="cursor-pointer" @click="toggleCollapse">
+                {{ isCollapsed ? 'mdi-chevron-down' : 'mdi-chevron-up' }}
+            </v-icon>
+        </v-card-title>
 
-                    <div v-else>
-                        <strong>{{ relationship.type }}: </strong>
-                        {{ relationship.name }}
-                        <span v-if="relationship.birthday">({{ formatBirthday(relationship.birthday) }})</span>
-                    </div>
+        <v-expand-transition>
+            <div v-if="!isCollapsed">
+                <v-card-text>
+                    <!-- List of Existing Relationships -->
+                    <v-list dense>
+                        <v-list-item dense v-for="relationship in relationships" :key="relationship.ID" class="field-label">
+                            <div v-if="relationship.related_contact_id != null && relationship.related_contact">
+                                <strong>{{ relationship.type }}: </strong>
+                                {{ relationship.related_contact.firstname }}
+                                {{ relationship.related_contact.lastname }}
+                                <span v-if="relationship.related_contact.birthday">( {{
+                                    formatBirthday(relationship.birthday) }}
+                                    )</span>
+                            </div>
 
-                    <template v-slot:append>
-                        <v-icon small class="edit-icon ml-2" @click="editRelationship(relationship)">mdi-pencil</v-icon>
-                        <v-icon small class="delete-icon ml-2" color="error"
-                            @click="deleteRelationship(relationship.ID)">mdi-delete</v-icon>
-                    </template>
-                </v-list-item>
-                <!-- Icon to Add New Relationship -->
-                <v-icon small class="add-circle-icon mt-2" @click="openAddRelationshipDialog">
-                    mdi-plus-circle
-                </v-icon>
-            </v-list>
-        </v-card-text>
+                            <div v-else>
+                                <strong>{{ relationship.type }}: </strong>
+                                {{ relationship.name }}
+                                <span v-if="relationship.birthday">({{ formatBirthday(relationship.birthday) }})</span>
+                            </div>
+
+                            <template v-slot:append>
+                                <v-icon small class="edit-icon ml-2"
+                                    @click="editRelationship(relationship)">mdi-pencil</v-icon>
+                                <v-icon small class="delete-icon ml-2" color="error"
+                                    @click="deleteRelationship(relationship.ID)">mdi-delete</v-icon>
+                            </template>
+                        </v-list-item>
+                        <!-- Icon to Add New Relationship -->
+                        <v-icon small class="add-circle-icon mt-2" @click="openAddRelationshipDialog">
+                            mdi-plus-circle
+                        </v-icon>
+                    </v-list>
+                </v-card-text>
+            </div>
+        </v-expand-transition>
 
         <!-- Dialog to Add/Edit Relationship -->
         <v-dialog v-model="showAddRelationshipDialog" max-width="500px">
@@ -114,6 +127,7 @@ export default {
             relationshipTypes: ['Child', 'Parent', 'Sibling', 'Partner', 'Friend'],
             contacts: [], // Contacts for existing contact selection
             backendURL,
+            isCollapsed: false,
         };
     },
     computed: {
@@ -130,14 +144,14 @@ export default {
             },
             // Setter: Parse the date back to ISO format
             set(value) {
-                if(!value) {
-                   this.relationshipForm.birthday = null;
+                if (!value) {
+                    this.relationshipForm.birthday = null;
                 }
                 // Convert DD.MM.YYYY back to YYYY-MM-DD
                 const parts = value.split(".");
                 if (parts.length === 3) {
                     const [day, month, year] = parts;
-                    this.relationshipForm.birthday =  `${year || '0001'}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                    this.relationshipForm.birthday = `${year || '0001'}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
                 }
             },
         },
@@ -149,6 +163,9 @@ export default {
         //TODO: only execute the function when a relationship is added
     },
     methods: {
+        toggleCollapse() {
+            this.isCollapsed = !this.isCollapsed;
+        },
         async loadContacts() {
             try {
                 const response = await contactService.getContacts({
@@ -264,8 +281,8 @@ export default {
         },
         formatBirthday(value) {
             if (!value) return ""; // Handle null or empty cases
-                const [year, month, day] = value.split("-");
-                return `${day}.${month}.${year && year !== '0001' ? year : ''}`;
+            const [year, month, day] = value.split("-");
+            return `${day}.${month}.${year && year !== '0001' ? year : ''}`;
         },
         getAvatarURL(ID) {
             return `${this.backendURL}/contacts/${ID}/profile_picture.jpg`;
@@ -294,4 +311,9 @@ export default {
     opacity: 1;
     /* Show icons on hover */
 }
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
 </style>

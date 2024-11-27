@@ -203,7 +203,7 @@ export default {
         formattedBirthday() {
             if (!this.contact || !this.contact.birthday) return '';
             const [year, month, day] = this.contact.birthday.split('-');
-            return `${day}.${month}${year && year !== '0001' ? '.' + year : ''}`;
+            return `${day}.${month}.${year && year !== '0001' ? year : ''}`;
         },
         contactFieldSchema() {
             return [

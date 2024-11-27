@@ -9,12 +9,13 @@
                         <strong>{{ relationship.type }}: </strong>
                         {{ relationship.related_contact.firstname }}
                         {{ relationship.related_contact.lastname }}
+                        <span v-if="relationship.related_contact.birthday">( {{ formatBirthday(relationship.birthday) }} )</span>
                     </div>
 
                     <div v-else>
-                        <strong>{{ relationship.name }}</strong>
-                        {{ relationship.type }} ({{ relationship.gender }})
-                        <strong>{{ relationship.name }}</strong>
+                        <strong>{{ relationship.type }}: </strong>
+                        {{ relationship.name }}
+                        <span v-if="relationship.birthday">({{ formatBirthday(relationship.birthday) }})</span>
                     </div>
 
                     <template v-slot:append>
@@ -23,10 +24,10 @@
                             @click="deleteRelationship(relationship.ID)">mdi-delete</v-icon>
                     </template>
                 </v-list-item>
-                    <!-- Icon to Add New Relationship -->
-                    <v-icon small class="add-circle-icon mt-2" @click="openAddRelationshipDialog">
-                mdi-plus-circle
-            </v-icon>
+                <!-- Icon to Add New Relationship -->
+                <v-icon small class="add-circle-icon mt-2" @click="openAddRelationshipDialog">
+                    mdi-plus-circle
+                </v-icon>
             </v-list>
         </v-card-text>
 
@@ -50,8 +51,9 @@
                                 <v-text-field v-model="relationshipForm.name" label="Name" required></v-text-field>
                                 <v-select v-model="relationshipForm.gender" :items="['Male', 'Female', 'Unknown']"
                                     label="Gender" required></v-select>
-                                <v-text-field v-model="relationshipForm.birthday" label="Birthday (Optional)"
-                                    placeholder="DD.MM.YYYY or DD.MM."></v-text-field>
+                                <v-text-field v-model="formattedBirthday" label="Birthday (Optional)"
+                                    placeholder="DD.MM.YYYY or DD.MM." :error-messages="birthdayError"
+                                    @blur="validateBirthday"></v-text-field>
                             </v-form>
                         </v-window-item>
 
@@ -108,6 +110,7 @@ export default {
                 birthday: '',
                 related_contact: null,
             },
+            birthdayError: '',
             relationshipTypes: ['Child', 'Parent', 'Sibling', 'Partner', 'Friend'],
             contacts: [], // Contacts for existing contact selection
             backendURL,
@@ -116,6 +119,27 @@ export default {
     computed: {
         filteredContacts() {
             return this.contacts;
+        },
+        formattedBirthday: {
+            // Getter: Format the date for display
+            get() {
+                // Convert YYYY-MM-DD to DD.MM.YYYY
+                if (!this.relationshipForm.birthday) return ""; // Handle null or empty cases
+                const [year, month, day] = this.relationshipForm.birthday.split("-");
+                return `${day}.${month}.${year && year !== '0001' ? year : ''}`;
+            },
+            // Setter: Parse the date back to ISO format
+            set(value) {
+                if(!value) {
+                   this.relationshipForm.birthday = null;
+                }
+                // Convert DD.MM.YYYY back to YYYY-MM-DD
+                const parts = value.split(".");
+                if (parts.length === 3) {
+                    const [day, month, year] = parts;
+                    this.relationshipForm.birthday =  `${year || '0001'}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                }
+            },
         },
     },
     mounted() {
@@ -159,20 +183,22 @@ export default {
         },
         async saveRelationship() {
             const relationshipData = {
-                    type: null,
-                    name: null,
-                    gender: null,
-                    birthday: null,
-                    contact_id: this.contactId,
-                    related_contact_id: null
-                }
+                type: null,
+                name: null,
+                gender: null,
+                birthday: null,
+                contact_id: this.contactId,
+                related_contact_id: null,
+            };
 
             try {
-                // Implement save logic based on whether it's a manual entry or existing contact
                 if (this.activeTab === 'manual') {
-                    // Manual Entry - Save with manually entered data
                     if (!this.relationshipForm.name || !this.relationshipForm.type) {
                         throw new Error('Please provide both name and relationship type.');
+                    }
+
+                    if (this.birthdayError) {
+                        throw new Error('Invalid birthday format.');
                     }
 
                     relationshipData.type = this.relationshipForm.type;
@@ -181,20 +207,26 @@ export default {
                     relationshipData.birthday = this.relationshipForm.birthday;
 
                 } else if (this.activeTab === 'existing') {
-                    // Select Existing Contact - Save with linked contact
                     if (!this.relationshipForm.related_contact || !this.relationshipForm.type) {
                         throw new Error('Please select an existing contact and provide the relationship type.');
                     }
 
-                    relationshipData.type = this.relationshipForm.type,
-                    relationshipData.related_contact_id = this.relationshipForm.related_contact.ID
+                    relationshipData.type = this.relationshipForm.type;
+                    relationshipData.related_contact_id = this.relationshipForm.related_contact.ID;
                 }
 
-                await contactService.addRelationship(this.contactId, relationshipData);
+                if (this.editingRelationship) {
+                    await contactService.updateRelationship(this.contactId, this.editingRelationship.ID, relationshipData);
+                } else {
+                    await contactService.addRelationship(this.contactId, relationshipData);
+                }
 
-                // Emit or call function to save relationship
-                this.$emit('relationship-added');
+                this.fetchRelationships();
                 this.closeAddRelationshipDialog();
+
+                // Reset editing state
+                this.editingRelationship = null;
+
             } catch (error) {
                 console.error('Error saving relationship:', error);
             }
@@ -219,6 +251,21 @@ export default {
                 birthday: '',
                 related_contact: null,
             };
+            this.birthdayError = '';
+        },
+        validateBirthday() {
+            // Regular expression to match "DD.MM.YYYY" or "DD.MM." format
+            const datePattern = /^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])\.(\d{4})?$/;
+            if (this.formattedBirthday != null && this.formattedBirthday != "" && !this.formattedBirthday.match(datePattern)) {
+                this.birthdayError = "Please enter a valid date in DD.MM.YYYY or DD.MM. format.";
+            } else {
+                this.birthdayError = '';
+            }
+        },
+        formatBirthday(value) {
+            if (!value) return ""; // Handle null or empty cases
+                const [year, month, day] = value.split("-");
+                return `${day}.${month}.${year && year !== '0001' ? year : ''}`;
         },
         getAvatarURL(ID) {
             return `${this.backendURL}/contacts/${ID}/profile_picture.jpg`;

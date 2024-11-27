@@ -121,6 +121,14 @@ export default {
       throw error;
     }
   },
+  async updateRelationship(contactId, relationshipId, relationshipData) {
+    try {
+      await apiClient.put(`${API_URL}/${contactId}/relationships/${relationshipId}`, relationshipData);
+    } catch (error) {
+      console.error('Error updating relationship:', error);
+      throw error;
+    }
+  },
 
 };
 

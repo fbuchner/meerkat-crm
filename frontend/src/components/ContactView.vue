@@ -4,7 +4,7 @@
         <v-row class="d-flex flex-column flex-md-row align-center text-center text-md-left">
             <v-col cols="12" md="3" class="d-flex justify-center">
                 <!-- Profile Photo -->
-                <ProfilePhoto :photo="contact.photo" :contactId="contact.ID"  @photoUploaded="updatePhoto" />
+                <ProfilePhoto :photo="contact.photo" :contactId="contact.ID" @photoUploaded="updatePhoto" />
             </v-col>
 
             <v-col cols="12" md="9" class="d-flex flex-column justify-center text-center text-md-left">
@@ -13,6 +13,7 @@
                     <template v-if="!isEditingName">
                         <h1 class="text-h4 font-weight-bold">{{ contact.firstname }} {{ contact.lastname }}</h1>
                         <v-icon small class="edit-icon ml-2" @click="startEditingName">mdi-pencil</v-icon>
+                        <v-icon small class="delete-icon ml-2" color="error" @click="deleteContact">mdi-delete</v-icon>
                     </template>
                     <template v-else>
                         <v-text-field v-model="editName" dense hide-details></v-text-field>
@@ -54,11 +55,13 @@
         <!-- Main Layout with Details and Timeline -->
         <v-row class="mt-4">
             <v-col cols="12" md="4">
+                <RelationshipList :contactId="contact.ID"/>
+
                 <v-card outlined>
                     <v-card-title>Contact Details</v-card-title>
                     <v-card-text>
                         <v-list dense>
-                            <v-list-item v-for="field in contactFieldSchema" :key="field.key" class="field-label">
+                            <v-list-item dense v-for="field in contactFieldSchema" :key="field.key" class="field-label">
                                 <div>
                                     <strong>{{ field.label }}: </strong>
                                     <template v-if="!isEditing[field.key]">
@@ -119,7 +122,8 @@
                                 </div>
 
                                 <div class="timeline-date-section" v-else>
-                                    <strong>{{ item.date }}</strong><v-icon small class="edit-icon ml-2"
+                                    <strong>{{ item.date }}</strong>
+                                    <v-icon small class="edit-icon ml-2"
                                         @click="editNote(item.id)">mdi-pencil</v-icon>
                                     <v-icon small class="delete-icon ml-2" color="error"
                                         @click="deleteNote(item.id)">mdi-delete</v-icon>
@@ -158,6 +162,7 @@ import NoteAdd from '@/components/NoteAdd.vue';
 import ProfilePhoto from './ProfilePhoto.vue';
 import activityService from '@/services/activityService';
 import noteService from '@/services/noteService';
+import RelationshipList from '@/components/RelationshipList.vue';
 
 export default {
     name: 'ContactView',
@@ -166,7 +171,7 @@ export default {
             required: true,
         },
     },
-    components: { ActivityAdd, NoteAdd, ProfilePhoto },
+    components: { ActivityAdd, NoteAdd, ProfilePhoto, RelationshipList },
     data() {
         return {
             contact: null,
@@ -198,7 +203,7 @@ export default {
         formattedBirthday() {
             if (!this.contact || !this.contact.birthday) return '';
             const [year, month, day] = this.contact.birthday.split('-');
-            return `${day}.${month}${year && year !== '0001' ? '.' + year : ''}`;
+            return `${day}.${month}.${year && year !== '0001' ? year : ''}`;
         },
         contactFieldSchema() {
             return [
@@ -320,7 +325,15 @@ export default {
             };
             this.showAddActivity = true;
         },
-
+        async deleteContact() {
+            try {
+                await contactService.deleteContact(this.contact.ID);
+                // Route to the main page after successfully deleting the contact
+                this.$router.push('/'); 
+            } catch (error) {
+                console.error('Error deleting contact:', error);
+            }
+        },
         async deleteActivity(activityId) {
             try {
                 await activityService.deleteActivity(activityId);
@@ -450,6 +463,8 @@ export default {
     cursor: pointer;
 }
 
+.field-label:hover .edit-icon,
+.field-label:hover .delete-icon,
 .timeline-date-section:hover .edit-icon,
 .timeline-date-section:hover .delete-icon {
     opacity: 1;

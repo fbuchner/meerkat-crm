@@ -1,7 +1,8 @@
 <template>
-  <div class="profile-picture">
+  <div class="profile-picture" @mouseenter="hovered = true" @mouseleave="hovered = false" @click="openFileSelector">
     <!-- Display profile picture -->
     <img :src="`${backendURL}/contacts/${contactId}/profile_picture.jpg`" alt="Profile Picture" class="profile-img" @click="openFileSelector" />
+    <v-icon v-if="hovered" class="profile-hover-icon">mdi-pencil-circle</v-icon>
 
     <!-- Hidden file input -->
     <input type="file" accept="image/*" ref="fileInput" @change="onFileSelected" style="display: none" />
@@ -58,6 +59,7 @@ export default {
       isResizing: false,
       dragOffset: { x: 0, y: 0 },
       backendURL,
+      hovered: false, 
     };
   },
   methods: {
@@ -285,16 +287,40 @@ export default {
 
 <style scoped>
 .profile-picture {
-  text-align: center;
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin: auto;
+  cursor: pointer;
 }
 
 .profile-img {
-  width: 100px;
-  height: 100px;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   border-radius: 50%;
-  cursor: pointer;
+  transition: all 0.3s ease;
 }
+
+.profile-hover-icon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  color: black;
+  border-radius: 50%;
+  transition: opacity 0.3s ease;
+}
+
+.profile-picture:hover .profile-hover-icon {
+  opacity: 1;
+}
+
 
 .crop-canvas {
     border-radius: 8px;

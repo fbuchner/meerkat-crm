@@ -47,6 +47,16 @@ export default {
       throw error;
     }
   },
+  async getRelationships(contactId) {
+    try {
+      const response = await apiClient.get(`${API_URL}/${contactId}/relationships`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching relationships:', error);
+      throw error;
+    }
+  },
+
   async addContact(contactData) {
     try {
       const response = await apiClient.post(API_URL, contactData);
@@ -72,6 +82,14 @@ export default {
       throw error;
     }
   },
+  async deleteRelationship(contactId, relationshipId) {
+    try {
+      await apiClient.delete(`${API_URL}/${contactId}/relationships/${relationshipId}`);
+    } catch (error) {
+      console.error('Error deleting relationship:', error);
+      throw error;
+    }
+  },
   async addPhotoToContact(contactId, photoFile) {
     try {
       // Prepare FormData
@@ -94,5 +112,23 @@ export default {
       throw error;
     }
   },
+  async addRelationship(contactId, relationshipData) {
+    try {
+      const response = await apiClient.post(`${API_URL}/${contactId}/relationships`, relationshipData);
+      return response;
+    } catch (error) {
+      console.error('Error adding relationship:', error);
+      throw error;
+    }
+  },
+  async updateRelationship(contactId, relationshipId, relationshipData) {
+    try {
+      await apiClient.put(`${API_URL}/${contactId}/relationships/${relationshipId}`, relationshipData);
+    } catch (error) {
+      console.error('Error updating relationship:', error);
+      throw error;
+    }
+  },
+
 };
 

@@ -17,7 +17,6 @@
             density="compact"
             append-icon="mdi-magnify"
             autofocus
-            @keypress="handleKeyPress"
             @input="handleSearchInput"
             @click:clear="handleClearSearch"
           ></v-text-field>
@@ -55,7 +54,7 @@
 </template>
 
 <script>
-import { inject, ref, watch } from 'vue';
+import { inject, ref, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 
 export default {
@@ -99,14 +98,20 @@ export default {
     }
 
     window.addEventListener('resize', handleResize);
-
+    window.addEventListener('keypress', handleKeyPress);
+    onMounted(() => {
+      window.addEventListener('keypress', handleKeyPress);
+    });
     return {
       searchQueryLocal,
       isMobile,
       handleSearchInput,
       handleClearSearch,
-      handleKeyPress
     };
+  },
+  beforeUnmount() {
+    window.removeEventListener('resize', this.handleResize);
+    window.removeEventListener('keypress', this.handleKeyPress);
   },
 };
 </script>

@@ -19,11 +19,11 @@ type Relationship struct {
 // Contact struct updated with relationships potentially linking to other contacts
 type Contact struct {
 	gorm.Model
-	Firstname          string         `json:"firstname"`
-	Lastname           string         `json:"lastname"`
-	Nickname           string         `json:"nickname"`
+	Firstname          string         `gorm:"type:text COLLATE NOCASE" json:"firstname"`
+	Lastname           string         `gorm:"type:text COLLATE NOCASE" json:"lastname"`
+	Nickname           string         `gorm:"type:text COLLATE NOCASE" json:"nickname"`
 	Gender             string         `json:"gender"`
-	Email              string         `json:"email"`
+	Email              string         `gorm:"type:text COLLATE NOCASE" json:"email"`
 	Phone              string         `json:"phone"`
 	Birthday           *Date          `json:"birthday"`
 	Photo              string         `json:"photo"`                                     // Path to the profile photo

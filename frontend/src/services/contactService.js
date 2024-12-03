@@ -3,32 +3,50 @@ import apiClient from '@/services/api';
 const API_URL = '/contacts';
 
 export default {
-  async getContacts({ fields = null, includes = null, page = 1, limit = 25 } = {}) {
+  async getContacts({
+    fields = null,
+    includes = null,
+    search = '',
+    circle = '',
+    page = 1,
+    limit = 25
+  } = {}) {
     try {
       // Build query parameters
       const params = {
         page,
         limit,
       };
-  
+
       // Add fields if specified
       if (fields) {
         params.fields = fields.join(','); // Convert array of fields to a comma-separated string
       }
 
-      // Add fields if specified
+      // Add includes if specified
       if (includes) {
-        params.includes = fields.join(','); // Convert array of fields to a comma-separated string
+        params.includes = includes.join(','); // Convert array of fields to a comma-separated string
       }
-  
+
+      // Add search term if specified
+      if (search) {
+        params.search = search.trim();
+      }
+
+      // Add circle filter if specified
+      if (circle) {
+        params.circle = circle.trim();
+      }
+
       // Make the API request with query parameters
       const response = await apiClient.get(API_URL, { params });
-      return response; 
+      return response;
     } catch (error) {
       console.error('Error fetching contacts:', error);
       throw error;
     }
   },
+
   async getCircles() {
     try {
       const response = await apiClient.get(`${API_URL}/circles`);

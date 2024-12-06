@@ -4,7 +4,7 @@
       <v-row align="center" justify="space-between">
         <!-- Logo -->
         <v-col cols="auto">
-          <h1><v-btn text to="/" class="text-h5">perema</v-btn></h1>
+          <h1><v-btn text to="/" class="text-h5" @click="handleClearSearch">perema</v-btn></h1>
         </v-col>
 
         <!-- Search Bar (hidden on mobile) -->
@@ -17,7 +17,6 @@
             density="compact"
             append-icon="mdi-magnify"
             autofocus
-            @keypress="handleKeyPress"
             @input="handleSearchInput"
             @click:clear="handleClearSearch"
           ></v-text-field>
@@ -55,11 +54,11 @@
 </template>
 
 <script>
-import { inject, ref, watch } from 'vue';
+import { inject, ref, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 
 export default {
-  emits: ['search'], // Declare the 'search' event explicitly
+  emits: ['search', 'resetFilters'],
   setup(_, { emit }) { // Add 'emit' to setup function parameters
     const searchQuery = inject('searchQuery');
     const setSearchQuery = inject('setSearchQuery');
@@ -77,6 +76,7 @@ export default {
     function handleClearSearch() {
       searchQueryLocal.value = '';
       setSearchQuery('');
+      emit('resetFilters'); 
       emit('search', ''); // Emit a search event with an empty query when cleared
     }
 
@@ -99,14 +99,20 @@ export default {
     }
 
     window.addEventListener('resize', handleResize);
-
+    window.addEventListener('keypress', handleKeyPress);
+    onMounted(() => {
+      window.addEventListener('keypress', handleKeyPress);
+    });
     return {
       searchQueryLocal,
       isMobile,
       handleSearchInput,
       handleClearSearch,
-      handleKeyPress
     };
+  },
+  beforeUnmount() {
+    window.removeEventListener('resize', this.handleResize);
+    window.removeEventListener('keypress', this.handleKeyPress);
   },
 };
 </script>

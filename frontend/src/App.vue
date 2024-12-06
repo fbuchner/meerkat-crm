@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <HeaderNav @search="handleSearch" />
+    <HeaderNav @search="handleSearch" @resetFilters="resetFilters" />
     <v-main>
       <router-view /> <!-- Router will inject the matched component here -->
     </v-main>
@@ -18,16 +18,26 @@ export default {
   },
   setup() {
     const searchQuery = ref('');
+    const clearFilters = ref(false);
 
     // Define handleSearch as a function to update the search query
     function handleSearch(query) {
       searchQuery.value = query;
     }
 
+    function resetFilters() {
+      clearFilters.value = true;
+      // Reset the flag after handling it
+      setTimeout(() => {
+        clearFilters.value = false;
+      }, 0);
+    }
+
+    provide('clearFilters', clearFilters);
     provide('searchQuery', searchQuery); // Provide searchQuery to child components
     provide('setSearchQuery', handleSearch); // Provide the search update function
 
-    return { handleSearch }; // Return handleSearch for use in template
+    return { handleSearch, resetFilters }; // Return handleSearch for use in template
   },
 };
 </script>

@@ -78,7 +78,7 @@
 </template>
 
 <script>
-import { inject, computed, ref } from 'vue';
+import { inject, computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import contactService from '@/services/contactService';
 import { backendURL } from '@/services/api';
@@ -89,6 +89,7 @@ export default {
     const circles = ref([]);
     const activeCircle = ref(null);
     const searchQuery = inject('searchQuery');
+    const clearFilters = inject('clearFilters');
     const page = ref(1);
     const limit = ref(25);
     const total = ref(0);
@@ -142,6 +143,12 @@ export default {
       // Programmatically navigate to the contact view
       router.push({ name: 'ContactView', params: { ID: contactId } });
     }
+
+     watch(clearFilters, (newValue) => {
+      if (newValue) {
+        clearCircleFilter();
+      }
+    });
 
     return {
       contacts,

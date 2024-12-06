@@ -8,7 +8,7 @@ import (
 
 func RegisterRoutes(router *gin.Engine) {
 	// Contact routes
-	router.GET("/contacts", controllers.GetAllContacts)
+	router.GET("/contacts", controllers.GetContacts)
 	router.POST("/contacts", controllers.CreateContact)
 	router.GET("/contacts/circles", controllers.GetCircles)
 	router.GET("/contacts/:id", controllers.GetContact)

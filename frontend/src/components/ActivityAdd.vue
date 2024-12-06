@@ -5,23 +5,17 @@
       <v-card-text>
         <v-form @submit.prevent="addActivity">
           <!-- Activity Details -->
-          <v-text-field v-model="newActivityName" label="Activity Name" 
-          :rules="[() => !!newActivityName || 'Activity name is required']"></v-text-field>
+          <v-text-field v-model="newActivityName" label="Activity Name"
+            :rules="[() => !!newActivityName || 'Activity name is required']"></v-text-field>
           <v-textarea v-model="newActivityDescription" label="Activity Description" rows="3" auto-grow></v-textarea>
           <v-text-field v-model="newActivityLocation" label="Activity Location"></v-text-field>
 
           <!-- Date Picker -->
           <v-dialog v-model="menu" max-width="290" persistent>
             <template v-slot:activator="{ props }">
-              <v-text-field
-                v-model="formattedActivityDate"
-                label="Activity Date"
-                prepend-icon="mdi-calendar"
-                readonly
-                v-bind="props"
-                @click="menu = true"
-                :rules="[v => !!newActivityDate || 'Activity date is required']"
-              ></v-text-field>
+              <v-text-field v-model="formattedActivityDate" label="Activity Date" prepend-icon="mdi-calendar" readonly
+                v-bind="props" @click="menu = true"
+                :rules="[v => !!newActivityDate || 'Activity date is required']"></v-text-field>
             </template>
             <v-date-picker v-model="newActivityDate" no-title @input="updateFormattedDate">
               <template v-slot:actions>
@@ -30,11 +24,12 @@
               </template>
             </v-date-picker>
           </v-dialog>
-          
+
 
           <!-- Contact Selector -->
           <v-autocomplete v-model="selectedContacts" :items="filteredContacts" item-title="name" item-value="ID"
-            label="Select Contacts" chips closable-chips multiple outlined color="blue-grey-lighten-2">
+            label="Select Contacts" chips closable-chips multiple outlined color="blue-grey-lighten-2"
+            v-model:search-input="searchContactQuery">
             <!-- Chip Slot -->
             <template v-slot:chip="{ props, item }">
               <v-chip v-bind="props" outlined :prepend-avatar="getAvatarURL(item.value)" :text="item.title">
@@ -98,6 +93,8 @@ export default {
       selectedContacts: this.initialActivity.contact_ids || [], // Array of selected contact objects
       allContactNames: [], // Array of all available contacts
       backendURL,
+      searchContactQuery: '',
+      debouncedLoadContacts: null,
     };
   },
   computed: {
@@ -109,7 +106,7 @@ export default {
     },
   },
   async mounted() {
-    await this.loadContacts();
+    await this.debouncedLoadContacts();
     if (this.contactId) {
       this.preselectCurrentContact();
     }
@@ -118,18 +115,29 @@ export default {
     newActivityDate(newDate) {
       this.formattedActivityDate = this.formatDate(newDate);
     },
+    searchContactQuery(query) {
+      if (this.debouncedLoadContacts) {
+        this.debouncedLoadContacts(query);
+      }
+    },
   },
   methods: {
-    async loadContacts() {
+    debounce(func, delay) {
+      let timeout;
+      return (...args) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), delay);
+      };
+    },
+    async loadContacts(searchQuery = '') {
       try {
-        //TODO use lazy loading based on query
         const response = await contactService.getContacts({
-          fields: ['ID', 'photo', 'firstname', 'lastname'],
-          limit: 5000,
+          fields: ['ID', 'firstname', 'lastname', 'nickname'],
+          search: searchQuery,
+          limit: 15,
         });
         this.allContactNames = response.data.contacts.map(contact => ({
           ID: contact.ID,
-          photo: contact.photo,
           name: `${contact.firstname} ${contact.lastname}`,
         }));
       } catch (error) {
@@ -153,7 +161,7 @@ export default {
     },
     getAvatarURL(ID) {
       return `${this.backendURL}/contacts/${ID}/profile_picture.jpg`;
-  },
+    },
     async addActivity() {
       const formattedDate = this.newActivityDate.toISOString().split('T')[0];
       const activityData = {
@@ -186,5 +194,12 @@ export default {
       this.selectedContacts = [];
     },
   },
+  created() {
+      this.debouncedLoadContacts = this.debounce(this.loadContacts, 300);
+      this.loadContacts(); // Initial load of contacts
+      if (this.contactId) {
+        this.preselectCurrentContact();
+      }
+    },
 };
 </script>

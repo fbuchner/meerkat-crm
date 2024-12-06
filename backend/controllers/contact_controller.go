@@ -61,7 +61,7 @@ func CreateContact(c *gin.Context) {
 // - Fetch all fields: GET /contacts?page=1&limit=10
 // - Fetch specific fields: GET /contacts?fields=firstname,lastname,email&page=1&limit=5
 // - Fetch relationships: GET /contacts?include=notes,activities
-func GetAllContacts(c *gin.Context) {
+func GetContacts(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
 	// Get pagination parameters
@@ -101,12 +101,21 @@ func GetAllContacts(c *gin.Context) {
 
 	// Base query
 	var contacts []models.Contact
-
 	query := db.Model(&models.Contact{}).Limit(limit).Offset(offset)
 
 	// Include all fields if none are specified
 	if !includeAllFields {
 		query = query.Select(strings.Join(selectedFields, ", "))
+	}
+
+	// Apply search filter
+	if searchTerm := c.Query("search"); searchTerm != "" {
+		searchTerm = "%" + searchTerm + "%"
+		query = query.Where("firstname LIKE ? OR lastname LIKE ? OR nickname LIKE ?", searchTerm, searchTerm, searchTerm)
+	}
+
+	if circle := c.Query("circle"); circle != "" {
+		query = query.Where("circles LIKE ?", "%"+circle+"%")
 	}
 
 	// Preload requested relationships
@@ -126,9 +135,10 @@ func GetAllContacts(c *gin.Context) {
 		return
 	}
 
-	// Get total count of contacts
 	var total int64
-	db.Model(&models.Contact{}).Count(&total)
+	countQuery := db.Model(&models.Contact{})
+
+	countQuery.Count(&total)
 
 	// Respond with contacts and pagination metadata
 	c.JSON(http.StatusOK, gin.H{

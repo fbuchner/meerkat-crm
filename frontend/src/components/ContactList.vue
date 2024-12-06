@@ -36,7 +36,7 @@
 
     <!-- Contact Cards -->
     <v-row>
-      <v-col v-for="contact in filteredContacts" :key="contact.ID" cols="12" sm="6" md="4" lg="3">
+      <v-col v-for="contact in contacts" :key="contact.ID" cols="12" sm="6" md="4" lg="3">
         <v-card class="contact-card" outlined elevation="2" @click="goToContact(contact.ID)">
           <v-card-text>
             <!-- Profile Photo -->
@@ -62,7 +62,7 @@
     </v-row>
 
     <!-- No Contacts Found -->
-    <v-row v-if="filteredContacts.length === 0" justify="center" class="mt-4">
+    <v-row v-if="contacts.length === 0" justify="center" class="mt-4">
       <v-col cols="12" class="text-center">
         <v-alert type="warning" border="start" class="d-flex align-center">
           No contacts found matching your search criteria.
@@ -96,32 +96,48 @@ export default {
     const router = useRouter(); // Access router to navigate programmatically
     const setSearchQuery = inject('setSearchQuery');
 
-    function clearSearch() {
-      setSearchQuery('');
+    function debounce(func, delay) {
+      let timeout;
+      return (...args) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), delay);
+      };
     }
 
-    const filteredContacts = computed(() => {
-      return contacts.value.filter((contact) => {
-        const matchesSearch = `${contact.firstname} ${contact.lastname}`
-          .toLowerCase()
-          .includes(searchQuery.value.toLowerCase());
-
-        const matchesCircle =
-          activeCircle.value === null ||
-          (contact.circles && contact.circles.includes(activeCircle.value));
-
-        return matchesSearch && matchesCircle;
-      });
-    });
+    function clearSearch() {
+      setSearchQuery('');
+      page.value = 1; // Reset to the first page
+      debouncedLoadContacts();
+    }
 
     const totalPages = computed(() => Math.ceil(total.value / limit.value));
 
     function loadContacts() {
-      contactService.getContacts(page.value, limit.value).then((response) => {
+      const search = searchQuery.value ? searchQuery.value.trim() : '';
+      const circle = activeCircle.value ? activeCircle.value.trim() : '';
+
+      contactService.getContacts({
+        fields: ['ID', 'firstname', 'lastname', 'nickname', 'email', 'photo', 'photo_thumbnail'],
+        search: search,
+        circle: circle,
+        page: page.value,
+        limit: 25,
+      }).then(response => {
         contacts.value = response.data.contacts;
         total.value = response.data.total;
+      }).catch(error => {
+        console.error('Failed to fetch contacts:', error);
       });
     }
+
+    // Debounced version of loadContacts
+    const debouncedLoadContacts = debounce(loadContacts, 300);
+
+    // Watch searchQuery for changes and trigger debounced loading
+    watch(searchQuery, () => {
+      page.value = 1; // Reset to the first page
+      debouncedLoadContacts();
+    });
 
     function loadCircles() {
       contactService.getCircles().then((response) => {
@@ -131,13 +147,16 @@ export default {
 
     function filterByCircle(circle) {
       activeCircle.value = circle;
-      loadContacts();
+      page.value = 1; // Reset to the first page
+      debouncedLoadContacts();
     }
 
     function clearCircleFilter() {
       activeCircle.value = null;
-      loadContacts();
+      page.value = 1; // Reset to the first page
+      debouncedLoadContacts();
     }
+
 
     function goToContact(contactId) {
       // Programmatically navigate to the contact view
@@ -158,7 +177,6 @@ export default {
       page,
       limit,
       total,
-      filteredContacts,
       totalPages,
       loadContacts,
       loadCircles,
@@ -167,6 +185,7 @@ export default {
       goToContact,
       backendURL,
       clearSearch,
+      debouncedLoadContacts,
     };
   },
   mounted() {

@@ -126,8 +126,10 @@ export default {
             birthdayError: '',
             relationshipTypes: ['Child', 'Parent', 'Sibling', 'Partner', 'Friend'],
             contacts: [], // Contacts for existing contact selection
+            searchContactQuery: '', // Local search query for filtering
             backendURL,
             isCollapsed: false,
+            debouncedLoadContacts: null, // Placeholder for the debounced function
         };
     },
     computed: {
@@ -135,14 +137,11 @@ export default {
             return this.contacts;
         },
         formattedBirthday: {
-            // Getter: Format the date for display
             get() {
-                // Convert YYYY-MM-DD to DD.MM.YYYY
-                if (!this.relationshipForm.birthday) return ""; // Handle null or empty cases
+                if (!this.relationshipForm.birthday) return ""; 
                 const [year, month, day] = this.relationshipForm.birthday.split("-");
                 return `${day}.${month}.${year && year !== '0001' ? year : ''}`;
             },
-            // Setter: Parse the date back to ISO format
             set(value) {
                 if (!value) {
                     this.relationshipForm.birthday = null;
@@ -156,21 +155,38 @@ export default {
             },
         },
     },
+    watch: {
+        searchContactQuery(query) {
+            if (this.debouncedLoadContacts) {
+                this.debouncedLoadContacts(query); // Call the debounced version
+            }
+        },
+    },
     mounted() {
         this.fetchRelationships();
-
-        this.loadContacts();
         //TODO: only execute the function when a relationship is added
+
+        // Perform the initial load of contacts
+        this.loadContacts();
+    },
+    created() {
+        // Initialize the debounced function during the created lifecycle
+        this.debouncedLoadContacts = this.debounce(this.loadContacts, 300);
     },
     methods: {
-        toggleCollapse() {
-            this.isCollapsed = !this.isCollapsed;
+        debounce(func, delay) {
+            let timeout;
+            return (...args) => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func(...args), delay);
+            };
         },
-        async loadContacts() {
+        async loadContacts(searchQuery = '') {
             try {
                 const response = await contactService.getContacts({
                     fields: ['ID', 'firstname', 'lastname'],
-                    limit: 5000,
+                    search: searchQuery, // Use the search query for filtering
+                    limit: 15, // Limit the results for performance
                 });
                 this.contacts = response.data.contacts.map(contact => ({
                     ID: contact.ID,
@@ -182,8 +198,8 @@ export default {
         },
         async fetchRelationships() {
             try {
-                const response = await contactService.getRelationships(this.contactId)
-                this.relationships = response.data.relationships
+                const response = await contactService.getRelationships(this.contactId);
+                this.relationships = response.data.relationships;
             } catch (error) {
                 console.error('Error fetching relationships:', error);
             }
@@ -280,7 +296,7 @@ export default {
             }
         },
         formatBirthday(value) {
-            if (!value) return ""; // Handle null or empty cases
+            if (!value) return "";
             const [year, month, day] = value.split("-");
             return `${day}.${month}.${year && year !== '0001' ? year : ''}`;
         },
@@ -289,6 +305,7 @@ export default {
         },
     },
 };
+
 </script>
 
 <style scoped>

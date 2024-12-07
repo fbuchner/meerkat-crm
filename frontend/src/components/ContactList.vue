@@ -3,10 +3,10 @@
     <!-- Header -->
     <v-row class="align-center justify-space-between mb-4">
       <v-col>
-        <v-toolbar-title>Contacts</v-toolbar-title>
+        <v-toolbar-title>{{ $t('contacts.title') }}</v-toolbar-title>
       </v-col>
       <v-col class="text-right">
-        <v-btn color="primary" to="/add-contact" prepend-icon="mdi-account-plus-outline">Add Contact</v-btn>
+        <v-btn color="primary" to="/add-contact" prepend-icon="mdi-account-plus-outline">{{ $t('contacts.add_contact') }}</v-btn>
       </v-col>
     </v-row>
 
@@ -19,7 +19,7 @@
             {{ circle }}
           </v-btn>
           <v-btn @click="clearCircleFilter" :class="{ 'active-circle': activeCircle === null }">
-            All
+            {{ $t('contacts.circles.all_circles') }}
           </v-btn>
         </v-btn-toggle>
       </v-col>
@@ -29,7 +29,7 @@
     <v-row v-if="searchQuery && searchQuery.trim()" class="mb-4">
       <v-col cols="12">
         <v-alert type="info" border="start" class="d-flex align-center" @click="clearSearch">
-          Showing results for: <strong>"{{ searchQuery }}"</strong>
+          {{ $t('search.show_results') }} <strong>"{{ searchQuery }}"</strong>
         </v-alert>
       </v-col>
     </v-row>
@@ -65,7 +65,7 @@
     <v-row v-if="contacts.length === 0" justify="center" class="mt-4">
       <v-col cols="12" class="text-center">
         <v-alert type="warning" border="start" class="d-flex align-center">
-          No contacts found matching your search criteria.
+          {{ $t('search.no_results') }}
         </v-alert>
       </v-col>
     </v-row>
@@ -117,7 +117,7 @@ export default {
       const circle = activeCircle.value ? activeCircle.value.trim() : '';
 
       contactService.getContacts({
-        fields: ['ID', 'firstname', 'lastname', 'nickname', 'email', 'photo', 'photo_thumbnail'],
+        fields: ['ID', 'firstname', 'lastname', 'nickname', 'email', 'photo', 'photo_thumbnail','circles'],
         search: search,
         circle: circle,
         page: page.value,

@@ -24,9 +24,9 @@
 
         <!-- Desktop Navigation Links (hidden on mobile) -->
         <v-col cols="auto" class="d-none d-md-flex justify-end">
-          <v-btn text to="/contacts">Contacts</v-btn>
-          <v-btn text to="/activities">Activities</v-btn>
-          <v-btn text to="/notes">Notes</v-btn>
+          <v-btn text to="/contacts">{{ $t('contacts.title') }}</v-btn>
+          <v-btn text to="/activities">{{ $t('activities.title') }}</v-btn>
+          <v-btn text to="/notes">{{ $t('notes.title') }}</v-btn>
         </v-col>
       </v-row>
     </v-container>
@@ -39,15 +39,15 @@
     >
       <v-btn icon to="/contacts">
         <v-icon>mdi-account-multiple</v-icon>
-        <span>Contacts</span>
+        <span>{{ $t('contacts.title') }}</span>
       </v-btn>
       <v-btn icon to="/activities">
         <v-icon>mdi-calendar-check</v-icon>
-        <span>Activities</span>
+        <span>{{ $t('activities.title') }}</span>
       </v-btn>
       <v-btn icon to="/notes">
         <v-icon>mdi-note</v-icon>
-        <span>Notes</span>
+        <span>{{ $t('notes.title') }}</span>
       </v-btn>
     </v-bottom-navigation>
   </v-app-bar>

@@ -12,7 +12,7 @@
       <template v-slot:default>
         <v-card>
           <v-card-title class="headline">
-            Crop Image
+            {{ $t('contacts.photo.crop_image') }}
           </v-card-title>
           <v-card-text>
             <canvas ref="canvas" class="crop-canvas" @mousedown="onMouseDown" @mousemove="onMouseMove"
@@ -21,10 +21,10 @@
           <v-card-actions>
             <v-spacer></v-spacer>
             <v-btn color="primary" @click="cropImage">
-              Crop
+              {{ $t('contacts.photo.crop') }}
             </v-btn>
             <v-btn color="secondary" @click="closeCropModal">
-              Cancel
+              {{ $t('buttons.cancel') }}
             </v-btn>
           </v-card-actions>
         </v-card>

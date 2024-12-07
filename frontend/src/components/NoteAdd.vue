@@ -1,12 +1,12 @@
 <template>
   <v-container>
     <v-card>
-      <v-card-title>{{ noteId ? 'Edit Note' : 'Add Note' }}</v-card-title>
+      <v-card-title>{{ noteId ? $t('notes.edit_note') : $t('notes.add_note') }}</v-card-title>
       <v-card-text>
         <v-form @submit.prevent="saveNote">
           <v-textarea
             v-model="newNoteContent"
-            label="Write a note..."
+            :label="$t('notes.write_note')"
             auto-grow
             clearable
             required
@@ -15,18 +15,18 @@
             <template v-slot:activator="{ props }">
               <v-text-field
                 v-model="formattedNoteDate"
-                label="Note Date"
+                :label="$t('notes.note_date')"
                 prepend-icon="mdi-calendar"
                 readonly
                 v-bind="props"
                 @click="menu = true"
-                :rules="[v => !!newNoteDate || 'Note date is required']"
+                :rules="[v => !!newNoteDate || $t('notes.note_date_required') ]"
               ></v-text-field>
             </template>
             <v-date-picker v-model="newNoteDate" no-title @input="updateFormattedDate">
               <template v-slot:actions>
-                <v-btn text color="primary" @click="menu = false">Cancel</v-btn>
-                <v-btn text color="primary" @click="confirmDate">OK</v-btn>
+                <v-btn text color="primary" @click="menu = false">{{ $t('buttons.cancel') }}</v-btn>
+                <v-btn text color="primary" @click="confirmDate">{{ $t('buttons.ok') }}</v-btn>
               </template>
             </v-date-picker>
           </v-dialog>
@@ -34,8 +34,8 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn text color="primary" @click="$emit('close')">Cancel</v-btn>
-        <v-btn color="primary" @click="saveNote">{{ noteId ? 'Save Changes' : 'Add Note' }}</v-btn>
+        <v-btn text color="primary" @click="$emit('close')">{{ $t('buttons.cancel') }}</v-btn>
+        <v-btn color="primary" @click="saveNote">{{ noteId ? $t('buttons.save_changes') : $t('notes.add_note') }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-container>

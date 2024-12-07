@@ -3,10 +3,10 @@
     <!-- Header Section with Add Note Button -->
     <v-row class="align-center justify-space-between mb-4">
       <v-col>
-        <v-toolbar-title>Notes</v-toolbar-title>
+        <v-toolbar-title>{{ $t('notes.title') }}</v-toolbar-title>
       </v-col>
       <v-col class="text-right">
-        <v-btn color="primary" @click="openAddNote" prepend-icon="mdi-note-plus-outline">Add Note</v-btn>
+        <v-btn color="primary" @click="openAddNote" prepend-icon="mdi-note-plus-outline">{{ $t('notes.add_note') }}</v-btn>
       </v-col>
     </v-row>
 

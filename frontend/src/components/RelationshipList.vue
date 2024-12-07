@@ -1,7 +1,7 @@
 <template>
     <v-card outlined class="mb-4 relationship-section">
         <v-card-title>
-            Relationships
+            {{ $t('relationships.title') }}
             <v-icon class="cursor-pointer" @click="toggleCollapse">
                 {{ isCollapsed ? 'mdi-chevron-down' : 'mdi-chevron-up' }}
             </v-icon>
@@ -50,8 +50,8 @@
                 <v-card-title>{{ editingRelationship ? 'Edit Relationship' : 'Add Relationship' }}</v-card-title>
                 <v-card-text>
                     <v-tabs v-model="activeTab" class="mb-4">
-                        <v-tab value="manual">Manual Entry</v-tab>
-                        <v-tab value="existing">Select Existing Contact</v-tab>
+                        <v-tab value="manual">{{ $t('relationships.manual_entry') }}</v-tab>
+                        <v-tab value="existing">{{ $t('relationships.existing_contact')}}</v-tab>
                     </v-tabs>
 
                     <v-window v-model="activeTab">
@@ -59,13 +59,13 @@
                         <v-window-item value="manual">
                             <v-form>
                                 <v-combobox v-model="relationshipForm.type" :items="relationshipTypes"
-                                    label="Relationship Type" outlined color="blue-grey-lighten-2"
+                                    :label="$t('relationships.relationship_type')" outlined color="blue-grey-lighten-2"
                                     required></v-combobox>
-                                <v-text-field v-model="relationshipForm.name" label="Name" required></v-text-field>
-                                <v-select v-model="relationshipForm.gender" :items="['Male', 'Female', 'Unknown']"
-                                    label="Gender" required></v-select>
-                                <v-text-field v-model="formattedBirthday" label="Birthday (Optional)"
-                                    placeholder="DD.MM.YYYY or DD.MM." :error-messages="birthdayError"
+                                <v-text-field v-model="relationshipForm.name" :label="$t('relationships.relationship_name')" required></v-text-field>
+                                <v-select v-model="relationshipForm.gender" :items="$t('contacts.contact_fields.genders').split(',')"
+                                    :label="$t('contacts.contact_fields.gender')" required></v-select>
+                                <v-text-field v-model="formattedBirthday" :label="$t('contacts.contact_fields.birthday')"
+                                    :placeholder="$t('contacts.birthday.birthday_format')" :error-messages="birthdayError"
                                     @blur="validateBirthday"></v-text-field>
                             </v-form>
                         </v-window-item>
@@ -74,9 +74,9 @@
                         <v-window-item value="existing">
                             <v-form>
                                 <v-select v-model="relationshipForm.type" :items="relationshipTypes"
-                                    label="Relationship Type" required></v-select>
+                                    :label="$t('relationships.relationship_type')" required></v-select>
                                 <v-autocomplete v-model="relationshipForm.related_contact" :items="filteredContacts"
-                                    item-title="name" item-value="ID" label="Select Existing Contact" return-object
+                                    item-title="name" item-value="ID" :label="$t('relationships.existing_contact')" return-object
                                     outlined color="blue-grey-lighten-2" required>
 
                                     <!-- Dropdown Item Slot -->
@@ -91,8 +91,8 @@
                 </v-card-text>
                 <v-card-actions>
                     <v-spacer></v-spacer>
-                    <v-btn @click="closeAddRelationshipDialog">Cancel</v-btn>
-                    <v-btn color="primary" @click="saveRelationship">{{ editingRelationship ? 'Save' : 'Add' }}</v-btn>
+                    <v-btn @click="closeAddRelationshipDialog">{{ $t('buttons.cancel') }}</v-btn>
+                    <v-btn color="primary" @click="saveRelationship">{{ editingRelationship ? $t('buttons.save') : $t('relationships.add_relationship') }}</v-btn>
                 </v-card-actions>
             </v-card>
         </v-dialog>
@@ -124,7 +124,7 @@ export default {
                 related_contact: null,
             },
             birthdayError: '',
-            relationshipTypes: ['Child', 'Parent', 'Sibling', 'Partner', 'Friend'],
+            relationshipTypes: this.$t('relationships.relationship_types').split(','),
             contacts: [], // Contacts for existing contact selection
             searchContactQuery: '', // Local search query for filtering
             backendURL,
@@ -290,7 +290,7 @@ export default {
             // Regular expression to match "DD.MM.YYYY" or "DD.MM." format
             const datePattern = /^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])\.(\d{4})?$/;
             if (this.formattedBirthday != null && this.formattedBirthday != "" && !this.formattedBirthday.match(datePattern)) {
-                this.birthdayError = "Please enter a valid date in DD.MM.YYYY or DD.MM. format.";
+                this.birthdayError = this.$t('contacts.birthday.birthday_warning');
             } else {
                 this.birthdayError = '';
             }
@@ -302,6 +302,9 @@ export default {
         },
         getAvatarURL(ID) {
             return `${this.backendURL}/contacts/${ID}/profile_picture.jpg`;
+        },
+        toggleCollapse() {
+            this.isCollapsed = !this.isCollapsed;
         },
     },
 };

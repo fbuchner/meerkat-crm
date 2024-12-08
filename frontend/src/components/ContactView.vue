@@ -55,7 +55,7 @@
         <!-- Main Layout with Details and Timeline -->
         <v-row class="mt-4">
             <v-col cols="12" md="4">
-                <RelationshipList :contactId="contact.ID"/>
+                <RelationshipList :contactId="contact.ID" />
 
                 <v-card outlined>
                     <v-card-title>{{ $t('contacts.contact_details') }}</v-card-title>
@@ -99,37 +99,20 @@
                         {{ $t('contacts.timeline') }}
                         <v-spacer></v-spacer>
                         <v-btn @click="openAddNote" color="primary" density="compact"
-                            prepend-icon="mdi-note-plus-outline"> {{ $t('notes.add_note') }}</v-btn>
+                            prepend-icon="mdi-note-plus-outline"> {{
+                            $t('notes.add_note') }}</v-btn>
                         <v-btn @click="openAddActivity" color="primary" density="compact"
-                            prepend-icon="mdi-account-multiple-plus-outline" class="ml-2">{{ $t('activities.add_activity')  }}</v-btn>
+                            prepend-icon="mdi-account-multiple-plus-outline" class="ml-2">{{
+                                $t('activities.add_activity')
+                            }}</v-btn>
                     </v-card-title>
                     <v-card-text>
-                        <v-timeline density="compact" side="end">
-                            <v-timeline-item v-for="item in sortedTimelineItems" :key="item.id"
-                                :dot-color="item.type === 'activity' ? 'blue lighten-3' : 'green lighten-3'"
-                                :icon="item.type === 'activity' ? 'mdi-calendar' : 'mdi-note-text'">
+                        <v-col cols="12" md="8">
+                            <Timeline :timelineItems="sortedTimelineItems" @addNote="openAddNote"
+                                @addActivity="openAddActivity" @editActivity="editActivity"
+                                @deleteActivity="deleteActivity" @editNote="editNote" @deleteNote="deleteNote" />
+                        </v-col>
 
-                                <div class="timeline-date-section" v-if="item.type === 'activity'">
-                                    <strong>{{ item.date }}</strong>
-                                    <v-icon small class="edit-icon ml-2"
-                                        @click="editActivity(item.id)">mdi-pencil</v-icon>
-                                    <v-icon small class="delete-icon ml-2" color="error"
-                                        @click="deleteActivity(item.id)">mdi-delete</v-icon>
-                                    <h3 class="text-subtitle-1">{{ item.title }}</h3>
-                                    <p>{{ item.description }}<span v-if="item.location"> at {{ item.location }}</span>
-                                    </p>
-                                </div>
-
-                                <div class="timeline-date-section" v-else>
-                                    <strong>{{ item.date }}</strong>
-                                    <v-icon small class="edit-icon ml-2"
-                                        @click="editNote(item.id)">mdi-pencil</v-icon>
-                                    <v-icon small class="delete-icon ml-2" color="error"
-                                        @click="deleteNote(item.id)">mdi-delete</v-icon>
-                                    <p>{{ item.content }}</p>
-                                </div>
-                            </v-timeline-item>
-                        </v-timeline>
                     </v-card-text>
                 </v-card>
             </v-col>
@@ -304,13 +287,13 @@ export default {
             this.editName = `${this.contact.firstname} ${this.contact.lastname}`;
         },
         openAddActivity() {
-            this.editingActivityId = null; 
-            this.editingActivityData = {}; 
+            this.editingActivityId = null;
+            this.editingActivityData = {};
             this.showAddActivity = true;
         },
         openAddNote() {
-            this.editingNoteId = null; 
-            this.editingNoteData = {}; 
+            this.editingNoteId = null;
+            this.editingNoteData = {};
             this.showAddNote = true;
         },
         async editActivity(activityId) {
@@ -328,7 +311,7 @@ export default {
             try {
                 await contactService.deleteContact(this.contact.ID);
                 // Route to the main page after successfully deleting the contact
-                this.$router.push('/'); 
+                this.$router.push('/');
             } catch (error) {
                 console.error('Error deleting contact:', error);
             }

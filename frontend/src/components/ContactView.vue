@@ -58,7 +58,7 @@
                 <RelationshipList :contactId="contact.ID"/>
 
                 <v-card outlined>
-                    <v-card-title>Contact Details</v-card-title>
+                    <v-card-title>{{ $t('contacts.contact_details') }}</v-card-title>
                     <v-card-text>
                         <v-list dense>
                             <v-list-item dense v-for="field in contactFieldSchema" :key="field.key" class="field-label">
@@ -96,13 +96,12 @@
             <v-col cols="12" md="8">
                 <v-card outlined>
                     <v-card-title>
-                        Timeline
+                        {{ $t('contacts.timeline') }}
                         <v-spacer></v-spacer>
                         <v-btn @click="openAddNote" color="primary" density="compact"
-                            prepend-icon="mdi-note-plus-outline">Add
-                            note</v-btn>
+                            prepend-icon="mdi-note-plus-outline"> {{ $t('notes.add_note') }}</v-btn>
                         <v-btn @click="openAddActivity" color="primary" density="compact"
-                            prepend-icon="mdi-account-multiple-plus-outline" class="ml-2">Add activity</v-btn>
+                            prepend-icon="mdi-account-multiple-plus-outline" class="ml-2">{{ $t('activities.add_activity')  }}</v-btn>
                     </v-card-title>
                     <v-card-text>
                         <v-timeline density="compact" side="end">
@@ -207,16 +206,16 @@ export default {
         },
         contactFieldSchema() {
             return [
-                { key: "nickname", label: "Nickname", type: "text" },
-                { key: "gender", label: "Gender", type: "select", options: ["Male", "Female", "Unknown"] },
-                { key: "birthday", label: "Birthday", type: "date", format: "DD.MM.YYYY" },
-                { key: "email", label: "Email", type: "email" },
-                { key: "phone", label: "Phone", type: "tel" },
-                { key: "address", label: "Address", type: "text" },
-                { key: "how_we_met", label: "How We Met", type: "textarea" },
-                { key: "food_preference", label: "Food Preference", type: "text" },
-                { key: "work_information", label: "Work Information", type: "text" },
-                { key: "contact_information", label: "Additional Information", type: "textarea" },
+                { key: "nickname", label: this.$t('contacts.contact_fields.nickname'), type: "text" },
+                { key: "gender", label: this.$t('contacts.contact_fields.gender'), type: "select", options: this.$t('contacts.contact_fields.genders').split(',') },
+                { key: "birthday", label: this.$t('contacts.contact_fields.birthday'), type: "date", format: "DD.MM.YYYY" },
+                { key: "email", label: this.$t('contacts.contact_fields.email'), type: "email" },
+                { key: "phone", label: this.$t('contacts.contact_fields.phone'), type: "tel" },
+                { key: "address", label: this.$t('contacts.contact_fields.address'), type: "text" },
+                { key: "how_we_met", label: this.$t('contacts.contact_fields.how_we_met'), type: "textarea" },
+                { key: "food_preference", label: this.$t('contacts.contact_fields.food_preference'), type: "text" },
+                { key: "work_information", label: this.$t('contacts.contact_fields.work_information'), type: "text" },
+                { key: "contact_information", label: this.$t('contacts.contact_fields.additional_information'), type: "textarea" },
             ];
         },
         sortedTimelineItems() {
@@ -305,13 +304,13 @@ export default {
             this.editName = `${this.contact.firstname} ${this.contact.lastname}`;
         },
         openAddActivity() {
-            this.editingActivityId = null; // Reset for add mode
-            this.editingActivityData = {}; // Reset for add mode
+            this.editingActivityId = null; 
+            this.editingActivityData = {}; 
             this.showAddActivity = true;
         },
         openAddNote() {
-            this.editingNoteId = null; // Reset for add mode
-            this.editingNoteData = {}; // Reset for add mode
+            this.editingNoteId = null; 
+            this.editingNoteData = {}; 
             this.showAddNote = true;
         },
         async editActivity(activityId) {
@@ -437,7 +436,7 @@ export default {
         birthdayValidationRule(value) {
             const datePattern = /^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])\.(\d{4})?$/;
             if (!datePattern.test(value)) {
-                return "Invalid format. Use DD.MM.YYYY or DD.MM.";
+                return this.$t('contacts.birthday.birthday_warning');
             }
             return true; // No error
         },

@@ -3,11 +3,11 @@
     <!-- Header Section with Add Activity Button -->
     <v-row class="align-center justify-space-between mb-4">
       <v-col>
-        <v-toolbar-title>Activities</v-toolbar-title>
+        <v-toolbar-title>{{ $t('activities.title') }}</v-toolbar-title>
       </v-col>
       <v-col class="text-right">
         <v-btn color="primary" @click="openAddActivity" prepend-icon="mdi-account-multiple-plus-outline">
-          Add Activity
+          {{ $t('activities.add_activity') }}
         </v-btn>
       </v-col>
     </v-row>

@@ -1,26 +1,26 @@
 <template>
   <v-container>
     <v-card>
-      <v-card-title>{{ activityId ? 'Edit Activity' : 'Add an Activity' }}</v-card-title>
+      <v-card-title>{{ activityId ? $t('activities.edit_activity') : $t('activities.add_activity') }}</v-card-title>
       <v-card-text>
         <v-form @submit.prevent="addActivity">
           <!-- Activity Details -->
-          <v-text-field v-model="newActivityName" label="Activity Name"
-            :rules="[() => !!newActivityName || 'Activity name is required']"></v-text-field>
-          <v-textarea v-model="newActivityDescription" label="Activity Description" rows="3" auto-grow></v-textarea>
-          <v-text-field v-model="newActivityLocation" label="Activity Location"></v-text-field>
+          <v-text-field v-model="newActivityName" :label="$t('activities.activity_name')"
+            :rules="[() => !!newActivityName || $t('activities.activity_name_required')]"></v-text-field>
+          <v-textarea v-model="newActivityDescription" :label="$t('activities.activity_description')" rows="3" auto-grow></v-textarea>
+          <v-text-field v-model="newActivityLocation" :label="$t('activities.activity_location')"></v-text-field>
 
           <!-- Date Picker -->
           <v-dialog v-model="menu" max-width="290" persistent>
             <template v-slot:activator="{ props }">
-              <v-text-field v-model="formattedActivityDate" label="Activity Date" prepend-icon="mdi-calendar" readonly
+              <v-text-field v-model="formattedActivityDate" :label="$t('activities.activity_date')" prepend-icon="mdi-calendar" readonly
                 v-bind="props" @click="menu = true"
-                :rules="[v => !!newActivityDate || 'Activity date is required']"></v-text-field>
+                :rules="[v => !!newActivityDate || $t('activities.activity_date_required')]"></v-text-field>
             </template>
             <v-date-picker v-model="newActivityDate" no-title @input="updateFormattedDate">
               <template v-slot:actions>
-                <v-btn text color="primary" @click="menu = false">Cancel</v-btn>
-                <v-btn text color="primary" @click="confirmDate">OK</v-btn>
+                <v-btn text color="primary" @click="menu = false">{{ $t('buttons.cancel') }}</v-btn>
+                <v-btn text color="primary" @click="confirmDate">{{ $t('buttons.ok') }}</v-btn>
               </template>
             </v-date-picker>
           </v-dialog>
@@ -28,7 +28,7 @@
 
           <!-- Contact Selector -->
           <v-autocomplete v-model="selectedContacts" :items="filteredContacts" item-title="name" item-value="ID"
-            label="Select Contacts" chips closable-chips multiple outlined color="blue-grey-lighten-2"
+            :label="$t('activities.select_contacts')" chips closable-chips multiple outlined color="blue-grey-lighten-2"
             v-model:search-input="searchContactQuery">
             <!-- Chip Slot -->
             <template v-slot:chip="{ props, item }">
@@ -46,8 +46,8 @@
 
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn text color="primary" @click="$emit('close')">Cancel</v-btn>
-        <v-btn color="primary" @click="addActivity">{{ activityId ? 'Save Changes' : 'Add Activity' }}</v-btn>
+        <v-btn text color="primary" @click="$emit('close')">{{ $t('buttons.cancel') }}</v-btn>
+        <v-btn color="primary" @click="addActivity">{{ activityId ? $t('buttons.save_changes') : $t('activities.add_activity') }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-container>

@@ -1,0 +1,77 @@
+{
+   "search": {
+        "search_text": "Kontakte suchen...",
+        "show_results": "Ergebnisse für:",
+        "no_results": "Keine Kontakte gefunden, die den Suchkriterien entsprechen."
+    },
+    "buttons": {
+        "ok": "OK",
+        "add": "Hinzufügen",
+        "cancel": "Abbrechen",
+        "save_changes": "Änderungen speichern"
+    },
+    "contacts": {
+        "title": "Kontakte",
+        "add_contact": "Kontakt hinzufügen",
+        "circles": {
+            "circles": "Kreise",
+            "add_circles": "Eingeben und Leertaste drücken",
+            "all_circles": "Alle"
+        },
+        "contact_details": "Kontaktdetails",
+        "timeline": "Zeitleiste",
+        "contact_fields": {
+            "firstname": "Vorname",
+            "lastname": "Nachname",
+            "nickname": "Spitzname",
+            "gender": "Geschlecht",
+            "genders": ["Männlich", "Weiblich", "Unbekannt"],
+            "gender_unknown": "Unbekannt",
+            "birthday": "Geburtstag",
+            "birthday_format": "TT.MM.JJJJ (Jahr optional)",
+            "email": "E-Mail",
+            "phone": "Telefon",
+            "address": "Adresse",
+            "how_we_met": "Unser Kennenlernen",
+            "food_preference": "Essenspräferenzen",
+            "work_information": "Berufliche Informationen",
+            "additional_information": "Weitere Informationen"
+        },
+        "photo": {
+            "crop_photo": "Bild Zuschneiden",
+            "crop": "Zuschneiden"
+        }
+    },
+    "relationships": {
+        "title": "Beziehungen",
+        "add_relationship": "Beziehung hinzufügen",
+        "edit_relationship": "Beziehung bearbeiten",
+        "manual_entry": "Manuelle Eingabe",
+        "existing_contact": "Vorhandenen Kontakt auswählen",
+        "relationship_type": "Beziehungstyp",
+        "relationship_types": ["Kind", "Elternteil", "Geschwister", "Partner", "Freunde"],
+        "relationship_name": "Name",
+        "relationship_gender": "Geschlecht",
+        "relationship_genders": ["Männlich", "Weiblich", "Unbekannt"],
+        "birthday_optional": "Geburtstag (optional)"
+    },
+    "activities": {
+        "title": "Aktivitäten",
+        "add_activity": "Aktivität hinzufügen",
+        "edit_activity": "Aktivität bearbeiten",
+        "activity_name": "Aktivitätsname",
+        "activity_name_required": "Activitätsname ist ein Pflichtfeld",
+        "activity_description": "Aktivitätsbeschreibung",
+        "activity_location": "Aktivitätsort",
+        "activity_date": "Aktivitätsdatum",
+        "activity_date_required": "Activitätsdatum ist ein Pflichtfeld",
+        "select_contacts": "Kontakte auswählen"
+    },
+    "notes": {
+        "title": "Notizen",
+        "add_note": "Notiz hinzufügen",
+        "edit_note": "Notiz bearbeiten",
+        "write_note": "Notiz schreiben...",
+        "note_date": "Notizdatum"
+    }
+}

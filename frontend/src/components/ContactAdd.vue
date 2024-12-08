@@ -3,19 +3,19 @@
     <v-row>
       <v-col>
         <v-card>
-          <v-card-title>Add New Contact</v-card-title>
+          <v-card-title>{{ $t('contacts.add_contact') }}</v-card-title>
           <v-card-text>
             <v-form @submit.prevent="submitForm">
-              <v-text-field label="First Name" v-model="contact.firstname" required></v-text-field>
+              <v-text-field :label="$t('contacts.contact_fields.firstname')" v-model="contact.firstname" required></v-text-field>
 
-              <v-text-field label="Last Name" v-model="contact.lastname"></v-text-field>
+              <v-text-field :label="$t('contacts.contact_fields.lastname')" v-model="contact.lastname"></v-text-field>
 
-              <v-text-field label="Nickname" v-model="contact.nickname"></v-text-field>
+              <v-text-field :label="$t('contacts.contact_fields.nickname')" v-model="contact.nickname"></v-text-field>
 
-              <v-select label="Gender" v-model="contact.gender" :items="['Male', 'Female', 'Unknown']"></v-select>
+              <v-select :label="$t('contacts.contact_fields.gender')" v-model="contact.gender" :items="$t('contacts.contact_fields.genders').split(',')"></v-select>
 
-              <v-text-field label="Circles" v-model="circleInput" @keyup.space="addCircle"
-                placeholder="Add a circle and press Space"></v-text-field>
+              <v-text-field :label="$t('contacts.circles.circles')" v-model="circleInput" @keyup.space="addCircle"
+                :placeholder="$t('contacts.circles.add_circles')"></v-text-field>
 
               <v-chip-group v-if="contact.circles.length">
                 <v-chip v-for="(circle, index) in contact.circles" :key="index" close
@@ -24,29 +24,29 @@
                 </v-chip>
               </v-chip-group>
 
-              <v-text-field label="Email" v-model="contact.email" type="email"></v-text-field>
+              <v-text-field :label="$t('contacts.contact_fields.email')" v-model="contact.email" type="email"></v-text-field>
 
-              <v-text-field label="Phone" v-model="contact.phone" type="tel"></v-text-field>
+              <v-text-field :label="$t('contacts.contact_fields.phone')" v-model="contact.phone" type="tel"></v-text-field>
 
               <v-text-field
-                label="Birthday"
+                :label="$t('contacts.contact_fields.birthday')"
                 v-model="birthdayInput"
-                placeholder="DD.MM.YYYY (year optional)"
+                :placeholder="$t('contacts.birthday.birthday_format')"
                 :error-messages="birthdayError"
                 @blur="validateBirthday"
               ></v-text-field>
 
-              <v-text-field label="Address" v-model="contact.address"></v-text-field>
+              <v-text-field :label="$t('contacts.contact_fields.address')" v-model="contact.address"></v-text-field>
 
-              <v-textarea label="How We Met" v-model="contact.how_we_met"></v-textarea>
+              <v-textarea :label="$t('contacts.contact_fields.how_we_met')" v-model="contact.how_we_met"></v-textarea>
 
-              <v-text-field label="Food Preference" v-model="contact.food_preference"></v-text-field>
+              <v-text-field :label="$t('contacts.contact_fields.food_preference')" v-model="contact.food_preference"></v-text-field>
 
-              <v-text-field label="Work Information" v-model="contact.work_information"></v-text-field>
+              <v-text-field :label="$t('contacts.contact_fields.work_information')" v-model="contact.work_information"></v-text-field>
 
-              <v-textarea label="Additional Contact Information" v-model="contact.contact_information"></v-textarea>
+              <v-textarea :label="$t('contacts.contact_fields.additional_information')" v-model="contact.contact_information"></v-textarea>
 
-              <v-btn type="submit" color="primary">Add Contact</v-btn>
+              <v-btn type="submit" color="primary">{{ $t('contacts.add_contact') }}</v-btn>
 
               <v-alert v-if="successMessage" type="success" dismissible class="mt-3">
                 {{ successMessage }}
@@ -72,7 +72,7 @@ export default {
         firstname: '',
         lastname: '',
         nickname: '',
-        gender: 'Unknown',
+        gender: this.$t('contacts.contact_fields.gender_unknown'),
         email: '',
         phone: '',
         birthday: null,
@@ -95,18 +95,18 @@ export default {
     submitForm() {
       this.validateBirthday();
       if (this.birthdayError) {
-        this.errorMessage = "Please correct the birthday format.";
+        this.errorMessage = this.$t('contacts.birthday.birthday_format_error');
         return;
       }
       contactService
         .addContact(this.contact)
         .then(() => {
-          this.successMessage = 'Contact added successfully!';
+          this.successMessage = this.$t('contacts.add_contact_success');
           this.errorMessage = '';
           this.resetForm();
         })
         .catch((error) => {
-          this.errorMessage = 'Failed to add contact. Please try again.';
+          this.errorMessage = this.$t('contacts.add_contact_error');
           this.successMessage = '';
           console.error(error);
         });
@@ -142,7 +142,7 @@ export default {
       // Regular expression to match "DD.MM.YYYY" or "DD.MM." format
       const datePattern = /^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])\.(\d{4})?$/;
       if (!this.birthdayInput.match(datePattern)) {
-        this.birthdayError = "Please enter a valid date in DD.MM.YYYY or DD.MM. format.";
+        this.birthdayError = this.$t('contacts.birthday.birthday_format_warning');
       } else {
         this.birthdayError = '';
         // Convert input to the YYYY-MM-DD format, setting the year to 0001 if omitted
@@ -153,7 +153,6 @@ export default {
       const [day, month, year] = this.birthdayInput.split('.');
       this.contact.birthday = `${year || '0001'}-${month}-${day}`;
     },
-
   },
 };
 </script>

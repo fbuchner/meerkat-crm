@@ -19,6 +19,7 @@
             "all_circles": "Alle"
         },
         "contact_details": "Kontaktdetails",
+        "activity_at": "in",
         "timeline": "Zeitleiste",
         "contact_fields": {
             "firstname": "Vorname",

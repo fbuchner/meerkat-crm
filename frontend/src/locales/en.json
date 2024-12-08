@@ -22,6 +22,7 @@
         },
         "contact_details": "Contact Details",
         "timeline": "Timeline",
+        "activity_at": "at",
         "contact_fields": {
             "firstname": "Firstname",
             "lastname": "Lastname",

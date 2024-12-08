@@ -6,6 +6,8 @@ export default {
   de,
 };
 
+export const availableLanguages = ['en', 'de'];
+
 // Dynamic loading of translation files
 export async function loadLocaleMessages(i18n, locale) {
   try {

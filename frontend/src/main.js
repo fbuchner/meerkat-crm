@@ -7,9 +7,9 @@ import router from './router';
 import 'vuetify/styles';
 import vuetify from './plugins/vuetify';
 
-const i18n = createI18n({
+export const i18n = createI18n({
     legacy: false, 
-    locale: 'en',  // Default language
+    locale: 'de',  // Default language
     fallbackLocale: 'en', 
     messages: {}
   });
@@ -17,12 +17,12 @@ const i18n = createI18n({
 const app = createApp(App);
 
 (async () => {
-const savedLanguage = localStorage.getItem('preferredLanguage') || 'en';
-await loadLocaleMessages(i18n, savedLanguage); 
-app.use(i18n)
-app.use(router) 
-app.use(vuetify) 
-app.mount('#app');
+  const savedLanguage = localStorage.getItem('preferredLanguage') || 'en';
+  await loadLocaleMessages(i18n, savedLanguage); 
+  app.use(i18n);
+  app.use(router);
+  app.use(vuetify);
+  app.mount('#app'); 
 })();
 
 

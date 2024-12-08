@@ -9,17 +9,9 @@
 
         <!-- Search Bar (hidden on mobile) -->
         <v-col cols="3" class="d-none d-md-flex">
-          <v-text-field
-            v-model="searchQueryLocal"
-            placeholder="Search contacts..."
-            hide-details
-            clearable
-            density="compact"
-            append-icon="mdi-magnify"
-            autofocus
-            @input="handleSearchInput"
-            @click:clear="handleClearSearch"
-          ></v-text-field>
+          <v-text-field v-model="searchQueryLocal" :placeholder="$t('search.search_text')" hide-details clearable
+            density="compact" append-icon="mdi-magnify" autofocus @input="handleSearchInput"
+            @click:clear="handleClearSearch"></v-text-field>
         </v-col>
 
         <!-- Desktop Navigation Links (hidden on mobile) -->
@@ -32,11 +24,7 @@
     </v-container>
 
     <!-- Bottom Navigation for Mobile -->
-    <v-bottom-navigation
-      v-if="isMobile"
-      app
-      color="primary"
-    >
+    <v-bottom-navigation v-if="isMobile" app color="primary">
       <v-btn icon to="/contacts">
         <v-icon>mdi-account-multiple</v-icon>
         <span>{{ $t('contacts.title') }}</span>
@@ -59,7 +47,15 @@ import { useRouter } from 'vue-router';
 
 export default {
   emits: ['search', 'resetFilters'],
-  setup(_, { emit }) { // Add 'emit' to setup function parameters
+  setup(_, { emit }) {
+    function debounce(func, delay) {
+      let timeout;
+      return (...args) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), delay);
+      };
+    }
+
     const searchQuery = inject('searchQuery');
     const setSearchQuery = inject('setSearchQuery');
     const searchQueryLocal = ref(searchQuery.value);
@@ -76,7 +72,7 @@ export default {
     function handleClearSearch() {
       searchQueryLocal.value = '';
       setSearchQuery('');
-      emit('resetFilters'); 
+      emit('resetFilters');
       emit('search', ''); // Emit a search event with an empty query when cleared
     }
 
@@ -98,9 +94,8 @@ export default {
       }
     }
 
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('keypress', handleKeyPress);
     onMounted(() => {
+      window.addEventListener('resize', debounce(handleResize, 100));
       window.addEventListener('keypress', handleKeyPress);
     });
     return {
@@ -119,7 +114,7 @@ export default {
 
 <style scoped>
 /* Center icon and label in the bottom navigation items */
-.v-btn > span {
+.v-btn>span {
   display: block;
   font-size: 12px;
 }

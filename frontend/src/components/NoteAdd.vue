@@ -87,10 +87,9 @@ export default {
       this.menu = false;
     },
     async saveNote() {
-      const formattedDate = this.newNoteDate.toISOString().split('T')[0];
       const noteData = {
         content: this.newNoteContent,
-        date: formattedDate,
+        date: this.newNoteDate.toISOString(),
         contact_id: this.contactId,
       };
 

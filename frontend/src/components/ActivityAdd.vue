@@ -163,11 +163,10 @@ export default {
       return `${this.backendURL}/contacts/${ID}/profile_picture.jpg`;
     },
     async addActivity() {
-      const formattedDate = this.newActivityDate.toISOString().split('T')[0];
       const activityData = {
         title: this.newActivityName,
         description: this.newActivityDescription,
-        date: formattedDate,
+        date: this.newActivityDate.toISOString(),
         location: this.newActivityLocation,
         contact_ids: this.selectedContacts
       };

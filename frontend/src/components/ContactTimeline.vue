@@ -1,8 +1,6 @@
 <template>
  <v-card outlined>
     <v-card-title>
-      {{ $t('contacts.timeline') }}
-      <v-spacer></v-spacer>
       <v-btn @click="openAddNote" color="primary" density="compact" prepend-icon="mdi-note-plus-outline">
         {{ $t('notes.add_note') }}
       </v-btn>

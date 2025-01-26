@@ -10,10 +10,11 @@ func RegisterRoutes(router *gin.Engine) {
 	// Contact routes
 	router.GET("/contacts", controllers.GetContacts)
 	router.POST("/contacts", controllers.CreateContact)
-	router.GET("/contacts/circles", controllers.GetCircles)
 	router.GET("/contacts/:id", controllers.GetContact)
 	router.PUT("/contacts/:id", controllers.UpdateContact)
 	router.DELETE("/contacts/:id", controllers.DeleteContact)
+
+	router.GET("/contacts/circles", controllers.GetCircles)
 
 	router.GET("/contacts/:id/relationships", controllers.GetRelationships)
 	router.POST("/contacts/:id/relationships", controllers.CreateRelationship)
@@ -41,4 +42,11 @@ func RegisterRoutes(router *gin.Engine) {
 	router.DELETE("/activities/:id", controllers.DeleteActivity)
 	router.POST("/activities/:id/contacts/:contact_id", controllers.AddContactToActivity)
 	router.DELETE("/activities/:id/contacts/:contact_id", controllers.RemoveContactFromActivity)
+
+	// Reminder routes
+	router.GET("/contacts/:id/reminders", controllers.GetRemindersForContact)
+	router.POST("/contacts/:id/reminders", controllers.CreateReminder)
+	router.GET("/reminders/:id", controllers.GetReminder)
+	router.PUT("/reminders/:id", controllers.UpdateReminder)
+	router.DELETE("/reminders/:id", controllers.DeleteReminder)
 }

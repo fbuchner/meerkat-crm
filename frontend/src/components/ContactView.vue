@@ -94,10 +94,25 @@
 
             <!-- Right Column: Timeline for Notes and Activities -->
             <v-col cols="12" md="8">
-                <ContactTimeline :timelineItems="sortedTimelineItems" :contactId="contact.ID"
-                    @refreshTimeline="fetchContact" />
-            </v-col>
+                <v-tabs v-model="tab">
+                    <v-tab value="one">{{ $t('contacts.timeline') }}</v-tab>
+                    <v-tab value="two">{{ $t('contacts.reminders') }}</v-tab>
+                </v-tabs>
 
+                <v-card-text>
+                    <v-tabs-window v-model="tab">
+                        <v-tabs-window-item value="one">
+                            <ContactTimeline :timelineItems="sortedTimelineItems" :contactId="contact.ID"
+                                @refreshTimeline="fetchContact" />
+                        </v-tabs-window-item>
+
+                        <v-tabs-window-item value="two">
+                            <ContactReminders :reminders="contact.reminders" :contactId="contact.ID"
+                                @updateReminders="handleUpdateReminders" />
+                        </v-tabs-window-item>
+                    </v-tabs-window>
+                </v-card-text>
+            </v-col>
         </v-row>
     </v-container>
 </template>
@@ -107,8 +122,11 @@ import contactService from '@/services/contactService';
 import { reactive } from 'vue';
 import ProfilePhoto from './ProfilePhoto.vue';
 import activityService from '@/services/activityService';
+import reminderService from '@/services/reminderService';
 import RelationshipList from '@/components/RelationshipList.vue';
 import ContactTimeline from '@/components/ContactTimeline.vue';
+import ContactReminders from '@/components/ContactReminders.vue';
+
 
 export default {
     name: 'ContactView',
@@ -117,7 +135,7 @@ export default {
             required: true,
         },
     },
-    components: { ProfilePhoto, RelationshipList, ContactTimeline },
+    components: { ProfilePhoto, RelationshipList, ContactTimeline, ContactReminders },
     data() {
         return {
             contact: null,
@@ -127,6 +145,7 @@ export default {
             editName: '',
             newCircle: '', // Holds the new circle being added
             showAddCircleInput: false, // Controls visibility of the add circle input
+            tab: null,
         };
     },
     computed: {
@@ -344,6 +363,25 @@ export default {
         updatePhoto(newPhotoUrl) {
             this.contact.photo = newPhotoUrl;
         },
+        async handleUpdateReminders({ action, reminder, reminderId }) {
+            try {
+                if (action === 'add') {
+                    const response = await reminderService.addReminder(this.contact.ID, reminder);
+                    this.contact.reminders.push(response.data); // Add to the local state
+                } else if (action === 'edit') {
+                    await reminderService.updateReminder(this.contact.ID, reminder.id, reminder);
+                    const index = this.contact.reminders.findIndex(r => r.id === reminder.id);
+                    if (index !== -1) {
+                        this.$set(this.contact.reminders, index, reminder); // Update the local state
+                    }
+                } else if (action === 'delete') {
+                    await reminderService.deleteReminder(this.contact.ID, reminderId);
+                    this.contact.reminders = this.contact.reminders.filter(r => r.id !== reminderId); // Update the local state
+                }
+            } catch (error) {
+                console.error('Error handling reminders:', error);
+            }
+        },
     },
 };
 </script>
@@ -364,8 +402,7 @@ export default {
 }
 
 .field-label:hover .edit-icon,
-.field-label:hover .delete-icon
-{
+.field-label:hover .delete-icon {
     opacity: 1;
     /* Show icons on hover */
 }

@@ -91,6 +91,7 @@ func GetContacts(c *gin.Context) {
 		"notes":         false,
 		"activities":    false,
 		"relationships": false,
+		"reminders":     false,
 	}
 
 	for _, rel := range includedRelationships {
@@ -128,6 +129,9 @@ func GetContacts(c *gin.Context) {
 	if relationshipMap["relationships"] {
 		query = query.Preload("Relationships")
 	}
+	if relationshipMap["reminders"] {
+		query = query.Preload("Reminders")
+	}
 
 	// Execute query
 	if err := query.Find(&contacts).Error; err != nil {
@@ -153,7 +157,7 @@ func GetContact(c *gin.Context) {
 	id := c.Param("id")
 	var contact models.Contact
 	db := c.MustGet("db").(*gorm.DB)
-	if err := db.Preload("Notes").Preload("Activities").Preload("Relationships").First(&contact, id).Error; err != nil {
+	if err := db.Preload("Notes").Preload("Activities").Preload("Relationships").Preload("Reminders").First(&contact, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
 		return
 	}

@@ -97,10 +97,8 @@ export default {
       try {
         let response
         if (this.noteId) {
-          // Update the existing note
           response = await noteService.updateNote(this.noteId, noteData);
         } else {
-          // Add a new note
           if(this.contactId) {
             response = await noteService.addNote(this.contactId, noteData);
           } else {
@@ -110,8 +108,8 @@ export default {
         }
 
         this.resetForm();
-        this.$emit('noteAdded', response.data.note); // Ensure the response has `note`
-        this.$emit('close'); // Close dialog
+        this.$emit('noteAdded', response.data.note); 
+        this.$emit('close');
       } catch (error) {
         console.error('Error saving note:', error);
       }

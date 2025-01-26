@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"perema/models"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -12,11 +13,11 @@ import (
 
 func CreateActivity(c *gin.Context) {
 	var requestBody struct {
-		Title       string      `json:"title"`
-		Date        models.Date `json:"date"`
-		Description string      `json:"description"`
-		Location    string      `json:"location"`
-		ContactIDs  []uint      `json:"contact_ids"` // Accept an array of contact IDs for many-to-many association
+		Title       string    `json:"title"`
+		Date        time.Time `json:"date"`
+		Description string    `json:"description"`
+		Location    *string   `json:"location"`
+		ContactIDs  []uint    `json:"contact_ids"` // Accept an array of contact IDs for many-to-many association
 	}
 
 	// Bind the incoming JSON to the requestBody

@@ -16,7 +16,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
-	"gorm.io/driver/sqlite" // or use the appropriate driver
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -40,7 +40,7 @@ func main() {
 
 	// Migrate the schema
 	log.Println("Loading migrations...")
-	if err := db.AutoMigrate(&models.Contact{}, &models.Activity{}, &models.Note{}, models.Relationship{}, models.Date{}); err != nil {
+	if err := db.AutoMigrate(&models.Contact{}, &models.Activity{}, &models.Note{}, models.Relationship{}, models.Reminder{}); err != nil {
 		log.Fatalf("failed to migrate database schema: %v", err)
 	}
 
@@ -87,7 +87,7 @@ func main() {
 		port = "8080"
 	}
 
-	log.Println(fmt.Sprintf("Server listening on Port %s...", port))
+	log.Printf("Server listening on Port %s...", port)
 
 	r.Run(fmt.Sprintf(":%s", port))
 }

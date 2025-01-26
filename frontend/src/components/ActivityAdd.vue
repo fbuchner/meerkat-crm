@@ -106,7 +106,8 @@ export default {
     },
   },
   async mounted() {
-    await this.debouncedLoadContacts();
+    this.debouncedLoadContacts = this.debounce(this.loadContacts, 300);
+    await this.loadContacts();
     if (this.contactId) {
       this.preselectCurrentContact();
     }
@@ -193,12 +194,5 @@ export default {
       this.selectedContacts = [];
     },
   },
-  created() {
-      this.debouncedLoadContacts = this.debounce(this.loadContacts, 300);
-      this.loadContacts(); // Initial load of contacts
-      if (this.contactId) {
-        this.preselectCurrentContact();
-      }
-    },
 };
 </script>

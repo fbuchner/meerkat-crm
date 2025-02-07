@@ -82,6 +82,7 @@
     },
     "reminders": {
         "add_reminder": "Add Reminder",
-        "no_reminders": "No reminders set"
+        "no_reminders": "No reminders set",
+        "recurrence": "No recurrence,Quarterly,Six-months,Yearly"
     }
 }

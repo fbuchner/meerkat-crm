@@ -513,18 +513,16 @@ export default {
           this.contact.reminders.push(response.data.reminder); // Add to the local state
         } else if (action === "edit") {
           const response = await reminderService.updateReminder(
-            this.contact.ID,
-            reminder.id,
+            reminder.ID,
             reminder
           );
           const updatedReminder = response.data.reminder;
           const index = this.contact.reminders.findIndex(
-            (r) => r.id === updatedReminder.id
+            (r) => r.ID === updatedReminder.ID
           );
 
           if (index !== -1) {
-            // Update the local state with the updated reminder
-            this.$set(this.contact.reminders, index, updatedReminder);
+            this.contact.reminders[index] = updatedReminder;
           }
         } else if (action === "delete") {
           await reminderService.deleteReminder(reminderId);

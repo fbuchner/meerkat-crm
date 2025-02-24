@@ -60,10 +60,14 @@
               label="Message"
               v-model="form.message"
               required
-              :rules="[(v) => !!v || $t('reminders.validation.required')]"
+              :rules="[(v) => !!v || $t('reminders.reminder_message_required')]"
             />
 
-            <v-switch label="Send by Email" v-model="form.by_mail" />
+            <v-switch
+              label="Send by Email"
+              v-model="form.by_mail"
+              color="primary"
+            />
 
             <v-dialog v-model="menu" max-width="290" persistent>
               <template v-slot:activator="{ props }">
@@ -76,7 +80,11 @@
                   @click="menu = true"
                   :rules="[
                     (v) =>
-                      !!form.remind_at || $t('reminders.validation.required'),
+                      !!form.remind_at ||
+                      $t('reminders.reminder_date_required'),
+                    (v) =>
+                      new Date(form.remind_at) >= new Date() ||
+                      $t('reminders.reminder_date_future'),
                   ]"
                 />
               </template>
@@ -103,9 +111,18 @@
             />
 
             <v-switch
-              label="Reoccur from Completion"
+              v-if="form.recurrence !== $t('reminders.recurrence_none')"
+              color="primary"
               v-model="form.reoccur_from_completion"
-            />
+            >
+              <template v-slot:label>
+                {{
+                  form.reoccur_from_completion
+                    ? $t("reminders.reoccur_from_completion")
+                    : $t("reminders.reoccur_fixed_date")
+                }}
+              </template>
+            </v-switch>
           </v-form>
         </v-card-text>
 

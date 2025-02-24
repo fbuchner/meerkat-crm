@@ -1,27 +1,44 @@
 <template>
   <v-card outlined>
     <v-card-title>
-      <v-btn color="primary" density="compact" prepend-icon="mdi-plus" @click="openAddDialog">
-        {{ $t('reminders.add_reminder') }}
+      <v-btn
+        color="primary"
+        density="compact"
+        prepend-icon="mdi-plus"
+        @click="openAddDialog"
+      >
+        {{ $t("reminders.add_reminder") }}
       </v-btn>
     </v-card-title>
 
     <v-card-text>
       <div v-if="reminders.length === 0">
-        {{ $t('reminders.no_reminders') }}
+        {{ $t("reminders.no_reminders") }}
       </div>
 
       <v-list>
-        <v-list-item v-for="reminder in reminders" :key="reminder.id" class="reminder-item">
+        <v-list-item
+          v-for="reminder in reminders"
+          :key="reminder.ID"
+          class="reminder-item"
+        >
           <template #title>
             <strong>{{ reminder.message }}</strong>
           </template>
           <template #subtitle>
-            {{ reminder.recurrence || 'One-time' }} | {{ formatDate(reminder.remind_at) }}
+            {{ reminder.recurrence }} | {{ formatDate(reminder.remind_at) }}
           </template>
           <template #append>
-            <v-icon small class="edit-icon" @click="openEditDialog(reminder)">mdi-pencil</v-icon>
-            <v-icon small class="delete-icon" color="error" @click="deleteReminder(reminder.id)">mdi-delete</v-icon>
+            <v-icon small class="edit-icon" @click="openEditDialog(reminder)"
+              >mdi-pencil</v-icon
+            >
+            <v-icon
+              small
+              class="delete-icon"
+              color="error"
+              @click="deleteReminder(reminder.ID)"
+              >mdi-delete</v-icon
+            >
           </template>
         </v-list-item>
       </v-list>
@@ -30,7 +47,11 @@
     <v-dialog v-model="showDialog" max-width="500px">
       <v-card>
         <v-card-title>
-          {{ isEditing ? $t('reminders.edit_reminder') : $t('reminders.add_reminder') }}
+          {{
+            isEditing
+              ? $t("reminders.edit_reminder")
+              : $t("reminders.add_reminder")
+          }}
         </v-card-title>
 
         <v-card-text>
@@ -39,7 +60,7 @@
               label="Message"
               v-model="form.message"
               required
-              :rules="[v => !!v || $t('reminders.validation.required')]"
+              :rules="[(v) => !!v || $t('reminders.validation.required')]"
             />
 
             <v-switch label="Send by Email" v-model="form.by_mail" />
@@ -53,13 +74,24 @@
                   readonly
                   v-bind="props"
                   @click="menu = true"
-                  :rules="[v => !!form.remind_at || $t('reminders.validation.required')]"
+                  :rules="[
+                    (v) =>
+                      !!form.remind_at || $t('reminders.validation.required'),
+                  ]"
                 />
               </template>
-              <v-date-picker v-model="newReminderDate" no-title @input="updateFormattedRemindAt">
+              <v-date-picker
+                v-model="newReminderDate"
+                no-title
+                @input="updateFormattedRemindAt"
+              >
                 <template v-slot:actions>
-                  <v-btn text color="primary" @click="menu = false">{{ $t('buttons.cancel') }}</v-btn>
-                  <v-btn text color="primary" @click="confirmDate">{{ $t('buttons.ok') }}</v-btn>
+                  <v-btn text color="primary" @click="menu = false">{{
+                    $t("buttons.cancel")
+                  }}</v-btn>
+                  <v-btn text color="primary" @click="confirmDate">{{
+                    $t("buttons.ok")
+                  }}</v-btn>
                 </template>
               </v-date-picker>
             </v-dialog>
@@ -70,22 +102,28 @@
               v-model="form.recurrence"
             />
 
-            <v-switch label="Reoccur from Completion" v-model="form.reoccur_from_completion" />
+            <v-switch
+              label="Reoccur from Completion"
+              v-model="form.reoccur_from_completion"
+            />
           </v-form>
         </v-card-text>
 
         <v-card-actions>
           <v-spacer />
-          <v-btn text @click="closeDialog">{{ $t('buttons.cancel') }}</v-btn>
+          <v-btn text @click="closeDialog">{{ $t("buttons.cancel") }}</v-btn>
           <v-btn color="primary" @click="saveReminder">
-            {{ isEditing ? $t('buttons.save_changes') : $t('reminders.add_reminder') }}
+            {{
+              isEditing
+                ? $t("buttons.save_changes")
+                : $t("reminders.add_reminder")
+            }}
           </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
   </v-card>
 </template>
-
 
 <script>
 export default {
@@ -122,7 +160,13 @@ export default {
 
   methods: {
     formatDate(date) {
-      return date ? new Intl.DateTimeFormat('de-DE').format(date) : '';
+      return date
+        ? new Intl.DateTimeFormat("de-DE", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          }).format(new Date(date))
+        : "";
     },
     updateFormattedRemindAt() {
       this.formattedRemindAt = this.formatDate(this.newReminderDate);
@@ -140,12 +184,14 @@ export default {
 
     openEditDialog(reminder) {
       this.isEditing = true;
-      this.editingReminderId = reminder.id;
+      this.editingReminderId = reminder.ID;
 
       // Copy data into form and ensure remind_at is a Date.  Handle potential null values.
       this.form = {
         ...reminder,
-        remind_at: reminder.remind_at ? new Date(reminder.remind_at) : new Date(),
+        remind_at: reminder.remind_at
+          ? new Date(reminder.remind_at)
+          : new Date(),
       };
       this.formattedRemindAt = this.formatDate(this.form.remind_at); // Update formatted date
 
@@ -180,7 +226,7 @@ export default {
       if (this.isEditing) {
         this.$emit("updateReminders", {
           action: "edit",
-          reminder: { ...newReminder, id: this.editingReminderId },
+          reminder: { ...newReminder, ID: this.editingReminderId },
         });
       } else {
         this.$emit("updateReminders", {

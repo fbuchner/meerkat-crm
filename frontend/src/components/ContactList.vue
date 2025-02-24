@@ -98,7 +98,11 @@
     </v-row>
 
     <!-- No Contacts Found -->
-    <v-row v-if="contacts.length === 0" justify="center" class="mt-4">
+    <v-row
+      v-if="contacts.length === 0 && showNoContactsMessage"
+      justify="center"
+      class="mt-4"
+    >
       <v-col cols="12" class="text-center">
         <v-alert type="warning" border="start" class="d-flex align-center">
           {{ $t("search.no_results") }}
@@ -135,6 +139,9 @@ export default {
     const total = ref(0);
     const router = useRouter(); // Access router to navigate programmatically
     const setSearchQuery = inject("setSearchQuery");
+
+    const showNoContactsMessage = ref(false);
+    let timeoutId = null;
 
     function debounce(func, delay) {
       let timeout;
@@ -176,6 +183,18 @@ export default {
         .then((response) => {
           contacts.value = response.data.contacts;
           total.value = response.data.total;
+
+          if (contacts.value.length === 0) {
+            timeoutId = setTimeout(() => {
+              showNoContactsMessage.value = true;
+            }, 500);
+          } else {
+            // Clear the timeout if contacts are found
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+            }
+            showNoContactsMessage.value = false;
+          }
         })
         .catch((error) => {
           console.error("Failed to fetch contacts:", error);
@@ -237,6 +256,7 @@ export default {
       backendURL,
       clearSearch,
       debouncedLoadContacts,
+      showNoContactsMessage,
     };
   },
   mounted() {

@@ -1,11 +1,22 @@
 <template>
- <v-card outlined>
+  <v-card outlined>
     <v-card-title>
-      <v-btn @click="openAddNote" color="primary" density="compact" prepend-icon="mdi-note-plus-outline">
-        {{ $t('notes.add_note') }}
+      <v-btn
+        @click="openAddNote"
+        color="primary"
+        density="compact"
+        prepend-icon="mdi-note-plus-outline"
+      >
+        {{ $t("notes.add_note") }}
       </v-btn>
-      <v-btn @click="openAddActivity" color="primary" density="compact" prepend-icon="mdi-account-multiple-plus-outline" class="ml-2">
-        {{ $t('activities.add_activity') }}
+      <v-btn
+        @click="openAddActivity"
+        color="primary"
+        density="compact"
+        prepend-icon="mdi-account-multiple-plus-outline"
+        class="ml-2"
+      >
+        {{ $t("activities.add_activity") }}
       </v-btn>
     </v-card-title>
     <v-card-text>
@@ -13,21 +24,33 @@
         <v-timeline-item
           v-for="item in timelineItems"
           :key="item.id"
-          :dot-color="item.type === 'activity' ? 'blue lighten-3' : 'green lighten-3'"
+          :dot-color="
+            item.type === 'activity' ? 'blue lighten-3' : 'green lighten-3'
+          "
           :icon="item.type === 'activity' ? 'mdi-calendar' : 'mdi-note-text'"
         >
           <div class="timeline-item">
             <div class="timeline-header">
-              <strong>{{ item.date }}</strong>
+              <strong>{{ formatDate(item.date) }}</strong>
               <div class="icon-group">
-                <v-icon small class="edit-icon ml-2" @click="editItem(item)">mdi-pencil</v-icon>
-                <v-icon small class="delete-icon ml-2" color="error" @click="deleteItem(item)">mdi-delete</v-icon>
+                <v-icon small class="edit-icon ml-2" @click="editItem(item)"
+                  >mdi-pencil</v-icon
+                >
+                <v-icon
+                  small
+                  class="delete-icon ml-2"
+                  color="error"
+                  @click="deleteItem(item)"
+                  >mdi-delete</v-icon
+                >
               </div>
             </div>
             <div class="timeline-content">
               <template v-if="item.type === 'activity'">
                 <h3 class="text-subtitle-1">{{ item.title }}</h3>
-                <span v-if="item.location">{{ $t('contacts.activity_at') }} {{ item.location }}</span>
+                <span v-if="item.location"
+                  >{{ $t("contacts.activity_at") }} {{ item.location }}</span
+                >
                 <p>{{ item.description }}</p>
               </template>
               <template v-else>
@@ -63,13 +86,14 @@
 </template>
 
 <script>
-import ActivityAdd from '@/components/ActivityAdd.vue';
-import NoteAdd from '@/components/NoteAdd.vue';
-import activityService from '@/services/activityService';
-import noteService from '@/services/noteService';
+import ActivityAdd from "@/components/ActivityAdd.vue";
+import NoteAdd from "@/components/NoteAdd.vue";
+import activityService from "@/services/activityService";
+import noteService from "@/services/noteService";
+import { formatDate } from "@/utils/dateUtils";
 
 export default {
-  name: 'ContactTimeline',
+  name: "ContactTimeline",
   props: {
     timelineItems: {
       type: Array,
@@ -92,6 +116,9 @@ export default {
     };
   },
   methods: {
+    formatDate(date) {
+      return formatDate(date); // Call the utility function
+    },
     openAddActivity() {
       this.editingActivityId = null;
       this.editingActivityData = {};
@@ -109,7 +136,7 @@ export default {
       this.showAddNote = false;
     },
     async editItem(item) {
-      if (item.type === 'activity') {
+      if (item.type === "activity") {
         this.editingActivityId = item.id;
         this.editingActivityData = { ...item }; // Clone item data
         this.showAddActivity = true;
@@ -121,7 +148,7 @@ export default {
     },
     async deleteItem(item) {
       try {
-        if (item.type === 'activity') {
+        if (item.type === "activity") {
           await activityService.deleteActivity(item.id);
         } else {
           await noteService.deleteNote(item.id);
@@ -132,7 +159,7 @@ export default {
       }
     },
     refreshTimeline() {
-      this.$emit('refreshTimeline');
+      this.$emit("refreshTimeline");
     },
   },
 };
@@ -148,21 +175,21 @@ export default {
 
 .edit-icon,
 .delete-icon {
-    opacity: 0;
-    /* Hide icons by default */
-    transition: opacity 0.3s ease;
-    cursor: pointer;
+  opacity: 0;
+  /* Hide icons by default */
+  transition: opacity 0.3s ease;
+  cursor: pointer;
 }
 
 .timeline-item:hover .edit-icon,
 .timeline-item:hover .delete-icon {
-    opacity: 1;
-    /* Show icons on hover */
+  opacity: 1;
+  /* Show icons on hover */
 }
 
 .field-label:hover .edit-icon {
-    opacity: 1;
-    /* Show on hover */
+  opacity: 1;
+  /* Show on hover */
 }
 
 .timeline-header {

@@ -1,7 +1,9 @@
 <template>
   <v-container>
     <v-card>
-      <v-card-title>{{ noteId ? $t('notes.edit_note') : $t('notes.add_note') }}</v-card-title>
+      <v-card-title>{{
+        noteId ? $t("notes.edit_note") : $t("notes.add_note")
+      }}</v-card-title>
       <v-card-text>
         <v-form @submit.prevent="saveNote">
           <v-textarea
@@ -20,13 +22,23 @@
                 readonly
                 v-bind="props"
                 @click="menu = true"
-                :rules="[v => !!newNoteDate || $t('notes.note_date_required') ]"
+                :rules="[
+                  (v) => !!newNoteDate || $t('notes.note_date_required'),
+                ]"
               ></v-text-field>
             </template>
-            <v-date-picker v-model="newNoteDate" no-title @input="updateFormattedDate">
+            <v-date-picker
+              v-model="newNoteDate"
+              no-title
+              @input="updateFormattedDate"
+            >
               <template v-slot:actions>
-                <v-btn text color="primary" @click="menu = false">{{ $t('buttons.cancel') }}</v-btn>
-                <v-btn text color="primary" @click="confirmDate">{{ $t('buttons.ok') }}</v-btn>
+                <v-btn text color="primary" @click="menu = false">{{
+                  $t("buttons.cancel")
+                }}</v-btn>
+                <v-btn text color="primary" @click="confirmDate">{{
+                  $t("buttons.ok")
+                }}</v-btn>
               </template>
             </v-date-picker>
           </v-dialog>
@@ -34,18 +46,23 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn text color="primary" @click="$emit('close')">{{ $t('buttons.cancel') }}</v-btn>
-        <v-btn color="primary" @click="saveNote">{{ noteId ? $t('buttons.save_changes') : $t('notes.add_note') }}</v-btn>
+        <v-btn text color="primary" @click="$emit('close')">{{
+          $t("buttons.cancel")
+        }}</v-btn>
+        <v-btn color="primary" @click="saveNote">{{
+          noteId ? $t("buttons.save_changes") : $t("notes.add_note")
+        }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-container>
 </template>
 
 <script>
-import noteService from '@/services/noteService';
+import noteService from "@/services/noteService";
+import { formatDate } from "@/utils/dateUtils";
 
 export default {
-  name: 'NoteAdd',
+  name: "NoteAdd",
   props: {
     contactId: {
       type: Number,
@@ -58,30 +75,31 @@ export default {
     initialNote: {
       type: Object,
       default: () => ({
-        content: '',
+        content: "",
         date: new Date(),
       }),
     },
   },
   data() {
     return {
-      newNoteContent: this.initialNote.content || '',
-      newNoteDate: this.initialNote.date ? new Date(this.initialNote.date) : new Date(),
-      formattedNoteDate: this.initialNote.date ? this.formatDate(new Date(this.initialNote.date)) : this.formatDate(new Date()),
+      newNoteContent: this.initialNote.content || "",
+      newNoteDate: this.initialNote.date
+        ? new Date(this.initialNote.date)
+        : new Date(),
+      formattedNoteDate: this.initialNote.date
+        ? formatDate(new Date(this.initialNote.date))
+        : formatDate(new Date()),
       menu: false,
     };
   },
   watch: {
     newNoteDate(newDate) {
-      this.formattedNoteDate = this.formatDate(newDate);
+      this.formattedNoteDate = formatDate(newDate);
     },
   },
   methods: {
-    formatDate(date) {
-      return date ? new Intl.DateTimeFormat('de-DE').format(date) : '';
-    },
     updateFormattedDate() {
-      this.formattedNoteDate = this.formatDate(this.newNoteDate);
+      this.formattedNoteDate = formatDate(this.newNoteDate);
     },
     confirmDate() {
       this.menu = false;
@@ -94,11 +112,11 @@ export default {
       };
 
       try {
-        let response
+        let response;
         if (this.noteId) {
           response = await noteService.updateNote(this.noteId, noteData);
         } else {
-          if(this.contactId) {
+          if (this.contactId) {
             response = await noteService.addNote(this.contactId, noteData);
           } else {
             // If no contact ID is provided, add an unassigned note
@@ -107,16 +125,16 @@ export default {
         }
 
         this.resetForm();
-        this.$emit('noteAdded', response.data.note); 
-        this.$emit('close');
+        this.$emit("noteAdded", response.data.note);
+        this.$emit("close");
       } catch (error) {
-        console.error('Error saving note:', error);
+        console.error("Error saving note:", error);
       }
     },
     resetForm() {
-      this.newNoteContent = '';
+      this.newNoteContent = "";
       this.newNoteDate = new Date();
-      this.formattedNoteDate = this.formatDate(new Date());
+      this.formattedNoteDate = formatDate(new Date());
     },
   },
 };

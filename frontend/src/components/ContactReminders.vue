@@ -26,7 +26,7 @@
             <strong>{{ reminder.message }}</strong>
           </template>
           <template #subtitle>
-            {{ reminder.recurrence }} | {{ formatDate(reminder.remind_at) }}
+            {{ reminder.recurrence }} | {{ formattedRemindAt }}
           </template>
           <template #append>
             <v-icon small class="edit-icon" @click="openEditDialog(reminder)"
@@ -126,6 +126,7 @@
 </template>
 
 <script>
+import { formatDate } from "@/utils/dateUtils";
 export default {
   name: "ContactReminders",
   props: {
@@ -154,22 +155,13 @@ export default {
         recurrence: null,
         reoccur_from_completion: true,
       },
-      formattedRemindAt: this.formatDate(new Date()), // Initialize formatted date
+      formattedRemindAt: formatDate(new Date()), // Initialize formatted date
     };
   },
 
   methods: {
-    formatDate(date) {
-      return date
-        ? new Intl.DateTimeFormat("de-DE", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-          }).format(new Date(date))
-        : "";
-    },
     updateFormattedRemindAt() {
-      this.formattedRemindAt = this.formatDate(this.newReminderDate);
+      this.formattedRemindAt = formatDate(this.newReminderDate);
     },
     confirmDate() {
       this.form.remind_at = this.newReminderDate;
@@ -193,7 +185,7 @@ export default {
           ? new Date(reminder.remind_at)
           : new Date(),
       };
-      this.formattedRemindAt = this.formatDate(this.form.remind_at); // Update formatted date
+      this.formattedRemindAt = formatDate(this.form.remind_at); // Update formatted date
 
       this.showDialog = true;
     },
@@ -210,7 +202,7 @@ export default {
         recurrence: null,
         reoccur_from_completion: true,
       };
-      this.formattedRemindAt = this.formatDate(new Date()); // Reset formatted date
+      this.formattedRemindAt = formatDate(new Date()); // Reset formatted date
       this.newReminderDate = new Date(); // Reset the date picker too
     },
 
@@ -253,7 +245,7 @@ export default {
       }
     },
     newReminderDate(newDate) {
-      this.formattedRemindAt = this.formatDate(newDate);
+      this.formattedRemindAt = formatDate(newDate);
     },
   },
 };

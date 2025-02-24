@@ -69,17 +69,22 @@
         >
           <v-card-text>
             <!-- Profile Photo -->
-            <v-avatar size="80" class="mb-3">
-              <v-img
-                :src="`${backendURL}/contacts/${contact.ID}/profile_picture.jpg`"
-                alt="Profile Photo"
-              ></v-img>
-            </v-avatar>
+            <v-row justify="center" class="mb-3">
+              <div class="profile-picture">
+                <v-img
+                  class="profile-picture"
+                  :src="`${backendURL}/contacts/${contact.ID}/profile_picture.jpg`"
+                  alt="Profile Photo"
+                ></v-img>
+              </div>
+            </v-row>
 
             <!-- Contact Name -->
-            <div class="contact-name">
-              {{ contact.firstname }} {{ contact.lastname }}
-            </div>
+            <v-row justify="center" class="mb-3">
+              <div class="contact-name">
+                {{ contact.firstname }} {{ contact.lastname }}
+              </div>
+            </v-row>
 
             <!-- Circles with Wrapping -->
             <div class="circle-chips mt-2">
@@ -302,5 +307,18 @@ export default {
 .active-circle {
   background-color: #1976d2;
   color: white;
+}
+
+.profile-picture {
+  border-radius: 4px;
+  width: 80px;
+  height: 80px;
+  overflow: hidden;
+}
+
+.profile-picture img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 </style>

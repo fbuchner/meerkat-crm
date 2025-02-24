@@ -247,6 +247,9 @@ export default {
     newReminderDate(newDate) {
       this.formattedRemindAt = formatDate(newDate);
     },
+    reminders(newVal) {
+      console.log("Updated reminders:", newVal);
+    },
   },
 };
 </script>

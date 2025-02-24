@@ -3,10 +3,15 @@
     <!-- Header -->
     <v-row class="align-center justify-space-between mb-4">
       <v-col>
-        <v-toolbar-title>{{ $t('contacts.title') }}</v-toolbar-title>
+        <v-toolbar-title>{{ $t("contacts.title") }}</v-toolbar-title>
       </v-col>
       <v-col class="text-right">
-        <v-btn color="primary" to="/add-contact" prepend-icon="mdi-account-plus-outline">{{ $t('contacts.add_contact') }}</v-btn>
+        <v-btn
+          color="primary"
+          to="/add-contact"
+          prepend-icon="mdi-account-plus-outline"
+          >{{ $t("contacts.add_contact") }}</v-btn
+        >
       </v-col>
     </v-row>
 
@@ -14,12 +19,19 @@
     <v-row class="mb-4">
       <v-col cols="12" sm="12">
         <v-btn-toggle v-model="activeCircle" class="ml-4">
-          <v-btn v-for="circle in circles" :key="circle" @click="filterByCircle(circle)"
-            :class="{ 'active-circle': activeCircle === circle }">
-            {{ circle }}
+          <v-btn
+            @click="clearCircleFilter"
+            :class="{ 'active-circle': activeCircle === null }"
+          >
+            {{ $t("contacts.circles.all_circles") }}
           </v-btn>
-          <v-btn @click="clearCircleFilter" :class="{ 'active-circle': activeCircle === null }">
-            {{ $t('contacts.circles.all_circles') }}
+          <v-btn
+            v-for="circle in circles"
+            :key="circle"
+            @click="filterByCircle(circle)"
+            :class="{ 'active-circle': activeCircle === circle }"
+          >
+            {{ circle }}
           </v-btn>
         </v-btn-toggle>
       </v-col>
@@ -28,20 +40,40 @@
     <!-- Display Current Search Query -->
     <v-row v-if="searchQuery && searchQuery.trim()" class="mb-4">
       <v-col cols="12">
-        <v-alert type="info" border="start" class="d-flex align-center" @click="clearSearch">
-          {{ $t('search.show_results') }} <strong>"{{ searchQuery }}"</strong>
+        <v-alert
+          type="info"
+          border="start"
+          class="d-flex align-center"
+          @click="clearSearch"
+        >
+          {{ $t("search.show_results") }} <strong>"{{ searchQuery }}"</strong>
         </v-alert>
       </v-col>
     </v-row>
 
     <!-- Contact Cards -->
     <v-row>
-      <v-col v-for="contact in contacts" :key="contact.ID" cols="12" sm="6" md="4" lg="3">
-        <v-card class="contact-card" outlined elevation="2" @click="goToContact(contact.ID)">
+      <v-col
+        v-for="contact in contacts"
+        :key="contact.ID"
+        cols="12"
+        sm="6"
+        md="4"
+        lg="3"
+      >
+        <v-card
+          class="contact-card"
+          outlined
+          elevation="2"
+          @click="goToContact(contact.ID)"
+        >
           <v-card-text>
             <!-- Profile Photo -->
             <v-avatar size="80" class="mb-3">
-              <v-img :src="`${backendURL}/contacts/${contact.ID}/profile_picture.jpg`" alt="Profile Photo"></v-img>
+              <v-img
+                :src="`${backendURL}/contacts/${contact.ID}/profile_picture.jpg`"
+                alt="Profile Photo"
+              ></v-img>
             </v-avatar>
 
             <!-- Contact Name -->
@@ -51,8 +83,12 @@
 
             <!-- Circles with Wrapping -->
             <div class="circle-chips mt-2">
-              <v-chip v-for="circle in contact.circles" :key="circle" class="mr-2 mb-2 clickable-chip"
-                @click.stop="filterByCircle(circle)">
+              <v-chip
+                v-for="circle in contact.circles"
+                :key="circle"
+                class="mr-2 mb-2 clickable-chip"
+                @click.stop="filterByCircle(circle)"
+              >
                 {{ circle }}
               </v-chip>
             </div>
@@ -65,36 +101,40 @@
     <v-row v-if="contacts.length === 0" justify="center" class="mt-4">
       <v-col cols="12" class="text-center">
         <v-alert type="warning" border="start" class="d-flex align-center">
-          {{ $t('search.no_results') }}
+          {{ $t("search.no_results") }}
         </v-alert>
       </v-col>
     </v-row>
 
     <!-- Pagination -->
     <v-row justify="center" class="mt-4">
-      <v-pagination v-model="page" :length="totalPages" @input="loadContacts"></v-pagination>
+      <v-pagination
+        v-model="page"
+        :length="totalPages"
+        @input="loadContacts"
+      ></v-pagination>
     </v-row>
   </v-container>
 </template>
 
 <script>
-import { inject, computed, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
-import contactService from '@/services/contactService';
-import { backendURL } from '@/services/api';
+import { inject, computed, ref, watch } from "vue";
+import { useRouter } from "vue-router";
+import contactService from "@/services/contactService";
+import { backendURL } from "@/services/api";
 
 export default {
   setup() {
     const contacts = ref([]);
     const circles = ref([]);
     const activeCircle = ref(null);
-    const searchQuery = inject('searchQuery');
-    const clearFilters = inject('clearFilters');
+    const searchQuery = inject("searchQuery");
+    const clearFilters = inject("clearFilters");
     const page = ref(1);
     const limit = ref(25);
     const total = ref(0);
     const router = useRouter(); // Access router to navigate programmatically
-    const setSearchQuery = inject('setSearchQuery');
+    const setSearchQuery = inject("setSearchQuery");
 
     function debounce(func, delay) {
       let timeout;
@@ -105,7 +145,7 @@ export default {
     }
 
     function clearSearch() {
-      setSearchQuery('');
+      setSearchQuery("");
       page.value = 1; // Reset to the first page
       debouncedLoadContacts();
     }
@@ -113,21 +153,33 @@ export default {
     const totalPages = computed(() => Math.ceil(total.value / limit.value));
 
     function loadContacts() {
-      const search = searchQuery.value ? searchQuery.value.trim() : '';
-      const circle = activeCircle.value ? activeCircle.value.trim() : '';
+      const search = searchQuery.value ? searchQuery.value.trim() : "";
+      const circle = activeCircle.value ? activeCircle.value.trim() : "";
 
-      contactService.getContacts({
-        fields: ['ID', 'firstname', 'lastname', 'nickname', 'email', 'photo', 'photo_thumbnail','circles'],
-        search: search,
-        circle: circle,
-        page: page.value,
-        limit: 25,
-      }).then(response => {
-        contacts.value = response.data.contacts;
-        total.value = response.data.total;
-      }).catch(error => {
-        console.error('Failed to fetch contacts:', error);
-      });
+      contactService
+        .getContacts({
+          fields: [
+            "ID",
+            "firstname",
+            "lastname",
+            "nickname",
+            "email",
+            "photo",
+            "photo_thumbnail",
+            "circles",
+          ],
+          search: search,
+          circle: circle,
+          page: page.value,
+          limit: 25,
+        })
+        .then((response) => {
+          contacts.value = response.data.contacts;
+          total.value = response.data.total;
+        })
+        .catch((error) => {
+          console.error("Failed to fetch contacts:", error);
+        });
     }
 
     // Debounced version of loadContacts
@@ -157,13 +209,12 @@ export default {
       debouncedLoadContacts();
     }
 
-
     function goToContact(contactId) {
       // Programmatically navigate to the contact view
-      router.push({ name: 'ContactView', params: { ID: contactId } });
+      router.push({ name: "ContactView", params: { ID: contactId } });
     }
 
-     watch(clearFilters, (newValue) => {
+    watch(clearFilters, (newValue) => {
       if (newValue) {
         clearCircleFilter();
       }

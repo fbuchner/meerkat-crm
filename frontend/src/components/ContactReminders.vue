@@ -20,7 +20,7 @@
         <v-list-item
           v-for="reminder in reminders"
           :key="reminder.ID"
-          class="reminder-item"
+          class="reminder-item mb-3"
         >
           <template #title>
             <strong>{{ reminder.message }}</strong>

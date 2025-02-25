@@ -4,7 +4,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// Relationship struct updated to optionally relate to an existing contact
 type Relationship struct {
 	gorm.Model
 	Name             string   `json:"name"`                                                         // Name of the related person
@@ -16,7 +15,6 @@ type Relationship struct {
 	RelatedContact   *Contact `gorm:"foreignKey:RelatedContactID" json:"related_contact,omitempty"` // Linked Contact if exists
 }
 
-// Contact struct updated with relationships potentially linking to other contacts
 type Contact struct {
 	gorm.Model
 	Firstname          string         `gorm:"type:text not null COLLATE NOCASE" json:"firstname"`

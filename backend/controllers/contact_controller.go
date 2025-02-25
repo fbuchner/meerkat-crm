@@ -32,35 +32,6 @@ func CreateContact(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Contact created successfully", "contact": contact})
 }
 
-// GetAllContacts handles GET requests to fetch contact records with optional field selection, relationships, and pagination.
-//
-// Query Parameters:
-// - `page` (int, optional): The page number for pagination (default: 1).
-// - `limit` (int, optional): The number of records per page (default: 25).
-// - `fields` (string, optional): A comma-separated list of fields to include in the response.
-//   - Example: "firstname,lastname,email"
-//   - If omitted, all fields are included.
-//
-// - `includes` (string, optional): A comma-separated list of related data to preload.
-//   - Example: "notes,activities"
-//   - If omitted, no relationships are preloaded.
-//
-// Response:
-//   - JSON object with the following structure:
-//     {
-//     "contacts": [ /* Array of contact records */ ],
-//     "total": <total number of contacts>,
-//     "page": <current page number>,
-//     "limit": <number of records per page>
-//     }
-//
-// Error Handling:
-// - Returns HTTP 500 with an error message if the database query fails.
-//
-// Example Requests:
-// - Fetch all fields: GET /contacts?page=1&limit=10
-// - Fetch specific fields: GET /contacts?fields=firstname,lastname,email&page=1&limit=5
-// - Fetch relationships: GET /contacts?include=notes,activities
 func GetContacts(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
@@ -199,7 +170,7 @@ func GetCircles(c *gin.Context) {
 	var circleNames []string
 
 	// Raw SQL query to extract unique circle names
-	err := db.Raw(`SELECT DISTINCT json_each.value AS circle 
+	err := db.Raw(`SELECT DISTINCT json_each.value AS circle
 	               FROM contacts, json_each(contacts.circles)`).Scan(&circleNames).Error
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve circles"})

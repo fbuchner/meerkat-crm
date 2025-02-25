@@ -159,7 +159,7 @@
           }}</v-btn>
           <v-btn color="primary" @click="saveRelationship">{{
             editingRelationship
-              ? $t("buttons.save")
+              ? $t("buttons.save_changes")
               : $t("relationships.add_relationship")
           }}</v-btn>
         </v-card-actions>

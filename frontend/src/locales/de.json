@@ -1,78 +1,95 @@
 {
-   "search": {
-        "search_text": "Kontakte suchen...",
-        "show_results": "Ergebnisse für:",
-        "no_results": "Keine Kontakte gefunden, die den Suchkriterien entsprechen."
+  "search": {
+    "search_text": "Kontakte suchen...",
+    "show_results": "Suchergebnisse für:",
+    "no_results": "Keine Kontakte gefunden, die Ihren Suchkriterien entsprechen."
+  },
+  "buttons": {
+    "ok": "OK",
+    "add": "Hinzufügen",
+    "cancel": "Abbrechen",
+    "save_changes": "Änderungen speichern"
+  },
+  "contacts": {
+    "title": "Kontakte",
+    "add_contact": "Kontakt hinzufügen",
+    "add_contact_success": "Kontakt erfolgreich hinzugefügt",
+    "add_contact_error": "Kontakt konnte nicht hinzugefügt werden. Bitte versuchen Sie es erneut.",
+    "circles": {
+      "circles": "Kreise",
+      "add_circles": "Hinzufügen und Leertaste drücken",
+      "all_circles": "Alle"
     },
-    "buttons": {
-        "ok": "OK",
-        "add": "Hinzufügen",
-        "cancel": "Abbrechen",
-        "save_changes": "Änderungen speichern"
+    "contact_details": "Kontaktdetails",
+    "timeline": "Zeitleiste",
+    "reminders": "Erinnerungen",
+    "activity_at": "am",
+    "contact_fields": {
+      "firstname": "Vorname",
+      "lastname": "Nachname",
+      "nickname": "Spitzname",
+      "gender": "Geschlecht",
+      "genders": "Männlich,Weiblich,Unbekannt",
+      "gender_unknown": "Unbekannt",
+      "birthday": "Geburtstag",
+      "email": "E-Mail",
+      "phone": "Telefon",
+      "address": "Adresse",
+      "how_we_met": "Wie wir uns kennengelernt haben",
+      "food_preference": "Essenspräferenz",
+      "work_information": "Berufliche Informationen",
+      "additional_information": "Zusätzliche Informationen"
     },
-    "contacts": {
-        "title": "Kontakte",
-        "add_contact": "Kontakt hinzufügen",
-        "circles": {
-            "circles": "Kreise",
-            "add_circles": "Eingeben und Leertaste drücken",
-            "all_circles": "Alle"
-        },
-        "contact_details": "Kontaktdetails",
-        "activity_at": "in",
-        "timeline": "Zeitleiste",
-        "contact_fields": {
-            "firstname": "Vorname",
-            "lastname": "Nachname",
-            "nickname": "Spitzname",
-            "gender": "Geschlecht",
-            "genders": ["Männlich", "Weiblich", "Unbekannt"],
-            "gender_unknown": "Unbekannt",
-            "birthday": "Geburtstag",
-            "birthday_format": "TT.MM.JJJJ (Jahr optional)",
-            "email": "E-Mail",
-            "phone": "Telefon",
-            "address": "Adresse",
-            "how_we_met": "Unser Kennenlernen",
-            "food_preference": "Essenspräferenzen",
-            "work_information": "Berufliche Informationen",
-            "additional_information": "Weitere Informationen"
-        },
-        "photo": {
-            "crop_photo": "Bild Zuschneiden",
-            "crop": "Zuschneiden"
-        }
+    "birthday": {
+      "birthday_format": "TT.MM. oder TT.MM.JJJJ",
+      "birthday_format_warning": "Bitte geben Sie ein gültiges Datum im Format TT.MM.YYYY oder TT.MM. ein.",
+      "birthday_format_error": "Bitte korrigieren Sie das Geburtsdatumsformat."
     },
-    "relationships": {
-        "title": "Beziehungen",
-        "add_relationship": "Beziehung hinzufügen",
-        "edit_relationship": "Beziehung bearbeiten",
-        "manual_entry": "Manuelle Eingabe",
-        "existing_contact": "Vorhandenen Kontakt auswählen",
-        "relationship_type": "Beziehungstyp",
-        "relationship_types": ["Kind", "Elternteil", "Geschwister", "Partner", "Freunde"],
-        "relationship_name": "Name",
-        "relationship_gender": "Geschlecht",
-        "relationship_genders": ["Männlich", "Weiblich", "Unbekannt"],
-        "birthday_optional": "Geburtstag (optional)"
-    },
-    "activities": {
-        "title": "Aktivitäten",
-        "add_activity": "Aktivität hinzufügen",
-        "edit_activity": "Aktivität bearbeiten",
-        "activity_name": "Aktivitätsname",
-        "activity_name_required": "Activitätsname ist ein Pflichtfeld",
-        "activity_description": "Aktivitätsbeschreibung",
-        "activity_location": "Aktivitätsort",
-        "activity_date": "Aktivitätsdatum",
-        "activity_date_required": "Activitätsdatum ist ein Pflichtfeld",
-        "select_contacts": "Kontakte auswählen"
-    },
-    "notes": {
-        "title": "Notizen",
-        "add_note": "Notiz hinzufügen",
-        "edit_note": "Notiz bearbeiten",
-        "write_note": "Notiz schreiben...",
-        "note_date": "Notizdatum"
+    "photo": {
+      "crop_image": "Bild zuschneiden",
+      "crop": "Zuschneiden"
     }
+  },
+  "relationships": {
+    "title": "Beziehungen",
+    "add_relationship": "Beziehung hinzufügen",
+    "edit_relationship": "Beziehung bearbeiten",
+    "manual_entry": "Manuelle Eingabe",
+    "existing_contact": "Vorhandenen Kontakt auswählen",
+    "relationship_type": "Beziehungsart",
+    "relationship_types": "Kind,Elternteil,Geschwister,Partner,Freund",
+    "relationship_name": "Name"
+  },
+  "activities": {
+    "title": "Aktivitäten",
+    "add_activity": "Aktivität hinzufügen",
+    "edit_activity": "Aktivität bearbeiten",
+    "activity_name": "Aktivitätsname",
+    "activity_name_required": "Aktivitätsname ist erforderlich",
+    "activity_description": "Aktivitätsbeschreibung",
+    "activity_date_required": "Aktivitätsdatum ist erforderlich",
+    "activity_location": "Aktivitätsort",
+    "activity_date": "Aktivitätsdatum",
+    "select_contacts": "Kontakte auswählen"
+  },
+  "notes": {
+    "title": "Notizen",
+    "add_note": "Notiz hinzufügen",
+    "edit_note": "Notiz bearbeiten",
+    "write_note": "Eine Notiz schreiben...",
+    "note_date": "Notizdatum",
+    "note_date_required": "Notizdatum ist erforderlich."
+  },
+  "reminders": {
+    "add_reminder": "Erinnerung hinzufügen",
+    "edit_reminder": "Erinnerung bearbeiten",
+    "no_reminders": "Keine Erinnerungen eingestellt",
+    "recurrence": "Keine Wiederholung,Vierteljährlich,Halbjährlich,Jährlich",
+    "recurrence_none": "Keine Wiederholung",
+    "reminder_message_required": "Erinnerungsnachricht ist erforderlich",
+    "reminder_date_required": "Erinnerungsdatum ist erforderlich",
+    "reminder_date_future": "Das Erinnerungsdatum kann nicht in der Vergangenheit liegen.",
+    "reoccur_fixed_date": "Wiederholen an festem Datum",
+    "reoccur_from_completion": "Wiederholen ab Abschluss"
+  }
 }

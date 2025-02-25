@@ -1,12 +1,12 @@
-import en from './en.json';
-import de from './de.json';
+import en from "./en.json";
+import de from "./de.json";
 
 export default {
   en,
   de,
 };
 
-export const availableLanguages = ['en', 'de'];
+export const availableLanguages = ["en", "de"];
 
 // Dynamic loading of translation files
 export async function loadLocaleMessages(i18n, locale) {

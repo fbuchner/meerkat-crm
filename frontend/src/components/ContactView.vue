@@ -6,11 +6,7 @@
     >
       <v-col cols="12" md="3" class="d-flex justify-center">
         <!-- Profile Photo -->
-        <ProfilePhoto
-          :photo="contact.photo"
-          :contactId="contact.ID"
-          @photoUploaded="updatePhoto"
-        />
+        <ProfilePhoto :contactId="contact.ID" @photoUploaded="updatePhoto" />
       </v-col>
 
       <v-col
@@ -500,8 +496,9 @@ export default {
       }
       return true; // No error
     },
-    updatePhoto(newPhotoUrl) {
-      this.contact.photo = newPhotoUrl;
+    updatePhoto() {
+      const timestamp = Date.now();
+      this.contact.photo = this.contact.photo + "?t=" + timestamp; // Force cache reload
     },
     async handleUpdateReminders({ action, reminder, reminderId }) {
       try {

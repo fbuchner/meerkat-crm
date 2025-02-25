@@ -7,7 +7,7 @@
   >
     <!-- Display profile picture -->
     <img
-      :src="`${backendURL}/contacts/${contactId}/profile_picture.jpg`"
+      :src="`${backendURL}/contacts/${contactId}/profile_picture.jpg?cachereset=${reloadPicture}`"
       alt="Profile Picture"
       class="profile-img"
       @click="openFileSelector"
@@ -64,10 +64,6 @@ export default {
     contactId: {
       required: true,
     },
-    profilePicture: {
-      type: String,
-      default: null,
-    },
   },
   data() {
     return {
@@ -82,6 +78,7 @@ export default {
       dragOffset: { x: 0, y: 0 },
       backendURL,
       hovered: false,
+      reloadPicture: false,
     };
   },
   methods: {
@@ -237,14 +234,10 @@ export default {
     },
     async handleUploadProfilePicture(contactId, photoFile) {
       try {
-        const updatedContact = await contactService.addPhotoToContact(
-          contactId,
-          photoFile
-        );
-        console.log("Profile picture uploaded successfully:", updatedContact);
-
+        await contactService.addPhotoToContact(contactId, photoFile);
+        this.reloadPicture = Date.now();
         // Update the profile picture URL
-        this.$emit("update:profilePicture"); //TODO: automatically refresh the picture
+        this.$emit("photoUploaded");
       } catch (error) {
         console.error("Failed to upload profile picture:", error);
       }

@@ -46,7 +46,7 @@
       "birthday_format_error": "Please correct the birthday format."
     },
     "photo": {
-      "crop_photo": "Crop Image",
+      "crop_image": "Crop Image",
       "crop": "Crop"
     }
   },

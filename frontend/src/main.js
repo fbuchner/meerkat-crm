@@ -9,7 +9,7 @@ import vuetify from './plugins/vuetify';
 
 export const i18n = createI18n({
     legacy: false, 
-    locale: 'de',  // Default language
+    locale: 'en',  // Default language
     fallbackLocale: 'en', 
     messages: {}
   });

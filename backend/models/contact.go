@@ -4,10 +4,9 @@ import (
 	"gorm.io/gorm"
 )
 
-// Relationship struct updated to optionally relate to an existing contact
 type Relationship struct {
 	gorm.Model
-	Name             *string  `json:"name"`                                                         // Name of the related person
+	Name             string   `json:"name"`                                                         // Name of the related person
 	Type             string   `json:"type"`                                                         // Relationship type (e.g., "Child", "Mother")
 	Gender           *string  `json:"gender"`                                                       // Gender of the related person
 	Birthday         *Date    `json:"birthday"`                                                     // Birthday of the related person
@@ -16,10 +15,9 @@ type Relationship struct {
 	RelatedContact   *Contact `gorm:"foreignKey:RelatedContactID" json:"related_contact,omitempty"` // Linked Contact if exists
 }
 
-// Contact struct updated with relationships potentially linking to other contacts
 type Contact struct {
 	gorm.Model
-	Firstname          string         `gorm:"type:text COLLATE NOCASE" json:"firstname"`
+	Firstname          string         `gorm:"type:text not null COLLATE NOCASE" json:"firstname"`
 	Lastname           string         `gorm:"type:text COLLATE NOCASE" json:"lastname"`
 	Nickname           string         `gorm:"type:text COLLATE NOCASE" json:"nickname"`
 	Gender             string         `json:"gender"`
@@ -36,5 +34,6 @@ type Contact struct {
 	ContactInformation string         `json:"contact_information"`                       // Additional contact information
 	Circles            []string       `gorm:"type:text;serializer:json" json:"circles"`  // Serialize Circles properly
 	Activities         []Activity     `gorm:"many2many:activity_contacts;foreignKey:ID;joinForeignKey:ContactID;References:ID;joinReferences:ActivityID" json:"activities,omitempty"`
-	Notes              []Note         `json:"notes,omitempty"` // One-to-many relationship with notes
+	Notes              []Note         `json:"notes,omitempty"`     // One-to-many relationship with notes
+	Reminders          []Reminder     `json:"reminders,omitempty"` // One-to-many relationship with reminders
 }

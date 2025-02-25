@@ -1,30 +1,52 @@
 <template>
-  <div class="profile-picture" @mouseenter="hovered = true" @mouseleave="hovered = false" @click="openFileSelector">
+  <div
+    class="profile-picture"
+    @mouseenter="hovered = true"
+    @mouseleave="hovered = false"
+    @click="openFileSelector"
+  >
     <!-- Display profile picture -->
-    <img :src="`${backendURL}/contacts/${contactId}/profile_picture.jpg`" alt="Profile Picture" class="profile-img" @click="openFileSelector" />
+    <img
+      :src="`${backendURL}/contacts/${contactId}/profile_picture.jpg?cachereset=${reloadPicture}`"
+      alt="Profile Picture"
+      class="profile-img"
+      @click="openFileSelector"
+    />
     <v-icon v-if="hovered" class="profile-hover-icon">mdi-pencil-circle</v-icon>
 
     <!-- Hidden file input -->
-    <input type="file" accept="image/*" ref="fileInput" @change="onFileSelected" style="display: none" />
+    <input
+      type="file"
+      accept="image/*"
+      ref="fileInput"
+      @change="onFileSelected"
+      style="display: none"
+    />
 
     <!-- Vuetify Dialog for cropping -->
     <v-dialog v-model="showCropModal" max-width="600px" persistent>
       <template v-slot:default>
         <v-card>
           <v-card-title class="headline">
-            {{ $t('contacts.photo.crop_image') }}
+            {{ $t("contacts.photo.crop_image") }}
           </v-card-title>
           <v-card-text>
-            <canvas ref="canvas" class="crop-canvas" @mousedown="onMouseDown" @mousemove="onMouseMove"
-              @mouseup="onMouseUp" @mouseleave="onMouseLeave"></canvas>
+            <canvas
+              ref="canvas"
+              class="crop-canvas"
+              @mousedown="onMouseDown"
+              @mousemove="onMouseMove"
+              @mouseup="onMouseUp"
+              @mouseleave="onMouseLeave"
+            ></canvas>
           </v-card-text>
           <v-card-actions>
             <v-spacer></v-spacer>
             <v-btn color="primary" @click="cropImage">
-              {{ $t('contacts.photo.crop') }}
+              {{ $t("contacts.photo.crop") }}
             </v-btn>
             <v-btn color="secondary" @click="closeCropModal">
-              {{ $t('buttons.cancel') }}
+              {{ $t("buttons.cancel") }}
             </v-btn>
           </v-card-actions>
         </v-card>
@@ -34,17 +56,13 @@
 </template>
 
 <script>
-import contactService from '@/services/contactService';
-import { backendURL } from '@/services/api';
+import contactService from "@/services/contactService";
+import { backendURL } from "@/services/api";
 
 export default {
   props: {
     contactId: {
       required: true,
-    },
-    profilePicture: {
-      type: String,
-      default: null,
     },
   },
   data() {
@@ -59,7 +77,8 @@ export default {
       isResizing: false,
       dragOffset: { x: 0, y: 0 },
       backendURL,
-      hovered: false, 
+      hovered: false,
+      reloadPicture: false,
     };
   },
   methods: {
@@ -68,16 +87,16 @@ export default {
     },
     onFileSelected(event) {
       const file = event.target.files[0];
-    if (file && file.type.startsWith("image/")) {
+      if (file && file.type.startsWith("image/")) {
         const reader = new FileReader();
         reader.onload = (e) => {
-            this.selectedImage = e.target.result;
-            this.openCropModal();
+          this.selectedImage = e.target.result;
+          this.openCropModal();
         };
         reader.readAsDataURL(file);
-    } else {
+      } else {
         alert("Please select a valid image file.");
-    }
+      }
     },
     openCropModal() {
       this.showCropModal = true;
@@ -215,11 +234,10 @@ export default {
     },
     async handleUploadProfilePicture(contactId, photoFile) {
       try {
-        const updatedContact = await contactService.addPhotoToContact(contactId, photoFile);
-        console.log("Profile picture uploaded successfully:", updatedContact);
-
+        await contactService.addPhotoToContact(contactId, photoFile);
+        this.reloadPicture = Date.now();
         // Update the profile picture URL
-        this.$emit("update:profilePicture"); //TODO: automatically refresh the picture
+        this.$emit("photoUploaded");
       } catch (error) {
         console.error("Failed to upload profile picture:", error);
       }
@@ -257,8 +275,20 @@ export default {
       const { offsetX, offsetY } = event;
 
       if (this.isDragging) {
-        this.cropBox.x = Math.max(0, Math.min(offsetX - this.dragOffset.x, canvas.width - this.cropBox.size));
-        this.cropBox.y = Math.max(0, Math.min(offsetY - this.dragOffset.y, canvas.height - this.cropBox.size));
+        this.cropBox.x = Math.max(
+          0,
+          Math.min(
+            offsetX - this.dragOffset.x,
+            canvas.width - this.cropBox.size
+          )
+        );
+        this.cropBox.y = Math.max(
+          0,
+          Math.min(
+            offsetY - this.dragOffset.y,
+            canvas.height - this.cropBox.size
+          )
+        );
       }
 
       if (this.isResizing) {
@@ -298,7 +328,7 @@ export default {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 50%;
+  border-radius: 4px;
   transition: all 0.3s ease;
 }
 
@@ -321,12 +351,11 @@ export default {
   opacity: 1;
 }
 
-
 .crop-canvas {
-    border-radius: 8px;
-    margin: 16px 0;
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
-    cursor: move;
+  border-radius: 8px;
+  margin: 16px 0;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+  cursor: move;
 }
 
 .v-card-actions {
@@ -335,8 +364,8 @@ export default {
 }
 
 .resize-handle {
-    cursor: nwse-resize;
-    background: white;
-    border: 1px solid black;
+  cursor: nwse-resize;
+  background: white;
+  border: 1px solid black;
 }
 </style>

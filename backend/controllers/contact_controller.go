@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"perema/models"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -41,67 +42,60 @@ func GetContacts(c *gin.Context) {
 	if page < 1 {
 		page = 1
 	}
-	if limit < 1 {
+	if limit < 1 || limit > 100 {
 		limit = 25
 	}
 	offset := (page - 1) * limit
 
-	// Parse requested fields
-	fields := c.Query("fields") // Example: "firstname,lastname,email"
+	// Parse requested fields with validation
 	var selectedFields []string
-	includeAllFields := fields == ""
-
-	if !includeAllFields {
-		selectedFields = strings.Split(fields, ",")
+	selectedFields = append(selectedFields, "ID") // Include ID field by default
+	allowedFields := []string{"firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles"}
+	fields := c.Query("fields")
+	if fields != "" {
+		for _, field := range strings.Split(fields, ",") {
+			if slices.Contains(allowedFields, field) { // Validate field
+				selectedFields = append(selectedFields, field)
+			}
+		}
 	}
 
-	// Parse relationships to include
-	includes := c.Query("includes") // Example: "notes,activities"
-	includedRelationships := strings.Split(includes, ",")
-	relationshipMap := map[string]bool{
+	// Parse relationships to include with validation
+	var relationshipMap = map[string]bool{
 		"notes":         false,
 		"activities":    false,
 		"relationships": false,
 		"reminders":     false,
 	}
-
-	for _, rel := range includedRelationships {
+	includes := c.Query("includes")
+	for _, rel := range strings.Split(includes, ",") {
 		if _, exists := relationshipMap[rel]; exists {
 			relationshipMap[rel] = true
 		}
 	}
 
-	// Base query
 	var contacts []models.Contact
 	query := db.Model(&models.Contact{}).Limit(limit).Offset(offset)
 
-	// Include all fields if none are specified
-	if !includeAllFields {
-		query = query.Select(strings.Join(selectedFields, ", "))
+	if len(selectedFields) > 0 {
+		query = query.Select(selectedFields)
 	}
 
-	// Apply search filter
+	// Apply search filter using parameterization
 	if searchTerm := c.Query("search"); searchTerm != "" {
-		searchTerm = "%" + searchTerm + "%"
-		query = query.Where("firstname LIKE ? OR lastname LIKE ? OR nickname LIKE ?", searchTerm, searchTerm, searchTerm)
+		searchTermParam := "%" + searchTerm + "%"
+		query = query.Where("firstname LIKE ? OR lastname LIKE ? OR nickname LIKE ?", searchTermParam, searchTermParam, searchTermParam)
 	}
 
 	if circle := c.Query("circle"); circle != "" {
-		query = query.Where("circles LIKE ?", "%"+circle+"%")
+		query = query.Where("circles LIKE ?", "%"+circle+"%") // Using parameterization
 	}
 
 	// Preload requested relationships
-	if relationshipMap["notes"] {
-		query = query.Preload("Notes")
-	}
-	if relationshipMap["activities"] {
-		query = query.Preload("Activities")
-	}
-	if relationshipMap["relationships"] {
-		query = query.Preload("Relationships")
-	}
-	if relationshipMap["reminders"] {
-		query = query.Preload("Reminders")
+	for rel, include := range relationshipMap {
+		if include {
+			query = query.Preload(rel)
+		}
 	}
 
 	// Execute query
@@ -112,7 +106,6 @@ func GetContacts(c *gin.Context) {
 
 	var total int64
 	countQuery := db.Model(&models.Contact{})
-
 	countQuery.Count(&total)
 
 	// Respond with contacts and pagination metadata

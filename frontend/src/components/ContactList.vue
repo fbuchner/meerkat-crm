@@ -176,8 +176,6 @@ export default {
             "lastname",
             "nickname",
             "email",
-            "photo",
-            "photo_thumbnail",
             "circles",
           ],
           search: search,

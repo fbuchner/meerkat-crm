@@ -47,10 +47,9 @@ func GetContacts(c *gin.Context) {
 	}
 	offset := (page - 1) * limit
 
-	// Parse requested fields with validation
+	// Define allowed fields and parse requested fields with validation
+	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles"}
 	var selectedFields []string
-	selectedFields = append(selectedFields, "ID") // Include ID field by default
-	allowedFields := []string{"firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles"}
 	fields := c.Query("fields")
 	if fields != "" {
 		for _, field := range strings.Split(fields, ",") {
@@ -58,6 +57,8 @@ func GetContacts(c *gin.Context) {
 				selectedFields = append(selectedFields, field)
 			}
 		}
+	} else {
+		selectedFields = allowedFields // Use all allowed fields if none are specified
 	}
 
 	// Parse relationships to include with validation

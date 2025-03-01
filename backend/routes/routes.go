@@ -7,24 +7,26 @@ import (
 )
 
 func RegisterRoutes(router *gin.Engine) {
-	// Contact routes
+
+	// Routes from contact controller
 	router.GET("/contacts", controllers.GetContacts)
 	router.POST("/contacts", controllers.CreateContact)
 	router.GET("/contacts/:id", controllers.GetContact)
 	router.PUT("/contacts/:id", controllers.UpdateContact)
 	router.DELETE("/contacts/:id", controllers.DeleteContact)
-
 	router.GET("/contacts/circles", controllers.GetCircles)
 
+	// Routes from relationship controller
 	router.GET("/contacts/:id/relationships", controllers.GetRelationships)
 	router.POST("/contacts/:id/relationships", controllers.CreateRelationship)
 	router.PUT("/contacts/:id/relationships/:rid", controllers.UpdateRelationship)
 	router.DELETE("/contacts/:id/relationships/:rid", controllers.DeleteRelationship)
 
+	// Routes from profile picture controller
 	router.POST("/contacts/:id/profile_picture", controllers.AddPhotoToContact)
 	router.GET("/contacts/:id/profile_picture.jpg", controllers.GetProfilePicture)
 
-	// Note routes
+	// Routes from note controller
 	router.GET("/contacts/:id/notes", controllers.GetNotesForContact)
 	router.POST("/contacts/:id/notes", controllers.CreateNote)
 	router.GET("/notes/:id", controllers.GetNote)
@@ -33,17 +35,15 @@ func RegisterRoutes(router *gin.Engine) {
 	router.PUT("/notes/:id", controllers.UpdateNote)
 	router.DELETE("/notes/:id", controllers.DeleteNote)
 
-	// Activity routes
+	// Routes from activity controller
 	router.GET("/contacts/:id/activities", controllers.GetActivitiesForContact)
 	router.POST("/activities", controllers.CreateActivity)
 	router.GET("/activities", controllers.GetActivities)
 	router.GET("/activities/:id", controllers.GetActivity)
 	router.PUT("/activities/:id", controllers.UpdateActivity)
 	router.DELETE("/activities/:id", controllers.DeleteActivity)
-	router.POST("/activities/:id/contacts/:contact_id", controllers.AddContactToActivity)
-	router.DELETE("/activities/:id/contacts/:contact_id", controllers.RemoveContactFromActivity)
 
-	// Reminder routes
+	// Routes from reminder controller
 	router.GET("/contacts/:id/reminders", controllers.GetRemindersForContact)
 	router.POST("/contacts/:id/reminders", controllers.CreateReminder)
 	router.GET("/reminders/:id", controllers.GetReminder)

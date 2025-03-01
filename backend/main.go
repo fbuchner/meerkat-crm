@@ -61,8 +61,6 @@ func main() {
 		c.Next()
 	})
 
-	// test.InjectTestData(db)
-
 	// Register all routes from routes.go
 	routes.RegisterRoutes(r)
 

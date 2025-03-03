@@ -115,8 +115,10 @@ func UpdateNote(c *gin.Context) {
 		return
 	}
 
+	// Updateable fields
 	note.Content = updatedNote.Content
 	note.Date = updatedNote.Date
+	note.ContactID = updatedNote.ContactID
 
 	db.Updates(&note)
 

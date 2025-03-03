@@ -131,19 +131,28 @@ func GetActivities(c *gin.Context) {
 
 func UpdateActivity(c *gin.Context) {
 	id := c.Param("id")
-	var activity models.Activity
 	db := c.MustGet("db").(*gorm.DB)
+
+	var activity models.Activity
 	if err := db.First(&activity, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Activity not found"})
 		return
 	}
 
-	if err := c.ShouldBindJSON(&activity); err != nil {
+	var updatedActivity models.Activity
+	if err := c.ShouldBindJSON(&updatedActivity); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	// Updateable fields
+	activity.Title = updatedActivity.Title
+	activity.Description = updatedActivity.Description
+	activity.Location = updatedActivity.Location
+	activity.Date = updatedActivity.Date
+
 	db.Save(&activity)
+
 	c.JSON(http.StatusOK, activity)
 }
 

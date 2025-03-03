@@ -67,12 +67,22 @@ func UpdateReminder(c *gin.Context) {
 		return
 	}
 
-	if err := c.ShouldBindJSON(&reminder); err != nil {
+	var updatedReminder models.Reminder
+	if err := c.ShouldBindJSON(&updatedReminder); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	db.Save(&reminder)
+	// Updateable fields
+	reminder.Message = updatedReminder.Message
+	reminder.ByMail = updatedReminder.ByMail
+	reminder.RemindAt = updatedReminder.RemindAt
+	reminder.Recurrence = updatedReminder.Recurrence
+	reminder.ReocurrFromCompletion = updatedReminder.ReocurrFromCompletion
+	reminder.ContactID = updatedReminder.ContactID
+
+	db.Updates(&reminder)
+
 	c.JSON(http.StatusOK, gin.H{"message": "Reminder updated successfully", "reminder": reminder})
 }
 

@@ -13,15 +13,15 @@ import (
 )
 
 func CreateContact(c *gin.Context) {
+	// Save to the database
+	db := c.MustGet("db").(*gorm.DB)
+
 	var contact models.Contact
 	if err := c.ShouldBindJSON(&contact); err != nil {
 		log.Println("Error binding JSON for create contact:", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	// Save to the database
-	db := c.MustGet("db").(*gorm.DB)
 
 	// Save the new contact to the database
 	if err := db.Create(&contact).Error; err != nil {

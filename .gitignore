@@ -5,3 +5,4 @@ perema.db
 .DS_Store/
 .DS_Store
 backend/static/photos/
+backend/perema

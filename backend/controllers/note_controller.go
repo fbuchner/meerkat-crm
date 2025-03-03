@@ -98,22 +98,29 @@ func GetUnassignedNotes(c *gin.Context) {
 }
 
 func UpdateNote(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
 	id := c.Param("id")
 	var note models.Note
-	db := c.MustGet("db").(*gorm.DB)
+
+	// Retrieve the existing note from the database
 	if err := db.First(&note, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Note not found"})
 		return
 	}
 
-	if err := c.ShouldBindJSON(&note); err != nil {
+	var updatedNote models.Note
+	if err := c.ShouldBindJSON(&updatedNote); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	db.Save(&note)
-	c.JSON(http.StatusOK, gin.H{"message": "Note updated successfully", "note": note})
+	note.Content = updatedNote.Content
+	note.Date = updatedNote.Date
 
+	db.Updates(&note)
+
+	c.JSON(http.StatusOK, gin.H{"message": "Note updated successfully", "note": note})
 }
 
 func DeleteNote(c *gin.Context) {

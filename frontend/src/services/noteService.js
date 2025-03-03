@@ -1,6 +1,6 @@
-import apiClient from '@/services/api';
+import apiClient from "@/services/api";
 
-const API_URL = '/notes';
+const API_URL = "/notes";
 
 export default {
   async getNotes(contactId) {
@@ -8,7 +8,7 @@ export default {
       const response = await apiClient.get(`/contacts/${contactId}/notes`);
       return response;
     } catch (error) {
-      console.error('Error fetching notes:', error);
+      console.error("Error fetching notes:", error);
       throw error;
     }
   },
@@ -17,17 +17,20 @@ export default {
       const response = await apiClient.get(`${API_URL}`);
       return response;
     } catch (error) {
-      console.error('Error fetching notes:', error);
+      console.error("Error fetching notes:", error);
       throw error;
     }
   },
   async addNote(contactId, noteData) {
     try {
       // Return the response so it can be used by the calling function
-      const response = await apiClient.post(`/contacts/${contactId}/notes`, noteData);
+      const response = await apiClient.post(
+        `/contacts/${contactId}/notes`,
+        noteData
+      );
       return response; // Ensure the response is returned
     } catch (error) {
-      console.error('Error adding note:', error);
+      console.error("Error adding note:", error);
       throw error; // Re-throw the error to handle it in the calling function
     }
   },
@@ -37,7 +40,7 @@ export default {
       const response = await apiClient.post(`${API_URL}`, noteData);
       return response; // Ensure the response is returned
     } catch (error) {
-      console.error('Error adding note:', error);
+      console.error("Error adding note:", error);
       throw error; // Re-throw the error to handle it in the calling function
     }
   },
@@ -46,7 +49,7 @@ export default {
       const response = await apiClient.put(`${API_URL}/${noteId}`, noteData);
       return response; // Return the response from the update operation
     } catch (error) {
-      console.error('Error updating note:', error);
+      console.error("Error updating note:", error);
       throw error; // Re-throw the error for the calling function to handle
     }
   },
@@ -54,7 +57,7 @@ export default {
     try {
       await apiClient.delete(`${API_URL}/${noteId}`);
     } catch (error) {
-      console.error('Error deleting note:', error);
+      console.error("Error deleting note:", error);
       throw error;
     }
   },

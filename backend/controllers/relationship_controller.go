@@ -70,12 +70,22 @@ func UpdateRelationship(c *gin.Context) {
 		return
 	}
 
-	if err := c.ShouldBindJSON(&relationship); err != nil {
+	var updatedRelationship models.Relationship
+	if err := c.ShouldBindJSON(&updatedRelationship); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	db.Save(&relationship)
+	// Updateable fields
+	relationship.Name = updatedRelationship.Name
+	relationship.Type = updatedRelationship.Type
+	relationship.Gender = updatedRelationship.Gender
+	relationship.Birthday = updatedRelationship.Birthday
+	relationship.ContactID = updatedRelationship.ContactID
+	relationship.RelatedContactID = updatedRelationship.RelatedContactID
+
+	db.Updates(&relationship)
+
 	c.JSON(http.StatusOK, relationship)
 }
 

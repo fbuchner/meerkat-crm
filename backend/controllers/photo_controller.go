@@ -36,7 +36,7 @@ func GetProfilePicture(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find contact"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find contact"})
 		return
 	}
 

@@ -13,15 +13,15 @@ import (
 )
 
 func CreateContact(c *gin.Context) {
+	// Save to the database
+	db := c.MustGet("db").(*gorm.DB)
+
 	var contact models.Contact
 	if err := c.ShouldBindJSON(&contact); err != nil {
 		log.Println("Error binding JSON for create contact:", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	// Save to the database
-	db := c.MustGet("db").(*gorm.DB)
 
 	// Save the new contact to the database
 	if err := db.Create(&contact).Error; err != nil {
@@ -131,19 +131,37 @@ func GetContact(c *gin.Context) {
 
 func UpdateContact(c *gin.Context) {
 	id := c.Param("id")
-	var contact models.Contact
 	db := c.MustGet("db").(*gorm.DB)
+
+	var contact models.Contact
 	if err := db.First(&contact, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
 		return
 	}
 
-	if err := c.ShouldBindJSON(&contact); err != nil {
+	var updatedContact models.Contact
+	if err := c.ShouldBindJSON(&updatedContact); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	db.Save(&contact)
+	// Updateable fields
+	contact.Firstname = updatedContact.Firstname
+	contact.Lastname = updatedContact.Lastname
+	contact.Nickname = updatedContact.Nickname
+	contact.Gender = updatedContact.Gender
+	contact.Email = updatedContact.Email
+	contact.Phone = updatedContact.Phone
+	contact.Birthday = updatedContact.Birthday
+	contact.Address = updatedContact.Address
+	contact.HowWeMet = updatedContact.HowWeMet
+	contact.FoodPreference = updatedContact.FoodPreference
+	contact.WorkInformation = updatedContact.WorkInformation
+	contact.ContactInformation = updatedContact.ContactInformation
+	contact.Circles = updatedContact.Circles
+
+	db.Updates(&contact)
+
 	c.JSON(http.StatusOK, contact)
 }
 

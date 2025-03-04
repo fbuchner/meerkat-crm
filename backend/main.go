@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"perema/config"
 	"perema/models"
 	"perema/routes"
 
@@ -23,21 +24,14 @@ import (
 func main() {
 	log.Println("Loading server...")
 
-	s := gocron.NewScheduler(time.UTC)
+	log.Println("Loading configuration...")
+	cfg := config.LoadConfig()
 
 	log.Println("Loading database...")
-
-	// Open a connection to the SQLite database
-	dbPath := os.Getenv("SQLITE_DB_PATH")
-	if dbPath == "" {
-		dbPath = "perema.db" // Default path if environment variable is not set
-	}
-
-	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(cfg.DBPath), &gorm.Config{})
 	if err != nil {
-		panic("failed to connect database")
+		log.Fatalf("failed to connect database")
 	}
-
 	// Migrate the schema
 	log.Println("Loading migrations...")
 	if err := db.AutoMigrate(&models.Contact{}, &models.Activity{}, &models.Note{}, models.Relationship{}, models.Reminder{}); err != nil {
@@ -45,15 +39,28 @@ func main() {
 	}
 
 	log.Println("Running scheduler...")
-	// Schedule the birthday reminder task daily
-	s.Every(1).Day().At("08:00").Do(sendBirthdayReminders, db)
-	// Start the scheduler in a separate goroutine
+	// Schedule the reminder task daily
+	s := gocron.NewScheduler(time.UTC)
+	s.Every(1).Day().At(cfg.ReminderTime).Do(func() {
+		if err := sendBirthdayReminders(db); err != nil {
+			log.Printf("Error sending birthday reminders: %v", err)
+		}
+	})
 	go s.StartBlocking()
 
 	r := gin.Default()
 
 	// Enable CORS for all origins, methods, and headers
-	r.Use(cors.Default()) // Add CORS middleware
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{cfg.FrontendURL},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
+
+	r.SetTrustedProxies(cfg.TrustedProxies)
 
 	// Inject db into context
 	r.Use(func(c *gin.Context) {
@@ -62,37 +69,19 @@ func main() {
 	})
 
 	// Register all routes from routes.go
-	routes.RegisterRoutes(r)
+	routes.RegisterRoutes(r, cfg)
 
-	//TODO setup https
-	// Start HTTP server to redirect to HTTPS
-	//go func() {
-	//	if err := http.ListenAndServe(":80", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	//		http.Redirect(w, r, "https://"+r.Host+r.RequestURI, http.StatusMovedPermanently)
-	//	})); err != nil {
-	//		log.Fatalf("Failed to start HTTP server: %s", err)
-	//	}
-	//}()
-
-	// Listen and serve on HTTPS
-	//err = r.RunTLS(":8443", "./cert.pem", "./key.pem")
-	//if err != nil {
-	//	log.Fatalf("Failed to start HTTPS server: %s", err)
-	//}
-
-	port := os.Getenv("HOST_PORT")
-	if port == "" {
-		port = "8080"
+	log.Printf("Starting server on Port :%s...", cfg.Port)
+	if err := r.Run(fmt.Sprintf(":%s", cfg.Port)); err != nil {
+		log.Fatalf("Failed to run server: %v", err)
 	}
-
-	log.Printf("Server listening on Port %s...", port)
-
-	r.Run(fmt.Sprintf(":%s", port))
 }
 
-func sendBirthdayReminders(db *gorm.DB) {
+func sendBirthdayReminders(db *gorm.DB) error {
 	var contacts []models.Contact
-	db.Where("birthday = ?", time.Now().Format("2006-01-02")).Find(&contacts)
+	if err := db.Where("birthday = ?", time.Now().Format("2006-01-02")).Find(&contacts).Error; err != nil {
+		return fmt.Errorf("failed to query contacts: %w", err)
+	}
 
 	for _, contact := range contacts {
 		age := "unknown age"
@@ -107,12 +96,16 @@ func sendBirthdayReminders(db *gorm.DB) {
 		if nickname == "" {
 			nickname = contact.Firstname
 		}
-		sendBirthdayMail(nickname, contact.Firstname+" "+contact.Lastname, age)
+
+		if err := sendBirthdayMail(nickname, contact.Firstname+" "+contact.Lastname, age); err != nil {
+			return fmt.Errorf("failed to send email for %s: %w", contact.Firstname, err)
+		}
 	}
+	return nil
 }
 
 // We are using Twillio Sendgrid to send e-mails. The free tier allows for up to 100 mails per day.
-func sendBirthdayMail(birthday_person_nick, birthday_person, birthday_age string) {
+func sendBirthdayMail(birthday_person_nick, birthday_person, birthday_age string) error {
 	toEmail := mail.NewEmail("", os.Getenv("SENDGRID_TO_EMAIL"))
 	message := mail.NewV3Mail()
 	message.SetTemplateID(os.Getenv("SENDGRID_BIRTHDAY_TEMPLATE_ID"))
@@ -129,12 +122,14 @@ func sendBirthdayMail(birthday_person_nick, birthday_person, birthday_age string
 	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
 	response, err := client.Send(message)
 	if err != nil {
-		log.Println(err)
+		return err
 	} else {
 		fmt.Println(response.StatusCode)
 		fmt.Println(response.Body)
 		fmt.Println(response.Headers)
 	}
+
+	return nil
 }
 
 // TODO: use this middleware to protect routes

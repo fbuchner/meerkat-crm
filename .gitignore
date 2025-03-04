@@ -6,3 +6,5 @@ perema.db
 .DS_Store
 backend/static/photos/
 backend/perema
+key.pem
+cert.pem

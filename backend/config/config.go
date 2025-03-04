@@ -1,7 +1,9 @@
 package config
 
 import (
+	"log"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -16,12 +18,21 @@ type Config struct {
 	SendgridTemplateID string
 	SendgridAPIKey     string
 	JWTSecretKey       string
+	JWTExpiryHours     int
 }
 
 func LoadConfig() *Config {
+
+	defaultJWTExpiry := 24
+	jwtExpiryHours, err := strconv.Atoi(getEnv("JWT_EXPIRY_HOURS", strconv.Itoa(defaultJWTExpiry)))
+	if err != nil {
+		log.Println("WARN: Invalid JWT expiry set. Please provide an integer value.")
+		jwtExpiryHours = defaultJWTExpiry
+	}
+
 	cfg := &Config{
 		DBPath:             getEnv("SQLITE_DB_PATH", "perema.db"),
-		ReminderTime:       getEnv("REMINDER_TIME", "08:00"),
+		ReminderTime:       getEnv("REMINDER_TIME", "12:00"),
 		FrontendURL:        getEnv("FRONTEND_URL", "*"),
 		Port:               getEnv("PORT", "8080"),
 		UseSendgrid:        true,
@@ -29,6 +40,7 @@ func LoadConfig() *Config {
 		SendgridTemplateID: getEnv("SENDGRID_BIRTHDAY_TEMPLATE_ID", ""),
 		SendgridToEmail:    getEnv("SENDGRID_TO_EMAIL", ""),
 		JWTSecretKey:       getEnv("JWT_SECRET_KEY", ""),
+		JWTExpiryHours:     jwtExpiryHours,
 		TrustedProxies:     getProxies(getEnv("TRUSTED_PROXIES", "")),
 	}
 
@@ -50,5 +62,10 @@ func getProxies(proxies string) []string {
 	if proxies == "" {
 		return nil
 	}
-	return strings.Split(proxies, ",")
+
+	proxyList := strings.Split(proxies, ",")
+	for i, proxy := range proxyList {
+		proxyList[i] = strings.TrimSpace(proxy) // Remove whitespaces
+	}
+	return proxyList
 }

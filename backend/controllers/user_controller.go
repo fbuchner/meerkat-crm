@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"perema/config"
 	"perema/models"
 	"perema/services"
 
@@ -12,7 +13,9 @@ import (
 
 func RegisterUser(context *gin.Context) {
 	var user models.User
-	if err := context.ShouldBindJSON(&user); err != nil {
+	err := context.ShouldBindJSON(&user)
+
+	if err != nil || user.Email == "" || user.Password == "" {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
@@ -32,11 +35,14 @@ func RegisterUser(context *gin.Context) {
 
 	context.JSON(http.StatusCreated, gin.H{"message": "User registered successfully"})
 }
-func LoginUser(context *gin.Context) {
+
+func LoginUser(context *gin.Context, cfg *config.Config) {
 	var user models.User
 	var foundUser models.User
 
-	if err := context.ShouldBindJSON(&user); err != nil {
+	err := context.ShouldBindJSON(&user)
+
+	if err != nil || user.Email == "" || user.Password == "" {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
@@ -54,7 +60,7 @@ func LoginUser(context *gin.Context) {
 	}
 
 	// Create JWT token
-	tokenString, err := services.GenerateToken(foundUser)
+	tokenString, err := services.GenerateToken(foundUser, cfg)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate token"})
 		return

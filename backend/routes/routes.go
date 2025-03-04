@@ -11,8 +11,9 @@ import (
 func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 
 	router.POST("/register", controllers.RegisterUser)
-	router.POST("/login", controllers.LoginUser)
-
+	router.POST("/login", func(c *gin.Context) {
+		controllers.LoginUser(c, cfg)
+	})
 	protected := router.Group("/")
 	protected.Use(middleware.AuthMiddleware(cfg))
 

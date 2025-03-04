@@ -36,7 +36,7 @@ func GenerateToken(user models.User, cfg *config.Config) (string, error) {
 	claims := jwt.MapClaims{
 		"authorized": true,
 		"username":   user.Username,
-		"exp":        time.Now().Add(time.Hour * time.Duration(JWTExpiryHours)).Unix(), // Token valid for 1 hour
+		"exp":        time.Now().Add(time.Hour * time.Duration(JWTExpiryHours)).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

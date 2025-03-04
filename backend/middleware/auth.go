@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"perema/config"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
@@ -17,6 +18,15 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+
+		// Check if Authorization header is formatted properly
+		if !strings.HasPrefix(tokenString, "Bearer ") {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header must start with Bearer"})
+			c.Abort()
+			return
+		}
+
+		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

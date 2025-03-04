@@ -1,11 +1,11 @@
-import axios from 'axios';
+import axios from "axios";
 
-const backendURL = "http://localhost:8080"
+const backendURL = process.env.VUE_APP_BACKEND_URL || "http://localhost:8080";
 
 const apiClient = axios.create({
   baseURL: backendURL, // Go server URL
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 

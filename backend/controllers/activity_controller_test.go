@@ -25,7 +25,7 @@ func setupRouter() (*gorm.DB, *gin.Engine) {
 		panic("failed to connect database")
 	}
 
-	db.AutoMigrate(&models.Contact{}, &models.Activity{}, &models.Note{}, models.Relationship{}, models.Reminder{})
+	db.AutoMigrate(&models.Contact{}, &models.Activity{}, &models.Note{}, models.Relationship{}, models.Reminder{}, models.User{})
 
 	router := gin.Default()
 	router.Use(func(c *gin.Context) {

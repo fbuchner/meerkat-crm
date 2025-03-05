@@ -10,6 +10,15 @@
     "cancel": "Cancel",
     "save_changes": "Save Changes"
   },
+  "user": {
+    "title": "User",
+    "register_account": "Register Account",
+    "login_account": "Login to your Account",
+    "login": "Login",
+    "logout": "Logout",
+    "profile": "Profile",
+    "settings": "Settings"
+  },
   "contacts": {
     "title": "Contacts",
     "add_contact": "Add Contact",

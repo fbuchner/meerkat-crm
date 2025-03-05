@@ -52,6 +52,9 @@
           <v-btn text to="/contacts">{{ $t("contacts.title") }}</v-btn>
           <v-btn text to="/activities">{{ $t("activities.title") }}</v-btn>
           <v-btn text to="/notes">{{ $t("notes.title") }}</v-btn>
+
+          <!-- Logout Button -->
+          <v-btn text @click="handleLogout">{{ $t("user.logout") }}</v-btn>
         </v-col>
       </v-row>
     </v-container>
@@ -97,6 +100,11 @@ export default {
     const selectedLanguage = ref(i18n.global.locale);
     const languages = availableLanguages;
     const menu = ref(false);
+
+    function handleLogout() {
+      localStorage.removeItem("token");
+      router.push("/login");
+    }
 
     function selectLanguage(newLang) {
       selectedLanguage.value = newLang;
@@ -164,6 +172,7 @@ export default {
       languages,
       selectLanguage,
       menu,
+      handleLogout,
     };
   },
   beforeUnmount() {

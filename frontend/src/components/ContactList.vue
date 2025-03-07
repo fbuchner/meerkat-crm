@@ -17,23 +17,27 @@
 
     <!-- Circle Filter -->
     <v-row class="mb-4">
-      <v-col cols="12" sm="12">
-        <v-btn-toggle v-model="activeCircle" class="ml-4">
-          <v-btn
-            @click="clearCircleFilter"
-            :class="{ 'active-circle': activeCircle === null }"
-          >
-            {{ $t("contacts.circles.all_circles") }}
-          </v-btn>
-          <v-btn
-            v-for="circle in circles"
-            :key="circle"
-            @click="filterByCircle(circle)"
-            :class="{ 'active-circle': activeCircle === circle }"
-          >
-            {{ circle }}
-          </v-btn>
-        </v-btn-toggle>
+      <v-col cols="12">
+        <v-chip
+          class="mr-2"
+          outlined
+          clickable
+          @click="clearCircleFilter"
+          :class="{ 'active-circle': activeCircle === null }"
+        >
+          {{ $t("contacts.circles.all_circles") }}
+        </v-chip>
+        <v-chip
+          v-for="circle in circles"
+          :key="circle"
+          class="mr-2"
+          outlined
+          clickable
+          @click="filterByCircle(circle)"
+          :class="{ 'active-circle': activeCircle === circle }"
+        >
+          {{ circle }}
+        </v-chip>
       </v-col>
     </v-row>
 

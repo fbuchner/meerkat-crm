@@ -140,12 +140,18 @@
                 >
                   <!-- Dropdown Item Slot -->
                   <template v-slot:item="{ props, item }">
-                    <v-list-item
-                      v-bind="props"
-                      :key="item.ID"
-                      :prepend-avatar="getAvatarURL(item.value)"
-                      :text="item.title"
-                    ></v-list-item>
+                    <v-list-item v-bind="props" class="d-flex align-center">
+                      <template v-slot:prepend>
+                        <ProfilePicture
+                          :contactId="item.value"
+                          width="24"
+                          height="24"
+                          alt="User avatar"
+                          class="mr-2"
+                        />
+                      </template>
+                      <v-list-item-title>{{ item.name }}</v-list-item-title>
+                    </v-list-item>
                   </template>
                 </v-autocomplete>
               </v-form>
@@ -171,6 +177,7 @@
 <script>
 import contactService from "@/services/contactService";
 import { backendURL } from "@/services/api";
+import ProfilePicture from "@/components/ProfilePicture.vue";
 
 export default {
   name: "RelationshipList",
@@ -178,6 +185,9 @@ export default {
     contactId: {
       required: true,
     },
+  },
+  components: {
+    ProfilePicture,
   },
   data() {
     return {
@@ -381,9 +391,6 @@ export default {
       if (!value) return "";
       const [year, month, day] = value.split("-");
       return `${day}.${month}.${year && year !== "0001" ? year : ""}`;
-    },
-    getAvatarURL(ID) {
-      return `${this.backendURL}/contacts/${ID}/profile_picture.jpg`;
     },
     toggleCollapse() {
       this.isCollapsed = !this.isCollapsed;

@@ -75,24 +75,32 @@
             color="blue-grey-lighten-2"
             v-model:search-input="searchContactQuery"
           >
-            <!-- Chip Slot -->
+            <!-- Chip Slot for Profile Picture -->
             <template v-slot:chip="{ props, item }">
-              <v-chip
-                v-bind="props"
-                outlined
-                :prepend-avatar="getAvatarURL(item.value)"
-                :text="item.title"
-              >
+              <v-chip v-bind="props" outlined>
+                <ProfilePicture
+                  :contactId="item.value"
+                  width="24"
+                  height="24"
+                  alt="User avatar"
+                />
+                <span class="ml-2">{{ item.title }}</span>
               </v-chip>
             </template>
 
-            <!-- Dropdown Item Slot -->
             <template v-slot:item="{ props, item }">
-              <v-list-item
-                v-bind="props"
-                :prepend-avatar="getAvatarURL(item.value)"
-                :text="item.title"
-              ></v-list-item>
+              <v-list-item v-bind="props" class="d-flex align-center">
+                <template v-slot:prepend>
+                  <ProfilePicture
+                    :contactId="item.value"
+                    width="24"
+                    height="24"
+                    alt="User avatar"
+                    class="mr-2"
+                  />
+                </template>
+                <v-list-item-title>{{ item.name }}</v-list-item-title>
+              </v-list-item>
             </template>
           </v-autocomplete>
         </v-form>
@@ -117,6 +125,7 @@ import activityService from "@/services/activityService";
 import contactService from "@/services/contactService";
 import { backendURL } from "@/services/api";
 import { formatDate } from "@/utils/dateUtils";
+import ProfilePicture from "@/components/ProfilePicture.vue";
 
 export default {
   name: "ActivityAdd",
@@ -139,6 +148,9 @@ export default {
         contact_ids: [],
       }),
     },
+  },
+  components: {
+    ProfilePicture,
   },
   data() {
     return {
@@ -225,9 +237,6 @@ export default {
     },
     confirmDate() {
       this.menu = false;
-    },
-    getAvatarURL(ID) {
-      return `${this.backendURL}/contacts/${ID}/profile_picture.jpg`;
     },
     async addActivity() {
       const activityData = {

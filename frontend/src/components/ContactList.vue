@@ -71,15 +71,15 @@
             <!-- Profile Photo -->
             <v-row justify="center" class="mb-3">
               <div class="profile-picture">
-                <v-img
-                  class="profile-picture"
-                  :src="`${backendURL}/contacts/${contact.ID}/profile_picture.jpg`"
-                  alt="Profile Photo"
-                ></v-img>
+                <ProfilePicture
+                  :contactId="contact.ID"
+                  width="80"
+                  height="80"
+                />
               </div>
-            </v-row>
 
-            <!-- Contact Name -->
+              <!-- Contact Name -->
+            </v-row>
             <v-row justify="center" class="mb-3">
               <div class="contact-name">
                 {{ contact.firstname }} {{ contact.lastname }}
@@ -130,9 +130,12 @@
 import { inject, computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import contactService from "@/services/contactService";
-import { backendURL } from "@/services/api";
+import ProfilePicture from "@/components/ProfilePicture.vue";
 
 export default {
+  components: {
+    ProfilePicture,
+  },
   setup() {
     const contacts = ref([]);
     const circles = ref([]);
@@ -256,7 +259,6 @@ export default {
       filterByCircle,
       clearCircleFilter,
       goToContact,
-      backendURL,
       clearSearch,
       debouncedLoadContacts,
       showNoContactsMessage,
@@ -305,18 +307,5 @@ export default {
 .active-circle {
   background-color: #1976d2;
   color: white;
-}
-
-.profile-picture {
-  border-radius: 4px;
-  width: 80px;
-  height: 80px;
-  overflow: hidden;
-}
-
-.profile-picture img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 </style>

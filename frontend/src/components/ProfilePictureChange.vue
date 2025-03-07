@@ -6,12 +6,7 @@
     @click="openFileSelector"
   >
     <!-- Display profile picture -->
-    <img
-      :src="`${backendURL}/contacts/${contactId}/profile_picture.jpg?cachereset=${reloadPicture}`"
-      alt="Profile Picture"
-      class="profile-img"
-      @click="openFileSelector"
-    />
+    <ProfilePicture :contactId="contactId" :width="120" :height="120" />
     <v-icon v-if="hovered" class="profile-hover-icon">mdi-pencil-circle</v-icon>
 
     <!-- Hidden file input -->
@@ -58,12 +53,16 @@
 <script>
 import contactService from "@/services/contactService";
 import { backendURL } from "@/services/api";
+import ProfilePicture from "@/components/ProfilePicture.vue";
 
 export default {
   props: {
     contactId: {
       required: true,
     },
+  },
+  components: {
+    ProfilePicture,
   },
   data() {
     return {
@@ -318,18 +317,8 @@ export default {
 <style scoped>
 .profile-picture {
   position: relative;
-  width: 100px;
-  height: 100px;
   margin: auto;
   cursor: pointer;
-}
-
-.profile-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 4px;
-  transition: all 0.3s ease;
 }
 
 .profile-hover-icon {

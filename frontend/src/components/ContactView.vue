@@ -6,7 +6,10 @@
     >
       <v-col cols="12" md="3" class="d-flex justify-center">
         <!-- Profile Photo -->
-        <ProfilePhoto :contactId="contact.ID" @photoUploaded="updatePhoto" />
+        <ProfilePictureChange
+          :contactId="contact.ID"
+          @photoUploaded="updatePhoto"
+        />
       </v-col>
 
       <v-col
@@ -189,7 +192,7 @@
 <script>
 import contactService from "@/services/contactService";
 import { reactive } from "vue";
-import ProfilePhoto from "./ProfilePhoto.vue";
+import ProfilePictureChange from "./ProfilePictureChange.vue";
 import activityService from "@/services/activityService";
 import reminderService from "@/services/reminderService";
 import RelationshipList from "@/components/RelationshipList.vue";
@@ -204,7 +207,7 @@ export default {
     },
   },
   components: {
-    ProfilePhoto,
+    ProfilePictureChange,
     RelationshipList,
     ContactTimeline,
     ContactReminders,

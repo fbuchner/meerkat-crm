@@ -33,7 +33,7 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 
 	// Routes from profile picture controller
 	protected.POST("/contacts/:id/profile_picture", controllers.AddPhotoToContact)
-	protected.GET("/contacts/:id/profile_picture.jpg", controllers.GetProfilePicture)
+	protected.GET("/contacts/:id/profile_picture", controllers.GetProfilePicture)
 
 	// Routes from note controller
 	protected.GET("/contacts/:id/notes", controllers.GetNotesForContact)

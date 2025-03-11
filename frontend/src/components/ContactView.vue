@@ -6,7 +6,10 @@
     >
       <v-col cols="12" md="3" class="d-flex justify-center">
         <!-- Profile Photo -->
-        <ProfilePhoto :contactId="contact.ID" @photoUploaded="updatePhoto" />
+        <ProfilePictureChange
+          :contactId="contact.ID"
+          @photoUploaded="updatePhoto"
+        />
       </v-col>
 
       <v-col
@@ -94,64 +97,77 @@
     <!-- Main Layout with Details and Timeline -->
     <v-row class="mt-4">
       <v-col cols="12" md="4">
+        <!-- Relationship List -->
         <RelationshipList :contactId="contact.ID" />
 
+        <!-- Contact Details -->
         <v-card outlined>
-          <v-card-title>{{ $t("contacts.contact_details") }}</v-card-title>
-          <v-card-text>
-            <v-list dense>
-              <v-list-item
-                dense
-                v-for="field in contactFieldSchema"
-                :key="field.key"
-                class="field-label"
-              >
-                <div>
-                  <strong>{{ field.label }}: </strong>
-                  <template v-if="!isEditing[field.key]">
-                    <span>
-                      {{ formatField(field, contact[field.key]) }}
+          <v-card-title
+            >{{ $t("contacts.contact_details") }}
+            <v-icon class="cursor-pointer" @click="toggleDetailsCollapse">
+              {{ isDetailsCollapsed ? "mdi-chevron-down" : "mdi-chevron-up" }}
+            </v-icon></v-card-title
+          >
+          <v-expand-transition>
+            <div v-if="!isDetailsCollapsed">
+              <v-card-text>
+                <v-list dense>
+                  <v-list-item
+                    dense
+                    v-for="field in contactFieldSchema"
+                    :key="field.key"
+                    class="field-label"
+                  >
+                    <div>
+                      <strong>{{ field.label }}: </strong>
+                      <template v-if="!isEditing[field.key]">
+                        <span>
+                          {{ formatField(field, contact[field.key]) }}
+                          <v-icon
+                            small
+                            class="edit-icon ml-2"
+                            @click="startEditing(field.key)"
+                          >
+                            mdi-pencil
+                          </v-icon>
+                        </span>
+                      </template>
+                    </div>
+                    <template v-if="isEditing[field.key]">
+                      <component
+                        :is="getFieldComponent(field)"
+                        v-model="editValues[field.key]"
+                        :items="field.options || []"
+                        :rules="
+                          field.key === 'birthday'
+                            ? [birthdayValidationRule]
+                            : []
+                        "
+                        :placeholder="
+                          field.key === 'birthday' ? 'DD.MM.YYYY or DD.MM.' : ''
+                        "
+                        density="compact"
+                        style="max-width: 300px; min-width: 200px; height: auto"
+                      >
+                      </component>
                       <v-icon
                         small
-                        class="edit-icon ml-2"
-                        @click="startEditing(field.key)"
+                        class="confirm-icon ml-2"
+                        @click="saveEdit(field.key)"
+                        >mdi-check</v-icon
                       >
-                        mdi-pencil
-                      </v-icon>
-                    </span>
-                  </template>
-                </div>
-                <template v-if="isEditing[field.key]">
-                  <component
-                    :is="getFieldComponent(field)"
-                    v-model="editValues[field.key]"
-                    :items="field.options || []"
-                    :rules="
-                      field.key === 'birthday' ? [birthdayValidationRule] : []
-                    "
-                    :placeholder="
-                      field.key === 'birthday' ? 'DD.MM.YYYY or DD.MM.' : ''
-                    "
-                    density="compact"
-                    style="max-width: 300px; min-width: 200px; height: auto"
-                  >
-                  </component>
-                  <v-icon
-                    small
-                    class="confirm-icon ml-2"
-                    @click="saveEdit(field.key)"
-                    >mdi-check</v-icon
-                  >
-                  <v-icon
-                    small
-                    class="cancel-icon ml-2"
-                    @click="cancelEdit(field.key)"
-                    >mdi-close</v-icon
-                  >
-                </template>
-              </v-list-item>
-            </v-list>
-          </v-card-text>
+                      <v-icon
+                        small
+                        class="cancel-icon ml-2"
+                        @click="cancelEdit(field.key)"
+                        >mdi-close</v-icon
+                      >
+                    </template>
+                  </v-list-item>
+                </v-list>
+              </v-card-text>
+            </div>
+          </v-expand-transition>
         </v-card>
       </v-col>
 
@@ -189,7 +205,7 @@
 <script>
 import contactService from "@/services/contactService";
 import { reactive } from "vue";
-import ProfilePhoto from "./ProfilePhoto.vue";
+import ProfilePictureChange from "./ProfilePictureChange.vue";
 import activityService from "@/services/activityService";
 import reminderService from "@/services/reminderService";
 import RelationshipList from "@/components/RelationshipList.vue";
@@ -204,7 +220,7 @@ export default {
     },
   },
   components: {
-    ProfilePhoto,
+    ProfilePictureChange,
     RelationshipList,
     ContactTimeline,
     ContactReminders,
@@ -219,6 +235,7 @@ export default {
       newCircle: "", // Holds the new circle being added
       showAddCircleInput: false, // Controls visibility of the add circle input
       tab: null,
+      isDetailsCollapsed: false,
     };
   },
   computed: {
@@ -412,6 +429,9 @@ export default {
     // Refresh the contact details after adding, editing, or deleting
     refreshContact() {
       this.fetchContact();
+    },
+    toggleDetailsCollapse() {
+      this.isDetailsCollapsed = !this.isDetailsCollapsed;
     },
     // Toggle the add circle input visibility
     toggleAddCircle() {

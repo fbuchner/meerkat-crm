@@ -14,7 +14,9 @@
           :placeholder="$t('search.search_text')"
           hide-details
           clearable
-          density="dense"
+          prepend-inner-icon="mdi-magnify"
+          single-line
+          density="compact"
           @input="handleSearchInput"
           @click:clear="handleClearSearch"
         ></v-text-field>

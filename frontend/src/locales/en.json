@@ -19,6 +19,11 @@
     "profile": "Profile",
     "settings": "Settings"
   },
+  "settings": {
+    "language": {
+      "title": "Language"
+    }
+  },
   "contacts": {
     "title": "Contacts",
     "add_contact": "Add Contact",

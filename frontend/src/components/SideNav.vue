@@ -14,8 +14,7 @@
           :placeholder="$t('search.search_text')"
           hide-details
           clearable
-          density="compact"
-          append-icon="mdi-magnify"
+          density="dense"
           @input="handleSearchInput"
           @click:clear="handleClearSearch"
         ></v-text-field>
@@ -51,25 +50,22 @@
         <template #prepend>
           <v-icon>mdi-note</v-icon>
         </template>
-        <v-list-item-title v-if="!isMobileView || isNavOpen">
+        <v-list-item-title v-if="!isMobileView | isNavOpen">
           {{ $t("notes.title") }}
         </v-list-item-title>
-      </v-list-item>
-
-      <!-- Language Switch Button -->
-      <v-list-item @click="menuOpen = !menuOpen">
-        <template #prepend>
-          <v-icon>mdi-translate</v-icon>
-        </template>
-        <v-list-item-title>{{ selectedLanguage }}</v-list-item-title>
       </v-list-item>
 
       <!-- Language Menu -->
       <v-menu v-model="menuOpen" offset-y>
         <template v-slot:activator="{ props }">
-          <v-btn text v-bind="props" class="language-switcher">
-            {{ selectedLanguage }}
-          </v-btn>
+          <v-list-item v-bind="props">
+            <template #prepend>
+              <v-icon>mdi-translate</v-icon>
+            </template>
+            <v-list-item-title>{{
+              $t("settings.language.title")
+            }}</v-list-item-title>
+          </v-list-item>
         </template>
         <v-list>
           <v-list-item
@@ -81,37 +77,74 @@
           </v-list-item>
         </v-list>
       </v-menu>
+
+      <!-- Logout Button -->
+      <v-list-item @click="handleLogout" class="logout-button">
+        <template #prepend>
+          <v-icon>mdi-logout</v-icon>
+        </template>
+        <v-list-item-title v-if="!isMobileView || isNavOpen">
+          {{ $t("user.logout") }}
+        </v-list-item-title>
+      </v-list-item>
     </v-list>
   </v-navigation-drawer>
 </template>
 
 <script>
-import { ref, computed, onMounted, onBeforeUnmount, inject } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, inject, watch } from "vue";
 import { i18n } from "../main";
 import { availableLanguages, loadLocaleMessages } from "@/locales";
+import { useRouter } from "vue-router";
 
 export default {
   name: "SideNav",
-  setup() {
+  emits: ["search", "resetFilters"],
+  setup(_, { emit }) {
+    function debounce(func, delay) {
+      let timeout;
+      return (...args) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), delay);
+      };
+    }
+
     // Inject search state from parent (App.vue)
     const searchQuery = inject("searchQuery");
     const setSearchQuery = inject("setSearchQuery");
+    const router = useRouter();
 
     // Local reactive search variable
     const searchQueryLocal = ref(searchQuery.value);
 
+    const debouncedSearchInput = debounce(handleSearchInput, 300);
     function handleSearchInput() {
+      if (!router.currentRoute.value.path.endsWith("/contacts")) {
+        router.push("/contacts");
+      }
       setSearchQuery(searchQueryLocal.value);
+      emit("search", searchQueryLocal.value);
     }
 
     function handleClearSearch() {
       searchQueryLocal.value = "";
       setSearchQuery("");
+      emit("resetFilters");
+      emit("search", ""); // Emit a search event with an empty query when cleared
+    }
+
+    // Watch for changes to the injected searchQuery and update the local value
+    watch(searchQuery, (newValue) => {
+      searchQueryLocal.value = newValue;
+    });
+
+    function handleLogout() {
+      localStorage.removeItem("token");
+      router.push("/login");
     }
 
     // Language menu state and logic
     const menuOpen = ref(false);
-    const selectedLanguage = computed(() => i18n.global.locale);
     const languages = availableLanguages;
 
     async function selectLanguage(newLang) {
@@ -149,7 +182,7 @@ export default {
       if (!isMobileView.value) {
         isNavOpen.value = true;
       }
-      window.addEventListener("resize", checkMobileView);
+      window.addEventListener("resize", debounce(checkMobileView, 100));
     });
 
     onBeforeUnmount(() => {
@@ -158,15 +191,15 @@ export default {
 
     return {
       searchQueryLocal,
-      handleSearchInput,
+      handleSearchInput: debouncedSearchInput,
       handleClearSearch,
       menuOpen,
-      selectedLanguage,
       languages,
       selectLanguage,
       isNavOpen,
       toggleNav,
       isMobileView,
+      handleLogout,
       computedWidth: computed(() =>
         isMobileView.value ? (isNavOpen.value ? 200 : 0) : 200
       ),

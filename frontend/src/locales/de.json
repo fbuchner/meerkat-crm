@@ -10,6 +10,20 @@
     "cancel": "Abbrechen",
     "save_changes": "Änderungen speichern"
   },
+  "user": {
+    "title": "Benutzer",
+    "register_account": "Benutzerkonto registrieren",
+    "login_account": "Benutzerkonten anmelden",
+    "login": "Anmelden",
+    "logout": "Abmelden",
+    "profile": "Profil",
+    "settings": "Einstellungen"
+  },
+  "settings": {
+    "language": {
+      "title": "Sprache"
+    }
+  },
   "contacts": {
     "title": "Kontakte",
     "add_contact": "Kontakt hinzufügen",

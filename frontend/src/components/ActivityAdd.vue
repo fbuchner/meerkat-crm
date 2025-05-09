@@ -164,7 +164,12 @@ export default {
       newActivityDescription: this.initialActivity.description || "",
       newActivityLocation: this.initialActivity.location || "",
       menu: false,
-      selectedContacts: this.initialActivity.contact_ids || [], // Array of selected contact objects
+      selectedContacts: this.initialActivity.contacts
+        ? this.initialActivity.contacts.map((contact) => ({
+            ID: contact.ID,
+            name: `${contact.firstname} ${contact.lastname}`,
+          }))
+        : [],
       allContactNames: [], // Array of all available contacts
       backendURL,
       searchContactQuery: "",
@@ -187,6 +192,7 @@ export default {
     if (this.contactId) {
       this.preselectCurrentContact();
     }
+    console.log(this.initialActivity);
   },
   watch: {
     newActivityDate(newDate) {

@@ -1,6 +1,6 @@
 {
   "search": {
-    "search_text": "Search contacts...",
+    "search_text": "Search",
     "show_results": "Showing results for:",
     "no_results": "No contacts found matching your search criteria."
   },
@@ -18,6 +18,11 @@
     "logout": "Logout",
     "profile": "Profile",
     "settings": "Settings"
+  },
+  "settings": {
+    "language": {
+      "title": "Language"
+    }
   },
   "contacts": {
     "title": "Contacts",

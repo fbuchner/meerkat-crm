@@ -228,6 +228,7 @@ export default {
   data() {
     return {
       contact: null,
+      activities: [],
       isEditing: reactive({}),
       editValues: reactive({}),
       isEditingName: false,
@@ -315,7 +316,7 @@ export default {
       ];
     },
     sortedTimelineItems() {
-      const activities = (this.contact.activities || []).map((activity) => ({
+      const activitiesItems = this.activities.map((activity) => ({
         id: activity.ID,
         type: "activity",
         date: activity.date,
@@ -324,14 +325,14 @@ export default {
         location: activity.location,
       }));
 
-      const notes = (this.contact.notes || []).map((note) => ({
+      const notesItems = (this.contact.notes || []).map((note) => ({
         id: note.ID,
         type: "note",
         date: note.date,
         content: note.content,
       }));
 
-      return [...activities, ...notes].sort(
+      return [...activitiesItems, ...notesItems].sort(
         (a, b) => new Date(b.date) - new Date(a.date)
       );
     },
@@ -355,6 +356,17 @@ export default {
         this.editName = `${this.contact.firstname} ${this.contact.lastname}`;
       } catch (error) {
         console.error("Error fetching contact:", error);
+      }
+      await this.fetchActivities();
+    },
+    async fetchActivities() {
+      try {
+        const response = await activityService.getActivities(this.contact.ID);
+        if (response.data) {
+          this.activities = response.data.activities;
+        }
+      } catch (error) {
+        console.error("Error fetching activities:", error);
       }
     },
     startEditingName() {

@@ -1,6 +1,6 @@
 {
   "search": {
-    "search_text": "Kontakte suchen...",
+    "search_text": "Suchen",
     "show_results": "Suchergebnisse für:",
     "no_results": "Keine Kontakte gefunden, die Ihren Suchkriterien entsprechen."
   },
@@ -9,6 +9,20 @@
     "add": "Hinzufügen",
     "cancel": "Abbrechen",
     "save_changes": "Änderungen speichern"
+  },
+  "user": {
+    "title": "Benutzer",
+    "register_account": "Benutzerkonto registrieren",
+    "login_account": "Benutzerkonten anmelden",
+    "login": "Anmelden",
+    "logout": "Abmelden",
+    "profile": "Profil",
+    "settings": "Einstellungen"
+  },
+  "settings": {
+    "language": {
+      "title": "Sprache"
+    }
   },
   "contacts": {
     "title": "Kontakte",

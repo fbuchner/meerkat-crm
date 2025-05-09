@@ -40,11 +40,13 @@ func main() {
 		log.Printf("WARN: No Mails to be sent since Sendgrid configuration is not set")
 	}
 	s := gocron.NewScheduler(time.UTC)
-	s.Every(1).Day().At(cfg.ReminderTime).Do(func() {
-		if err := services.SendBirthdayReminders(db); err != nil {
+	task := func() {
+		if err := services.SendReminders(db, *cfg); err != nil {
 			log.Printf("Error sending birthday reminders: %v", err)
 		}
-	})
+	}
+	s.Every(1).Day().At(cfg.ReminderTime).Do(task)
+	go task() // Run initially once on startup
 	go s.StartBlocking()
 
 	r := gin.Default()

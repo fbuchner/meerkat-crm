@@ -70,7 +70,7 @@ func GetActivity(c *gin.Context) {
 	id := c.Param("id")
 	var activity models.Activity
 	db := c.MustGet("db").(*gorm.DB)
-	if err := db.First(&activity, id).Error; err != nil {
+	if err := db.Preload("Contacts").First(&activity, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Activity not found"})
 		return
 	}
@@ -174,23 +174,19 @@ func GetActivitiesForContact(c *gin.Context) {
 	// Get the database instance from the context
 	db := c.MustGet("db").(*gorm.DB)
 
-	// Initialize a variable to store the contact
-	var contact models.Contact
-
-	// Find the contact and preload associated activities
-	if err := db.Preload("Activities").First(&contact, contactID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			// If no contact found, return a 404 error
-			c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
-		} else {
-			// For any other errors, return a 500 error
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		}
+	var activities []models.Activity
+	// Eager load contacts associated with each activity
+	if err := db.Preload("Contacts").
+		Model(&models.Activity{}).
+		Joins("JOIN activity_contacts ON activities.id = activity_contacts.activity_id").
+		Where("activity_contacts.contact_id = ?", contactID).
+		Find(&activities).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	// If successful, return the contact and its notes as JSON
 	c.JSON(http.StatusOK, gin.H{
-		"activities": contact.Activities,
+		"activities": activities,
 	})
 }

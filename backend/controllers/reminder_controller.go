@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"perema/models"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -35,6 +36,11 @@ func CreateReminder(c *gin.Context) {
 
 	// Assign the ContactID to the reminder to link it to the contact
 	reminder.ContactID = &contact.ID
+
+	// Set hours, minutes, seoncds to 0 to ensure reminders are found when comparing for "until date"
+	reminder.RemindAt = time.Date(reminder.RemindAt.Year(),
+		reminder.RemindAt.Month(),
+		reminder.RemindAt.Day(), 0, 0, 0, 0, reminder.RemindAt.Location())
 
 	// Save the new reminder to the database
 	if err := db.Create(&reminder).Error; err != nil {
@@ -76,7 +82,10 @@ func UpdateReminder(c *gin.Context) {
 	// Updateable fields
 	reminder.Message = updatedReminder.Message
 	reminder.ByMail = updatedReminder.ByMail
-	reminder.RemindAt = updatedReminder.RemindAt
+	reminder.RemindAt = time.Date(updatedReminder.RemindAt.Year(),
+		updatedReminder.RemindAt.Month(),
+		updatedReminder.RemindAt.Day(), 0, 0, 0, 0,
+		updatedReminder.RemindAt.Location())
 	reminder.Recurrence = updatedReminder.Recurrence
 	reminder.ReocurrFromCompletion = updatedReminder.ReocurrFromCompletion
 	reminder.ContactID = updatedReminder.ContactID

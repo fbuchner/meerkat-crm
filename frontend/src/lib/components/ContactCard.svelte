@@ -18,10 +18,6 @@
     
   $: initials = getInitials(contact.firstname, contact.lastname);
   
-  // Format the contact info for display
-  $: contactInfo = [contact.email, contact.phone]
-    .filter(Boolean)
-    .join(' • ');
 </script>
 
 <div class="flex items-center p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">
@@ -38,17 +34,12 @@
     <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate">
       {fullName}
       {#if contact.nickname}
-        <span class="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
+        <p class="text-sm font-normal text-gray-500 dark:text-gray-400">
           ({contact.nickname})
-        </span>
+        </p>
       {/if}
     </h3>
     
-    {#if contactInfo}
-      <p class="text-sm text-gray-500 dark:text-gray-400 truncate">
-        {contactInfo}
-      </p>
-    {/if}
     
     {#if contact.circles && contact.circles.length > 0}
       <div class="mt-2 flex flex-wrap gap-2">

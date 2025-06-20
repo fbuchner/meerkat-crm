@@ -96,7 +96,7 @@
       {/if}
     </SidebarGroup>
   </Sidebar>
-  <div class="min-h-screen overflow-auto px-4 md:ml-64 pt-16">
+  <div class="min-h-screen overflow-auto px-4 md:ml-64">
     <div class="rounded-lg p-4">
         {@render children()}     </div>
   </div>

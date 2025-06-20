@@ -161,4 +161,33 @@ export const contactService = {
       throw error;
     }
   },
+  
+  async getProfilePicture(contactId: number | string) {
+    if (!contactId) return null;
+    
+    try {
+      // Get the token from localStorage
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+      const url = `${API_URL}/${contactId}/profile_picture`;
+      
+      // Fetch the image using fetch API with Authorization header
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          // Add the header if token exists
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile picture');
+      }
+      
+      const blob = await response.blob();
+      return URL.createObjectURL(blob);
+    } catch (error) {
+      console.error('Error fetching profile picture:', error);
+      return '/assets/placeholder-avatar.png'; // Return placeholder image path on error
+    }
+  },
 };

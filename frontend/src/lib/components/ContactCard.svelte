@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { Avatar, Badge } from 'flowbite-svelte';
+  import { Badge } from 'flowbite-svelte';
   import type { Contact } from '$lib/services/contactService';
+  import ProfilePicture from '$lib/components/ProfilePicture.svelte';
   
   export let contact: Contact;
   
@@ -25,11 +26,12 @@
 
 <div class="flex items-center p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">
   <div class="flex-shrink-0 mr-4">
-    {#if contact.photo}
-      <Avatar src={contact.photo} size="lg" cornerStyle="rounded"  />
-    {:else}
-      <Avatar size="lg" cornerStyle="rounded" >{initials}</Avatar>
-    {/if}
+    <ProfilePicture 
+      contactId={contact.ID} 
+      photo={contact.photo} 
+      {initials} 
+      size="lg" 
+    />
   </div>
   
   <div class="flex-1 min-w-0">

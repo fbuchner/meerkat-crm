@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onMount, createEventDispatcher } from 'svelte';
   import { contactService, type Contact } from '$lib/services/contactService';
-  import { Avatar, Button, Card, Spinner, Tabs, TabItem, Badge } from 'flowbite-svelte';
-  import {  ArrowLeftOutline,  EditOutline,  TrashBinOutline } from "flowbite-svelte-icons";
+  import { Button, Card, Spinner, Tabs, TabItem, Badge } from 'flowbite-svelte';
+  import { ArrowLeftOutline, EditOutline, TrashBinOutline } from "flowbite-svelte-icons";
+  import ProfilePicture from '$lib/components/ProfilePicture.svelte';
   
   export let contactId: number;
   
@@ -87,17 +88,18 @@
   {:else if contact}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Profile card -->
-      <Card class="lg:col-span-1">
-        <div class="flex flex-col items-center text-center">
-          {#if contact.photo}
-            <Avatar src={contact.photo} size="xl" cornerStyle="rounded" class="mb-4" />
-          {:else}
-            <Avatar size="xl" cornerStyle="rounded" class="mb-4">{getInitials(contact.firstname, contact.lastname)}</Avatar>
-          {/if}
-          
-          <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
-            {contact.firstname} {contact.lastname}
-          </h2>
+      <Card class="lg:col-span-1">          <div class="flex flex-col items-center text-center">
+            <ProfilePicture 
+              contactId={contact.ID} 
+              photo={contact.photo}
+              initials={getInitials(contact.firstname, contact.lastname)} 
+              size="xl"
+              styleclass="mb-4"
+            />
+            
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+              {contact.firstname} {contact.lastname}
+            </h2>
           
           {#if contact.nickname}
             <p class="text-gray-600 dark:text-gray-400">"{contact.nickname}"</p>

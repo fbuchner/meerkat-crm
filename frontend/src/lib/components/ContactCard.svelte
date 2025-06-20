@@ -24,7 +24,6 @@
   <div class="flex-shrink-0 mr-4">
     <ProfilePicture 
       contactId={contact.ID} 
-      photo={contact.photo} 
       {initials} 
       size="lg" 
     />

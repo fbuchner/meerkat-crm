@@ -122,8 +122,8 @@
 {#if selectedContactId}
   <ContactDetail 
     contactId={selectedContactId} 
-    on:back={handleBackToList}
-    on:deleted={handleContactDeleted}
+    back={handleBackToList}
+    deleted={handleContactDeleted}
   />
 {:else}
   <div class="p-4">

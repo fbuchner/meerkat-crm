@@ -1,17 +1,21 @@
 <script lang="ts">
-  import { onMount, createEventDispatcher } from 'svelte';
+  import { onMount } from 'svelte';
   import { contactService, type Contact } from '$lib/services/contactService';
   import { Button, Card, Spinner, Tabs, TabItem, Badge } from 'flowbite-svelte';
   import { ArrowLeftOutline, EditOutline, TrashBinOutline } from "flowbite-svelte-icons";
   import ProfilePicture from '$lib/components/ProfilePicture.svelte';
   
-  export let contactId: number;
+  // Define props using $props() rune
+  let { contactId, back, edit, deleted } = $props<{
+    contactId: number;
+    back?: () => void;
+    edit?: (contact: Contact) => void;
+    deleted?: (contactId: number) => void;
+  }>();
   
-  const dispatch = createEventDispatcher();
-  
-  let contact: Contact | null = null;
-  let loading = true;
-  let error: string | null = null;
+  let contact = $state<Contact | null>(null);
+  let loading = $state(true);
+  let error = $state<string | null>(null);
   
   onMount(async () => {
     await loadContact();
@@ -44,21 +48,26 @@
   }
   
   function goBack() {
-    dispatch('back');
+    if (back) {
+      back();
+    }
   }
   
   function editContact() {
-    if (contact) {
-      dispatch('edit', contact);
+    if (contact && edit) {
+      edit(contact);
     }
   }
   
   function deleteContact() {
     if (contact) {
       if (confirm(`Are you sure you want to delete ${contact.firstname} ${contact.lastname}?`)) {
-        contactService.deleteContact(contact.ID)
+        const contactId = contact.ID; // Store the ID before it might become null
+        contactService.deleteContact(contactId)
           .then(() => {
-            dispatch('deleted', contact?.ID);
+            if (deleted) {
+              deleted(contactId);
+            }
             goBack();
           })
           .catch(err => {
@@ -88,10 +97,10 @@
   {:else if contact}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Profile card -->
-      <Card class="lg:col-span-1">          <div class="flex flex-col items-center text-center">
+      <Card class="lg:col-span-1">         
+        <div class="flex flex-col items-center text-center">
             <ProfilePicture 
               contactId={contact.ID} 
-              photo={contact.photo}
               initials={getInitials(contact.firstname, contact.lastname)} 
               size="xl"
               styleclass="mb-4"

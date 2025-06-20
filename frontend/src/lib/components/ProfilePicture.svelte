@@ -4,7 +4,6 @@
   import { PUBLIC_API_URL } from '$env/static/public';
   
   export let contactId: number | string | undefined = undefined;
-  export let photo: string | undefined = undefined; 
   export let initials: string = '';
   export let size: 'xs' | 'sm' | 'md' | 'lg' | 'xl' = 'lg';
   export let cornerStyle: 'rounded' | 'circular' = 'rounded';
@@ -17,7 +16,7 @@
   // Default placeholder image
   const placeholderImage = '/assets/placeholder-avatar.png';
   
-  // Fetch the profile picture if contactId is provided and no photo URL is passed
+  // Fetch the profile picture if contactId is provided 
   onMount(async () => {
     if (contactId) {
       await fetchProfilePicture();
@@ -57,8 +56,7 @@
     } catch (err) {
       console.error('Error fetching profile picture:', err);
       error = true;
-      // Use the provided photo URL as fallback, or the placeholder
-      imageSrc = photo || placeholderImage;
+      imageSrc = placeholderImage;
     } finally {
       loading = false;
     }
@@ -74,8 +72,6 @@
   </Avatar>
 {:else if imageSrc}
   <Avatar src={imageSrc} {size} {cornerStyle} class={`${styleclass}`} />
-{:else if photo}
-  <Avatar src={photo} {size} {cornerStyle} class={`${styleclass}`} />
 {:else}
   <Avatar {size} {cornerStyle} class={`${styleclass}`}>{initials}</Avatar>
 {/if}

@@ -1,11 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { goto } from '$app/navigation';
   import { Card, Alert } from "flowbite-svelte";
   import { contactsStore, contactFilters, selectedContact } from '$lib/stores/contactStore';
   import { contactService, type Contact } from '$lib/services/contactService';
   import ContactCard from '$lib/components/ContactCard.svelte';
   import ContactsFilter from '$lib/components/ContactsFilter.svelte';
-  import ContactDetail from '$lib/components/ContactDetail.svelte';
   
   let circles: string[] = [];
   let search = '';
@@ -14,7 +14,6 @@
   let limit = 25;
   let loading = true;
   let error: string | null = null;
-  let selectedContactId: number | null = null;
   
   // Subscribe to the stores
   $: ({ contacts, total } = $contactsStore);
@@ -103,69 +102,50 @@
   }
   
   function viewContactDetails(contact: Contact) {
-    selectedContactId = contact.ID;
     selectedContact.set(contact);
-  }
-  
-  function handleBackToList() {
-    selectedContactId = null;
-    selectedContact.set(null);
-  }
-  
-  function handleContactDeleted() {
-    selectedContactId = null;
-    selectedContact.set(null);
-    fetchContacts(); // Refresh the list
+    goto(`/contacts/${contact.ID}`);
   }
 </script>
 
-{#if selectedContactId}
-  <ContactDetail 
-    contactId={selectedContactId} 
-    back={handleBackToList}
-    deleted={handleContactDeleted}
+<div class="p-4">
+  <h1 class="text-3xl font-bold mb-6">Contacts</h1>
+  
+  <ContactsFilter
+    {search}
+    {circle}
+    {circles}
+    {loading}
+    {page}
+    {limit}
+    {total}
+    onSearch={handleSearch}
+    onCircleChange={handleCircleChange}
+    onPageChange={handlePageChange}
+    onAddNew={handleAddNew}
   />
-{:else}
-  <div class="p-4">
-    <h1 class="text-3xl font-bold mb-6">Contacts</h1>
-    
-    <ContactsFilter
-      {search}
-      {circle}
-      {circles}
-      {loading}
-      {page}
-      {limit}
-      {total}
-      onSearch={handleSearch}
-      onCircleChange={handleCircleChange}
-      onPageChange={handlePageChange}
-      onAddNew={handleAddNew}
-    />
-    
-    {#if error}
-      <Alert color="red" class="my-4">
-        <span class="font-medium">Error!</span> {error}
-      </Alert>
-    {/if}
-    
-    {#if !loading && contacts.length === 0}
-      <Card class="my-4">
-        <h5 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">No contacts found</h5>
-        <p class="text-gray-700 dark:text-gray-400">
-          {search || circle 
-            ? 'No contacts match your search criteria. Try a different search or filter.'
-            : 'You have no contacts yet. Add your first contact to get started.'}
-        </p>
-      </Card>
-    {:else}
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 my-4">
-        {#each contacts as contact (contact.ID)}
-          <div on:click={() => viewContactDetails(contact)} on:keydown={(e) => e.key === 'Enter' && viewContactDetails(contact)} tabindex="0" role="button">
-            <ContactCard {contact} />
-          </div>
-        {/each}
-      </div>
-    {/if}
-  </div>
-{/if}
+  
+  {#if error}
+    <Alert color="red" class="my-4">
+      <span class="font-medium">Error!</span> {error}
+    </Alert>
+  {/if}
+  
+  {#if !loading && contacts.length === 0}
+    <Card class="my-4">
+      <h5 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">No contacts found</h5>
+      <p class="text-gray-700 dark:text-gray-400">
+        {search || circle 
+          ? 'No contacts match your search criteria. Try a different search or filter.'
+          : 'You have no contacts yet. Add your first contact to get started.'}
+      </p>
+    </Card>
+  {:else}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 my-4">
+      {#each contacts as contact (contact.ID)}
+        <div on:click={() => viewContactDetails(contact)} on:keydown={(e) => e.key === 'Enter' && viewContactDetails(contact)} tabindex="0" role="button">
+          <ContactCard {contact} />
+        </div>
+      {/each}
+    </div>
+  {/if}
+</div>

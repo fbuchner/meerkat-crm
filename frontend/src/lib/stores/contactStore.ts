@@ -25,3 +25,5 @@ export const contactFilters = writable({
   page: 1,
   limit: 25
 });
+
+export const circlesStore = writable<string[]>([]);

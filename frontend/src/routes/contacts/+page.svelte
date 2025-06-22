@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { Card, Alert } from "flowbite-svelte";
-  import { contactsStore, contactFilters, selectedContact } from '$lib/stores/contactStore';
+  import { contactsStore, contactFilters, selectedContact, circlesStore } from '$lib/stores/contactStore';
   import { contactService, type Contact } from '$lib/services/contactService';
   import ContactCard from '$lib/components/ContactCard.svelte';
   import ContactsFilter from '$lib/components/ContactsFilter.svelte';
@@ -17,6 +17,7 @@
   
   // Subscribe to the stores
   $: ({ contacts, total } = $contactsStore);
+  $: circles = $circlesStore;
   
   // Load contacts on mount and when filters change
   onMount(async () => {
@@ -36,7 +37,8 @@
   async function fetchCircles() {
     try {
       const response = await contactService.getCircles();
-      circles = response.circles || [];
+      // Add circles to the store
+      circlesStore.set(response || []);
     } catch (err) {
       console.error('Error fetching circles:', err);
       // Non-critical error, so we'll just log it

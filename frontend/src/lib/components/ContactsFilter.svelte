@@ -32,20 +32,20 @@
 
 <div class="mb-6 flex flex-col md:flex-row gap-4">
   <div class="flex-1">
-    <Search bind:value={search} placeholder="Search contacts..." size="md">
-      <SearchIcon class="w-5 h-5" />
+    <Search bind:value={search} placeholder="Search contacts..." size="md" onkeyup={(e) => e.key === 'Enter' && handleSearch()}>
+      <Button onclick={handleSearch}>
+        <SearchIcon class="w-5 h-5" />
+      </Button>
     </Search>
-    <button class="hidden" on:click={handleSearch}>Search</button>
   </div>
   
   <div class="w-full md:w-48">
-    <Select bind:value={circle} class="w-full">
+    <Select bind:value={circle} class="w-full" onchange={handleCircleChange}>
       <option value="">All circles</option>
       {#each circles as c}
         <option value={c}>{c}</option>
       {/each}
     </Select>
-    <button class="hidden" on:click={() => onCircleChange(circle)}>Update</button>
   </div>
   
   <div>

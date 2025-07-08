@@ -99,8 +99,7 @@
   }
   
   function handleAddNew() {
-    // This will be implemented later for adding a new contact
-    console.log('Add new contact');
+    goto('/contacts/add');
   }
   
   function viewContactDetails(contact: Contact) {

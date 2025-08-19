@@ -190,4 +190,42 @@ export const contactService = {
       return '/assets/placeholder-avatar.png'; // Return placeholder image path on error
     }
   },
+
+  async getRelationships(contactId: number | string) {
+    try {
+      const response = await api.get(`${API_URL}/${contactId}/relationships`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching relationships:', error);
+      throw error;
+    }
+  },
+
+  async addRelationship(contactId: number | string, relationshipData: any) {
+    try {
+      const response = await api.post(`${API_URL}/${contactId}/relationships`, relationshipData);
+      return response;
+    } catch (error) {
+      console.error('Error adding relationship:', error);
+      throw error;
+    }
+  },
+
+  async updateRelationship(contactId: number | string, relationshipId: number | string, relationshipData: any) {
+    try {
+      await api.put(`${API_URL}/${contactId}/relationships/${relationshipId}`, relationshipData);
+    } catch (error) {
+      console.error('Error updating relationship:', error);
+      throw error;
+    }
+  },
+
+  async deleteRelationship(contactId: number | string, relationshipId: number | string) {
+    try {
+      await api.delete(`${API_URL}/${contactId}/relationships/${relationshipId}`);
+    } catch (error) {
+      console.error('Error deleting relationship:', error);
+      throw error;
+    }
+  },
 };

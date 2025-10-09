@@ -41,7 +41,7 @@ func TestGetContacts(t *testing.T) {
 	json.Unmarshal(w.Body.Bytes(), &responseBody)
 
 	// Assert that only 2 contacts are returned
-	contactsReturned := responseBody["contacts"].(any)
+	contactsReturned := responseBody["contacts"]
 	assert.Len(t, contactsReturned, 2)
 	assert.Equal(t, float64(5), responseBody["total"]) // Total contacts
 	assert.Equal(t, float64(1), responseBody["page"])  // Current page
@@ -57,7 +57,7 @@ func TestGetContacts(t *testing.T) {
 	json.Unmarshal(w.Body.Bytes(), &responseBody)
 
 	// Assert that only the next 2 contacts are returned
-	contactsReturned = responseBody["contacts"].(any)
+	contactsReturned = responseBody["contacts"]
 	assert.Len(t, contactsReturned, 2)
 	assert.Equal(t, float64(5), responseBody["total"]) // Total contacts
 	assert.Equal(t, float64(2), responseBody["page"])  // Current page
@@ -73,7 +73,7 @@ func TestGetContacts(t *testing.T) {
 	json.Unmarshal(w.Body.Bytes(), &responseBody)
 
 	// Assert that no contacts are returned on non-existent page
-	contactsReturned = responseBody["contacts"].(any)
+	contactsReturned = responseBody["contacts"]
 
 	assert.Len(t, contactsReturned, 0)
 	assert.Equal(t, float64(5), responseBody["total"]) // Total contacts

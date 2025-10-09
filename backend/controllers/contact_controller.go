@@ -107,6 +107,17 @@ func GetContacts(c *gin.Context) {
 
 	var total int64
 	countQuery := db.Model(&models.Contact{})
+
+	// Apply the same search filters to the count query
+	if searchTerm := c.Query("search"); searchTerm != "" {
+		searchTermParam := "%" + searchTerm + "%"
+		countQuery = countQuery.Where("firstname LIKE ? OR lastname LIKE ? OR nickname LIKE ?", searchTermParam, searchTermParam, searchTermParam)
+	}
+
+	if circle := c.Query("circle"); circle != "" {
+		countQuery = countQuery.Where("circles LIKE ?", "%"+circle+"%")
+	}
+
 	countQuery.Count(&total)
 
 	// Respond with contacts and pagination metadata

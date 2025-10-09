@@ -12,7 +12,7 @@ type Contact struct {
 	Gender             string         `json:"gender"`
 	Email              string         `gorm:"type:text COLLATE NOCASE" json:"email"`
 	Phone              string         `json:"phone"`
-	Birthday           *Date          `json:"birthday"`
+	Birthday           string         `json:"birthday"`
 	Photo              string         `json:"photo"`                                     // Path to the profile photo
 	PhotoThumbnail     string         `json:"photo_thumnbnail"`                          // Path to the profile photo thumbnail
 	Relationships      []Relationship `gorm:"foreignKey:ContactID" json:"relationships"` // Has many relationships

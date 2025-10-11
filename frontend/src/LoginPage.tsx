@@ -1,0 +1,75 @@
+import React, { useState } from 'react';
+import { loginUser, saveToken } from './auth';
+import { useNavigate } from 'react-router-dom';
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Alert,
+  Paper,
+  Stack
+} from '@mui/material';
+
+type LoginPageProps = {
+  setToken?: (token: string | null) => void;
+};
+
+export default function LoginPage({ setToken }: LoginPageProps) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      const token = await loginUser(email, password);
+  saveToken(token);
+  if (setToken) setToken(token);
+  navigate('/');
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
+      <Paper sx={{ p: 4 }}>
+        <Typography variant="h5" mb={2}>Login</Typography>
+        <form onSubmit={handleSubmit}>
+          <Stack spacing={2}>
+            <TextField
+              label="Email"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              fullWidth
+            />
+            <TextField
+              label="Password"
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              fullWidth
+            />
+            {error && <Alert severity="error">{error}</Alert>}
+            <Button type="submit" variant="contained" color="primary" disabled={loading}>
+              {loading ? 'Logging in...' : 'Login'}
+            </Button>
+            <Button component={require('react-router-dom').Link} to="/register" color="secondary" variant="text">
+              Don't have an account? Register
+            </Button>
+          </Stack>
+        </form>
+      </Paper>
+    </Box>
+  );
+}

@@ -1,0 +1,26 @@
+# Frontend Setup TODO List
+
+- [ ] **Initialize React frontend directory**
+  - Initialize the frontend directory with a new React app using Create React App or Vite. Ensure the directory structure is set up for future development.
+- [ ] **Install Material UI dependencies**
+  - Install Material UI and its dependencies in the frontend project for UI components and theming.
+- [ ] **Configure React Router**
+  - Set up basic routing using React Router for navigation between pages (Contacts, Notes, Activities, Reminders, etc.).
+- [ ] **Implement Material UI layout**
+  - Create a global theme and layout using Material UI (AppBar, Drawer, main content area).
+- [ ] **Integrate backend API**
+  - Connect the frontend to the backend API for data fetching and updates (contacts, notes, activities, reminders).
+- [ ] **Build Contacts page**
+  - Develop the Contacts page: list, search, add, and view contact details. Integrate Material UI components for forms and lists.
+- [ ] **Build Notes & Activities pages**
+  - Develop the Notes and Activities pages: timeline, note creation, and activity assignment. Use Material UI cards, lists, and forms.
+- [ ] **Build Reminders page**
+  - Develop the Reminders page: list reminders, create new reminders, and configure notifications. Use Material UI components for forms and lists.
+- [ ] **Set up i18n support**
+  - Implement internationalization (i18n) support for multiple languages using a library like react-i18next.
+- [ ] **Configure environment variables**
+  - Set up environment variables and configuration for development and production builds.
+- [ ] **Add frontend tests**
+  - Add unit and integration tests for key components and pages using Jest and React Testing Library.
+- [ ] **Document frontend setup**
+  - Update documentation in README.md to include frontend setup and usage instructions.

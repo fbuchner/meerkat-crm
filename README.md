@@ -4,23 +4,20 @@
 The **Pe**rsonal **Re**lationship **Ma**nager is a simple self-hosted solution to keep track of all your contacts. As your digital Rolodex it reminds of of birthdays, helps you to remember dietary habits as well as names of spouses of contacts - and much more.
 
 ## Features
-**Implemented** 
 - Contact management
     - add and search contacts
-    - special fields (e.g. birthdays w/o known year)
+    - details of contacts
     - group contacts by circles (e.g. friends, family, work)
 - Notes and activities
     - social network style timeline for contacts
     - notes assigned to individual contacts
     - general notes (for e.g. journaling)
     - activities with one or multiple contacts
-
-**Yet to come**
-- Set custom reminders for contacts and get e-mail notifications
-- Keep in touch for contacts at regular intervals
-- LinkedIn sync
-- Google contacts sync
-- I18N (English, German)
+- Reminders
+    - Keep in touch through reminders and get e-mail notifications
+    - Birthday notifications
+- Usability
+    - I18N (multiple languages)
 
 ## Installation
 
@@ -52,5 +49,3 @@ Ensure you have [Go](https://golang.org/doc/install) installed. Then, install th
     ```
 
 You can also use the Debug button in [Visual Studio Code](https://code.visualstudio.com/) as configured in the launch.json file.
-
-

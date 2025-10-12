@@ -1,0 +1,51 @@
+{
+  "app": {
+    "title": "Perema CRM",
+    "logout": "Logout",
+    "loading": "Loading..."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "contacts": "Contacts",
+    "activities": "Activities",
+    "notes": "Notes",
+    "reminders": "Reminders"
+  },
+  "dashboard": {
+    "welcome": "Welcome to Perema CRM Dashboard"
+  },
+  "login": {
+    "title": "Login",
+    "email": "Email",
+    "password": "Password",
+    "loginButton": "Login",
+    "loggingIn": "Logging in...",
+    "loginFailed": "Login failed",
+    "noAccount": "Don't have an account? Register"
+  },
+  "register": {
+    "title": "Register",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "registerButton": "Register",
+    "registering": "Registering...",
+    "registrationFailed": "Registration failed",
+    "registrationSuccess": "Registration successful! You can now log in."
+  },
+  "contacts": {
+    "title": "Contacts",
+    "search": "Search Contacts",
+    "filterByCircle": "Filter by Circle",
+    "allCircles": "All Circles",
+    "filteredMessage": "{{count}} out of {{total}} contacts in '{{circle}}'",
+    "resetFilter": "Reset Filter",
+    "noContacts": "No contacts found",
+    "addContact": "Add Contact"
+  },
+  "pages": {
+    "notes": "Notes Page",
+    "activities": "Activities Page",
+    "reminders": "Reminders Page"
+  }
+}

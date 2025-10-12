@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { fetchContacts, API_BASE_URL } from './api';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { API_BASE_URL } from './api';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Card,
@@ -29,6 +30,7 @@ function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
 }
 
 export default function ContactsPage({ token }: { token: string }) {
+  const { t } = useTranslation();
   const [contacts, setContacts] = useState<any[]>([]);
   const [profilePics, setProfilePics] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(false);
@@ -46,12 +48,12 @@ export default function ContactsPage({ token }: { token: string }) {
     })
       .then(res => res.json())
       .then(data => setCircles(Array.isArray(data) ? data : []));
-  }, []);
+  }, [token]);
 
-  // Debounced search and pagination
-  const debouncedSearch = debounce((value: string, pageNum: number = 1) => {
+  // Fetch contacts with search, pagination, and circle filter
+  const fetchContactsData = useCallback((value: string, pageNum: number = 1) => {
     setLoading(true);
-    let url = `${API_BASE_URL}/contacts?page=${pageNum}&size=${pageSize}`;
+    let url = `${API_BASE_URL}/contacts?page=${pageNum}&limit=${pageSize}`;
     if (value) url += `&search=${encodeURIComponent(value)}`;
     if (selectedCircle) url += `&circle=${encodeURIComponent(selectedCircle)}`;
     fetch(url, {
@@ -61,7 +63,9 @@ export default function ContactsPage({ token }: { token: string }) {
       .then(async data => {
         const contactsArr = data.contacts || [];
         setContacts(contactsArr);
-        setTotalContacts(data.total || contactsArr.length);
+        // Use the backend's total count if available, otherwise calculate from contacts array
+        const total = typeof data.total === 'number' ? data.total : contactsArr.length;
+        setTotalContacts(total);
         // Fetch profile pictures for each contact
         const picPromises = contactsArr.map(async (contact: any) => {
           try {
@@ -81,11 +85,19 @@ export default function ContactsPage({ token }: { token: string }) {
         setProfilePics(picMap);
         setLoading(false);
       });
-  }, 400);
+  }, [token, pageSize, selectedCircle]);
+
+  // Create a memoized debounced search function
+  const debouncedSearch = useMemo(
+    () => debounce((value: string, pageNum: number = 1) => {
+      fetchContactsData(value, pageNum);
+    }, 400),
+    [fetchContactsData]
+  );
 
   useEffect(() => {
     debouncedSearch(search, page);
-  }, [search, page, selectedCircle]);
+  }, [search, page, selectedCircle, debouncedSearch]);
 
   // Filter contacts by selected circle
   // With backend pagination, contacts is already filtered
@@ -96,7 +108,7 @@ export default function ContactsPage({ token }: { token: string }) {
     <Box sx={{ maxWidth: 800, mx: 'auto', mt: 4 }}>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2}>
         <TextField
-          label="Search Contacts"
+          label={t('contacts.search')}
           variant="outlined"
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -109,14 +121,14 @@ export default function ContactsPage({ token }: { token: string }) {
           }}
         />
         <FormControl sx={{ minWidth: 120 }}>
-          <InputLabel id="circle-select-label">Circle</InputLabel>
+          <InputLabel id="circle-select-label">{t('contacts.filterByCircle')}</InputLabel>
           <Select
             labelId="circle-select-label"
             value={selectedCircle}
-            label="Circle"
+            label={t('contacts.filterByCircle')}
             onChange={e => setSelectedCircle(e.target.value)}
           >
-            <MenuItem value="">All</MenuItem>
+            <MenuItem value="">{t('contacts.allCircles')}</MenuItem>
             {circles.map(circle => (
               <MenuItem key={circle} value={circle}>{circle}</MenuItem>
             ))}
@@ -126,9 +138,9 @@ export default function ContactsPage({ token }: { token: string }) {
       {isFiltered && (
         <Box sx={{ mb: 2, p: 1, bgcolor: '#f5f5f5', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="body2">
-            Showing {filteredContacts.length} out of {totalContacts} contacts in "{selectedCircle}"&nbsp;
+            {t('contacts.filteredMessage', { count: filteredContacts.length, total: totalContacts, circle: selectedCircle })}
           </Typography>
-          <Chip label="Reset filter" color="primary" size="small" onClick={() => { setSelectedCircle(''); setPage(1); }} clickable />
+          <Chip label={t('contacts.resetFilter')} color="primary" size="small" onClick={() => { setSelectedCircle(''); setPage(1); }} clickable />
         </Box>
       )}
       {loading ? (
@@ -159,15 +171,17 @@ export default function ContactsPage({ token }: { token: string }) {
               </Card>
             ))}
           </Stack>
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-            <Pagination
-              count={Math.ceil(totalContacts / pageSize)}
-              page={page}
-              onChange={(_, value) => setPage(value)}
-              color="primary"
-              size="large"
-            />
-          </Box>
+          {totalContacts > 0 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+              <Pagination
+                count={Math.max(1, Math.ceil(totalContacts / pageSize))}
+                page={page}
+                onChange={(_, value) => setPage(value)}
+                color="primary"
+                size="large"
+              />
+            </Box>
+          )}
         </>
       )}
     </Box>

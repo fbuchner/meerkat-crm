@@ -1,0 +1,51 @@
+{
+  "app": {
+    "title": "Perema CRM",
+    "logout": "Abmelden",
+    "loading": "Laden..."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "contacts": "Kontakte",
+    "activities": "Aktivitäten",
+    "notes": "Notizen",
+    "reminders": "Erinnerungen"
+  },
+  "dashboard": {
+    "welcome": "Willkommen zum Perema CRM Dashboard"
+  },
+  "login": {
+    "title": "Anmelden",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "loginButton": "Anmelden",
+    "loggingIn": "Anmeldung läuft...",
+    "loginFailed": "Anmeldung fehlgeschlagen",
+    "noAccount": "Noch kein Konto? Registrieren"
+  },
+  "register": {
+    "title": "Registrieren",
+    "name": "Name",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "registerButton": "Registrieren",
+    "registering": "Registrierung läuft...",
+    "registrationFailed": "Registrierung fehlgeschlagen",
+    "registrationSuccess": "Registrierung erfolgreich! Sie können sich jetzt anmelden."
+  },
+  "contacts": {
+    "title": "Kontakte",
+    "search": "Kontakte suchen",
+    "filterByCircle": "Nach Kreis filtern",
+    "allCircles": "Alle Kreise",
+    "filteredMessage": "{{count}} von {{total}} Kontakten in '{{circle}}'",
+    "resetFilter": "Filter zurücksetzen",
+    "noContacts": "Keine Kontakte gefunden",
+    "addContact": "Kontakt hinzufügen"
+  },
+  "pages": {
+    "notes": "Notizen Seite",
+    "activities": "Aktivitäten Seite",
+    "reminders": "Erinnerungen Seite"
+  }
+}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { API_BASE_URL } from './auth';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   TextField,
@@ -12,6 +13,7 @@ import {
 } from '@mui/material';
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -35,12 +37,12 @@ export default function RegisterPage() {
       });
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Registration failed');
+        throw new Error(data.error || t('register.registrationFailed'));
       }
-      setSuccess('Registration successful! You can now log in.');
+      setSuccess(t('register.registrationSuccess'));
       setTimeout(() => navigate('/login'), 1500);
     } catch (err: any) {
-      setError(err.message || 'Registration failed');
+      setError(err.message || t('register.registrationFailed'));
     } finally {
       setLoading(false);
     }
@@ -49,18 +51,18 @@ export default function RegisterPage() {
   return (
     <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h5" mb={2}>Register</Typography>
+        <Typography variant="h5" mb={2}>{t('register.title')}</Typography>
         <form onSubmit={handleSubmit}>
           <Stack spacing={2}>
             <TextField
-              label="Name"
+              label={t('register.name')}
               value={name}
               onChange={e => setName(e.target.value)}
               required
               fullWidth
             />
             <TextField
-              label="Email"
+              label={t('register.email')}
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
@@ -68,7 +70,7 @@ export default function RegisterPage() {
               fullWidth
             />
             <TextField
-              label="Password"
+              label={t('register.password')}
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
@@ -78,7 +80,7 @@ export default function RegisterPage() {
             {error && <Alert severity="error">{error}</Alert>}
             {success && <Alert severity="success">{success}</Alert>}
             <Button type="submit" variant="contained" color="primary" disabled={loading}>
-              {loading ? 'Registering...' : 'Register'}
+              {loading ? t('register.registering') : t('register.registerButton')}
             </Button>
           </Stack>
         </form>

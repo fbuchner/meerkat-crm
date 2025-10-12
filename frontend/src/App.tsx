@@ -4,6 +4,7 @@ import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
 import { getToken, logoutUser } from './auth';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   AppBar,
   Toolbar,
@@ -16,7 +17,6 @@ import {
   ListItemIcon,
   ListItemText,
   Box,
-  Menu,
   MenuItem,
   Button,
   Select,
@@ -33,9 +33,8 @@ import LanguageIcon from '@mui/icons-material/Language';
 import './App.css';
 
 function App() {
+  const { t, i18n } = useTranslation();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [lang, setLang] = useState('en');
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const handleDrawerOpen = () => setDrawerOpen(true);
   const handleDrawerClose = () => setDrawerOpen(false);
   // Remove the custom handler and use inline in Select
@@ -45,17 +44,20 @@ function App() {
       window.addEventListener('storage', onStorage);
       return () => window.removeEventListener('storage', onStorage);
     }, []);
-  const handleMenuClose = () => setAnchorEl(null);
   const handleLogout = () => {
     logoutUser();
     window.location.href = '/login';
   };
 
+  const handleLanguageChange = (newLang: string) => {
+    i18n.changeLanguage(newLang);
+  };
+
   const navItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'Contacts', icon: <ContactsIcon />, path: '/contacts' },
-    { text: 'Activities', icon: <EventNoteIcon />, path: '/activities' },
-    { text: 'Notes', icon: <NoteIcon />, path: '/notes' }
+    { text: t('nav.dashboard'), icon: <DashboardIcon />, path: '/' },
+    { text: t('nav.contacts'), icon: <ContactsIcon />, path: '/contacts' },
+    { text: t('nav.activities'), icon: <EventNoteIcon />, path: '/activities' },
+    { text: t('nav.notes'), icon: <NoteIcon />, path: '/notes' }
   ];
 
   // Removed duplicate token declaration. Use state version only.
@@ -70,7 +72,7 @@ function App() {
                   <MenuIcon />
                 </IconButton>
                 <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                  Perema CRM
+                  {t('app.title')}
                 </Typography>
                 <FormControl variant="standard" sx={{ minWidth: 80, mr: 2 }}>
                   <InputLabel id="lang-select-label">
@@ -79,18 +81,17 @@ function App() {
                   <Select
                     labelId="lang-select-label"
                     id="lang-select"
-                    value={lang}
-                    onChange={(event) => setLang(event.target.value as string)}
+                    value={i18n.language}
+                    onChange={(event) => handleLanguageChange(event.target.value as string)}
                     label="Language"
                     sx={{ color: 'white' }}
                   >
                     <MenuItem value={'en'}>EN</MenuItem>
                     <MenuItem value={'de'}>DE</MenuItem>
-                    <MenuItem value={'fr'}>FR</MenuItem>
                   </Select>
                 </FormControl>
                 <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>
-                  Logout
+                  {t('app.logout')}
                 </Button>
               </Toolbar>
             </AppBar>
@@ -108,11 +109,11 @@ function App() {
             </Drawer>
             <Box sx={{ p: 2 }}>
               <Routes>
-                <Route path="/contacts" element={<React.Suspense fallback={<div>Loading...</div>}><ContactsPage token={token} /></React.Suspense>} />
-                <Route path="/notes" element={<div>Notes Page</div>} />
-                <Route path="/activities" element={<div>Activities Page</div>} />
-                <Route path="/reminders" element={<div>Reminders Page</div>} />
-                <Route path="/" element={<div>Welcome to Perema CRM Dashboard</div>} />
+                <Route path="/contacts" element={<React.Suspense fallback={<div>{t('app.loading')}</div>}><ContactsPage token={token} /></React.Suspense>} />
+                <Route path="/notes" element={<div>{t('pages.notes')}</div>} />
+                <Route path="/activities" element={<div>{t('pages.activities')}</div>} />
+                <Route path="/reminders" element={<div>{t('pages.reminders')}</div>} />
+                <Route path="/" element={<div>{t('dashboard.welcome')}</div>} />
               </Routes>
             </Box>
           </>

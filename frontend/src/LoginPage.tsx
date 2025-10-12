@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { loginUser, saveToken } from './auth';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   TextField,
@@ -16,6 +17,7 @@ type LoginPageProps = {
 };
 
 export default function LoginPage({ setToken }: LoginPageProps) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -32,7 +34,7 @@ export default function LoginPage({ setToken }: LoginPageProps) {
   if (setToken) setToken(token);
   navigate('/');
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      setError(err.message || t('login.loginFailed'));
     } finally {
       setLoading(false);
     }
@@ -41,11 +43,11 @@ export default function LoginPage({ setToken }: LoginPageProps) {
   return (
     <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h5" mb={2}>Login</Typography>
+        <Typography variant="h5" mb={2}>{t('login.title')}</Typography>
         <form onSubmit={handleSubmit}>
           <Stack spacing={2}>
             <TextField
-              label="Email"
+              label={t('login.email')}
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
@@ -53,7 +55,7 @@ export default function LoginPage({ setToken }: LoginPageProps) {
               fullWidth
             />
             <TextField
-              label="Password"
+              label={t('login.password')}
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
@@ -62,10 +64,10 @@ export default function LoginPage({ setToken }: LoginPageProps) {
             />
             {error && <Alert severity="error">{error}</Alert>}
             <Button type="submit" variant="contained" color="primary" disabled={loading}>
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? t('login.loggingIn') : t('login.loginButton')}
             </Button>
             <Button component={require('react-router-dom').Link} to="/register" color="secondary" variant="text">
-              Don't have an account? Register
+              {t('login.noAccount')}
             </Button>
           </Stack>
         </form>

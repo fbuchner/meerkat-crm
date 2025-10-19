@@ -14,7 +14,13 @@ import {
   Divider,
   Stack,
   Paper,
-  TextField
+  TextField,
+  Fab,
+  SpeedDial,
+  SpeedDialAction,
+  SpeedDialIcon,
+  Autocomplete,
+  Link
 } from '@mui/material';
 import {
   Timeline,
@@ -38,6 +44,10 @@ import EventIcon from '@mui/icons-material/Event';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
+import AddNoteDialog from './components/AddNoteDialog';
+import AddActivityDialog from './components/AddActivityDialog';
 
 interface Contact {
   ID: number;
@@ -70,9 +80,11 @@ interface Activity {
   ID: number;
   title: string;
   description?: string;
+  location?: string;
   date: string;
   CreatedAt: string;
   UpdatedAt: string;
+  contacts?: { ID: number; firstname: string; lastname: string; nickname?: string }[];
 }
 
 export default function ContactDetailPage({ token }: { token: string }) {
@@ -85,23 +97,78 @@ export default function ContactDetailPage({ token }: { token: string }) {
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [validationError, setValidationError] = useState<string>('');
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+  const [activityDialogOpen, setActivityDialogOpen] = useState(false);
+  
+  // Timeline item editing state
+  const [editingTimelineItem, setEditingTimelineItem] = useState<{ type: 'note' | 'activity'; id: number } | null>(null);
+  const [editTimelineValues, setEditTimelineValues] = useState<{
+    noteContent?: string;
+    noteDate?: string;
+    activityTitle?: string;
+    activityDescription?: string;
+    activityLocation?: string;
+    activityDate?: string;
+    activityContacts?: { ID: number; firstname: string; lastname: string; nickname?: string }[];
+  }>({});
+  const [allContacts, setAllContacts] = useState<{ ID: number; firstname: string; lastname: string; nickname?: string }[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  
+  // Circle editing state
+  const [editingCircles, setEditingCircles] = useState(false);
+  const [newCircleName, setNewCircleName] = useState('');
+  
+  // Profile editing state
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileValues, setProfileValues] = useState({
+    firstname: '',
+    lastname: '',
+    nickname: '',
+    gender: ''
+  });
 
+  // Fetch contact details, notes, and activities
   useEffect(() => {
     if (!id) return;
 
-    // Fetch contact details
-    fetch(`${API_BASE_URL}/contacts/${id}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => {
-        setContact(data);
+    const fetchData = async () => {
+      try {
+        // Fetch contact details
+        const contactRes = await fetch(`${API_BASE_URL}/contacts/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (contactRes.ok) {
+          const contactData = await contactRes.json();
+          setContact(contactData);
+        }
+
+        // Fetch detailed notes
+        const notesRes = await fetch(`${API_BASE_URL}/contacts/${id}/notes`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (notesRes.ok) {
+          const notesData = await notesRes.json();
+          setNotes(notesData.notes || []);
+        }
+
+        // Fetch detailed activities
+        const activitiesRes = await fetch(`${API_BASE_URL}/contacts/${id}/activities`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (activitiesRes.ok) {
+          const activitiesData = await activitiesRes.json();
+          setActivities(activitiesData.activities || []);
+        }
+
         setLoading(false);
-      })
-      .catch(err => {
-        console.error('Error fetching contact:', err);
+      } catch (err) {
+        console.error('Error fetching data:', err);
         setLoading(false);
-      });
+      }
+    };
+
+    fetchData();
 
     // Fetch profile picture
     fetch(`${API_BASE_URL}/contacts/${id}/profile_picture`, {
@@ -118,6 +185,33 @@ export default function ContactDetailPage({ token }: { token: string }) {
       })
       .catch(err => console.error('Error fetching profile picture:', err));
   }, [id, token]);
+
+  // Unified refresh function for notes and activities
+  const refreshNotesAndActivities = async () => {
+    if (!id) return;
+
+    try {
+      // Fetch detailed notes
+      const notesRes = await fetch(`${API_BASE_URL}/contacts/${id}/notes`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (notesRes.ok) {
+        const notesData = await notesRes.json();
+        setNotes(notesData.notes || []);
+      }
+
+      // Fetch detailed activities
+      const activitiesRes = await fetch(`${API_BASE_URL}/contacts/${id}/activities`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (activitiesRes.ok) {
+        const activitiesData = await activitiesRes.json();
+        setActivities(activitiesData.activities || []);
+      }
+    } catch (err) {
+      console.error('Error refreshing notes and activities:', err);
+    }
+  };
 
   if (loading) {
     return (
@@ -137,12 +231,12 @@ export default function ContactDetailPage({ token }: { token: string }) {
 
   // Combine and sort notes and activities for timeline
   const timelineItems: Array<{ type: 'note' | 'activity'; data: Note | Activity; date: string }> = [
-    ...(contact.notes || []).map(note => ({
+    ...notes.map(note => ({
       type: 'note' as const,
       data: note,
       date: note.date || note.CreatedAt
     })),
-    ...(contact.activities || []).map(activity => ({
+    ...activities.map(activity => ({
       type: 'activity' as const,
       data: activity,
       date: activity.date || activity.CreatedAt
@@ -201,6 +295,311 @@ export default function ContactDetailPage({ token }: { token: string }) {
       }
     } catch (err) {
       console.error('Error updating contact:', err);
+    }
+  };
+
+  const handleSaveNote = async (content: string, date: string) => {
+    if (!id) return;
+
+    const response = await fetch(`${API_BASE_URL}/contacts/${id}/notes`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        content,
+        date: new Date(date).toISOString()
+      })
+    });
+
+    if (response.ok) {
+      // Refresh notes and activities
+      await refreshNotesAndActivities();
+    } else {
+      throw new Error('Failed to save note');
+    }
+  };
+
+  const handleSaveActivity = async (activity: {
+    title: string;
+    description: string;
+    location: string;
+    date: string;
+    contact_ids: number[];
+  }) => {
+    const response = await fetch(`${API_BASE_URL}/activities`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        title: activity.title,
+        description: activity.description,
+        location: activity.location,
+        date: new Date(activity.date).toISOString(),
+        contact_ids: activity.contact_ids
+      })
+    });
+
+    if (response.ok) {
+      // Refresh notes and activities
+      await refreshNotesAndActivities();
+    } else {
+      throw new Error('Failed to save activity');
+    }
+  };
+
+  const handleStartEditTimelineItem = async (type: 'note' | 'activity', item: Note | Activity) => {
+    setEditingTimelineItem({ type, id: item.ID });
+    
+    if (type === 'note') {
+      const note = item as Note;
+      setEditTimelineValues({
+        noteContent: note.content,
+        noteDate: note.date ? new Date(note.date).toISOString().split('T')[0] : ''
+      });
+    } else {
+      const activity = item as Activity;
+      
+      // Fetch all contacts for the autocomplete if not already loaded
+      if (allContacts.length === 0) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/contacts?page=1&limit=1000`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setAllContacts(data.contacts || []);
+          }
+        } catch (err) {
+          console.error('Failed to fetch contacts:', err);
+        }
+      }
+      
+      setEditTimelineValues({
+        activityTitle: activity.title,
+        activityDescription: activity.description || '',
+        activityLocation: activity.location || '',
+        activityDate: activity.date ? new Date(activity.date).toISOString().split('T')[0] : '',
+        activityContacts: activity.contacts || []
+      });
+    }
+  };
+
+  const handleCancelEditTimelineItem = () => {
+    setEditingTimelineItem(null);
+    setEditTimelineValues({});
+  };
+
+  const handleUpdateNote = async (noteId: number) => {
+    if (!editTimelineValues.noteContent?.trim()) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/notes/${noteId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          content: editTimelineValues.noteContent,
+          date: editTimelineValues.noteDate ? new Date(editTimelineValues.noteDate).toISOString() : new Date().toISOString(),
+          contact_id: contact?.ID
+        })
+      });
+
+      if (response.ok) {
+        // Refresh notes and activities
+        await refreshNotesAndActivities();
+        handleCancelEditTimelineItem();
+      }
+    } catch (err) {
+      console.error('Error updating note:', err);
+    }
+  };
+
+  const handleUpdateActivity = async (activityId: number) => {
+    if (!editTimelineValues.activityTitle?.trim()) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/activities/${activityId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: editTimelineValues.activityTitle,
+          description: editTimelineValues.activityDescription || '',
+          location: editTimelineValues.activityLocation || '',
+          date: editTimelineValues.activityDate ? new Date(editTimelineValues.activityDate).toISOString() : new Date().toISOString(),
+          contact_ids: editTimelineValues.activityContacts?.map(c => c.ID) || []
+        })
+      });
+
+      if (response.ok) {
+        // Refresh notes and activities
+        await refreshNotesAndActivities();
+        handleCancelEditTimelineItem();
+      }
+    } catch (err) {
+      console.error('Error updating activity:', err);
+    }
+  };
+
+  const handleDeleteNote = async (noteId: number) => {
+    if (!window.confirm(t('contactDetail.confirmDelete'))) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/notes/${noteId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        // Refresh notes and activities
+        await refreshNotesAndActivities();
+        handleCancelEditTimelineItem();
+      }
+    } catch (err) {
+      console.error('Error deleting note:', err);
+    }
+  };
+
+  const handleDeleteActivity = async (activityId: number) => {
+    if (!window.confirm(t('contactDetail.confirmDelete'))) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/activities/${activityId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        // Refresh notes and activities
+        await refreshNotesAndActivities();
+        handleCancelEditTimelineItem();
+      }
+    } catch (err) {
+      console.error('Error deleting activity:', err);
+    }
+  };
+
+  const handleAddCircle = async () => {
+    if (!contact || !newCircleName.trim()) return;
+
+    const updatedCircles = [...(contact.circles || []), newCircleName.trim()];
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/contacts/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...contact,
+          circles: updatedCircles
+        })
+      });
+
+      if (response.ok) {
+        const updatedContact = await response.json();
+        setContact(updatedContact);
+        setNewCircleName('');
+      }
+    } catch (err) {
+      console.error('Error adding circle:', err);
+    }
+  };
+
+  const handleDeleteCircle = async (circleToDelete: string) => {
+    if (!contact) return;
+
+    const updatedCircles = (contact.circles || []).filter(circle => circle !== circleToDelete);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/contacts/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...contact,
+          circles: updatedCircles
+        })
+      });
+
+      if (response.ok) {
+        const updatedContact = await response.json();
+        setContact(updatedContact);
+      }
+    } catch (err) {
+      console.error('Error deleting circle:', err);
+    }
+  };
+
+  const handleStartEditProfile = () => {
+    if (!contact) return;
+    setProfileValues({
+      firstname: contact.firstname || '',
+      lastname: contact.lastname || '',
+      nickname: contact.nickname || '',
+      gender: contact.gender || ''
+    });
+    setEditingProfile(true);
+  };
+
+  const handleCancelEditProfile = () => {
+    setEditingProfile(false);
+    setProfileValues({ firstname: '', lastname: '', nickname: '', gender: '' });
+  };
+
+  const handleSaveProfile = async () => {
+    if (!contact || !profileValues.firstname.trim() || !profileValues.lastname.trim()) {
+      alert('First name and last name are required');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/contacts/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...contact,
+          firstname: profileValues.firstname.trim(),
+          lastname: profileValues.lastname.trim(),
+          nickname: profileValues.nickname.trim(),
+          gender: profileValues.gender
+        })
+      });
+
+      if (response.ok) {
+        const updatedContact = await response.json();
+        setContact(updatedContact);
+        setEditingProfile(false);
+      }
+    } catch (err) {
+      console.error('Error updating profile:', err);
     }
   };
 
@@ -306,27 +705,179 @@ export default function ContactDetailPage({ token }: { token: string }) {
       {/* Contact Header Card */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
             <Avatar
               src={profilePic || undefined}
               sx={{ width: 100, height: 100, mr: 3 }}
             />
             <Box sx={{ flex: 1 }}>
-              <Typography variant="h4" sx={{ fontWeight: 500 }}>
-                {contact.firstname} {contact.nickname && `"${contact.nickname}"`} {contact.lastname}
-              </Typography>
-              {contact.gender && (
-                <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
-                  {contact.gender}
-                </Typography>
+              {editingProfile ? (
+                // Edit Mode
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <TextField
+                    label={t('contactDetail.firstname')}
+                    value={profileValues.firstname}
+                    onChange={(e) => setProfileValues({ ...profileValues, firstname: e.target.value })}
+                    size="small"
+                    required
+                    autoFocus
+                  />
+                  <TextField
+                    label={t('contactDetail.lastname')}
+                    value={profileValues.lastname}
+                    onChange={(e) => setProfileValues({ ...profileValues, lastname: e.target.value })}
+                    size="small"
+                    required
+                  />
+                  <TextField
+                    label={t('contactDetail.nickname')}
+                    value={profileValues.nickname}
+                    onChange={(e) => setProfileValues({ ...profileValues, nickname: e.target.value })}
+                    size="small"
+                  />
+                  <TextField
+                    select
+                    label={t('contactDetail.gender')}
+                    value={profileValues.gender}
+                    onChange={(e) => setProfileValues({ ...profileValues, gender: e.target.value })}
+                    size="small"
+                    SelectProps={{ native: true }}
+                  >
+                    <option value=""></option>
+                    <option value="Male">{t('contactDetail.male')}</option>
+                    <option value="Female">{t('contactDetail.female')}</option>
+                    <option value="Other">{t('contactDetail.other')}</option>
+                  </TextField>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <IconButton size="small" color="primary" onClick={handleSaveProfile}>
+                      <SaveIcon />
+                    </IconButton>
+                    <IconButton size="small" onClick={handleCancelEditProfile}>
+                      <CloseIcon />
+                    </IconButton>
+                  </Box>
+                </Box>
+              ) : (
+                // View Mode
+                <>
+                  <Box 
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      '&:hover .edit-icon': {
+                        opacity: 1
+                      }
+                    }}
+                  >
+                    <Typography variant="h4" sx={{ fontWeight: 500 }}>
+                      {contact.firstname} {contact.nickname && `"${contact.nickname}"`} {contact.lastname}
+                    </Typography>
+                    <IconButton 
+                      className="edit-icon"
+                      size="small" 
+                      onClick={handleStartEditProfile} 
+                      sx={{ 
+                        ml: 2,
+                        opacity: 0,
+                        transition: 'opacity 0.2s'
+                      }}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                  </Box>
+                  {contact.gender && (
+                    <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
+                      {contact.gender}
+                    </Typography>
+                  )}
+                </>
               )}
-              {contact.circles && contact.circles.length > 0 && (
-                <Stack direction="row" spacing={1} mt={2}>
-                  {contact.circles.map((circle, index) => (
-                    <Chip key={index} label={circle} size="small" color="primary" />
-                  ))}
-                </Stack>
-              )}
+              
+              {/* Circles Section */}
+              <Box 
+                sx={{ 
+                  mt: 2,
+                  '&:hover .edit-icon': {
+                    opacity: 1
+                  }
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    {t('contactDetail.circles')}
+                  </Typography>
+                  <IconButton 
+                    className="edit-icon"
+                    size="small" 
+                    onClick={() => setEditingCircles(!editingCircles)}
+                    sx={{ 
+                      ml: 'auto',
+                      opacity: 0,
+                      transition: 'opacity 0.2s'
+                    }}
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                
+                {editingCircles ? (
+                  // Edit Mode
+                  <Box>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 1, mb: 1 }}>
+                      {contact.circles && contact.circles.length > 0 ? (
+                        contact.circles.map((circle, index) => (
+                          <Chip 
+                            key={index} 
+                            label={circle} 
+                            size="small" 
+                            color="primary"
+                            onDelete={() => handleDeleteCircle(circle)}
+                          />
+                        ))
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">
+                          {t('contactDetail.noCircles')}
+                        </Typography>
+                      )}
+                    </Stack>
+                    <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                      <TextField
+                        size="small"
+                        placeholder={t('contactDetail.newCircle')}
+                        value={newCircleName}
+                        onChange={(e) => setNewCircleName(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            handleAddCircle();
+                          }
+                        }}
+                        sx={{ flexGrow: 1 }}
+                      />
+                      <IconButton 
+                        size="small" 
+                        color="primary"
+                        onClick={handleAddCircle}
+                        disabled={!newCircleName.trim()}
+                      >
+                        <AddIcon />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                ) : (
+                  // View Mode
+                  <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 1 }}>
+                    {contact.circles && contact.circles.length > 0 ? (
+                      contact.circles.map((circle, index) => (
+                        <Chip key={index} label={circle} size="small" color="primary" />
+                      ))
+                    ) : (
+                      <Typography variant="caption" color="text.secondary">
+                        {t('contactDetail.noCircles')}
+                      </Typography>
+                    )}
+                  </Stack>
+                )}
+              </Box>
             </Box>
           </Box>
         </CardContent>
@@ -429,13 +980,28 @@ export default function ContactDetailPage({ token }: { token: string }) {
               {timelineItems.map((item, index) => {
                 const itemDate = new Date(item.date);
                 const isValidDate = !isNaN(itemDate.getTime());
+                const isEditing = editingTimelineItem?.type === item.type && editingTimelineItem?.id === item.data.ID;
                 
                 return (
                 <TimelineItem key={`${item.type}-${item.data.ID}`}>
                   <TimelineOppositeContent color="text.secondary" sx={{ flex: 0.3 }}>
-                    <Typography variant="caption">
-                      {isValidDate ? itemDate.toLocaleDateString() : (item.date || 'N/A')}
-                    </Typography>
+                    {isEditing ? (
+                      <TextField
+                        type="date"
+                        value={item.type === 'note' ? editTimelineValues.noteDate : editTimelineValues.activityDate}
+                        onChange={(e) => setEditTimelineValues({
+                          ...editTimelineValues,
+                          ...(item.type === 'note' ? { noteDate: e.target.value } : { activityDate: e.target.value })
+                        })}
+                        size="small"
+                        sx={{ width: '100%' }}
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    ) : (
+                      <Typography variant="caption">
+                        {isValidDate ? itemDate.toLocaleDateString() : (item.date || 'N/A')}
+                      </Typography>
+                    )}
                   </TimelineOppositeContent>
                   <TimelineSeparator>
                     <TimelineDot color={item.type === 'note' ? 'primary' : 'secondary'}>
@@ -444,15 +1010,199 @@ export default function ContactDetailPage({ token }: { token: string }) {
                     {index < timelineItems.length - 1 && <TimelineConnector />}
                   </TimelineSeparator>
                   <TimelineContent>
-                    <Paper elevation={2} sx={{ p: 2 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
-                        {item.type === 'note' ? t('contactDetail.note') : (item.data as Activity).title}
-                      </Typography>
-                      <Typography variant="body2" sx={{ mt: 1 }}>
-                        {item.type === 'note' 
-                          ? (item.data as Note).content 
-                          : (item.data as Activity).description || t('contactDetail.noDescription')}
-                      </Typography>
+                    <Paper 
+                      elevation={2} 
+                      sx={{ 
+                        p: 2,
+                        position: 'relative',
+                        '&:hover .edit-icon': {
+                          opacity: 1
+                        }
+                      }}
+                    >
+                      {isEditing ? (
+                        // Edit Mode
+                        <Box>
+                          {item.type === 'note' ? (
+                            // Edit Note
+                            <TextField
+                              fullWidth
+                              multiline
+                              rows={3}
+                              value={editTimelineValues.noteContent}
+                              onChange={(e) => setEditTimelineValues({
+                                ...editTimelineValues,
+                                noteContent: e.target.value
+                              })}
+                              size="small"
+                              autoFocus
+                              placeholder={t('noteDialog.contentPlaceholder')}
+                            />
+                          ) : (
+                            // Edit Activity
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                              <TextField
+                                fullWidth
+                                value={editTimelineValues.activityTitle}
+                                onChange={(e) => setEditTimelineValues({
+                                  ...editTimelineValues,
+                                  activityTitle: e.target.value
+                                })}
+                                size="small"
+                                label={t('activityDialog.activityTitle')}
+                                autoFocus
+                              />
+                              <TextField
+                                fullWidth
+                                multiline
+                                rows={2}
+                                value={editTimelineValues.activityDescription}
+                                onChange={(e) => setEditTimelineValues({
+                                  ...editTimelineValues,
+                                  activityDescription: e.target.value
+                                })}
+                                size="small"
+                                label={t('activityDialog.description')}
+                              />
+                              <TextField
+                                fullWidth
+                                value={editTimelineValues.activityLocation}
+                                onChange={(e) => setEditTimelineValues({
+                                  ...editTimelineValues,
+                                  activityLocation: e.target.value
+                                })}
+                                size="small"
+                                label={t('activityDialog.location')}
+                              />
+                              <Autocomplete
+                                multiple
+                                options={allContacts}
+                                getOptionLabel={(contact) => `${contact.firstname}${contact.nickname ? ` "${contact.nickname}"` : ''} ${contact.lastname}`}
+                                value={editTimelineValues.activityContacts || []}
+                                onChange={(_, newValue) => setEditTimelineValues({
+                                  ...editTimelineValues,
+                                  activityContacts: newValue
+                                })}
+                                renderInput={(params) => (
+                                  <TextField
+                                    {...params}
+                                    label={t('activityDialog.contacts')}
+                                    placeholder={t('activityDialog.selectContacts')}
+                                    size="small"
+                                  />
+                                )}
+                                renderTags={(value, getTagProps) =>
+                                  value.map((contact, index) => (
+                                    <Chip
+                                      label={`${contact.firstname}${contact.nickname ? ` "${contact.nickname}"` : ''} ${contact.lastname}`}
+                                      {...getTagProps({ index })}
+                                      size="small"
+                                      key={contact.ID}
+                                    />
+                                  ))
+                                }
+                              />
+                            </Box>
+                          )}
+                          
+                          <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'space-between' }}>
+                            <IconButton 
+                              size="small" 
+                              color="error"
+                              onClick={() => item.type === 'note' 
+                                ? handleDeleteNote(item.data.ID) 
+                                : handleDeleteActivity(item.data.ID)
+                              }
+                              title={t('contactDetail.delete')}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <IconButton 
+                                size="small" 
+                                color="primary"
+                                onClick={() => item.type === 'note' 
+                                  ? handleUpdateNote(item.data.ID) 
+                                  : handleUpdateActivity(item.data.ID)
+                                }
+                                title={t('contactDetail.save')}
+                              >
+                                <SaveIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton 
+                                size="small"
+                                onClick={handleCancelEditTimelineItem}
+                                title={t('contactDetail.cancel')}
+                              >
+                                <CloseIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                          </Box>
+                        </Box>
+                      ) : (
+                        // View Mode
+                        <>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
+                            {item.type === 'note' ? t('contactDetail.note') : (item.data as Activity).title}
+                          </Typography>
+                          <Typography variant="body2" sx={{ mt: 1 }}>
+                            {item.type === 'note' 
+                              ? (item.data as Note).content 
+                              : (item.data as Activity).description || t('contactDetail.noDescription')}
+                          </Typography>
+                          {item.type === 'activity' && (item.data as Activity).location && (
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                              📍 {(item.data as Activity).location}
+                            </Typography>
+                          )}
+                          {item.type === 'activity' && (item.data as Activity).contacts && (item.data as Activity).contacts!.length > 0 && (
+                            <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
+                              <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
+                                👥
+                              </Typography>
+                              {(item.data as Activity).contacts!.map((activityContact, idx) => (
+                                <React.Fragment key={activityContact.ID}>
+                                  <Link
+                                    component="button"
+                                    variant="caption"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      navigate(`/contacts/${activityContact.ID}`);
+                                    }}
+                                    sx={{ 
+                                      cursor: 'pointer',
+                                      textDecoration: 'none',
+                                      '&:hover': { textDecoration: 'underline' }
+                                    }}
+                                  >
+                                    {activityContact.firstname}
+                                    {activityContact.nickname ? ` "${activityContact.nickname}"` : ''} 
+                                    {activityContact.lastname}
+                                  </Link>
+                                  {idx < (item.data as Activity).contacts!.length - 1 && (
+                                    <Typography variant="caption" color="text.secondary">, </Typography>
+                                  )}
+                                </React.Fragment>
+                              ))}
+                            </Box>
+                          )}
+                          
+                          <IconButton
+                            className="edit-icon"
+                            size="small"
+                            onClick={() => handleStartEditTimelineItem(item.type, item.data)}
+                            sx={{
+                              position: 'absolute',
+                              top: 8,
+                              right: 8,
+                              opacity: 0,
+                              transition: 'opacity 0.2s'
+                            }}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </>
+                      )}
                     </Paper>
                   </TimelineContent>
                 </TimelineItem>
@@ -462,6 +1212,39 @@ export default function ContactDetailPage({ token }: { token: string }) {
         </CardContent>
         </Card>
       </Box>
+
+      {/* Speed Dial for Adding Notes and Activities */}
+      <SpeedDial
+        ariaLabel="Add note or activity"
+        sx={{ position: 'fixed', bottom: 16, right: 16 }}
+        icon={<SpeedDialIcon />}
+      >
+        <SpeedDialAction
+          icon={<NoteIcon />}
+          tooltipTitle={t('contactDetail.addNote')}
+          onClick={() => setNoteDialogOpen(true)}
+        />
+        <SpeedDialAction
+          icon={<EventIcon />}
+          tooltipTitle={t('contactDetail.addActivity')}
+          onClick={() => setActivityDialogOpen(true)}
+        />
+      </SpeedDial>
+
+      {/* Dialogs */}
+      <AddNoteDialog
+        open={noteDialogOpen}
+        onClose={() => setNoteDialogOpen(false)}
+        onSave={handleSaveNote}
+      />
+      
+      <AddActivityDialog
+        open={activityDialogOpen}
+        onClose={() => setActivityDialogOpen(false)}
+        onSave={handleSaveActivity}
+        token={token}
+        preselectedContactId={contact?.ID}
+      />
     </Box>
   );
 }

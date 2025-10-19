@@ -134,24 +134,62 @@ func UpdateActivity(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
 	var activity models.Activity
-	if err := db.First(&activity, id).Error; err != nil {
+	if err := db.Preload("Contacts").First(&activity, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Activity not found"})
 		return
 	}
 
-	var updatedActivity models.Activity
-	if err := c.ShouldBindJSON(&updatedActivity); err != nil {
+	var requestBody struct {
+		Title       string    `json:"title"`
+		Date        time.Time `json:"date"`
+		Description string    `json:"description"`
+		Location    string    `json:"location"`
+		ContactIDs  []uint    `json:"contact_ids"` // Accept an array of contact IDs for many-to-many association
+	}
+
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Updateable fields
-	activity.Title = updatedActivity.Title
-	activity.Description = updatedActivity.Description
-	activity.Location = updatedActivity.Location
-	activity.Date = updatedActivity.Date
+	activity.Title = requestBody.Title
+	activity.Description = requestBody.Description
+	activity.Location = requestBody.Location
+	activity.Date = requestBody.Date
 
-	db.Save(&activity)
+	// Update contacts association if contact_ids are provided
+	if requestBody.ContactIDs != nil {
+		// Fetch the new contacts from the database
+		var contacts []models.Contact
+		if len(requestBody.ContactIDs) > 0 {
+			if err := db.Where("id IN ?", requestBody.ContactIDs).Find(&contacts).Error; err != nil {
+				log.Println("Error finding contacts with IDs:", requestBody.ContactIDs, err)
+				c.JSON(http.StatusNotFound, gin.H{"error": "One or more contacts not found"})
+				return
+			}
+		}
+
+		// Replace the existing contacts association
+		if err := db.Model(&activity).Association("Contacts").Replace(contacts); err != nil {
+			log.Println("Error updating contacts association:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update contacts association"})
+			return
+		}
+	}
+
+	// Save the activity
+	if err := db.Save(&activity).Error; err != nil {
+		log.Println("Error saving activity:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save activity"})
+		return
+	}
+
+	// Reload the activity with contacts to return complete data
+	if err := db.Preload("Contacts").First(&activity, id).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reload activity"})
+		return
+	}
 
 	c.JSON(http.StatusOK, activity)
 }

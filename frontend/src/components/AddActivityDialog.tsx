@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -52,13 +52,7 @@ export default function AddActivityDialog({
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (open) {
-      fetchContacts();
-    }
-  }, [open]);
-
-  const fetchContacts = async () => {
+  const fetchContacts = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/contacts?page=1&limit=1000`, {
@@ -85,7 +79,13 @@ export default function AddActivityDialog({
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, preselectedContactId]);
+
+  useEffect(() => {
+    if (open) {
+      fetchContacts();
+    }
+  }, [open, fetchContacts]);
 
   const handleSave = async () => {
     if (!title.trim() || !date) {

@@ -102,6 +102,33 @@
     "save": "Save",
     "required": "Title and date are required"
   },
+  "activities": {
+    "title": "Activities",
+    "search": "Search activities...",
+    "addActivity": "Add Activity",
+    "noActivities": "No activities found",
+    "noResults": "No activities match your search",
+    "date": "Date",
+    "deleteConfirm": "Delete Activity",
+    "deleteMessage": "Are you sure you want to delete this activity? This action cannot be undone."
+  },
+  "notes": {
+    "title": "Notes",
+    "search": "Search notes...",
+    "addNote": "Add Note",
+    "noNotes": "No notes found",
+    "noResults": "No notes match your search",
+    "date": "Date",
+    "deleteConfirm": "Delete Note",
+    "deleteMessage": "Are you sure you want to delete this note? This action cannot be undone."
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "close": "Close"
+  },
   "pages": {
     "notes": "Notes Page",
     "activities": "Activities Page",

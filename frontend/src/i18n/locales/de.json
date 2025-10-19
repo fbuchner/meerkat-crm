@@ -102,6 +102,33 @@
     "save": "Speichern",
     "required": "Titel und Datum sind erforderlich"
   },
+  "activities": {
+    "title": "Aktivitäten",
+    "search": "Aktivitäten suchen...",
+    "addActivity": "Aktivität hinzufügen",
+    "noActivities": "Keine Aktivitäten gefunden",
+    "noResults": "Keine Aktivitäten entsprechen Ihrer Suche",
+    "date": "Datum",
+    "deleteConfirm": "Aktivität löschen",
+    "deleteMessage": "Möchten Sie diese Aktivität wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
+  },
+  "notes": {
+    "title": "Notizen",
+    "search": "Notizen suchen...",
+    "addNote": "Notiz hinzufügen",
+    "noNotes": "Keine Notizen gefunden",
+    "noResults": "Keine Notizen entsprechen Ihrer Suche",
+    "date": "Datum",
+    "deleteConfirm": "Notiz löschen",
+    "deleteMessage": "Möchten Sie diese Notiz wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
+  },
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "close": "Schließen"
+  },
   "pages": {
     "notes": "Notizen Seite",
     "activities": "Aktivitäten Seite",

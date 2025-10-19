@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from './api';
 import { useTranslation } from 'react-i18next';
 import {
@@ -31,6 +32,7 @@ function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
 
 export default function ContactsPage({ token }: { token: string }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [contacts, setContacts] = useState<any[]>([]);
   const [profilePics, setProfilePics] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(false);
@@ -149,7 +151,19 @@ export default function ContactsPage({ token }: { token: string }) {
         <>
           <Stack spacing={2}>
             {filteredContacts.map(contact => (
-              <Card key={contact.ID} sx={{ display: 'flex', alignItems: 'center', p: 1 }}>
+              <Card 
+                key={contact.ID} 
+                sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  p: 1,
+                  cursor: 'pointer',
+                  '&:hover': {
+                    bgcolor: 'action.hover'
+                  }
+                }}
+                onClick={() => navigate(`/contacts/${contact.ID}`)}
+              >
                 <Avatar src={profilePics[contact.ID] || undefined} sx={{ width: 56, height: 56, mr: 2 }} />
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>

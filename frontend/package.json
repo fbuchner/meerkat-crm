@@ -6,6 +6,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.4",
+    "@mui/lab": "^7.0.1-beta.18",
     "@mui/material": "^7.3.4",
     "cra-template-pwa-typescript": "2.0.0",
     "i18next": "^25.6.0",

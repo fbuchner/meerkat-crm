@@ -43,6 +43,23 @@
     "noContacts": "Keine Kontakte gefunden",
     "addContact": "Kontakt hinzufügen"
   },
+  "contactDetail": {
+    "notFound": "Kontakt nicht gefunden",
+    "generalInfo": "Allgemeine Informationen",
+    "email": "E-Mail",
+    "phone": "Telefon",
+    "birthday": "Geburtstag",
+    "birthdayError": "Ungültiges Format. Verwenden Sie TT.MM. oder TT.MM.JJJJ",
+    "address": "Adresse",
+    "workInfo": "Arbeitsinformationen",
+    "foodPreferences": "Essensvorlieben",
+    "howWeMet": "Wie wir uns kennengelernt haben",
+    "additionalInfo": "Zusätzliche Informationen",
+    "timeline": "Zeitachse",
+    "noActivity": "Noch keine Notizen oder Aktivitäten",
+    "note": "Notiz",
+    "noDescription": "Keine Beschreibung"
+  },
   "pages": {
     "notes": "Notizen Seite",
     "activities": "Aktivitäten Seite",

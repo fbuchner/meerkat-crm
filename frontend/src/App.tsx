@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import ContactsPage from './ContactsPage';
+import ContactDetailPage from './ContactDetailPage';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
 import { getToken, logoutUser } from './auth';
@@ -110,6 +111,7 @@ function App() {
             <Box sx={{ p: 2 }}>
               <Routes>
                 <Route path="/contacts" element={<React.Suspense fallback={<div>{t('app.loading')}</div>}><ContactsPage token={token} /></React.Suspense>} />
+                <Route path="/contacts/:id" element={<React.Suspense fallback={<div>{t('app.loading')}</div>}><ContactDetailPage token={token} /></React.Suspense>} />
                 <Route path="/notes" element={<div>{t('pages.notes')}</div>} />
                 <Route path="/activities" element={<div>{t('pages.activities')}</div>} />
                 <Route path="/reminders" element={<div>{t('pages.reminders')}</div>} />

@@ -43,6 +43,23 @@
     "noContacts": "No contacts found",
     "addContact": "Add Contact"
   },
+  "contactDetail": {
+    "notFound": "Contact not found",
+    "generalInfo": "General Information",
+    "email": "Email",
+    "phone": "Phone",
+    "birthday": "Birthday",
+    "birthdayError": "Invalid format. Use DD.MM. or DD.MM.YYYY",
+    "address": "Address",
+    "workInfo": "Work Information",
+    "foodPreferences": "Food Preferences",
+    "howWeMet": "How We Met",
+    "additionalInfo": "Additional Information",
+    "timeline": "Timeline",
+    "noActivity": "No notes or activities yet",
+    "note": "Note",
+    "noDescription": "No description"
+  },
   "pages": {
     "notes": "Notes Page",
     "activities": "Activities Page",

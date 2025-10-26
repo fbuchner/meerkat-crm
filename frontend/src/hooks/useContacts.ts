@@ -44,7 +44,7 @@ export function useContacts(params: GetContactsParams = {}): UseContactsResult {
     } finally {
       setLoading(false);
     }
-  }, [params.page, params.limit, params.search, params.circle]);
+  }, [params]);
 
   useEffect(() => {
     fetchContacts();

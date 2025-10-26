@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Box,
@@ -46,7 +46,11 @@ interface ActivitiesPageProps {
 
 const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
   const { t } = useTranslation();
-  const { activities: allActivities, loading, refetch } = useActivities({ includeContacts: true });
+  
+  // Memoize params to prevent infinite re-renders
+  const activityParams = useMemo(() => ({ includeContacts: true }), []);
+  
+  const { activities: allActivities, loading, refetch } = useActivities(activityParams);
   const [filteredActivities, setFilteredActivities] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [addDialogOpen, setAddDialogOpen] = useState(false);

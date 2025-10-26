@@ -55,7 +55,7 @@ export function useActivities(
     } finally {
       setLoading(false);
     }
-  }, [params.page, params.limit, params.includeContacts, contactId]);
+  }, [params, contactId]);
 
   useEffect(() => {
     fetchActivities();

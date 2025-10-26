@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useContacts } from './hooks/useContacts';
 import { getCircles, getContactProfilePicture } from './api/contacts';
-import { getToken } from './auth';
 import {
   Box,
   Card,
@@ -22,14 +21,6 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 
-function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
-  let timer: NodeJS.Timeout;
-  return ((...args: any[]) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), delay);
-  }) as T;
-}
-
 export default function ContactsPage({ token }: { token: string }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -41,13 +32,16 @@ export default function ContactsPage({ token }: { token: string }) {
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  // Use custom hook for fetching contacts
-  const { contacts, total: totalContacts, loading } = useContacts({
+  // Memoize params to prevent infinite re-renders
+  const contactParams = useMemo(() => ({
     page,
     limit: pageSize,
     search: debouncedSearch,
     circle: selectedCircle
-  });
+  }), [page, debouncedSearch, selectedCircle]);
+
+  // Use custom hook for fetching contacts
+  const { contacts, total: totalContacts, loading } = useContacts(contactParams);
 
   // Fetch circles for filter
   useEffect(() => {

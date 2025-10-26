@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import {
   getContact,
   updateContact,
-  deleteContact,
   getContactProfilePicture,
   getContacts
 } from './api/contacts';

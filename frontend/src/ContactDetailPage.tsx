@@ -1,7 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { API_BASE_URL, apiFetch } from './api';
+import {
+  getContact,
+  updateContact,
+  deleteContact,
+  getContactProfilePicture,
+  getContacts
+} from './api/contacts';
+import { 
+  getContactNotes, 
+  createNote, 
+  updateNote, 
+  deleteNote,
+  Note 
+} from './api/notes';
+import {
+  getContactActivities,
+  createActivity,
+  updateActivity,
+  deleteActivity,
+  Activity
+} from './api/activities';
 import {
   Box,
   Card,
@@ -67,25 +87,6 @@ interface Contact {
   activities?: Activity[];
 }
 
-interface Note {
-  ID: number;
-  content: string;
-  date: string;
-  CreatedAt: string;
-  UpdatedAt: string;
-}
-
-interface Activity {
-  ID: number;
-  title: string;
-  description?: string;
-  location?: string;
-  date: string;
-  CreatedAt: string;
-  UpdatedAt: string;
-  contacts?: { ID: number; firstname: string; lastname: string; nickname?: string }[];
-}
-
 export default function ContactDetailPage({ token }: { token: string }) {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
@@ -134,31 +135,16 @@ export default function ContactDetailPage({ token }: { token: string }) {
     const fetchData = async () => {
       try {
         // Fetch contact details
-        const contactRes = await apiFetch(`${API_BASE_URL}/contacts/${id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (contactRes.ok) {
-          const contactData = await contactRes.json();
-          setContact(contactData);
-        }
+        const contactData = await getContact(id, token);
+        setContact(contactData);
 
         // Fetch detailed notes
-        const notesRes = await apiFetch(`${API_BASE_URL}/contacts/${id}/notes`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (notesRes.ok) {
-          const notesData = await notesRes.json();
-          setNotes(notesData.notes || []);
-        }
+        const notesData = await getContactNotes(id, token);
+        setNotes(notesData.notes || []);
 
         // Fetch detailed activities
-        const activitiesRes = await apiFetch(`${API_BASE_URL}/contacts/${id}/activities`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (activitiesRes.ok) {
-          const activitiesData = await activitiesRes.json();
-          setActivities(activitiesData.activities || []);
-        }
+        const activitiesData = await getContactActivities(id, token);
+        setActivities(activitiesData.activities || []);
 
         setLoading(false);
       } catch (err) {
@@ -170,13 +156,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     fetchData();
 
     // Fetch profile picture
-    fetch(`${API_BASE_URL}/contacts/${id}/profile_picture`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(res => {
-        if (res.ok) return res.blob();
-        return null;
-      })
+    getContactProfilePicture(id, token)
       .then(blob => {
         if (blob) {
           setProfilePic(URL.createObjectURL(blob));
@@ -191,22 +171,12 @@ export default function ContactDetailPage({ token }: { token: string }) {
 
     try {
       // Fetch detailed notes
-      const notesRes = await apiFetch(`${API_BASE_URL}/contacts/${id}/notes`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (notesRes.ok) {
-        const notesData = await notesRes.json();
-        setNotes(notesData.notes || []);
-      }
+      const notesData = await getContactNotes(id, token);
+      setNotes(notesData.notes || []);
 
       // Fetch detailed activities
-      const activitiesRes = await apiFetch(`${API_BASE_URL}/contacts/${id}/activities`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (activitiesRes.ok) {
-        const activitiesData = await activitiesRes.json();
-        setActivities(activitiesData.activities || []);
-      }
+      const activitiesData = await getContactActivities(id, token);
+      setActivities(activitiesData.activities || []);
     } catch (err) {
       console.error('Error refreshing notes and activities:', err);
     }
@@ -273,25 +243,14 @@ export default function ContactDetailPage({ token }: { token: string }) {
     }
 
     try {
-      const response = await apiFetch(`${API_BASE_URL}/contacts/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ...contact,
-          [field]: editValue
-        })
-      });
-
-      if (response.ok) {
-        const updatedContact = await response.json();
-        setContact(updatedContact);
-        setEditingField(null);
-        setEditValue('');
-        setValidationError('');
-      }
+      const updatedContact = await updateContact(id!, {
+        ...contact,
+        [field]: editValue
+      }, token);
+      setContact(updatedContact);
+      setEditingField(null);
+      setEditValue('');
+      setValidationError('');
     } catch (err) {
       console.error('Error updating contact:', err);
     }
@@ -300,22 +259,15 @@ export default function ContactDetailPage({ token }: { token: string }) {
   const handleSaveNote = async (content: string, date: string) => {
     if (!id) return;
 
-    const response = await apiFetch(`${API_BASE_URL}/contacts/${id}/notes`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
+    try {
+      await createNote(id, {
         content,
         date: new Date(date).toISOString()
-      })
-    });
-
-    if (response.ok) {
+      }, token);
       // Refresh notes and activities
       await refreshNotesAndActivities();
-    } else {
+    } catch (err) {
+      console.error('Failed to save note:', err);
       throw new Error('Failed to save note');
     }
   };
@@ -327,25 +279,18 @@ export default function ContactDetailPage({ token }: { token: string }) {
     date: string;
     contact_ids: number[];
   }) => {
-    const response = await apiFetch(`${API_BASE_URL}/activities`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
+    try {
+      await createActivity({
         title: activity.title,
         description: activity.description,
         location: activity.location,
         date: new Date(activity.date).toISOString(),
         contact_ids: activity.contact_ids
-      })
-    });
-
-    if (response.ok) {
+      }, token);
       // Refresh notes and activities
       await refreshNotesAndActivities();
-    } else {
+    } catch (err) {
+      console.error('Failed to save activity:', err);
       throw new Error('Failed to save activity');
     }
   };
@@ -365,16 +310,8 @@ export default function ContactDetailPage({ token }: { token: string }) {
       // Fetch all contacts for the autocomplete if not already loaded
       if (allContacts.length === 0) {
         try {
-          const response = await apiFetch(`${API_BASE_URL}/contacts?page=1&limit=1000`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          });
-          if (response.ok) {
-            const data = await response.json();
-            setAllContacts(data.contacts || []);
-          }
+          const data = await getContacts({ page: 1, limit: 1000 }, token);
+          setAllContacts(data.contacts || []);
         } catch (err) {
           console.error('Failed to fetch contacts:', err);
         }
@@ -399,24 +336,14 @@ export default function ContactDetailPage({ token }: { token: string }) {
     if (!editTimelineValues.noteContent?.trim()) return;
 
     try {
-      const response = await apiFetch(`${API_BASE_URL}/notes/${noteId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          content: editTimelineValues.noteContent,
-          date: editTimelineValues.noteDate ? new Date(editTimelineValues.noteDate).toISOString() : new Date().toISOString(),
-          contact_id: contact?.ID
-        })
-      });
-
-      if (response.ok) {
-        // Refresh notes and activities
-        await refreshNotesAndActivities();
-        handleCancelEditTimelineItem();
-      }
+      await updateNote(noteId, {
+        content: editTimelineValues.noteContent,
+        date: editTimelineValues.noteDate ? new Date(editTimelineValues.noteDate).toISOString() : new Date().toISOString(),
+        contact_id: contact?.ID
+      }, token);
+      // Refresh notes and activities
+      await refreshNotesAndActivities();
+      handleCancelEditTimelineItem();
     } catch (err) {
       console.error('Error updating note:', err);
     }
@@ -426,26 +353,16 @@ export default function ContactDetailPage({ token }: { token: string }) {
     if (!editTimelineValues.activityTitle?.trim()) return;
 
     try {
-      const response = await apiFetch(`${API_BASE_URL}/activities/${activityId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          title: editTimelineValues.activityTitle,
-          description: editTimelineValues.activityDescription || '',
-          location: editTimelineValues.activityLocation || '',
-          date: editTimelineValues.activityDate ? new Date(editTimelineValues.activityDate).toISOString() : new Date().toISOString(),
-          contact_ids: editTimelineValues.activityContacts?.map(c => c.ID) || []
-        })
-      });
-
-      if (response.ok) {
-        // Refresh notes and activities
-        await refreshNotesAndActivities();
-        handleCancelEditTimelineItem();
-      }
+      await updateActivity(activityId, {
+        title: editTimelineValues.activityTitle,
+        description: editTimelineValues.activityDescription || '',
+        location: editTimelineValues.activityLocation || '',
+        date: editTimelineValues.activityDate ? new Date(editTimelineValues.activityDate).toISOString() : new Date().toISOString(),
+        contact_ids: editTimelineValues.activityContacts?.map(c => c.ID) || []
+      }, token);
+      // Refresh notes and activities
+      await refreshNotesAndActivities();
+      handleCancelEditTimelineItem();
     } catch (err) {
       console.error('Error updating activity:', err);
     }
@@ -457,19 +374,10 @@ export default function ContactDetailPage({ token }: { token: string }) {
     }
 
     try {
-      const response = await apiFetch(`${API_BASE_URL}/notes/${noteId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        // Refresh notes and activities
-        await refreshNotesAndActivities();
-        handleCancelEditTimelineItem();
-      }
+      await deleteNote(noteId, token);
+      // Refresh notes and activities
+      await refreshNotesAndActivities();
+      handleCancelEditTimelineItem();
     } catch (err) {
       console.error('Error deleting note:', err);
     }
@@ -481,19 +389,10 @@ export default function ContactDetailPage({ token }: { token: string }) {
     }
 
     try {
-      const response = await apiFetch(`${API_BASE_URL}/activities/${activityId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        // Refresh notes and activities
-        await refreshNotesAndActivities();
-        handleCancelEditTimelineItem();
-      }
+      await deleteActivity(activityId, token);
+      // Refresh notes and activities
+      await refreshNotesAndActivities();
+      handleCancelEditTimelineItem();
     } catch (err) {
       console.error('Error deleting activity:', err);
     }
@@ -505,23 +404,12 @@ export default function ContactDetailPage({ token }: { token: string }) {
     const updatedCircles = [...(contact.circles || []), newCircleName.trim()];
 
     try {
-      const response = await apiFetch(`${API_BASE_URL}/contacts/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ...contact,
-          circles: updatedCircles
-        })
-      });
-
-      if (response.ok) {
-        const updatedContact = await response.json();
-        setContact(updatedContact);
-        setNewCircleName('');
-      }
+      const updatedContact = await updateContact(id!, {
+        ...contact,
+        circles: updatedCircles
+      }, token);
+      setContact(updatedContact);
+      setNewCircleName('');
     } catch (err) {
       console.error('Error adding circle:', err);
     }
@@ -533,22 +421,11 @@ export default function ContactDetailPage({ token }: { token: string }) {
     const updatedCircles = (contact.circles || []).filter(circle => circle !== circleToDelete);
 
     try {
-      const response = await apiFetch(`${API_BASE_URL}/contacts/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ...contact,
-          circles: updatedCircles
-        })
-      });
-
-      if (response.ok) {
-        const updatedContact = await response.json();
-        setContact(updatedContact);
-      }
+      const updatedContact = await updateContact(id!, {
+        ...contact,
+        circles: updatedCircles
+      }, token);
+      setContact(updatedContact);
     } catch (err) {
       console.error('Error deleting circle:', err);
     }
@@ -577,26 +454,15 @@ export default function ContactDetailPage({ token }: { token: string }) {
     }
 
     try {
-      const response = await apiFetch(`${API_BASE_URL}/contacts/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ...contact,
-          firstname: profileValues.firstname.trim(),
-          lastname: profileValues.lastname.trim(),
-          nickname: profileValues.nickname.trim(),
-          gender: profileValues.gender
-        })
-      });
-
-      if (response.ok) {
-        const updatedContact = await response.json();
-        setContact(updatedContact);
-        setEditingProfile(false);
-      }
+      const updatedContact = await updateContact(id!, {
+        ...contact,
+        firstname: profileValues.firstname.trim(),
+        lastname: profileValues.lastname.trim(),
+        nickname: profileValues.nickname.trim(),
+        gender: profileValues.gender
+      }, token);
+      setContact(updatedContact);
+      setEditingProfile(false);
     } catch (err) {
       console.error('Error updating profile:', err);
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Box,
@@ -29,7 +29,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
-import { API_BASE_URL, apiFetch } from './api';
+import { useActivities } from './hooks/useActivities';
+import { createActivity, updateActivity, deleteActivity } from './api/activities';
 import AddActivityDialog from './components/AddActivityDialog';
 
 interface Contact {
@@ -39,26 +40,14 @@ interface Contact {
   nickname?: string;
 }
 
-interface Activity {
-  ID: number;
-  title: string;
-  description: string;
-  location: string;
-  date: string;
-  CreatedAt: string;
-  UpdatedAt: string;
-  contacts?: Contact[];
-}
-
 interface ActivitiesPageProps {
   token: string;
 }
 
 const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
   const { t } = useTranslation();
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [filteredActivities, setFilteredActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { activities: allActivities, loading, refetch } = useActivities({ includeContacts: true });
+  const [filteredActivities, setFilteredActivities] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editingActivityId, setEditingActivityId] = useState<number | null>(null);
@@ -69,42 +58,17 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<number | null>(null);
 
-  const fetchActivities = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await apiFetch(`${API_BASE_URL}/activities?include=contacts`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        // Sort by date descending (newest first)
-        const sorted = (data.activities || []).sort((a: Activity, b: Activity) => {
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        });
-        setActivities(sorted);
-        setFilteredActivities(sorted);
-      }
-    } catch (err) {
-      console.error('Failed to fetch activities:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
-
+  // Sort activities by date descending (newest first) and filter
   useEffect(() => {
-    fetchActivities();
-  }, [fetchActivities]);
+    const sorted = [...allActivities].sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
 
-  useEffect(() => {
     if (searchQuery.trim() === '') {
-      setFilteredActivities(activities);
+      setFilteredActivities(sorted);
     } else {
       const query = searchQuery.toLowerCase();
-      const filtered = activities.filter((activity) => {
+      const filtered = sorted.filter((activity) => {
         const descriptionMatch = activity.description?.toLowerCase().includes(query);
         const contactMatch = activity.contacts?.some((contact: Contact) =>
           `${contact.firstname} ${contact.lastname}`.toLowerCase().includes(query)
@@ -113,7 +77,7 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
       });
       setFilteredActivities(filtered);
     }
-  }, [searchQuery, activities]);
+  }, [searchQuery, allActivities]);
 
   const handleAddActivity = () => {
     setAddDialogOpen(true);
@@ -127,26 +91,16 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
     contact_ids: number[];
   }) => {
     try {
-      const response = await apiFetch(`${API_BASE_URL}/activities`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(activity),
-      });
-
-      if (response.ok) {
-        setAddDialogOpen(false);
-        fetchActivities();
-      }
+      await createActivity(activity, token);
+      setAddDialogOpen(false);
+      refetch();
     } catch (err) {
       console.error('Failed to create activity:', err);
       throw err;
     }
   };
 
-  const handleEditClick = (activity: Activity) => {
+  const handleEditClick = (activity: any) => {
     setEditingActivityId(activity.ID);
     setEditValues({
       description: activity.description || '',
@@ -156,22 +110,12 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
 
   const handleSaveEdit = async (activityId: number) => {
     try {
-      const response = await apiFetch(`${API_BASE_URL}/activities/${activityId}`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          description: editValues.description,
-          date: editValues.date,
-        }),
-      });
-
-      if (response.ok) {
-        setEditingActivityId(null);
-        fetchActivities();
-      }
+      await updateActivity(activityId, {
+        description: editValues.description,
+        date: editValues.date,
+      }, token);
+      setEditingActivityId(null);
+      refetch();
     } catch (err) {
       console.error('Failed to update activity:', err);
     }
@@ -191,19 +135,10 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
     if (!activityToDelete) return;
 
     try {
-      const response = await apiFetch(`${API_BASE_URL}/activities/${activityToDelete}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        setDeleteConfirmOpen(false);
-        setActivityToDelete(null);
-        fetchActivities();
-      }
+      await deleteActivity(activityToDelete, token);
+      setDeleteConfirmOpen(false);
+      setActivityToDelete(null);
+      refetch();
     } catch (err) {
       console.error('Failed to delete activity:', err);
     }

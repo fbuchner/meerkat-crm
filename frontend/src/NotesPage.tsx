@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Box,
@@ -28,16 +28,9 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
-import { API_BASE_URL, apiFetch } from './api';
+import { useNotes } from './hooks/useNotes';
+import { createUnassignedNote, updateNote, deleteNote, Note } from './api/notes';
 import AddNoteDialog from './components/AddNoteDialog';
-
-interface Note {
-  ID: number;
-  content: string;
-  date: string;
-  CreatedAt: string;
-  UpdatedAt: string;
-}
 
 interface NotesPageProps {
   token: string;
@@ -45,9 +38,8 @@ interface NotesPageProps {
 
 const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
   const { t } = useTranslation();
-  const [notes, setNotes] = useState<Note[]>([]);
+  const { notes: allNotes, loading, refetch } = useNotes();
   const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
@@ -58,49 +50,22 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<number | null>(null);
 
-  const fetchNotes = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await apiFetch(`${API_BASE_URL}/notes`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        // Backend returns notes directly as an array
-        const notesArray = Array.isArray(data) ? data : (data.notes || []);
-        // Sort by date descending (newest first)
-        const sorted = notesArray.sort((a: Note, b: Note) => {
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        });
-        setNotes(sorted);
-        setFilteredNotes(sorted);
-      }
-    } catch (err) {
-      console.error('Failed to fetch notes:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
-
+  // Sort notes by date descending (newest first) and filter
   useEffect(() => {
-    fetchNotes();
-  }, [fetchNotes]);
+    const sorted = [...allNotes].sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
 
-  useEffect(() => {
     if (searchQuery.trim() === '') {
-      setFilteredNotes(notes);
+      setFilteredNotes(sorted);
     } else {
       const query = searchQuery.toLowerCase();
-      const filtered = notes.filter((note) => {
+      const filtered = sorted.filter((note) => {
         return note.content?.toLowerCase().includes(query);
       });
       setFilteredNotes(filtered);
     }
-  }, [searchQuery, notes]);
+  }, [searchQuery, allNotes]);
 
   const handleAddNote = () => {
     setAddDialogOpen(true);
@@ -108,19 +73,9 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
 
   const handleNoteSave = async (content: string, date: string) => {
     try {
-      const response = await apiFetch(`${API_BASE_URL}/notes`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ content, date }),
-      });
-
-      if (response.ok) {
-        setAddDialogOpen(false);
-        fetchNotes();
-      }
+      await createUnassignedNote({ content, date }, token);
+      setAddDialogOpen(false);
+      refetch();
     } catch (err) {
       console.error('Failed to create note:', err);
       throw err;
@@ -137,22 +92,12 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
 
   const handleSaveEdit = async (noteId: number) => {
     try {
-      const response = await apiFetch(`${API_BASE_URL}/notes/${noteId}`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content: editValues.content,
-          date: editValues.date,
-        }),
-      });
-
-      if (response.ok) {
-        setEditingNoteId(null);
-        fetchNotes();
-      }
+      await updateNote(noteId, {
+        content: editValues.content,
+        date: editValues.date,
+      }, token);
+      setEditingNoteId(null);
+      refetch();
     } catch (err) {
       console.error('Failed to update note:', err);
     }
@@ -172,19 +117,10 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
     if (!noteToDelete) return;
 
     try {
-      const response = await apiFetch(`${API_BASE_URL}/notes/${noteToDelete}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        setDeleteConfirmOpen(false);
-        setNoteToDelete(null);
-        fetchNotes();
-      }
+      await deleteNote(noteToDelete, token);
+      setDeleteConfirmOpen(false);
+      setNoteToDelete(null);
+      refetch();
     } catch (err) {
       console.error('Failed to delete note:', err);
     }

@@ -1,7 +1,9 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL, apiFetch } from './api';
 import { useTranslation } from 'react-i18next';
+import { useContacts } from './hooks/useContacts';
+import { getCircles, getContactProfilePicture } from './api/contacts';
+import { getToken } from './auth';
 import {
   Box,
   Card,
@@ -20,8 +22,6 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 
-
-
 function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
   let timer: NodeJS.Timeout;
   return ((...args: any[]) => {
@@ -33,79 +33,75 @@ function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
 export default function ContactsPage({ token }: { token: string }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [contacts, setContacts] = useState<any[]>([]);
   const [profilePics, setProfilePics] = useState<{ [key: string]: string }>({});
-  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCircle, setSelectedCircle] = useState('');
   const [circles, setCircles] = useState<string[]>([]);
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
-  const [totalContacts, setTotalContacts] = useState(0);
+  const pageSize = 10;
+
+  // Use custom hook for fetching contacts
+  const { contacts, total: totalContacts, loading } = useContacts({
+    page,
+    limit: pageSize,
+    search: debouncedSearch,
+    circle: selectedCircle
+  });
 
   // Fetch circles for filter
   useEffect(() => {
-    fetch(`${API_BASE_URL}/contacts/circles`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => setCircles(Array.isArray(data) ? data : []));
+    const fetchCircles = async () => {
+      try {
+        const data = await getCircles(token);
+        setCircles(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Error fetching circles:', err);
+      }
+    };
+    fetchCircles();
   }, [token]);
 
-  // Fetch contacts with search, pagination, and circle filter
-  const fetchContactsData = useCallback((value: string, pageNum: number = 1) => {
-    setLoading(true);
-    let url = `${API_BASE_URL}/contacts?page=${pageNum}&limit=${pageSize}`;
-    if (value) url += `&search=${encodeURIComponent(value)}`;
-    if (selectedCircle) url += `&circle=${encodeURIComponent(selectedCircle)}`;
-    fetch(url, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(async data => {
-        const contactsArr = data.contacts || [];
-        setContacts(contactsArr);
-        // Use the backend's total count if available, otherwise calculate from contacts array
-        const total = typeof data.total === 'number' ? data.total : contactsArr.length;
-        setTotalContacts(total);
-        // Fetch profile pictures for each contact
-        const picPromises = contactsArr.map(async (contact: any) => {
-          try {
-            const res = await apiFetch(`${API_BASE_URL}/contacts/${contact.ID}/profile_picture`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-              const blob = await res.blob();
-              return { id: contact.ID, url: URL.createObjectURL(blob) };
-            }
-          } catch {}
-          return { id: contact.ID, url: '' };
-        });
-        const picResults = await Promise.all(picPromises);
-        const picMap: { [key: string]: string } = {};
-        picResults.forEach(({ id, url }) => { picMap[id] = url; });
-        setProfilePics(picMap);
-        setLoading(false);
-      });
-  }, [token, pageSize, selectedCircle]);
-
-  // Create a memoized debounced search function
-  const debouncedSearch = useMemo(
-    () => debounce((value: string, pageNum: number = 1) => {
-      fetchContactsData(value, pageNum);
-    }, 400),
-    [fetchContactsData]
-  );
-
+  // Debounce search input
   useEffect(() => {
-    debouncedSearch(search, page);
-  }, [search, page, selectedCircle, debouncedSearch]);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1); // Reset to page 1 when search changes
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Fetch profile pictures when contacts change
+  useEffect(() => {
+    const fetchProfilePics = async () => {
+      const picPromises = contacts.map(async (contact) => {
+        try {
+          const blob = await getContactProfilePicture(contact.ID, token);
+          if (blob) {
+            return { id: contact.ID, url: URL.createObjectURL(blob) };
+          }
+        } catch {
+          // Silently fail for profile picture loading
+        }
+        return { id: contact.ID, url: '' };
+      });
+      const picResults = await Promise.all(picPromises);
+      const picMap: { [key: string]: string } = {};
+      picResults.forEach(({ id, url }) => { picMap[id] = url; });
+      setProfilePics(picMap);
+    };
+    
+    if (contacts.length > 0) {
+      fetchProfilePics();
+    }
+  }, [contacts, token]);
 
   // Filter contacts by selected circle
-  // With backend pagination, contacts is already filtered
+  // With backend pagination, contacts are already filtered
   const filteredContacts = contacts;
 
   const isFiltered = selectedCircle !== '';
+  
   return (
     <Box sx={{ maxWidth: 800, mx: 'auto', mt: 4 }}>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2}>

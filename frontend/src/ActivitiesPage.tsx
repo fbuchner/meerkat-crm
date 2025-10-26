@@ -13,8 +13,6 @@ import {
   DialogActions,
   Chip,
   CircularProgress,
-  SpeedDial,
-  SpeedDialAction,
 } from '@mui/material';
 import {
   Timeline,
@@ -31,7 +29,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
-import { API_BASE_URL } from './api';
+import { API_BASE_URL, apiFetch } from './api';
 import AddActivityDialog from './components/AddActivityDialog';
 
 interface Contact {
@@ -74,7 +72,7 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
   const fetchActivities = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/activities?include=contacts`, {
+      const response = await apiFetch(`${API_BASE_URL}/activities?include=contacts`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -129,7 +127,7 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
     contact_ids: number[];
   }) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/activities`, {
+      const response = await apiFetch(`${API_BASE_URL}/activities`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -158,7 +156,7 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
 
   const handleSaveEdit = async (activityId: number) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/activities/${activityId}`, {
+      const response = await apiFetch(`${API_BASE_URL}/activities/${activityId}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -193,7 +191,7 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
     if (!activityToDelete) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/activities/${activityToDelete}`, {
+      const response = await apiFetch(`${API_BASE_URL}/activities/${activityToDelete}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,

@@ -29,3 +29,8 @@ export function getToken(): string | null {
 export function logoutUser() {
   localStorage.removeItem('jwt_token');
 }
+
+export function logoutAndRedirect() {
+  localStorage.removeItem('jwt_token');
+  window.location.href = '/login';
+}

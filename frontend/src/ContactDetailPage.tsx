@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { API_BASE_URL } from './api';
+import { API_BASE_URL, apiFetch } from './api';
 import {
   Box,
   Card,
@@ -134,7 +134,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     const fetchData = async () => {
       try {
         // Fetch contact details
-        const contactRes = await fetch(`${API_BASE_URL}/contacts/${id}`, {
+        const contactRes = await apiFetch(`${API_BASE_URL}/contacts/${id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (contactRes.ok) {
@@ -143,7 +143,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
         }
 
         // Fetch detailed notes
-        const notesRes = await fetch(`${API_BASE_URL}/contacts/${id}/notes`, {
+        const notesRes = await apiFetch(`${API_BASE_URL}/contacts/${id}/notes`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (notesRes.ok) {
@@ -152,7 +152,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
         }
 
         // Fetch detailed activities
-        const activitiesRes = await fetch(`${API_BASE_URL}/contacts/${id}/activities`, {
+        const activitiesRes = await apiFetch(`${API_BASE_URL}/contacts/${id}/activities`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (activitiesRes.ok) {
@@ -191,7 +191,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
 
     try {
       // Fetch detailed notes
-      const notesRes = await fetch(`${API_BASE_URL}/contacts/${id}/notes`, {
+      const notesRes = await apiFetch(`${API_BASE_URL}/contacts/${id}/notes`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (notesRes.ok) {
@@ -200,7 +200,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
       }
 
       // Fetch detailed activities
-      const activitiesRes = await fetch(`${API_BASE_URL}/contacts/${id}/activities`, {
+      const activitiesRes = await apiFetch(`${API_BASE_URL}/contacts/${id}/activities`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (activitiesRes.ok) {
@@ -273,7 +273,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/contacts/${id}`, {
+      const response = await apiFetch(`${API_BASE_URL}/contacts/${id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -300,7 +300,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
   const handleSaveNote = async (content: string, date: string) => {
     if (!id) return;
 
-    const response = await fetch(`${API_BASE_URL}/contacts/${id}/notes`, {
+    const response = await apiFetch(`${API_BASE_URL}/contacts/${id}/notes`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -327,7 +327,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     date: string;
     contact_ids: number[];
   }) => {
-    const response = await fetch(`${API_BASE_URL}/activities`, {
+    const response = await apiFetch(`${API_BASE_URL}/activities`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -365,7 +365,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
       // Fetch all contacts for the autocomplete if not already loaded
       if (allContacts.length === 0) {
         try {
-          const response = await fetch(`${API_BASE_URL}/contacts?page=1&limit=1000`, {
+          const response = await apiFetch(`${API_BASE_URL}/contacts?page=1&limit=1000`, {
             headers: {
               Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
@@ -399,7 +399,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     if (!editTimelineValues.noteContent?.trim()) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/notes/${noteId}`, {
+      const response = await apiFetch(`${API_BASE_URL}/notes/${noteId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -426,7 +426,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     if (!editTimelineValues.activityTitle?.trim()) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/activities/${activityId}`, {
+      const response = await apiFetch(`${API_BASE_URL}/activities/${activityId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -457,7 +457,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/notes/${noteId}`, {
+      const response = await apiFetch(`${API_BASE_URL}/notes/${noteId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -481,7 +481,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/activities/${activityId}`, {
+      const response = await apiFetch(`${API_BASE_URL}/activities/${activityId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -505,7 +505,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     const updatedCircles = [...(contact.circles || []), newCircleName.trim()];
 
     try {
-      const response = await fetch(`${API_BASE_URL}/contacts/${id}`, {
+      const response = await apiFetch(`${API_BASE_URL}/contacts/${id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -533,7 +533,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     const updatedCircles = (contact.circles || []).filter(circle => circle !== circleToDelete);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/contacts/${id}`, {
+      const response = await apiFetch(`${API_BASE_URL}/contacts/${id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -577,7 +577,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/contacts/${id}`, {
+      const response = await apiFetch(`${API_BASE_URL}/contacts/${id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

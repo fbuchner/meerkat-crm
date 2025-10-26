@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from './api';
+import { API_BASE_URL, apiFetch } from './api';
 import { useTranslation } from 'react-i18next';
 import {
   Box,
@@ -71,7 +71,7 @@ export default function ContactsPage({ token }: { token: string }) {
         // Fetch profile pictures for each contact
         const picPromises = contactsArr.map(async (contact: any) => {
           try {
-            const res = await fetch(`${API_BASE_URL}/contacts/${contact.ID}/profile_picture`, {
+            const res = await apiFetch(`${API_BASE_URL}/contacts/${contact.ID}/profile_picture`, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {

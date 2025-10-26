@@ -28,7 +28,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
-import { API_BASE_URL } from './api';
+import { API_BASE_URL, apiFetch } from './api';
 import AddNoteDialog from './components/AddNoteDialog';
 
 interface Note {
@@ -61,7 +61,7 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
   const fetchNotes = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/notes`, {
+      const response = await apiFetch(`${API_BASE_URL}/notes`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -108,7 +108,7 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
 
   const handleNoteSave = async (content: string, date: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/notes`, {
+      const response = await apiFetch(`${API_BASE_URL}/notes`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -137,7 +137,7 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
 
   const handleSaveEdit = async (noteId: number) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/notes/${noteId}`, {
+      const response = await apiFetch(`${API_BASE_URL}/notes/${noteId}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -172,7 +172,7 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
     if (!noteToDelete) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/notes/${noteToDelete}`, {
+      const response = await apiFetch(`${API_BASE_URL}/notes/${noteToDelete}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,

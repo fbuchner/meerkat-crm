@@ -1,5 +1,5 @@
-// src/api.ts
-// Basic API service for Perema backend
+// API client with authentication and error handling
+import { getToken } from '../auth';
 
 export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
@@ -21,17 +21,11 @@ export async function apiFetch(
   return response;
 }
 
-export async function fetchContacts(token: string) {
-  const response = await apiFetch(`${API_BASE_URL}/contacts`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!response.ok) {
-    throw new Error('Failed to fetch contacts');
-  }
-  return response.json();
+// Helper to create authenticated headers
+export function getAuthHeaders(token?: string): HeadersInit {
+  const authToken = token || getToken();
+  return {
+    'Authorization': `Bearer ${authToken}`,
+    'Content-Type': 'application/json',
+  };
 }
-
-// Add more API functions as needed, e.g. for login, notes, activities, reminders

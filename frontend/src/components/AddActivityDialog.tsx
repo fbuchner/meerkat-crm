@@ -11,7 +11,7 @@ import {
   Chip,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { API_BASE_URL } from '../api';
+import { API_BASE_URL, apiFetch } from '../api';
 
 interface Contact {
   ID: number;
@@ -55,7 +55,7 @@ export default function AddActivityDialog({
   const fetchContacts = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/contacts?page=1&limit=1000`, {
+      const response = await apiFetch(`${API_BASE_URL}/contacts?page=1&limit=1000`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',

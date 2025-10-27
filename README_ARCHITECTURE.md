@@ -498,6 +498,45 @@ CREATE TABLE users (
 
 ## API Documentation
 
+### Health Check Endpoint
+
+#### GET `/health`
+Check the health status of the API and its dependencies. This endpoint does not require authentication.
+
+**Response:** `200 OK` (when healthy)
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-10-27T22:30:00Z",
+  "database": {
+    "status": "healthy",
+    "response_time_ms": 1.5
+  },
+  "version": "0.1.0"
+}
+```
+
+**Response:** `503 Service Unavailable` (when unhealthy)
+```json
+{
+  "status": "unhealthy",
+  "timestamp": "2025-10-27T22:30:00Z",
+  "database": {
+    "status": "unhealthy",
+    "response_time_ms": 0
+  },
+  "version": "0.1.0"
+}
+```
+
+**Use Cases:**
+- Container orchestration health checks (Docker, Kubernetes)
+- Load balancer health monitoring
+- Uptime monitoring services
+- CI/CD deployment verification
+
+---
+
 ### Authentication Endpoints
 
 #### POST `/register`

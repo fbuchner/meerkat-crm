@@ -10,10 +10,14 @@ import (
 
 func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 
+	// Public routes (no authentication required)
+	router.GET("/health", controllers.HealthCheck)
 	router.POST("/register", controllers.RegisterUser)
 	router.POST("/login", func(c *gin.Context) {
 		controllers.LoginUser(c, cfg)
 	})
+
+	// Protected routes (authentication required)
 	protected := router.Group("/")
 	protected.Use(middleware.AuthMiddleware(cfg))
 

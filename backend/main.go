@@ -51,14 +51,16 @@ func main() {
 
 	r := gin.Default()
 
-	// Enable CORS for all origins, methods, and headers
+	// CORS configuration with preflight caching
+	// MaxAge: Browsers cache preflight OPTIONS requests for 12 hours
+	// This reduces redundant OPTIONS requests and improves performance
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{cfg.FrontendURL},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
+		MaxAge:           12 * time.Hour, // Cache preflight for 12 hours
 	}))
 
 	r.SetTrustedProxies(cfg.TrustedProxies)

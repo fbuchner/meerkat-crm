@@ -14,7 +14,7 @@ type Contact struct {
 	Phone              string         `json:"phone"`
 	Birthday           string         `json:"birthday"`
 	Photo              string         `json:"photo"`                                     // Path to the profile photo
-	PhotoThumbnail     string         `json:"photo_thumnbnail"`                          // Path to the profile photo thumbnail
+	PhotoThumbnail     string         `json:"photo_thumbnail"`                           // Path to the profile photo thumbnail
 	Relationships      []Relationship `gorm:"foreignKey:ContactID" json:"relationships"` // Has many relationships
 	Address            string         `json:"address"`                                   // Full address as a string
 	HowWeMet           string         `json:"how_we_met"`                                // Text field

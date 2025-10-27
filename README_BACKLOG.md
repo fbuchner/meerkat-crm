@@ -487,11 +487,6 @@ cd frontend
 npm outdated
 ```
 
-**Current considerations:**
-- React 18.2 → React 18.3+ or 19 when stable
-- GORM v2 → Keep updated for bug fixes
-- MUI v7 → Monitor for updates
-
 ---
 
 ## Suggested Implementation Order
@@ -523,19 +518,6 @@ For a production-ready system, tackle in this order:
 16. Performance optimizations
 17. UI/UX improvements
 18. Documentation
-
----
-
-## Metrics to Track
-
-As you implement improvements, track:
-- Test coverage percentage
-- Build time
-- API response times
-- Bundle size
-- Lighthouse scores
-- Security audit results
-- User-reported bugs
 
 ---
 

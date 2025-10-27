@@ -1,7 +1,8 @@
 // src/api.ts
-// Basic API service for Perema backend
+// Basic API service for Perema backend (Legacy - prefer using api/client.ts)
 
-export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+const API_SERVER_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+export const API_BASE_URL = `${API_SERVER_URL}/api/v1`;
 
 // Centralized fetch wrapper that handles token expiration
 export async function apiFetch(

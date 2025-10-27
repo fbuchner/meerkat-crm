@@ -537,9 +537,35 @@ Check the health status of the API and its dependencies. This endpoint does not 
 
 ---
 
+## API Documentation
+
+### API Versioning
+
+All API endpoints (except `/health`) are versioned and prefixed with `/api/v1`.
+
+**Base URL**: `http://localhost:8080/api/v1`
+
+**Example Endpoints:**
+- `POST /api/v1/register`
+- `POST /api/v1/login`
+- `GET /api/v1/contacts`
+- `GET /api/v1/notes`
+
+**Health Check** (no versioning):
+- `GET /health` - Available at root level for monitoring tools
+
+**Future Versions:**
+- When breaking changes are needed, we'll introduce `/api/v2`
+- Previous versions will be maintained for backward compatibility
+- Deprecation notices will be provided in advance
+
+---
+
 ### Authentication Endpoints
 
-#### POST `/register`
+All authentication endpoints are under `/api/v1`.
+
+#### POST `/api/v1/register`
 Register a new user.
 
 **Request:**
@@ -558,7 +584,7 @@ Register a new user.
 }
 ```
 
-#### POST `/login`
+#### POST `/api/v1/login`
 Authenticate and receive JWT token.
 
 **Request:**
@@ -585,7 +611,7 @@ Authenticate and receive JWT token.
 
 All endpoints require `Authorization: Bearer <token>` header.
 
-#### GET `/contacts`
+#### GET `/api/v1/contacts`
 Get paginated list of contacts with optional search and filtering.
 
 **Query Parameters:**
@@ -604,7 +630,7 @@ Get paginated list of contacts with optional search and filtering.
 }
 ```
 
-#### GET `/contacts/:id`
+#### GET `/api/v1/contacts/:id`
 Get a single contact by ID.
 
 #### POST `/contacts`

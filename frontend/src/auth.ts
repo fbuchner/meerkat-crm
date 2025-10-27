@@ -1,7 +1,8 @@
 // src/auth.ts
 // Simple JWT auth service for Perema frontend
 
-export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+const API_SERVER_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+export const API_BASE_URL = `${API_SERVER_URL}/api/v1`;
 
 export async function loginUser(email: string, password: string): Promise<string> {
   const response = await fetch(`${API_BASE_URL}/login`, {

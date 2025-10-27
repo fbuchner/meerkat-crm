@@ -1,7 +1,9 @@
 // API client with authentication and error handling
 import { getToken } from '../auth';
 
-export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+// API base URL with versioning
+const API_SERVER_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+export const API_BASE_URL = `${API_SERVER_URL}/api/v1`;
 
 // Centralized fetch wrapper that handles token expiration
 export async function apiFetch(

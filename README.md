@@ -33,13 +33,19 @@ To set up this repository for development, follow these steps:
     ```
 
 1. **Run the backend:**
-Ensure you have [Go](https://golang.org/doc/install) installed. Then, install the required Go packages, load the environment variables and run the backend (consider creating a copy of the environment.env named my_environment.env to store your personal configuration. It will be ignored by git). The project uses an sqlite database for storage, it will be automatically created if it does not exist.:
+Ensure you have [Go](https://golang.org/doc/install) installed. Then, set up your environment configuration:
     ```sh
     cd backend
+    # Copy the example environment file and configure it with your settings
+    cp .env.example my_environment.env
+    # Edit my_environment.env with your actual configuration values
+    
+    # Install dependencies and run
     go mod tidy
-    source environment.env
+    source my_environment.env
     go run main.go
     ```
+   The project uses an SQLite database for storage, which will be automatically created if it doesn't exist.
 
 1. **Run the frontend (in a second terminal):**
     ```sh

@@ -1,10 +1,87 @@
+# Environment files
+*.env
 my_environment.env
-static/perema.db
+environment.env
+.env.local
+.env.*.local
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
 perema.db
-.vscode/
-.DS_Store/
-.DS_Store
-backend/static/photos/
-backend/perema
+static/perema.db
+backend/perema.db
+backend/static/perema.db
+
+# TLS/SSL certificates
+*.pem
+*.key
+*.crt
 key.pem
 cert.pem
+
+# Uploaded files
+backend/static/photos/
+static/photos/
+
+# Build artifacts
+backend/perema
+backend/main
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go specific
+*.test
+*.out
+vendor/
+
+# Frontend build
+frontend/build/
+frontend/dist/
+frontend/node_modules/
+node_modules/
+
+# IDE specific
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# OS specific
+.DS_Store
+.DS_Store/
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+
+# Testing
+coverage/
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*~

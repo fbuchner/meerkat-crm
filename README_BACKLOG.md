@@ -389,9 +389,11 @@ This document outlines improvement opportunities for the Meerkat CRM codebase, o
 
 These are small tasks that provide immediate value:
 
-1. **Add `.gitignore` improvements** (30 min)
+1. ✅ **Add `.gitignore` improvements** (30 min) - COMPLETED
    - Exclude `perema.db`, `*.env` files
    - Add OS-specific ignores (`.DS_Store`, etc.)
+   - Created `.env.example` template
+   - Removed tracked `environment.env` from git
 
 2. **Add proper README badges** (30 min)
    - Build status, test coverage, license
@@ -481,10 +483,14 @@ Check for outdated dependencies periodically:
 # Backend
 cd backend
 go list -u -m all
+go get -u
+go mod tidy
 
 # Frontend
 cd frontend
 npm outdated
+npx npm-check-updates -u
+npm install
 ```
 
 ---

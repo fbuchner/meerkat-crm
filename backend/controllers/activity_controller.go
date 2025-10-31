@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"errors"
-	"log"
 	"net/http"
 	apperrors "perema/errors"
+	"perema/logger"
 	"perema/models"
 	"strconv"
 	"time"
@@ -24,7 +24,7 @@ func CreateActivity(c *gin.Context) {
 
 	// Bind the incoming JSON to the requestBody
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		log.Println("Error binding JSON for create activity:", err)
+		logger.FromContext(c).Error().Err(err).Msg("Error binding JSON for create activity")
 		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("activity", err.Error()))
 		return
 	}
@@ -34,7 +34,7 @@ func CreateActivity(c *gin.Context) {
 	var contacts []models.Contact
 	if len(requestBody.ContactIDs) > 0 {
 		if err := db.Where("id IN ?", requestBody.ContactIDs).Find(&contacts).Error; err != nil {
-			log.Println("Error finding contacts with IDs:", requestBody.ContactIDs, err)
+			logger.FromContext(c).Error().Err(err).Uints("contact_ids", requestBody.ContactIDs).Msg("Error finding contacts with IDs")
 			apperrors.AbortWithError(c, apperrors.ErrNotFound("One or more contacts"))
 			return
 		}
@@ -50,7 +50,7 @@ func CreateActivity(c *gin.Context) {
 
 	// Save the new activity to the database
 	if err := db.Create(&activity).Error; err != nil {
-		log.Println("Error saving activity to the database:", err)
+		logger.FromContext(c).Error().Err(err).Msg("Error saving activity to database")
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save activity").WithError(err))
 		return
 	}
@@ -58,7 +58,7 @@ func CreateActivity(c *gin.Context) {
 	// Update the activity's contacts association
 	if len(contacts) > 0 {
 		if err := db.Model(&activity).Association("Contacts").Append(contacts); err != nil {
-			log.Println("Error creating relationship between activity and contacts:", err)
+			logger.FromContext(c).Error().Err(err).Msg("Error creating relationship between activity and contacts")
 			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to associate contacts with activity").WithError(err))
 			return
 		}
@@ -117,7 +117,7 @@ func GetActivities(c *gin.Context) {
 
 	if includeContacts {
 		query = query.Preload("Contacts")
-		log.Println("Preloading contacts")
+		logger.FromContext(c).Debug().Msg("Preloading contacts for activities")
 	}
 
 	// Execute the query
@@ -174,7 +174,7 @@ func UpdateActivity(c *gin.Context) {
 		var contacts []models.Contact
 		if len(requestBody.ContactIDs) > 0 {
 			if err := db.Where("id IN ?", requestBody.ContactIDs).Find(&contacts).Error; err != nil {
-				log.Println("Error finding contacts with IDs:", requestBody.ContactIDs, err)
+				logger.FromContext(c).Error().Err(err).Uints("contact_ids", requestBody.ContactIDs).Msg("Error finding contacts with IDs")
 				apperrors.AbortWithError(c, apperrors.ErrNotFound("One or more contacts"))
 				return
 			}
@@ -182,7 +182,7 @@ func UpdateActivity(c *gin.Context) {
 
 		// Replace the existing contacts association
 		if err := db.Model(&activity).Association("Contacts").Replace(contacts); err != nil {
-			log.Println("Error updating contacts association:", err)
+			logger.FromContext(c).Error().Err(err).Msg("Error updating contacts association")
 			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update contacts association").WithError(err))
 			return
 		}
@@ -190,7 +190,7 @@ func UpdateActivity(c *gin.Context) {
 
 	// Save the activity
 	if err := db.Save(&activity).Error; err != nil {
-		log.Println("Error saving activity:", err)
+		logger.FromContext(c).Error().Err(err).Msg("Error saving activity")
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save activity").WithError(err))
 		return
 	}

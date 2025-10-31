@@ -2,7 +2,7 @@ package errors
 
 import (
 	"fmt"
-	"log"
+	"perema/logger"
 	"runtime/debug"
 	"time"
 
@@ -30,7 +30,12 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 			if err := recover(); err != nil {
 				// Log the panic with stack trace
 				stackTrace := string(debug.Stack())
-				log.Printf("[PANIC] %v\n%s", err, stackTrace)
+
+				log := logger.FromContext(c)
+				log.Error().
+					Str("panic", fmt.Sprintf("%v", err)).
+					Str("stack_trace", stackTrace).
+					Msg("Panic recovered")
 
 				// Create internal error response
 				appErr := ErrInternal("An unexpected error occurred")
@@ -82,31 +87,24 @@ func RespondWithError(c *gin.Context, err *AppError) {
 
 // LogError logs an error with context
 func LogError(c *gin.Context, err *AppError) {
-	requestID, _ := c.Get("request_id")
-	userID, _ := c.Get("user_id")
+	log := logger.FromContext(c)
 
-	logMessage := fmt.Sprintf(
-		"[ERROR] code=%s status=%d request_id=%v user_id=%v method=%s path=%s error=%s",
-		err.Code,
-		err.HTTPStatus,
-		requestID,
-		userID,
-		c.Request.Method,
-		c.Request.URL.Path,
-		err.Error(),
-	)
+	event := log.Error().
+		Str("code", err.Code).
+		Int("status", err.HTTPStatus).
+		Str("error", err.Message)
 
 	// Include underlying error if present
 	if err.Err != nil {
-		logMessage += fmt.Sprintf(" underlying=%v", err.Err)
+		event = event.Err(err.Err)
 	}
 
 	// Include details if present
 	if len(err.Details) > 0 {
-		logMessage += fmt.Sprintf(" details=%+v", err.Details)
+		event = event.Interface("details", err.Details)
 	}
 
-	log.Println(logMessage)
+	event.Msg("Request error")
 }
 
 // AbortWithError aborts the request and responds with an error

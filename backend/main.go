@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
+	"os"
 	"perema/config"
 	apperrors "perema/errors"
+	"perema/logger"
 	"perema/middleware"
 	"perema/models"
 	"perema/routes"
@@ -21,34 +22,53 @@ import (
 )
 
 func main() {
-	log.Println("Loading server...")
+	// Initialize logger first
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "info"
+	}
 
-	log.Println("Loading configuration...")
+	isPretty := os.Getenv("LOG_PRETTY")
+	prettyLog := isPretty == "true" || isPretty == "1"
+
+	// In development, use pretty logs by default
+	if os.Getenv("GIN_MODE") != "release" {
+		prettyLog = true
+	}
+
+	logger.InitLogger(logger.Config{
+		Level:  logLevel,
+		Pretty: prettyLog,
+	})
+
+	logger.Info().Msg("Loading server...")
+
+	logger.Info().Msg("Loading configuration...")
 	cfg := config.LoadConfig()
 
-	log.Println("Validating configuration...")
+	logger.Info().Msg("Validating configuration...")
 	cfg.ValidateOrPanic()
 
-	log.Println("Loading database...")
+	logger.Info().Msg("Loading database...")
 	db, err := gorm.Open(sqlite.Open(cfg.DBPath), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("failed to connect database")
+		logger.Fatal().Err(err).Msg("Failed to connect database")
 	}
 
-	log.Println("Loading migrations...")
+	logger.Info().Msg("Loading migrations...")
 	if err := db.AutoMigrate(&models.Contact{}, &models.Activity{}, &models.Note{}, models.Relationship{}, models.Reminder{}, models.User{}); err != nil {
-		log.Fatalf("failed to migrate database schema: %v", err)
+		logger.Fatal().Err(err).Msg("Failed to migrate database schema")
 	}
 
-	log.Println("Running scheduler...")
+	logger.Info().Msg("Running scheduler...")
 	// Schedule the reminder task daily
 	if !cfg.UseSendgrid {
-		log.Printf("WARN: No Mails to be sent since Sendgrid configuration is not set")
+		logger.Warn().Msg("No Mails to be sent since Sendgrid configuration is not set")
 	}
 	s := gocron.NewScheduler(time.UTC)
 	task := func() {
 		if err := services.SendReminders(db, *cfg); err != nil {
-			log.Printf("Error sending birthday reminders: %v", err)
+			logger.Error().Err(err).Msg("Error sending birthday reminders")
 		}
 	}
 	s.Every(1).Day().At(cfg.ReminderTime).Do(task)
@@ -88,6 +108,9 @@ func main() {
 	// Add request ID middleware for tracing
 	r.Use(middleware.RequestIDMiddleware())
 
+	// Add logging middleware (after request ID)
+	r.Use(middleware.LoggingMiddleware())
+
 	// Add error handling middleware
 	r.Use(apperrors.ErrorHandlerMiddleware())
 
@@ -114,9 +137,14 @@ func main() {
 		IdleTimeout:  time.Duration(cfg.IdleTimeout) * time.Second,
 	}
 
-	log.Printf("Starting server on Port :%s...", cfg.Port)
-	log.Printf("HTTP Timeouts - Read: %ds, Write: %ds, Idle: %ds", cfg.ReadTimeout, cfg.WriteTimeout, cfg.IdleTimeout)
+	logger.Info().
+		Str("port", cfg.Port).
+		Int("read_timeout", cfg.ReadTimeout).
+		Int("write_timeout", cfg.WriteTimeout).
+		Int("idle_timeout", cfg.IdleTimeout).
+		Msg("Starting server")
+
 	if err := srv.ListenAndServe(); err != nil {
-		log.Fatalf("Failed to run server: %v", err)
+		logger.Fatal().Err(err).Msg("Failed to run server")
 	}
 }

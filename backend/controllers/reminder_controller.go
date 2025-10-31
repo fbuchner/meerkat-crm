@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"errors"
-	"log"
 	"net/http"
 	apperrors "perema/errors"
+	"perema/logger"
 	"perema/models"
 	"time"
 
@@ -31,7 +31,7 @@ func CreateReminder(c *gin.Context) {
 	// Bind the incoming JSON request to the Reminder struct
 	var reminder models.Reminder
 	if err := c.ShouldBindJSON(&reminder); err != nil {
-		log.Println("Error binding JSON for create reminder:", err)
+		logger.FromContext(c).Error().Err(err).Msg("Error binding JSON for create reminder")
 		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("reminder", err.Error()))
 		return
 	}
@@ -46,7 +46,7 @@ func CreateReminder(c *gin.Context) {
 
 	// Save the new reminder to the database
 	if err := db.Create(&reminder).Error; err != nil {
-		log.Println("Error saving to database:", err)
+		logger.FromContext(c).Error().Err(err).Msg("Error saving reminder to database")
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save reminder").WithError(err))
 		return
 	}

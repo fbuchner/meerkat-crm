@@ -2,8 +2,8 @@ package services
 
 import (
 	"fmt"
-	"log"
 	"perema/config"
+	"perema/logger"
 	"perema/models"
 	"time"
 
@@ -13,7 +13,7 @@ import (
 )
 
 func SendReminders(db *gorm.DB, config config.Config) error {
-	log.Println("Sending reminders...")
+	logger.Info().Msg("Sending reminders...")
 	var reminders []models.Reminder
 	// Get the current time
 	now := time.Now()
@@ -24,14 +24,14 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 	}
 
 	if len(reminders) == 0 {
-		log.Println("No reminders to send for today.")
+		logger.Info().Msg("No reminders to send for today")
 		return nil
 	}
 
 	// Prepare email notification
 	err = sendReminderEmail(reminders, config, db)
 	if err != nil {
-		log.Printf("Error sending daily reminder email: %v", err)
+		logger.Error().Err(err).Msg("Error sending daily reminder email")
 		return err
 	}
 
@@ -40,9 +40,9 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 		reminder.LastSent = new(time.Time)
 		*reminder.LastSent = time.Now()
 		reminder.RemindAt = calculateNextReminderTime(reminder)
-		log.Println("Reminder new remind at: ", reminder.RemindAt)
+		logger.Debug().Time("next_remind_at", reminder.RemindAt).Uint("reminder_id", reminder.ID).Msg("Updated reminder time")
 		if err := db.Save(&reminder).Error; err != nil {
-			log.Printf("Failed to update reminder after sending for ID %d: %v", reminder.ID, err)
+			logger.Error().Err(err).Uint("reminder_id", reminder.ID).Msg("Failed to update reminder after sending")
 		}
 	}
 
@@ -69,18 +69,18 @@ func sendReminderEmail(reminders []models.Reminder, config config.Config, db *go
 	}
 	htmlContent += "</ul>"
 
-	log.Println(htmlContent)
+	logger.Debug().Str("html_content", htmlContent).Int("reminder_count", len(reminders)).Msg("Sending reminder email")
 
 	message := mail.NewSingleEmail(from, subject, to, "", htmlContent)
 	client := sendgrid.NewSendClient(config.SendgridAPIKey)
 	res, err := client.Send(message)
 
 	if err != nil {
-		log.Printf("Failed to send reminder email: %v", err)
+		logger.Error().Err(err).Msg("Failed to send reminder email")
 		return err
 	}
 
-	log.Printf("Reminder email sent successfully with status code: %d", res.StatusCode)
+	logger.Info().Int("status_code", res.StatusCode).Msg("Reminder email sent successfully")
 
 	return nil
 }

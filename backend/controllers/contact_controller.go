@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"errors"
-	"log"
 	"net/http"
 	apperrors "perema/errors"
+	"perema/logger"
 	"perema/models"
 	"slices"
 	"strconv"
@@ -20,14 +20,14 @@ func CreateContact(c *gin.Context) {
 
 	var contact models.Contact
 	if err := c.ShouldBindJSON(&contact); err != nil {
-		log.Println("Error binding JSON for create contact:", err)
+		logger.FromContext(c).Error().Err(err).Msg("Error binding JSON for create contact")
 		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("contact", err.Error()))
 		return
 	}
 
 	// Save the new contact to the database
 	if err := db.Create(&contact).Error; err != nil {
-		log.Println("Error saving to database:", err)
+		logger.FromContext(c).Error().Err(err).Msg("Error saving contact to database")
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save contact").WithError(err))
 		return
 	}

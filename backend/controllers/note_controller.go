@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"errors"
-	"log"
 	"net/http"
 	apperrors "perema/errors"
+	"perema/logger"
 	"perema/models"
 
 	"github.com/gin-gonic/gin"
@@ -32,7 +32,7 @@ func CreateNote(c *gin.Context) {
 	// Bind the incoming JSON request to the Note struct
 	var note models.Note
 	if err := c.ShouldBindJSON(&note); err != nil {
-		log.Println("Error binding JSON for create note:", err)
+		logger.FromContext(c).Error().Err(err).Msg("Error binding JSON for create note")
 		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("note", err.Error()))
 		return
 	}
@@ -42,7 +42,7 @@ func CreateNote(c *gin.Context) {
 
 	// Save the new note to the database
 	if err := db.Create(&note).Error; err != nil {
-		log.Println("Error saving to database:", err)
+		logger.FromContext(c).Error().Err(err).Msg("Error saving note to database")
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save note").WithError(err))
 		return
 	}
@@ -58,14 +58,14 @@ func CreateUnassignedNote(c *gin.Context) {
 	// Bind the incoming JSON request to the Note struct
 	var note models.Note
 	if err := c.ShouldBindJSON(&note); err != nil {
-		log.Println("Error binding JSON for create note:", err)
+		logger.FromContext(c).Error().Err(err).Msg("Error binding JSON for create unassigned note")
 		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("note", err.Error()))
 		return
 	}
 
 	// Save the new note to the database
 	if err := db.Create(&note).Error; err != nil {
-		log.Println("Error saving to database:", err)
+		logger.FromContext(c).Error().Err(err).Msg("Error saving unassigned note to database")
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save note").WithError(err))
 		return
 	}

@@ -5,14 +5,13 @@ import (
 	"image"
 	"image/jpeg"
 	"image/png"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
-
+	"perema/logger"
 	"perema/models"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -51,7 +50,7 @@ func GetProfilePicture(c *gin.Context) {
 	// Construct the full path to the image
 	filePath := filepath.Join(uploadDir, contact.Photo)
 
-	log.Println(filePath)
+	logger.FromContext(c).Debug().Str("file_path", filePath).Msg("Serving profile picture")
 
 	// Check if the file exists
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {

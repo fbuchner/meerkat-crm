@@ -1,8 +1,10 @@
 package controllers
 
 import (
+	"errors"
 	"log"
 	"net/http"
+	apperrors "perema/errors"
 	"perema/models"
 	"time"
 
@@ -18,10 +20,10 @@ func CreateReminder(c *gin.Context) {
 	// Find the contact by the ID
 	var contact models.Contact
 	if err := db.First(&contact, contactID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", contactID))
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve contact").WithError(err))
 		}
 		return
 	}
@@ -30,7 +32,7 @@ func CreateReminder(c *gin.Context) {
 	var reminder models.Reminder
 	if err := c.ShouldBindJSON(&reminder); err != nil {
 		log.Println("Error binding JSON for create reminder:", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("reminder", err.Error()))
 		return
 	}
 
@@ -45,7 +47,7 @@ func CreateReminder(c *gin.Context) {
 	// Save the new reminder to the database
 	if err := db.Create(&reminder).Error; err != nil {
 		log.Println("Error saving to database:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save reminder"})
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save reminder").WithError(err))
 		return
 	}
 
@@ -57,7 +59,11 @@ func GetReminder(c *gin.Context) {
 	var reminder models.Reminder
 	db := c.MustGet("db").(*gorm.DB)
 	if err := db.First(&reminder, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Reminder not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Reminder").WithDetails("id", id))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve reminder").WithError(err))
+		}
 		return
 	}
 
@@ -69,13 +75,17 @@ func UpdateReminder(c *gin.Context) {
 	var reminder models.Reminder
 	db := c.MustGet("db").(*gorm.DB)
 	if err := db.First(&reminder, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Reminder not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Reminder").WithDetails("id", id))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve reminder").WithError(err))
+		}
 		return
 	}
 
 	var updatedReminder models.Reminder
 	if err := c.ShouldBindJSON(&updatedReminder); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("reminder", err.Error()))
 		return
 	}
 
@@ -98,8 +108,20 @@ func UpdateReminder(c *gin.Context) {
 func DeleteReminder(c *gin.Context) {
 	id := c.Param("id")
 	db := c.MustGet("db").(*gorm.DB)
-	if err := db.Delete(&models.Reminder{}, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Reminder not found"})
+
+	// Check if reminder exists first
+	var reminder models.Reminder
+	if err := db.First(&reminder, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Reminder").WithDetails("id", id))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve reminder").WithError(err))
+		}
+		return
+	}
+
+	if err := db.Delete(&reminder).Error; err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to delete reminder").WithError(err))
 		return
 	}
 
@@ -114,10 +136,10 @@ func GetRemindersForContact(c *gin.Context) {
 	var contact models.Contact
 
 	if err := db.Preload("Reminders").First(&contact, contactID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", contactID))
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve contact").WithError(err))
 		}
 		return
 	}

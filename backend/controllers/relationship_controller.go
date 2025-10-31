@@ -1,7 +1,9 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
+	apperrors "perema/errors"
 	"perema/models"
 	"strconv"
 
@@ -21,7 +23,7 @@ func GetRelationships(c *gin.Context) {
 	if err := db.Preload("RelatedContact", func(db *gorm.DB) *gorm.DB {
 		return db.Select("ID", "Firstname", "Lastname")
 	}).Where("contact_id = ?", contactID).Find(&relationships).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve relationships").WithError(err))
 		return
 	}
 
@@ -38,14 +40,14 @@ func CreateRelationship(c *gin.Context) {
 	contactIDParam := c.Param("id")
 	contactID, err := strconv.Atoi(contactIDParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid contact ID"})
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("contact_id", "Invalid contact ID"))
 		return
 	}
 
 	// Bind the JSON input to a new Relationship object
 	var relationship models.Relationship
 	if err := c.ShouldBindJSON(&relationship); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("relationship", err.Error()))
 		return
 	}
 
@@ -53,7 +55,7 @@ func CreateRelationship(c *gin.Context) {
 	relationship.ContactID = uint(contactID)
 	// Save the new relationship to the database
 	if err := db.Create(&relationship).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save relationship").WithError(err))
 		return
 	}
 
@@ -66,13 +68,17 @@ func UpdateRelationship(c *gin.Context) {
 	var relationship models.Relationship
 	db := c.MustGet("db").(*gorm.DB)
 	if err := db.First(&relationship, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Relationship not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Relationship").WithDetails("id", id))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve relationship").WithError(err))
+		}
 		return
 	}
 
 	var updatedRelationship models.Relationship
 	if err := c.ShouldBindJSON(&updatedRelationship); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("relationship", err.Error()))
 		return
 	}
 
@@ -92,8 +98,20 @@ func UpdateRelationship(c *gin.Context) {
 func DeleteRelationship(c *gin.Context) {
 	id := c.Param("rid")
 	db := c.MustGet("db").(*gorm.DB)
-	if err := db.Delete(&models.Relationship{}, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Relationship not found"})
+
+	// Check if relationship exists first
+	var relationship models.Relationship
+	if err := db.First(&relationship, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Relationship").WithDetails("id", id))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve relationship").WithError(err))
+		}
+		return
+	}
+
+	if err := db.Delete(&relationship).Error; err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to delete relationship").WithError(err))
 		return
 	}
 

@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 	"perema/config"
+	apperrors "perema/errors"
+	"perema/middleware"
 	"perema/models"
 	"perema/routes"
 	"perema/services"
@@ -82,6 +84,12 @@ func main() {
 	}
 
 	r.Use(cors.New(corsConfig))
+
+	// Add request ID middleware for tracing
+	r.Use(middleware.RequestIDMiddleware())
+
+	// Add error handling middleware
+	r.Use(apperrors.ErrorHandlerMiddleware())
 
 	r.SetTrustedProxies(cfg.TrustedProxies)
 

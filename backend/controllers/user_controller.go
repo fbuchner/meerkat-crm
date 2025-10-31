@@ -1,8 +1,10 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 	"perema/config"
+	apperrors "perema/errors"
 	"perema/middleware"
 	"perema/models"
 	"perema/services"
@@ -16,21 +18,31 @@ func RegisterUser(context *gin.Context) {
 	var user models.User
 	err := context.ShouldBindJSON(&user)
 
-	if err != nil || user.Email == "" || user.Password == "" {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+	if err != nil {
+		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("", err.Error()))
+		return
+	}
+
+	if user.Email == "" {
+		apperrors.AbortWithError(context, apperrors.ErrMissingField("email"))
+		return
+	}
+
+	if user.Password == "" {
+		apperrors.AbortWithError(context, apperrors.ErrMissingField("password"))
 		return
 	}
 
 	hashedPassword, err := services.HashPassword(user.Password)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Could not hash password"})
+		apperrors.AbortWithError(context, apperrors.ErrInternal("Could not hash password").WithError(err))
 		return
 	}
 	user.Password = hashedPassword
 
 	db := context.MustGet("db").(*gorm.DB)
 	if err := db.Create(&user).Error; err != nil {
-		context.JSON(http.StatusConflict, gin.H{"error": "User already exists"})
+		apperrors.AbortWithError(context, apperrors.ErrAlreadyExists("User").WithDetails("email", user.Email))
 		return
 	}
 
@@ -42,28 +54,41 @@ func LoginUser(context *gin.Context, cfg *config.Config) {
 	var foundUser models.User
 
 	err := context.ShouldBindJSON(&user)
+	if err != nil {
+		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("", err.Error()))
+		return
+	}
 
-	if err != nil || user.Email == "" || user.Password == "" {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+	if user.Email == "" {
+		apperrors.AbortWithError(context, apperrors.ErrMissingField("email"))
+		return
+	}
+
+	if user.Password == "" {
+		apperrors.AbortWithError(context, apperrors.ErrMissingField("password"))
 		return
 	}
 
 	db := context.MustGet("db").(*gorm.DB)
 	if err := db.Where("email = ?", user.Email).First(&foundUser).Error; err != nil {
-		context.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(context, apperrors.ErrInvalidCredentials())
+		} else {
+			apperrors.AbortWithError(context, apperrors.ErrDatabase("Failed to query user").WithError(err))
+		}
 		return
 	}
 
 	// Compare the hashed password
 	if err := bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(user.Password)); err != nil {
-		context.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		apperrors.AbortWithError(context, apperrors.ErrInvalidCredentials())
 		return
 	}
 
 	// Create JWT token
 	tokenString, err := services.GenerateToken(foundUser, cfg)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate token"})
+		apperrors.AbortWithError(context, apperrors.ErrInternal("Could not generate token").WithError(err))
 		return
 	}
 
@@ -77,7 +102,7 @@ func CheckPasswordStrength(context *gin.Context) {
 	}
 
 	if err := context.ShouldBindJSON(&request); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Password is required"})
+		apperrors.AbortWithError(context, apperrors.ErrMissingField("password"))
 		return
 	}
 

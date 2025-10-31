@@ -1,8 +1,10 @@
 package controllers
 
 import (
+	"errors"
 	"log"
 	"net/http"
+	apperrors "perema/errors"
 	"perema/models"
 	"strconv"
 	"time"
@@ -23,7 +25,7 @@ func CreateActivity(c *gin.Context) {
 	// Bind the incoming JSON to the requestBody
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		log.Println("Error binding JSON for create activity:", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("activity", err.Error()))
 		return
 	}
 
@@ -33,7 +35,7 @@ func CreateActivity(c *gin.Context) {
 	if len(requestBody.ContactIDs) > 0 {
 		if err := db.Where("id IN ?", requestBody.ContactIDs).Find(&contacts).Error; err != nil {
 			log.Println("Error finding contacts with IDs:", requestBody.ContactIDs, err)
-			c.JSON(http.StatusNotFound, gin.H{"error": "One or more contacts not found"})
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("One or more contacts"))
 			return
 		}
 	}
@@ -49,7 +51,7 @@ func CreateActivity(c *gin.Context) {
 	// Save the new activity to the database
 	if err := db.Create(&activity).Error; err != nil {
 		log.Println("Error saving activity to the database:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save activity"})
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save activity").WithError(err))
 		return
 	}
 
@@ -57,7 +59,7 @@ func CreateActivity(c *gin.Context) {
 	if len(contacts) > 0 {
 		if err := db.Model(&activity).Association("Contacts").Append(contacts); err != nil {
 			log.Println("Error creating relationship between activity and contacts:", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to associate contacts with activity"})
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to associate contacts with activity").WithError(err))
 			return
 		}
 	}
@@ -71,7 +73,11 @@ func GetActivity(c *gin.Context) {
 	var activity models.Activity
 	db := c.MustGet("db").(*gorm.DB)
 	if err := db.Preload("Contacts").First(&activity, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Activity not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Activity").WithDetails("id", id))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve activity").WithError(err))
+		}
 		return
 	}
 
@@ -116,7 +122,7 @@ func GetActivities(c *gin.Context) {
 
 	// Execute the query
 	if err := query.Find(&activities).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve activities"})
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve activities").WithError(err))
 		return
 	}
 
@@ -135,7 +141,11 @@ func UpdateActivity(c *gin.Context) {
 
 	var activity models.Activity
 	if err := db.Preload("Contacts").First(&activity, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Activity not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Activity").WithDetails("id", id))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve activity").WithError(err))
+		}
 		return
 	}
 
@@ -148,7 +158,7 @@ func UpdateActivity(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("activity", err.Error()))
 		return
 	}
 
@@ -165,7 +175,7 @@ func UpdateActivity(c *gin.Context) {
 		if len(requestBody.ContactIDs) > 0 {
 			if err := db.Where("id IN ?", requestBody.ContactIDs).Find(&contacts).Error; err != nil {
 				log.Println("Error finding contacts with IDs:", requestBody.ContactIDs, err)
-				c.JSON(http.StatusNotFound, gin.H{"error": "One or more contacts not found"})
+				apperrors.AbortWithError(c, apperrors.ErrNotFound("One or more contacts"))
 				return
 			}
 		}
@@ -173,7 +183,7 @@ func UpdateActivity(c *gin.Context) {
 		// Replace the existing contacts association
 		if err := db.Model(&activity).Association("Contacts").Replace(contacts); err != nil {
 			log.Println("Error updating contacts association:", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update contacts association"})
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update contacts association").WithError(err))
 			return
 		}
 	}
@@ -181,13 +191,13 @@ func UpdateActivity(c *gin.Context) {
 	// Save the activity
 	if err := db.Save(&activity).Error; err != nil {
 		log.Println("Error saving activity:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save activity"})
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save activity").WithError(err))
 		return
 	}
 
 	// Reload the activity with contacts to return complete data
 	if err := db.Preload("Contacts").First(&activity, id).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reload activity"})
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to reload activity").WithError(err))
 		return
 	}
 
@@ -197,8 +207,20 @@ func UpdateActivity(c *gin.Context) {
 func DeleteActivity(c *gin.Context) {
 	id := c.Param("id")
 	db := c.MustGet("db").(*gorm.DB)
-	if err := db.Delete(&models.Activity{}, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Activity not found"})
+
+	// Check if activity exists first
+	var activity models.Activity
+	if err := db.First(&activity, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Activity").WithDetails("id", id))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve activity").WithError(err))
+		}
+		return
+	}
+
+	if err := db.Delete(&activity).Error; err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to delete activity").WithError(err))
 		return
 	}
 
@@ -219,7 +241,7 @@ func GetActivitiesForContact(c *gin.Context) {
 		Joins("JOIN activity_contacts ON activities.id = activity_contacts.activity_id").
 		Where("activity_contacts.contact_id = ?", contactID).
 		Find(&activities).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve activities for contact").WithError(err))
 		return
 	}
 

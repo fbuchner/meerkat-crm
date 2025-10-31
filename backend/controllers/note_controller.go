@@ -1,8 +1,10 @@
 package controllers
 
 import (
+	"errors"
 	"log"
 	"net/http"
+	apperrors "perema/errors"
 	"perema/models"
 
 	"github.com/gin-gonic/gin"
@@ -19,10 +21,10 @@ func CreateNote(c *gin.Context) {
 	// Find the contact by the ID
 	var contact models.Contact
 	if err := db.First(&contact, contactID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", contactID))
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve contact").WithError(err))
 		}
 		return
 	}
@@ -31,7 +33,7 @@ func CreateNote(c *gin.Context) {
 	var note models.Note
 	if err := c.ShouldBindJSON(&note); err != nil {
 		log.Println("Error binding JSON for create note:", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("note", err.Error()))
 		return
 	}
 
@@ -41,7 +43,7 @@ func CreateNote(c *gin.Context) {
 	// Save the new note to the database
 	if err := db.Create(&note).Error; err != nil {
 		log.Println("Error saving to database:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save note"})
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save note").WithError(err))
 		return
 	}
 
@@ -57,14 +59,14 @@ func CreateUnassignedNote(c *gin.Context) {
 	var note models.Note
 	if err := c.ShouldBindJSON(&note); err != nil {
 		log.Println("Error binding JSON for create note:", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("note", err.Error()))
 		return
 	}
 
 	// Save the new note to the database
 	if err := db.Create(&note).Error; err != nil {
 		log.Println("Error saving to database:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save note"})
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save note").WithError(err))
 		return
 	}
 
@@ -77,7 +79,11 @@ func GetNote(c *gin.Context) {
 	var note models.Note
 	db := c.MustGet("db").(*gorm.DB)
 	if err := db.First(&note, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Note not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Note").WithDetails("id", id))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve note").WithError(err))
+		}
 		return
 	}
 
@@ -90,7 +96,7 @@ func GetUnassignedNotes(c *gin.Context) {
 
 	// Retrieve notes where contact_id is NULL
 	if err := db.Where("contact_id IS NULL").Find(&notes).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving unassigned notes"})
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve unassigned notes").WithError(err))
 		return
 	}
 
@@ -105,13 +111,17 @@ func UpdateNote(c *gin.Context) {
 
 	// Retrieve the existing note from the database
 	if err := db.First(&note, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Note not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Note").WithDetails("id", id))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve note").WithError(err))
+		}
 		return
 	}
 
 	var updatedNote models.Note
 	if err := c.ShouldBindJSON(&updatedNote); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("note", err.Error()))
 		return
 	}
 
@@ -128,8 +138,20 @@ func UpdateNote(c *gin.Context) {
 func DeleteNote(c *gin.Context) {
 	id := c.Param("id")
 	db := c.MustGet("db").(*gorm.DB)
-	if err := db.Delete(&models.Note{}, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Note not found"})
+
+	// Check if note exists first
+	var note models.Note
+	if err := db.First(&note, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Note").WithDetails("id", id))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve note").WithError(err))
+		}
+		return
+	}
+
+	if err := db.Delete(&note).Error; err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to delete note").WithError(err))
 		return
 	}
 
@@ -149,12 +171,12 @@ func GetNotesForContact(c *gin.Context) {
 
 	// Fetch the contact and preload associated notes
 	if err := db.Preload("Notes").First(&contact, contactID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// If no contact found, return a 404 error
-			c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", contactID))
 		} else {
 			// For any other errors, return a 500 error
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve contact").WithError(err))
 		}
 		return
 	}

@@ -1,8 +1,10 @@
 package controllers
 
 import (
+	"errors"
 	"log"
 	"net/http"
+	apperrors "perema/errors"
 	"perema/models"
 	"slices"
 	"strconv"
@@ -19,14 +21,14 @@ func CreateContact(c *gin.Context) {
 	var contact models.Contact
 	if err := c.ShouldBindJSON(&contact); err != nil {
 		log.Println("Error binding JSON for create contact:", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("contact", err.Error()))
 		return
 	}
 
 	// Save the new contact to the database
 	if err := db.Create(&contact).Error; err != nil {
 		log.Println("Error saving to database:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save contact"})
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save contact").WithError(err))
 		return
 	}
 
@@ -101,7 +103,7 @@ func GetContacts(c *gin.Context) {
 
 	// Execute query
 	if err := query.Find(&contacts).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve contacts"})
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve contacts").WithError(err))
 		return
 	}
 
@@ -134,7 +136,11 @@ func GetContact(c *gin.Context) {
 	var contact models.Contact
 	db := c.MustGet("db").(*gorm.DB)
 	if err := db.Preload("Notes").Preload("Activities").Preload("Relationships").Preload("Reminders").First(&contact, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", id))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve contact").WithError(err))
+		}
 		return
 	}
 	c.JSON(http.StatusOK, contact)
@@ -146,13 +152,17 @@ func UpdateContact(c *gin.Context) {
 
 	var contact models.Contact
 	if err := db.First(&contact, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", id))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve contact").WithError(err))
+		}
 		return
 	}
 
 	var updatedContact models.Contact
 	if err := c.ShouldBindJSON(&updatedContact); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("contact", err.Error()))
 		return
 	}
 
@@ -179,8 +189,20 @@ func UpdateContact(c *gin.Context) {
 func DeleteContact(c *gin.Context) {
 	id := c.Param("id")
 	db := c.MustGet("db").(*gorm.DB)
-	if err := db.Delete(&models.Contact{}, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
+
+	// Check if contact exists first
+	var contact models.Contact
+	if err := db.First(&contact, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", id))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve contact").WithError(err))
+		}
+		return
+	}
+
+	if err := db.Delete(&contact).Error; err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to delete contact").WithError(err))
 		return
 	}
 
@@ -196,7 +218,7 @@ func GetCircles(c *gin.Context) {
 	err := db.Raw(`SELECT DISTINCT json_each.value AS circle
 	               FROM contacts, json_each(contacts.circles)`).Scan(&circleNames).Error
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve circles"})
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve circles").WithError(err))
 		return
 	}
 

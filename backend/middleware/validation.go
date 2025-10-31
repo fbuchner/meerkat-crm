@@ -20,6 +20,7 @@ func init() {
 	validate.RegisterValidation("phone", validatePhone)
 	validate.RegisterValidation("birthday", validateBirthday)
 	validate.RegisterValidation("safe_string", validateSafeString)
+	validate.RegisterValidation("strong_password", validateStrongPassword)
 }
 
 // ValidationError represents a validation error response
@@ -70,6 +71,8 @@ func formatValidationError(err validator.FieldError) string {
 		return field + " must be in DD.MM.YYYY format (YYYY optional)"
 	case "safe_string":
 		return field + " contains invalid characters"
+	case "strong_password":
+		return field + " is too weak. Use a longer password (15+ characters) or a passphrase (20+ characters). Avoid common passwords."
 	case "url":
 		return field + " must be a valid URL"
 	default:
@@ -133,7 +136,7 @@ func validateBirthday(fl validator.FieldLevel) bool {
 	}
 
 	// Check format DD.MM.YYYY or DD.MM. (YYYY optional)
-	match, _ := regexp.MatchString(`^\d{2}\.\d{2}(\.\d{4})?$`, birthday)
+	match, _ := regexp.MatchString(`^\d{2}\.\d{2}\.(\d{4})?$`, birthday)
 	if !match {
 		return false
 	}
@@ -160,6 +163,20 @@ func validateSafeString(fl validator.FieldLevel) bool {
 	}
 
 	return true
+}
+
+// validateStrongPassword checks password strength based on entropy
+func validateStrongPassword(fl validator.FieldLevel) bool {
+	password := fl.Field().String()
+
+	// Check if it's a common password
+	if IsCommonPassword(password) {
+		return false
+	}
+
+	// Check entropy
+	err := ValidatePasswordStrength(password)
+	return err == nil
 }
 
 // ValidateEmail validates email format with regex

@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"perema/config"
+	"perema/middleware"
 	"perema/models"
 	"perema/services"
 
@@ -67,4 +68,19 @@ func LoginUser(context *gin.Context, cfg *config.Config) {
 	}
 
 	context.JSON(http.StatusOK, gin.H{"token": tokenString})
+}
+
+// CheckPasswordStrength evaluates password strength without registration
+func CheckPasswordStrength(context *gin.Context) {
+	var request struct {
+		Password string `json:"password" binding:"required"`
+	}
+
+	if err := context.ShouldBindJSON(&request); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Password is required"})
+		return
+	}
+
+	strength := middleware.EvaluatePasswordStrength(request.Password)
+	context.JSON(http.StatusOK, strength)
 }

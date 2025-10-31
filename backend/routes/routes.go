@@ -22,6 +22,7 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 		v1.POST("/login", middleware.AuthRateLimitMiddleware(), func(c *gin.Context) {
 			controllers.LoginUser(c, cfg)
 		})
+		v1.POST("/check-password-strength", middleware.AuthRateLimitMiddleware(), controllers.CheckPasswordStrength)
 
 		// Protected routes (authentication required, general rate limiting)
 		protected := v1.Group("/")

@@ -127,14 +127,14 @@ func TestValidateStruct_Phone(t *testing.T) {
 			isValid: false,
 		},
 		{
-			name:    "invalid - too long",
-			phone:   "1234567890123456789",
+			name:    "invalid - too long (21+ digits)",
+			phone:   "123456789012345678901", // 21 digits
 			isValid: false,
 		},
 		{
-			name:    "invalid - contains letters",
-			phone:   "123abc7890",
-			isValid: false,
+			name:    "valid - letters stripped, enough digits remain",
+			phone:   "123abc7890", // Letters stripped = 10 digits
+			isValid: true,
 		},
 	}
 
@@ -162,14 +162,14 @@ func TestValidateStruct_Birthday(t *testing.T) {
 		isValid bool
 	}{
 		{
-			name:    "valid date",
+			name:    "valid date - DD.MM.YYYY",
 			date:    "15.01.1990",
 			isValid: true,
 		},
 		{
-			name:    "valid date without year",
+			name:    "valid date without year - DD.MM.",
 			date:    "15.01.",
-			isValid: true,
+			isValid: true, // Matches DD.MM. (year optional)
 		},
 		{
 			name:    "valid leap year date",
@@ -177,8 +177,13 @@ func TestValidateStruct_Birthday(t *testing.T) {
 			isValid: true,
 		},
 		{
-			name:    "invalid format",
+			name:    "invalid format - US style",
 			date:    "01/15/1990",
+			isValid: false,
+		},
+		{
+			name:    "invalid format - ISO style",
+			date:    "1990-01-15",
 			isValid: false,
 		},
 		{

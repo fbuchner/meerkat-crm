@@ -17,14 +17,15 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 	// API v1 routes
 	v1 := router.Group("/api/v1")
 	{
-		// Public routes (no authentication required)
-		v1.POST("/register", middleware.ValidateJSONMiddleware(&models.User{}), controllers.RegisterUser)
-		v1.POST("/login", func(c *gin.Context) {
+		// Public routes (no authentication required, strict rate limiting)
+		v1.POST("/register", middleware.AuthRateLimitMiddleware(), middleware.ValidateJSONMiddleware(&models.User{}), controllers.RegisterUser)
+		v1.POST("/login", middleware.AuthRateLimitMiddleware(), func(c *gin.Context) {
 			controllers.LoginUser(c, cfg)
 		})
 
-		// Protected routes (authentication required)
+		// Protected routes (authentication required, general rate limiting)
 		protected := v1.Group("/")
+		protected.Use(middleware.APIRateLimitMiddleware())
 		protected.Use(middleware.AuthMiddleware(cfg))
 		{
 			// Contact routes

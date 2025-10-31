@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Box,
@@ -12,7 +12,6 @@ import {
   DialogContent,
   DialogActions,
   Chip,
-  CircularProgress,
 } from '@mui/material';
 import {
   Timeline,
@@ -30,8 +29,9 @@ import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { useActivities } from './hooks/useActivities';
-import { createActivity, updateActivity, deleteActivity } from './api/activities';
+import { createActivity, updateActivity, deleteActivity, Activity } from './api/activities';
 import AddActivityDialog from './components/AddActivityDialog';
+import { ListSkeleton } from './components/LoadingSkeletons';
 
 interface Contact {
   ID: number;
@@ -104,7 +104,7 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
     }
   };
 
-  const handleEditClick = (activity: any) => {
+  const handleEditClick = (activity: Activity) => {
     setEditingActivityId(activity.ID);
     setEditValues({
       description: activity.description || '',
@@ -164,8 +164,11 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
+      <Box>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Typography variant="h4">{t('activities.title')}</Typography>
+        </Box>
+        <ListSkeleton count={8} />
       </Box>
     );
   }

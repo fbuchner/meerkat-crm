@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -28,7 +28,6 @@ import {
   Avatar,
   Typography,
   Chip,
-  CircularProgress,
   IconButton,
   Divider,
   Stack,
@@ -40,6 +39,7 @@ import {
   Autocomplete,
   Link
 } from '@mui/material';
+import { ContactDetailHeaderSkeleton, TimelineSkeleton } from './components/LoadingSkeletons';
 import {
   Timeline,
   TimelineItem,
@@ -183,8 +183,11 @@ export default function ContactDetailPage({ token }: { token: string }) {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-        <CircularProgress />
+      <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
+        <ContactDetailHeaderSkeleton />
+        <Box sx={{ mt: 3 }}>
+          <TimelineSkeleton count={5} />
+        </Box>
       </Box>
     );
   }
@@ -1025,7 +1028,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
                                 👥
                               </Typography>
                               {(item.data as Activity).contacts!.map((activityContact, idx) => (
-                                <React.Fragment key={activityContact.ID}>
+                                <Fragment key={activityContact.ID}>
                                   <Link
                                     component="button"
                                     variant="caption"
@@ -1046,7 +1049,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
                                   {idx < (item.data as Activity).contacts!.length - 1 && (
                                     <Typography variant="caption" color="text.secondary">, </Typography>
                                   )}
-                                </React.Fragment>
+                                </Fragment>
                               ))}
                             </Box>
                           )}

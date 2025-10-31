@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Box,
@@ -11,7 +11,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  CircularProgress,
 } from '@mui/material';
 import {
   Timeline,
@@ -28,6 +27,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
+import { ListSkeleton } from './components/LoadingSkeletons';
 import { useNotes } from './hooks/useNotes';
 import { createUnassignedNote, updateNote, deleteNote, Note } from './api/notes';
 import AddNoteDialog from './components/AddNoteDialog';
@@ -142,8 +142,11 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
+      <Box>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Typography variant="h4">{t('notes.title')}</Typography>
+        </Box>
+        <ListSkeleton count={8} />
       </Box>
     );
   }

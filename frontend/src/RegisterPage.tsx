@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { API_BASE_URL } from './auth';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -41,8 +41,9 @@ export default function RegisterPage() {
       }
       setSuccess(t('register.registrationSuccess'));
       setTimeout(() => navigate('/login'), 1500);
-    } catch (err: any) {
-      setError(err.message || t('register.registrationFailed'));
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : t('register.registrationFailed');
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"perema/config"
 	"perema/models"
 	"perema/routes"
@@ -22,6 +23,9 @@ func main() {
 
 	log.Println("Loading configuration...")
 	cfg := config.LoadConfig()
+
+	log.Println("Validating configuration...")
+	cfg.ValidateOrPanic()
 
 	log.Println("Loading database...")
 	db, err := gorm.Open(sqlite.Open(cfg.DBPath), &gorm.Config{})
@@ -54,14 +58,30 @@ func main() {
 	// CORS configuration with preflight caching
 	// MaxAge: Browsers cache preflight OPTIONS requests for 12 hours
 	// This reduces redundant OPTIONS requests and improves performance
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{cfg.FrontendURL},
+	//
+	// Note: When AllowCredentials is true, AllowOrigins cannot be "*"
+	// This is a security restriction in the CORS specification.
+	// For development, we allow any origin dynamically via AllowOriginFunc.
+	// For production, set FRONTEND_URL to specific origin(s) like "https://yourdomain.com"
+	corsConfig := cors.Config{
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour, // Cache preflight for 12 hours
-	}))
+	}
+
+	// Handle wildcard "*" for development: allow any origin
+	if cfg.FrontendURL == "*" {
+		corsConfig.AllowOriginFunc = func(origin string) bool {
+			return true // Allow all origins in development
+		}
+	} else {
+		// Production: allow specific origin(s)
+		corsConfig.AllowOrigins = []string{cfg.FrontendURL}
+	}
+
+	r.Use(cors.New(corsConfig))
 
 	r.SetTrustedProxies(cfg.TrustedProxies)
 
@@ -74,8 +94,21 @@ func main() {
 	// Register all routes from routes.go
 	routes.RegisterRoutes(r, cfg)
 
+	// Create HTTP server with timeout configuration
+	// ReadTimeout: Maximum duration for reading the entire request (including body)
+	// WriteTimeout: Maximum duration before timing out writes of the response
+	// IdleTimeout: Maximum time to wait for the next request when keep-alives are enabled
+	srv := &http.Server{
+		Addr:         fmt.Sprintf(":%s", cfg.Port),
+		Handler:      r,
+		ReadTimeout:  time.Duration(cfg.ReadTimeout) * time.Second,
+		WriteTimeout: time.Duration(cfg.WriteTimeout) * time.Second,
+		IdleTimeout:  time.Duration(cfg.IdleTimeout) * time.Second,
+	}
+
 	log.Printf("Starting server on Port :%s...", cfg.Port)
-	if err := r.Run(fmt.Sprintf(":%s", cfg.Port)); err != nil {
+	log.Printf("HTTP Timeouts - Read: %ds, Write: %ds, Idle: %ds", cfg.ReadTimeout, cfg.WriteTimeout, cfg.IdleTimeout)
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf("Failed to run server: %v", err)
 	}
 }

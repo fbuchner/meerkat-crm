@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { loginUser, saveToken } from './auth';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -33,8 +33,9 @@ export default function LoginPage({ setToken }: LoginPageProps) {
   saveToken(token);
   if (setToken) setToken(token);
   navigate('/');
-    } catch (err: any) {
-      setError(err.message || t('login.loginFailed'));
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : t('login.loginFailed');
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

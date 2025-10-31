@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useContacts } from './hooks/useContacts';
@@ -10,7 +10,6 @@ import {
   Typography,
   Chip,
   TextField,
-  CircularProgress,
   InputAdornment,
   Stack,
   Select,
@@ -20,6 +19,7 @@ import {
   Pagination
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import { ContactListSkeleton } from './components/LoadingSkeletons';
 
 export default function ContactsPage({ token }: { token: string }) {
   const { t } = useTranslation();
@@ -136,7 +136,7 @@ export default function ContactsPage({ token }: { token: string }) {
         </Box>
       )}
       {loading ? (
-        <CircularProgress />
+        <ContactListSkeleton count={10} />
       ) : (
         <>
           <Stack spacing={2}>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import ContactsPage from './ContactsPage';
 import ContactDetailPage from './ContactDetailPage';
 import ActivitiesPage from './ActivitiesPage';
@@ -24,7 +24,8 @@ import {
   Button,
   Select,
   FormControl,
-  InputLabel
+  InputLabel,
+  CircularProgress
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -42,7 +43,7 @@ function App() {
   const handleDrawerClose = () => setDrawerOpen(false);
   // Remove the custom handler and use inline in Select
     const [token, setToken] = useState(getToken());
-    React.useEffect(() => {
+    useEffect(() => {
       const onStorage = () => setToken(getToken());
       window.addEventListener('storage', onStorage);
       return () => window.removeEventListener('storage', onStorage);
@@ -112,10 +113,10 @@ function App() {
             </Drawer>
             <Box sx={{ p: 2 }}>
               <Routes>
-                <Route path="/contacts" element={<React.Suspense fallback={<div>{t('app.loading')}</div>}><ContactsPage token={token} /></React.Suspense>} />
-                <Route path="/contacts/:id" element={<React.Suspense fallback={<div>{t('app.loading')}</div>}><ContactDetailPage token={token} /></React.Suspense>} />
-                <Route path="/notes" element={<React.Suspense fallback={<div>{t('app.loading')}</div>}><NotesPage token={token} /></React.Suspense>} />
-                <Route path="/activities" element={<React.Suspense fallback={<div>{t('app.loading')}</div>}><ActivitiesPage token={token} /></React.Suspense>} />
+                <Route path="/contacts" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ContactsPage token={token} /></Suspense>} />
+                <Route path="/contacts/:id" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ContactDetailPage token={token} /></Suspense>} />
+                <Route path="/notes" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><NotesPage token={token} /></Suspense>} />
+                <Route path="/activities" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ActivitiesPage token={token} /></Suspense>} />
                 <Route path="/reminders" element={<div>{t('pages.reminders')}</div>} />
                 <Route path="/" element={<div>{t('dashboard.welcome')}</div>} />
               </Routes>

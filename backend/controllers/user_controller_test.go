@@ -58,9 +58,10 @@ func TestRegisterUser_InvalidInput(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 
-	var responseBody map[string]string
-	json.Unmarshal(w.Body.Bytes(), &responseBody)
-	assert.Equal(t, "Invalid input", responseBody["error"])
+	var response map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &response)
+	errorDetail := response["error"].(map[string]interface{})
+	assert.Equal(t, "MISSING_FIELD", errorDetail["code"])
 }
 
 func TestLoginUser(t *testing.T) {
@@ -127,9 +128,10 @@ func TestLoginUser_InvalidCredentials(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 
-	var responseBody map[string]string
-	json.Unmarshal(w.Body.Bytes(), &responseBody)
-	assert.Equal(t, "Invalid credentials", responseBody["error"])
+	var response map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &response)
+	errorDetail := response["error"].(map[string]interface{})
+	assert.Equal(t, "INVALID_CREDENTIALS", errorDetail["code"])
 }
 
 func TestLoginUser_InvalidInput(t *testing.T) {
@@ -155,7 +157,8 @@ func TestLoginUser_InvalidInput(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 
-	var responseBody map[string]string
-	json.Unmarshal(w.Body.Bytes(), &responseBody)
-	assert.Equal(t, "Invalid input", responseBody["error"])
+	var response map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &response)
+	errorDetail := response["error"].(map[string]interface{})
+	assert.Equal(t, "MISSING_FIELD", errorDetail["code"])
 }

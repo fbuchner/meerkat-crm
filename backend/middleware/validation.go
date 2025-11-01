@@ -1,7 +1,8 @@
 package middleware
 
 import (
-	"net/http"
+	apperrors "perema/errors"
+	"perema/logger"
 	"regexp"
 	"strings"
 	"unicode"
@@ -27,12 +28,6 @@ func init() {
 type ValidationError struct {
 	Field   string `json:"field"`
 	Message string `json:"message"`
-}
-
-// ValidationErrorResponse represents the error response structure
-type ValidationErrorResponse struct {
-	Error  string            `json:"error"`
-	Fields []ValidationError `json:"fields,omitempty"`
 }
 
 // ValidateStruct validates a struct and returns formatted errors
@@ -190,20 +185,23 @@ func ValidateEmail(email string) bool {
 func ValidateJSONMiddleware(obj interface{}) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if err := c.ShouldBindJSON(obj); err != nil {
-			c.JSON(http.StatusBadRequest, ValidationErrorResponse{
-				Error: "Invalid request body: " + err.Error(),
-			})
-			c.Abort()
+			logger.FromContext(c).Warn().Err(err).Msg("Invalid JSON in request body")
+
+			appErr := apperrors.ErrInvalidInput("request body", err.Error())
+			apperrors.AbortWithError(c, appErr)
 			return
 		}
 
 		// Validate the struct
 		if validationErrors := ValidateStruct(obj); len(validationErrors) > 0 {
-			c.JSON(http.StatusBadRequest, ValidationErrorResponse{
-				Error:  "Validation failed",
-				Fields: validationErrors,
-			})
-			c.Abort()
+			logger.FromContext(c).Warn().Interface("validation_errors", validationErrors).Msg("Validation failed")
+
+			// Build detailed validation error
+			appErr := apperrors.ErrValidation("Request validation failed")
+			for _, ve := range validationErrors {
+				appErr.WithDetails(ve.Field, ve.Message)
+			}
+			apperrors.AbortWithError(c, appErr)
 			return
 		}
 

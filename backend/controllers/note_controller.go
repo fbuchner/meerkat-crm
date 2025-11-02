@@ -29,16 +29,25 @@ func CreateNote(c *gin.Context) {
 		return
 	}
 
-	// Bind the incoming JSON request to the Note struct
-	var note models.Note
-	if err := c.ShouldBindJSON(&note); err != nil {
-		logger.FromContext(c).Error().Err(err).Msg("Error binding JSON for create note")
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("note", err.Error()))
+	// Get validated input from validation middleware
+	validated, exists := c.Get("validated")
+	if !exists {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("note", "validation data not found"))
 		return
 	}
 
-	// Assign the ContactID to the note to link it to the contact
-	note.ContactID = &contact.ID
+	noteInput, ok := validated.(*models.NoteInput)
+	if !ok {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("note", "invalid validation data type"))
+		return
+	}
+
+	// Create note from validated input
+	note := models.Note{
+		Content:   noteInput.Content,
+		Date:      noteInput.Date,
+		ContactID: &contact.ID,
+	}
 
 	// Save the new note to the database
 	if err := db.Create(&note).Error; err != nil {
@@ -55,12 +64,24 @@ func CreateUnassignedNote(c *gin.Context) {
 	// Get the database instance from the context
 	db := c.MustGet("db").(*gorm.DB)
 
-	// Bind the incoming JSON request to the Note struct
-	var note models.Note
-	if err := c.ShouldBindJSON(&note); err != nil {
-		logger.FromContext(c).Error().Err(err).Msg("Error binding JSON for create unassigned note")
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("note", err.Error()))
+	// Get validated input from validation middleware
+	validated, exists := c.Get("validated")
+	if !exists {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("note", "validation data not found"))
 		return
+	}
+
+	noteInput, ok := validated.(*models.NoteInput)
+	if !ok {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("note", "invalid validation data type"))
+		return
+	}
+
+	// Create note from validated input
+	note := models.Note{
+		Content:   noteInput.Content,
+		Date:      noteInput.Date,
+		ContactID: noteInput.ContactID,
 	}
 
 	// Save the new note to the database
@@ -119,9 +140,16 @@ func UpdateNote(c *gin.Context) {
 		return
 	}
 
-	var updatedNote models.Note
-	if err := c.ShouldBindJSON(&updatedNote); err != nil {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("note", err.Error()))
+	// Get validated input from validation middleware
+	validated, exists := c.Get("validated")
+	if !exists {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("note", "validation data not found"))
+		return
+	}
+
+	updatedNote, ok := validated.(*models.NoteInput)
+	if !ok {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("note", "invalid validation data type"))
 		return
 	}
 

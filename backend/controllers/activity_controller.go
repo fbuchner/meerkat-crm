@@ -7,34 +7,31 @@ import (
 	"perema/logger"
 	"perema/models"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 func CreateActivity(c *gin.Context) {
-	var requestBody struct {
-		Title       string    `json:"title"`
-		Date        time.Time `json:"date"`
-		Description string    `json:"description"`
-		Location    string    `json:"location"`
-		ContactIDs  []uint    `json:"contact_ids"` // Accept an array of contact IDs for many-to-many association
+	// Get validated input from validation middleware
+	validated, exists := c.Get("validated")
+	if !exists {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("activity", "validation data not found"))
+		return
 	}
 
-	// Bind the incoming JSON to the requestBody
-	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		logger.FromContext(c).Error().Err(err).Msg("Error binding JSON for create activity")
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("activity", err.Error()))
+	activityInput, ok := validated.(*models.ActivityInput)
+	if !ok {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("activity", "invalid validation data type"))
 		return
 	}
 
 	// Fetch the contacts from the database using the ContactIDs
 	db := c.MustGet("db").(*gorm.DB)
 	var contacts []models.Contact
-	if len(requestBody.ContactIDs) > 0 {
-		if err := db.Where("id IN ?", requestBody.ContactIDs).Find(&contacts).Error; err != nil {
-			logger.FromContext(c).Error().Err(err).Uints("contact_ids", requestBody.ContactIDs).Msg("Error finding contacts with IDs")
+	if len(activityInput.ContactIDs) > 0 {
+		if err := db.Where("id IN ?", activityInput.ContactIDs).Find(&contacts).Error; err != nil {
+			logger.FromContext(c).Error().Err(err).Uints("contact_ids", activityInput.ContactIDs).Msg("Error finding contacts with IDs")
 			apperrors.AbortWithError(c, apperrors.ErrNotFound("One or more contacts"))
 			return
 		}
@@ -42,10 +39,10 @@ func CreateActivity(c *gin.Context) {
 
 	// Create a new activity without the associations initially
 	activity := models.Activity{
-		Title:       requestBody.Title,
-		Date:        requestBody.Date,
-		Description: requestBody.Description,
-		Location:    requestBody.Location,
+		Title:       activityInput.Title,
+		Date:        activityInput.Date,
+		Description: activityInput.Description,
+		Location:    activityInput.Location,
 	}
 
 	// Save the new activity to the database
@@ -149,32 +146,32 @@ func UpdateActivity(c *gin.Context) {
 		return
 	}
 
-	var requestBody struct {
-		Title       string    `json:"title"`
-		Date        time.Time `json:"date"`
-		Description string    `json:"description"`
-		Location    string    `json:"location"`
-		ContactIDs  []uint    `json:"contact_ids"` // Accept an array of contact IDs for many-to-many association
+	// Get validated input from validation middleware
+	validated, exists := c.Get("validated")
+	if !exists {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("activity", "validation data not found"))
+		return
 	}
 
-	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("activity", err.Error()))
+	activityInput, ok := validated.(*models.ActivityInput)
+	if !ok {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("activity", "invalid validation data type"))
 		return
 	}
 
 	// Updateable fields
-	activity.Title = requestBody.Title
-	activity.Description = requestBody.Description
-	activity.Location = requestBody.Location
-	activity.Date = requestBody.Date
+	activity.Title = activityInput.Title
+	activity.Description = activityInput.Description
+	activity.Location = activityInput.Location
+	activity.Date = activityInput.Date
 
 	// Update contacts association if contact_ids are provided
-	if requestBody.ContactIDs != nil {
+	if activityInput.ContactIDs != nil {
 		// Fetch the new contacts from the database
 		var contacts []models.Contact
-		if len(requestBody.ContactIDs) > 0 {
-			if err := db.Where("id IN ?", requestBody.ContactIDs).Find(&contacts).Error; err != nil {
-				logger.FromContext(c).Error().Err(err).Uints("contact_ids", requestBody.ContactIDs).Msg("Error finding contacts with IDs")
+		if len(activityInput.ContactIDs) > 0 {
+			if err := db.Where("id IN ?", activityInput.ContactIDs).Find(&contacts).Error; err != nil {
+				logger.FromContext(c).Error().Err(err).Uints("contact_ids", activityInput.ContactIDs).Msg("Error finding contacts with IDs")
 				apperrors.AbortWithError(c, apperrors.ErrNotFound("One or more contacts"))
 				return
 			}

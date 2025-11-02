@@ -49,22 +49,20 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 
 			// Note routes
 			protected.GET("/contacts/:id/notes", controllers.GetNotesForContact)
-			protected.POST("/contacts/:id/notes", middleware.ValidateJSONMiddleware(&models.Note{}), controllers.CreateNote)
+			protected.POST("/contacts/:id/notes", middleware.ValidateJSONMiddleware(&models.NoteInput{}), controllers.CreateNote)
 			protected.GET("/notes/:id", controllers.GetNote)
 			protected.GET("/notes", controllers.GetUnassignedNotes)
-			protected.POST("/notes", middleware.ValidateJSONMiddleware(&models.Note{}), controllers.CreateUnassignedNote)
-			protected.PUT("/notes/:id", middleware.ValidateJSONMiddleware(&models.Note{}), controllers.UpdateNote)
+			protected.POST("/notes", middleware.ValidateJSONMiddleware(&models.NoteInput{}), controllers.CreateUnassignedNote)
+			protected.PUT("/notes/:id", middleware.ValidateJSONMiddleware(&models.NoteInput{}), controllers.UpdateNote)
 			protected.DELETE("/notes/:id", controllers.DeleteNote)
 
 			// Activity routes
 			protected.GET("/contacts/:id/activities", controllers.GetActivitiesForContact)
-			protected.POST("/activities", middleware.ValidateJSONMiddleware(&models.Activity{}), controllers.CreateActivity)
+			protected.POST("/activities", middleware.ValidateJSONMiddleware(&models.ActivityInput{}), controllers.CreateActivity)
 			protected.GET("/activities", controllers.GetActivities)
 			protected.GET("/activities/:id", controllers.GetActivity)
-			protected.PUT("/activities/:id", middleware.ValidateJSONMiddleware(&models.Activity{}), controllers.UpdateActivity)
-			protected.DELETE("/activities/:id", controllers.DeleteActivity)
-
-			// Reminder routes
+			protected.PUT("/activities/:id", middleware.ValidateJSONMiddleware(&models.ActivityInput{}), controllers.UpdateActivity)
+			protected.DELETE("/activities/:id", controllers.DeleteActivity) // Reminder routes
 			protected.GET("/contacts/:id/reminders", controllers.GetRemindersForContact)
 			protected.POST("/contacts/:id/reminders", middleware.ValidateJSONMiddleware(&models.Reminder{}), controllers.CreateReminder)
 			protected.GET("/reminders/:id", controllers.GetReminder)

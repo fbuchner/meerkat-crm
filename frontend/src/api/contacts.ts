@@ -145,5 +145,6 @@ export async function getCircles(token: string): Promise<string[]> {
   }
 
   const data = await response.json();
-  return data.circles || [];
+  // Backend returns array directly, not wrapped in object
+  return Array.isArray(data) ? data : [];
 }

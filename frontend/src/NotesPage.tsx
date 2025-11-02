@@ -73,7 +73,7 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
 
   const handleNoteSave = async (content: string, date: string) => {
     try {
-      await createUnassignedNote({ content, date }, token);
+      await createUnassignedNote({ content, date: new Date(date).toISOString() }, token);
       setAddDialogOpen(false);
       refetch();
     } catch (err) {
@@ -94,7 +94,7 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
     try {
       await updateNote(noteId, {
         content: editValues.content,
-        date: editValues.date,
+        date: new Date(editValues.date).toISOString(),
       }, token);
       setEditingNoteId(null);
       refetch();

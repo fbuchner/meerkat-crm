@@ -95,7 +95,10 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
     contact_ids: number[];
   }) => {
     try {
-      await createActivity(activity, token);
+      await createActivity({
+        ...activity,
+        date: new Date(activity.date).toISOString()
+      }, token);
       setAddDialogOpen(false);
       refetch();
     } catch (err) {
@@ -116,7 +119,7 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
     try {
       await updateActivity(activityId, {
         description: editValues.description,
-        date: editValues.date,
+        date: new Date(editValues.date).toISOString(),
       }, token);
       setEditingActivityId(null);
       refetch();

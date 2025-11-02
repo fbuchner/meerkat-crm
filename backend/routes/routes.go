@@ -31,9 +31,9 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 		{
 			// Contact routes
 			protected.GET("/contacts", controllers.GetContacts)
-			protected.POST("/contacts", middleware.ValidateJSONMiddleware(&models.Contact{}), controllers.CreateContact)
+			protected.POST("/contacts", middleware.ValidateJSONMiddleware(&models.ContactInput{}), controllers.CreateContact)
 			protected.GET("/contacts/:id", controllers.GetContact)
-			protected.PUT("/contacts/:id", middleware.ValidateJSONMiddleware(&models.Contact{}), controllers.UpdateContact)
+			protected.PUT("/contacts/:id", middleware.ValidateJSONMiddleware(&models.ContactInput{}), controllers.UpdateContact)
 			protected.DELETE("/contacts/:id", controllers.DeleteContact)
 			protected.GET("/contacts/circles", controllers.GetCircles)
 

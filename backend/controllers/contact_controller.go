@@ -18,11 +18,34 @@ func CreateContact(c *gin.Context) {
 	// Save to the database
 	db := c.MustGet("db").(*gorm.DB)
 
-	var contact models.Contact
-	if err := c.ShouldBindJSON(&contact); err != nil {
-		logger.FromContext(c).Error().Err(err).Msg("Error binding JSON for create contact")
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("contact", err.Error()))
+	// Get validated input from validation middleware
+	validated, exists := c.Get("validated")
+	if !exists {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("contact", "validation data not found"))
 		return
+	}
+
+	contactInput, ok := validated.(*models.ContactInput)
+	if !ok {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("contact", "invalid validation data type"))
+		return
+	}
+
+	// Create contact from validated input
+	contact := models.Contact{
+		Firstname:          contactInput.Firstname,
+		Lastname:           contactInput.Lastname,
+		Nickname:           contactInput.Nickname,
+		Gender:             contactInput.Gender,
+		Email:              contactInput.Email,
+		Phone:              contactInput.Phone,
+		Birthday:           contactInput.Birthday,
+		Address:            contactInput.Address,
+		HowWeMet:           contactInput.HowWeMet,
+		FoodPreference:     contactInput.FoodPreference,
+		WorkInformation:    contactInput.WorkInformation,
+		ContactInformation: contactInput.ContactInformation,
+		Circles:            contactInput.Circles,
 	}
 
 	// Save the new contact to the database
@@ -160,26 +183,33 @@ func UpdateContact(c *gin.Context) {
 		return
 	}
 
-	var updatedContact models.Contact
-	if err := c.ShouldBindJSON(&updatedContact); err != nil {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("contact", err.Error()))
+	// Get validated input from validation middleware
+	validated, exists := c.Get("validated")
+	if !exists {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("contact", "validation data not found"))
+		return
+	}
+
+	contactInput, ok := validated.(*models.ContactInput)
+	if !ok {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("contact", "invalid validation data type"))
 		return
 	}
 
 	// Updateable fields
-	contact.Firstname = updatedContact.Firstname
-	contact.Lastname = updatedContact.Lastname
-	contact.Nickname = updatedContact.Nickname
-	contact.Gender = updatedContact.Gender
-	contact.Email = updatedContact.Email
-	contact.Phone = updatedContact.Phone
-	contact.Birthday = updatedContact.Birthday
-	contact.Address = updatedContact.Address
-	contact.HowWeMet = updatedContact.HowWeMet
-	contact.FoodPreference = updatedContact.FoodPreference
-	contact.WorkInformation = updatedContact.WorkInformation
-	contact.ContactInformation = updatedContact.ContactInformation
-	contact.Circles = updatedContact.Circles
+	contact.Firstname = contactInput.Firstname
+	contact.Lastname = contactInput.Lastname
+	contact.Nickname = contactInput.Nickname
+	contact.Gender = contactInput.Gender
+	contact.Email = contactInput.Email
+	contact.Phone = contactInput.Phone
+	contact.Birthday = contactInput.Birthday
+	contact.Address = contactInput.Address
+	contact.HowWeMet = contactInput.HowWeMet
+	contact.FoodPreference = contactInput.FoodPreference
+	contact.WorkInformation = contactInput.WorkInformation
+	contact.ContactInformation = contactInput.ContactInformation
+	contact.Circles = contactInput.Circles
 
 	db.Updates(&contact)
 

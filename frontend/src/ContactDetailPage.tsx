@@ -439,7 +439,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
       firstname: contact.firstname || '',
       lastname: contact.lastname || '',
       nickname: contact.nickname || '',
-      gender: contact.gender || ''
+      gender: contact.gender ? contact.gender.toLowerCase() : ''
     });
     setEditingProfile(true);
   };
@@ -611,9 +611,9 @@ export default function ContactDetailPage({ token }: { token: string }) {
                     SelectProps={{ native: true }}
                   >
                     <option value=""></option>
-                    <option value="Male">{t('contactDetail.male')}</option>
-                    <option value="Female">{t('contactDetail.female')}</option>
-                    <option value="Other">{t('contactDetail.other')}</option>
+                    <option value="male">{t('contactDetail.male')}</option>
+                    <option value="female">{t('contactDetail.female')}</option>
+                    <option value="other">{t('contactDetail.other')}</option>
                   </TextField>
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <IconButton size="small" color="primary" onClick={handleSaveProfile}>

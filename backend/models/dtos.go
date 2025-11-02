@@ -17,3 +17,20 @@ type NoteInput struct {
 	Date      time.Time `json:"date" validate:"required"`
 	ContactID *uint     `json:"contact_id" validate:"required"`
 }
+
+// ContactInput represents the DTO for creating/updating contacts
+type ContactInput struct {
+	Firstname          string   `json:"firstname" validate:"required,min=1,max=100,safe_string"`
+	Lastname           string   `json:"lastname" validate:"max=100,safe_string"`
+	Nickname           string   `json:"nickname" validate:"max=50,safe_string"`
+	Gender             string   `json:"gender" validate:"omitempty,oneof=male female other prefer_not_to_say"`
+	Email              string   `json:"email" validate:"omitempty,email"`
+	Phone              string   `json:"phone" validate:"omitempty,phone"`
+	Birthday           string   `json:"birthday" validate:"omitempty,birthday"`
+	Address            string   `json:"address" validate:"max=500,safe_string"`
+	HowWeMet           string   `json:"how_we_met" validate:"max=1000,safe_string"`
+	FoodPreference     string   `json:"food_preference" validate:"max=500,safe_string"`
+	WorkInformation    string   `json:"work_information" validate:"max=1000,safe_string"`
+	ContactInformation string   `json:"contact_information" validate:"max=1000,safe_string"`
+	Circles            []string `json:"circles"`
+}

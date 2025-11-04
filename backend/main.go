@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"os"
 	"perema/config"
+	"perema/database"
 	apperrors "perema/errors"
 	"perema/logger"
 	"perema/middleware"
-	"perema/models"
 	"perema/routes"
 	"perema/services"
 
@@ -17,8 +17,6 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-co-op/gocron"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 func main() {
@@ -49,15 +47,10 @@ func main() {
 	logger.Info().Msg("Validating configuration...")
 	cfg.ValidateOrPanic()
 
-	logger.Info().Msg("Loading database...")
-	db, err := gorm.Open(sqlite.Open(cfg.DBPath), &gorm.Config{})
+	logger.Info().Msg("Loading database and running migrations...")
+	db, err := database.InitDB(cfg.DBPath)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Failed to connect database")
-	}
-
-	logger.Info().Msg("Loading migrations...")
-	if err := db.AutoMigrate(&models.Contact{}, &models.Activity{}, &models.Note{}, models.Relationship{}, models.Reminder{}, models.User{}); err != nil {
-		logger.Fatal().Err(err).Msg("Failed to migrate database schema")
+		logger.Fatal().Err(err).Msg("Failed to initialize database")
 	}
 
 	logger.Info().Msg("Running scheduler...")

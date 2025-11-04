@@ -59,7 +59,21 @@ Ensure you have [Go](https://golang.org/doc/install) installed. Then, set up you
     source my_environment.env
     go run main.go
     ```
-   The project uses an SQLite database for storage, which will be automatically created if it doesn't exist.
+   The project uses an SQLite database for storage. Database migrations run automatically on startup.
+   
+   **Database Migrations:**
+   ```sh
+   # View migration commands
+   make help
+   
+   # Check current migration status
+   make migrate-status
+   
+   # Create a new migration
+   make migrate-create NAME=your_migration_name
+   ```
+   
+   See [MIGRATIONS.md](backend/MIGRATIONS.md) for detailed migration documentation.
 
 1. **Run the frontend (in a second terminal):**
     ```sh

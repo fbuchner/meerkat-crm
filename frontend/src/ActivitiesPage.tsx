@@ -51,7 +51,7 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
   const activityParams = useMemo(() => ({ includeContacts: true }), []);
   
   const { activities: allActivities, loading, refetch } = useActivities(activityParams);
-  const [filteredActivities, setFilteredActivities] = useState<any[]>([]);
+  const [filteredActivities, setFilteredActivities] = useState<Activity[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editingActivityId, setEditingActivityId] = useState<number | null>(null);

@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -151,6 +152,68 @@ func GetContacts(c *gin.Context) {
 		"total":    total,
 		"page":     page,
 		"limit":    limit,
+	})
+}
+
+func GetContactsRandom(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	var selectedFields = []string{"ID", "firstname", "lastname", "nickname", "circles"}
+
+	var contacts []models.Contact
+	query := db.Model(&models.Contact{})
+
+	if len(selectedFields) > 0 {
+		query = query.Select(selectedFields)
+	}
+
+	// Get 5 random contacts
+	query = query.Order("RANDOM()").Limit(5)
+
+	// Execute query
+	if err := query.Find(&contacts).Error; err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve contacts").WithError(err))
+		return
+	}
+
+	// Respond with random contacts
+	c.JSON(http.StatusOK, gin.H{
+		"contacts": contacts,
+	})
+}
+
+func GetUpcomingBirthdays(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	// Get current date
+	now := time.Now()
+	currentDay := now.Format("02")
+	currentMonth := now.Format("01")
+	nextMonth := now.AddDate(0, 1, 0).Format("01")
+
+	var contacts []models.Contact
+
+	// Build query to get upcoming birthdays
+	// Part 1: Current month from today onwards
+	// Part 2: Next month (all days)
+	// Order by month, then day, limit to 10
+	query := db.Model(&models.Contact{}).
+		Where("birthday IS NOT NULL AND birthday != ''").
+		Where(
+			db.Where("SUBSTR(birthday, 4, 2) = ? AND SUBSTR(birthday, 1, 2) >= ?", currentMonth, currentDay).
+				Or("SUBSTR(birthday, 4, 2) = ?", nextMonth),
+		).
+		Order("SUBSTR(birthday, 4, 2), SUBSTR(birthday, 1, 2)").
+		Limit(10)
+
+	// Execute query
+	if err := query.Find(&contacts).Error; err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve upcoming birthdays").WithError(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"contacts": contacts,
 	})
 }
 

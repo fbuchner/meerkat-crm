@@ -2,16 +2,33 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
+import ErrorBoundary from './components/ErrorBoundary';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 import reportWebVitals from './reportWebVitals';
 import './i18n/config';
 
+// Error logging function (can be replaced with Sentry, LogRocket, etc.)
+const logError = (error: Error, errorInfo: React.ErrorInfo) => {
+  console.error('Application Error:', error);
+  console.error('Error Info:', errorInfo);
+  
+  // TODO: Send to error tracking service
+  // Example: Sentry.captureException(error, { contexts: { react: { componentStack: errorInfo.componentStack } } });
+};
+
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
+
 root.render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary
+      name="Application"
+      onError={logError}
+      showDetails={process.env.NODE_ENV === 'development'}
+    >
+      <App />
+    </ErrorBoundary>
   </React.StrictMode>
 );
 

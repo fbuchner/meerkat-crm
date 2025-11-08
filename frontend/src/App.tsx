@@ -26,7 +26,9 @@ import {
   Select,
   FormControl,
   InputLabel,
-  CircularProgress
+  CircularProgress,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -37,11 +39,17 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import LanguageIcon from '@mui/icons-material/Language';
 import './App.css';
 
+const drawerWidth = 200;
+
 function App() {
   const { t, i18n } = useTranslation();
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const handleDrawerOpen = () => setDrawerOpen(true);
-  const handleDrawerClose = () => setDrawerOpen(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  
+  const handleDrawerToggle = () => {
+    setMobileDrawerOpen(!mobileDrawerOpen);
+  };
   // Remove the custom handler and use inline in Select
     const [token, setToken] = useState(getToken());
     useEffect(() => {
@@ -65,17 +73,52 @@ function App() {
     { text: t('nav.notes'), icon: <NoteIcon />, path: '/notes' }
   ];
 
+  const drawerContent = (
+    <Box>
+      <Toolbar />
+      <List>
+        {navItems.map((item) => (
+          <ListItem key={item.text} disablePadding>
+            <ListItemButton 
+              component={Link} 
+              to={item.path} 
+              onClick={isMobile ? handleDrawerToggle : undefined}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.text} />
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+    </Box>
+  );
+
   // Removed duplicate token declaration. Use state version only.
   return (
     <Router>
-      <Box sx={{ flexGrow: 1 }}>
+      <Box sx={{ display: 'flex' }}>
         {token ? (
           <>
-            <AppBar position="static">
+            <AppBar 
+              position="fixed" 
+              sx={{ 
+                zIndex: (theme) => theme.zIndex.drawer + 1,
+                width: { md: `calc(100% - ${drawerWidth}px)` },
+                ml: { md: `${drawerWidth}px` }
+              }}
+            >
               <Toolbar>
-                <IconButton edge="start" color="inherit" aria-label="menu" onClick={handleDrawerOpen} sx={{ mr: 2 }}>
-                  <MenuIcon />
-                </IconButton>
+                {isMobile && (
+                  <IconButton 
+                    edge="start" 
+                    color="inherit" 
+                    aria-label="menu" 
+                    onClick={handleDrawerToggle} 
+                    sx={{ mr: 2 }}
+                  >
+                    <MenuIcon />
+                  </IconButton>
+                )}
                 <Typography variant="h6" sx={{ flexGrow: 1 }}>
                   {t('app.title')}
                 </Typography>
@@ -100,19 +143,45 @@ function App() {
                 </Button>
               </Toolbar>
             </AppBar>
-            <Drawer anchor="left" open={drawerOpen} onClose={handleDrawerClose}>
-              <List>
-                {navItems.map((item) => (
-                  <ListItem key={item.text} disablePadding>
-                    <ListItemButton component={Link} to={item.path} onClick={handleDrawerClose}>
-                      <ListItemIcon>{item.icon}</ListItemIcon>
-                      <ListItemText primary={item.text} />
-                    </ListItemButton>
-                  </ListItem>
-                ))}
-              </List>
+
+            {/* Mobile drawer */}
+            <Drawer 
+              variant="temporary"
+              open={mobileDrawerOpen} 
+              onClose={handleDrawerToggle}
+              sx={{
+                display: { xs: 'block', md: 'none' },
+                '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth }
+              }}
+            >
+              {drawerContent}
             </Drawer>
-            <Box sx={{ p: 2 }}>
+
+            {/* Desktop drawer */}
+            <Drawer
+              variant="permanent"
+              sx={{
+                display: { xs: 'none', md: 'block' },
+                width: drawerWidth,
+                flexShrink: 0,
+                '& .MuiDrawer-paper': { 
+                  width: drawerWidth, 
+                  boxSizing: 'border-box' 
+                }
+              }}
+            >
+              {drawerContent}
+            </Drawer>
+
+            <Box 
+              component="main" 
+              sx={{ 
+                flexGrow: 1, 
+                p: 3,
+                width: { md: `calc(100% - ${drawerWidth}px)` },
+                mt: 8
+              }}
+            >
               <Routes>
                 <Route path="/contacts" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ContactsPage token={token} /></Suspense>} />
                 <Route path="/contacts/:id" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ContactDetailPage token={token} /></Suspense>} />
@@ -124,7 +193,7 @@ function App() {
             </Box>
           </>
         ) : (
-          <Box sx={{ p: 2 }}>
+          <Box sx={{ p: 2, width: '100%' }}>
             <Routes>
               <Route path="/register" element={<RegisterPage />} />
               <Route path="*" element={<LoginPage setToken={setToken} />} />

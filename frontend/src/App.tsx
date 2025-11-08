@@ -3,6 +3,7 @@ import ContactsPage from './ContactsPage';
 import ContactDetailPage from './ContactDetailPage';
 import ActivitiesPage from './ActivitiesPage';
 import NotesPage from './NotesPage';
+import DashboardPage from './DashboardPage';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
 import { getToken, logoutUser } from './auth';
@@ -118,7 +119,7 @@ function App() {
                 <Route path="/notes" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><NotesPage token={token} /></Suspense>} />
                 <Route path="/activities" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ActivitiesPage token={token} /></Suspense>} />
                 <Route path="/reminders" element={<div>{t('pages.reminders')}</div>} />
-                <Route path="/" element={<div>{t('dashboard.welcome')}</div>} />
+                <Route path="/" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><DashboardPage token={token} /></Suspense>} />
               </Routes>
             </Box>
           </>

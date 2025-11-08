@@ -35,7 +35,6 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 			protected.GET("/contacts/random", controllers.GetContactsRandom)
 			protected.GET("/contacts/birthdays", controllers.GetUpcomingBirthdays)
 			protected.POST("/contacts", middleware.ValidateJSONMiddleware(&models.ContactInput{}), controllers.CreateContact)
-			protected.GET("/contacts/random", controllers.GetContactsRandom)
 			protected.GET("/contacts/:id", controllers.GetContact)
 			protected.PUT("/contacts/:id", middleware.ValidateJSONMiddleware(&models.ContactInput{}), controllers.UpdateContact)
 			protected.DELETE("/contacts/:id", controllers.DeleteContact)

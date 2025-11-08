@@ -12,7 +12,15 @@
     "reminders": "Erinnerungen"
   },
   "dashboard": {
-    "welcome": "Willkommen zum Perema CRM Dashboard"
+    "welcome": "Willkommen zum Perema CRM Dashboard",
+    "title": "Dashboard",
+    "upcomingBirthdays": "Anstehende Geburtstage",
+    "randomContacts": "Zufällige Kontakte",
+    "noBirthdays": "Keine anstehenden Geburtstage",
+    "noContacts": "Keine Kontakte verfügbar",
+    "comingSoon": "Demnächst",
+    "moreFeaturesComingSoon": "Weitere Funktionen folgen bald...",
+    "error": "Dashboard-Daten konnten nicht geladen werden"
   },
   "login": {
     "title": "Anmelden",

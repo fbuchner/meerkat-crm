@@ -148,3 +148,33 @@ export async function getCircles(token: string): Promise<string[]> {
   // Backend returns array directly, not wrapped in object
   return Array.isArray(data) ? data : [];
 }
+
+// Get random contacts (returns 5 contacts)
+export async function getRandomContacts(token: string): Promise<Contact[]> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/contacts/random`,
+    { headers: getAuthHeaders(token) }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch random contacts');
+  }
+
+  const data = await response.json();
+  return data.contacts || [];
+}
+
+// Get upcoming birthdays (returns up to 10 contacts)
+export async function getUpcomingBirthdays(token: string): Promise<Contact[]> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/contacts/birthdays`,
+    { headers: getAuthHeaders(token) }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch upcoming birthdays');
+  }
+
+  const data = await response.json();
+  return data.contacts || [];
+}

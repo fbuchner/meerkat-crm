@@ -12,7 +12,15 @@
     "reminders": "Reminders"
   },
   "dashboard": {
-    "welcome": "Welcome to Perema CRM Dashboard"
+    "welcome": "Welcome to Perema CRM Dashboard",
+    "title": "Dashboard",
+    "upcomingBirthdays": "Upcoming Birthdays",
+    "randomContacts": "Random Contacts",
+    "noBirthdays": "No upcoming birthdays",
+    "noContacts": "No contacts available",
+    "comingSoon": "Coming Soon",
+    "moreFeaturesComingSoon": "More features coming soon...",
+    "error": "Failed to load dashboard data"
   },
   "login": {
     "title": "Login",

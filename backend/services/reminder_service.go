@@ -18,7 +18,14 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 	// Get the current time
 	now := time.Now()
 	endOfDay := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location())
-	err := db.Where("by_mail = ? AND remind_at <= ? AND (last_sent IS NULL OR last_sent <= ?)", true, endOfDay, endOfDay).Find(&reminders).Error
+
+	// Fetch reminders that are:
+	// - Set to be sent by email
+	// - Due today or before
+	// - Not completed
+	// - Either never sent, or last sent was before today
+	err := db.Where("by_mail = ? AND remind_at <= ? AND completed = ? AND (last_sent IS NULL OR last_sent <= ?)",
+		true, endOfDay, false, endOfDay).Find(&reminders).Error
 	if err != nil {
 		return fmt.Errorf("failed to fetch reminders: %w", err)
 	}
@@ -35,14 +42,24 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 		return err
 	}
 
-	// Update last_sent for reminders
+	// Update last_sent for reminders and handle "once" reminders
 	for _, reminder := range reminders {
-		reminder.LastSent = new(time.Time)
-		*reminder.LastSent = time.Now()
-		reminder.RemindAt = calculateNextReminderTime(reminder)
-		logger.Debug().Time("next_remind_at", reminder.RemindAt).Uint("reminder_id", reminder.ID).Msg("Updated reminder time")
-		if err := db.Save(&reminder).Error; err != nil {
-			logger.Error().Err(err).Uint("reminder_id", reminder.ID).Msg("Failed to update reminder after sending")
+		if reminder.Recurrence == "once" {
+			// Delete "once" reminders after sending
+			if err := db.Delete(&reminder).Error; err != nil {
+				logger.Error().Err(err).Uint("reminder_id", reminder.ID).Msg("Failed to delete 'once' reminder after sending")
+			} else {
+				logger.Info().Uint("reminder_id", reminder.ID).Msg("Deleted 'once' reminder after sending")
+			}
+		} else {
+			// Update recurring reminders
+			reminder.LastSent = new(time.Time)
+			*reminder.LastSent = time.Now()
+			reminder.RemindAt = calculateNextReminderTime(reminder)
+			logger.Debug().Time("next_remind_at", reminder.RemindAt).Uint("reminder_id", reminder.ID).Msg("Updated reminder time")
+			if err := db.Save(&reminder).Error; err != nil {
+				logger.Error().Err(err).Uint("reminder_id", reminder.ID).Msg("Failed to update reminder after sending")
+			}
 		}
 	}
 
@@ -96,16 +113,22 @@ func calculateNextReminderTime(reminder models.Reminder) time.Time {
 	}
 
 	switch reminder.Recurrence {
-	case "No recurrence":
-		return reminder.RemindAt
-	case "Quarterly":
+	case "once":
+		// For "once" reminders, return a far future date (will be deleted anyway)
+		return time.Date(9999, 12, 31, 0, 0, 0, 0, baseTime.Location())
+	case "weekly":
+		return baseTime.AddDate(0, 0, 7)
+	case "monthly":
+		return baseTime.AddDate(0, 1, 0)
+	case "quarterly":
 		return baseTime.AddDate(0, 3, 0)
-	case "Six-months":
+	case "six-months":
 		return baseTime.AddDate(0, 6, 0)
-	case "Yearly":
+	case "yearly":
 		return baseTime.AddDate(1, 0, 0)
 	default:
-		// If the recurrence type is unrecognized, return the original RemindAt or handle the error
+		// If the recurrence type is unrecognized, return the original RemindAt
+		logger.Warn().Str("recurrence", reminder.Recurrence).Uint("reminder_id", reminder.ID).Msg("Unrecognized recurrence type")
 		return reminder.RemindAt
 	}
 }

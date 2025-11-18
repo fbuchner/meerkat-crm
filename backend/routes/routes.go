@@ -64,11 +64,15 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 			protected.GET("/activities", controllers.GetActivities)
 			protected.GET("/activities/:id", controllers.GetActivity)
 			protected.PUT("/activities/:id", middleware.ValidateJSONMiddleware(&models.ActivityInput{}), controllers.UpdateActivity)
-			protected.DELETE("/activities/:id", controllers.DeleteActivity) // Reminder routes
+			protected.DELETE("/activities/:id", controllers.DeleteActivity)
+
+			// Reminder routes
+			protected.GET("/reminders", controllers.GetAllReminders)
 			protected.GET("/contacts/:id/reminders", controllers.GetRemindersForContact)
 			protected.POST("/contacts/:id/reminders", middleware.ValidateJSONMiddleware(&models.Reminder{}), controllers.CreateReminder)
 			protected.GET("/reminders/:id", controllers.GetReminder)
 			protected.PUT("/reminders/:id", middleware.ValidateJSONMiddleware(&models.Reminder{}), controllers.UpdateReminder)
+			protected.POST("/reminders/:id/complete", controllers.CompleteReminder)
 			protected.DELETE("/reminders/:id", controllers.DeleteReminder)
 		}
 	}

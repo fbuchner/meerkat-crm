@@ -39,7 +39,7 @@ func CreateReminder(c *gin.Context) {
 	// Assign the ContactID to the reminder to link it to the contact
 	reminder.ContactID = &contact.ID
 
-	// Set hours, minutes, seoncds to 0 to ensure reminders are found when comparing for "until date"
+	// Set hours, minutes, seconds to 0 to ensure reminders are found when comparing for "until date"
 	reminder.RemindAt = time.Date(reminder.RemindAt.Year(),
 		reminder.RemindAt.Month(),
 		reminder.RemindAt.Day(), 0, 0, 0, 0, reminder.RemindAt.Location())
@@ -146,5 +146,93 @@ func GetRemindersForContact(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"reminders": contact.Reminders,
+	})
+}
+
+// GetAllReminders returns all reminders across all contacts for the current user
+func GetAllReminders(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	var reminders []models.Reminder
+
+	// Get all reminders, ordered by remind_at date
+	if err := db.Preload("Contact").Order("remind_at ASC").Find(&reminders).Error; err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve reminders").WithError(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"reminders": reminders,
+	})
+}
+
+// CompleteReminder marks a reminder as completed
+func CompleteReminder(c *gin.Context) {
+	id := c.Param("id")
+	db := c.MustGet("db").(*gorm.DB)
+
+	var reminder models.Reminder
+	if err := db.First(&reminder, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Reminder").WithDetails("id", id))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve reminder").WithError(err))
+		}
+		return
+	}
+
+	// Mark as completed
+	reminder.Completed = true
+	reminder.LastSent = new(time.Time)
+	*reminder.LastSent = time.Now()
+
+	// If reoccur from completion, calculate next reminder time
+	if reminder.ReocurrFromCompletion && reminder.Recurrence != "once" {
+		now := time.Now()
+		baseTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+
+		switch reminder.Recurrence {
+		case "weekly":
+			reminder.RemindAt = baseTime.AddDate(0, 0, 7)
+		case "monthly":
+			reminder.RemindAt = baseTime.AddDate(0, 1, 0)
+		case "quarterly":
+			reminder.RemindAt = baseTime.AddDate(0, 3, 0)
+		case "six-months":
+			reminder.RemindAt = baseTime.AddDate(0, 6, 0)
+		case "yearly":
+			reminder.RemindAt = baseTime.AddDate(1, 0, 0)
+		}
+
+		// Reset completed flag for recurring reminders
+		reminder.Completed = false
+
+		logger.FromContext(c).Info().
+			Time("next_remind_at", reminder.RemindAt).
+			Uint("reminder_id", reminder.ID).
+			Msg("Reminder completed, next occurrence scheduled")
+	}
+
+	// Delete "once" reminders after completion
+	if reminder.Recurrence == "once" {
+		if err := db.Delete(&reminder).Error; err != nil {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to delete completed 'once' reminder").WithError(err))
+			return
+		}
+
+		logger.FromContext(c).Info().Uint("reminder_id", reminder.ID).Msg("Deleted 'once' reminder after completion")
+		c.JSON(http.StatusOK, gin.H{"message": "Reminder completed and deleted"})
+		return
+	}
+
+	// Save the updated reminder
+	if err := db.Save(&reminder).Error; err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update reminder").WithError(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":  "Reminder completed successfully",
+		"reminder": reminder,
 	})
 }

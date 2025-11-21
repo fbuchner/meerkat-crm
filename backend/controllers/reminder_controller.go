@@ -51,6 +51,9 @@ func CreateReminder(c *gin.Context) {
 		return
 	}
 
+	// Clear the Contact association to avoid including it in the response
+	reminder.Contact = models.Contact{}
+
 	c.JSON(http.StatusOK, gin.H{"message": "Reminder created successfully", "reminder": reminder})
 }
 
@@ -101,6 +104,9 @@ func UpdateReminder(c *gin.Context) {
 	reminder.ContactID = updatedReminder.ContactID
 
 	db.Updates(&reminder)
+
+	// Clear the Contact association to avoid including it in the response
+	reminder.Contact = models.Contact{}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Reminder updated successfully", "reminder": reminder})
 }
@@ -156,7 +162,8 @@ func GetAllReminders(c *gin.Context) {
 	var reminders []models.Reminder
 
 	// Get all reminders, ordered by remind_at date
-	if err := db.Preload("Contact").Order("remind_at ASC").Find(&reminders).Error; err != nil {
+	// Don't preload Contact to avoid validation issues with invalid contact data
+	if err := db.Order("remind_at ASC").Find(&reminders).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve reminders").WithError(err))
 		return
 	}
@@ -230,6 +237,9 @@ func CompleteReminder(c *gin.Context) {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update reminder").WithError(err))
 		return
 	}
+
+	// Clear the Contact association to avoid including it in the response
+	reminder.Contact = models.Contact{}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":  "Reminder completed successfully",

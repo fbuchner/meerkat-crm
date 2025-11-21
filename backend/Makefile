@@ -12,12 +12,12 @@ help: ## Show this help message
 
 migrate-up: ## Run all pending migrations
 	@echo "Running migrations on $(DB_PATH)..."
-	@migrate -path $(MIGRATIONS_DIR) -database "sqlite3://$(DB_PATH)" up
+	@go run cmd/migrate/main.go up
 	@echo "Migrations applied successfully!"
 
 migrate-down: ## Rollback the last migration
 	@echo "Rolling back last migration on $(DB_PATH)..."
-	@migrate -path $(MIGRATIONS_DIR) -database "sqlite3://$(DB_PATH)" down 1
+	@go run cmd/migrate/main.go down
 	@echo "Migration rolled back successfully!"
 
 migrate-create: ## Create a new migration file (usage: make migrate-create NAME=create_users_table)
@@ -30,7 +30,7 @@ migrate-create: ## Create a new migration file (usage: make migrate-create NAME=
 
 migrate-status: ## Show current migration version
 	@echo "Current migration status for $(DB_PATH):"
-	@migrate -path $(MIGRATIONS_DIR) -database "sqlite3://$(DB_PATH)" version
+	@go run cmd/migrate/main.go version
 
 migrate-force: ## Force set migration version (usage: make migrate-force VERSION=1)
 	@if [ -z "$(VERSION)" ]; then \

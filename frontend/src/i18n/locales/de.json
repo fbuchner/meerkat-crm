@@ -130,6 +130,37 @@
     "deleteConfirm": "Notiz löschen",
     "deleteMessage": "Möchten Sie diese Notiz wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
   },
+  "reminders": {
+    "title": "Erinnerungen",
+    "add": "Erinnerung hinzufügen",
+    "addReminder": "Erinnerung hinzufügen",
+    "editReminder": "Erinnerung bearbeiten",
+    "message": "Nachricht",
+    "messagePlaceholder": "Erinnerungsnachricht...",
+    "date": "Datum",
+    "sendEmail": "E-Mail-Benachrichtigung senden",
+    "complete": "Erledigen",
+    "noReminders": "Noch keine Erinnerungen",
+    "messageRequired": "Nachricht ist erforderlich",
+    "dateRequired": "Datum ist erforderlich",
+    "saveFailed": "Erinnerung konnte nicht gespeichert werden",
+    "deleteConfirm": "Erinnerung löschen",
+    "deleteMessage": "Möchten Sie diese Erinnerung wirklich löschen?",
+    "email": "E-Mail",
+    "flexible": "Flexibel",
+    "overdue": "Überfällig",
+    "reoccurFromCompletion": "Ab Erledigungsdatum neu planen",
+    "reoccurFromCompletionTooltip": "Bei Erledigung wird die nächste Erinnerung ab dem Erledigungsdatum anstelle des ursprünglichen Datums geplant",
+    "recurrence": {
+      "label": "Wiederholung",
+      "once": "Einmalig",
+      "weekly": "Wöchentlich",
+      "monthly": "Monatlich",
+      "quarterly": "Vierteljährlich",
+      "sixMonths": "Alle 6 Monate",
+      "yearly": "Jährlich"
+    }
+  },
   "common": {
     "save": "Speichern",
     "cancel": "Abbrechen",

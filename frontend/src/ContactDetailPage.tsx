@@ -22,6 +22,15 @@ import {
   Activity
 } from './api/activities';
 import {
+  getRemindersForContact,
+  createReminder,
+  updateReminder,
+  deleteReminder,
+  completeReminder,
+  Reminder,
+  ReminderFormData
+} from './api/reminders';
+import {
   Box,
   Card,
   CardContent,
@@ -37,7 +46,8 @@ import {
   SpeedDialAction,
   SpeedDialIcon,
   Autocomplete,
-  Link
+  Link,
+  Button
 } from '@mui/material';
 import { ContactDetailHeaderSkeleton, TimelineSkeleton } from './components/LoadingSkeletons';
 import {
@@ -59,6 +69,7 @@ import RestaurantIcon from '@mui/icons-material/Restaurant';
 import PeopleIcon from '@mui/icons-material/People';
 import NoteIcon from '@mui/icons-material/Note';
 import EventIcon from '@mui/icons-material/Event';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
@@ -66,6 +77,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import AddNoteDialog from './components/AddNoteDialog';
 import AddActivityDialog from './components/AddActivityDialog';
+import ReminderDialog from './components/ReminderDialog';
+import ReminderList from './components/ReminderList';
 
 interface Contact {
   ID: number;
@@ -98,6 +111,11 @@ export default function ContactDetailPage({ token }: { token: string }) {
   const [validationError, setValidationError] = useState<string>('');
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
+  
+  // Reminder state
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
+  const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
   
   // Timeline item editing state
   const [editingTimelineItem, setEditingTimelineItem] = useState<{ type: 'note' | 'activity'; id: number } | null>(null);
@@ -144,6 +162,10 @@ export default function ContactDetailPage({ token }: { token: string }) {
         // Fetch detailed activities
         const activitiesData = await getContactActivities(id, token);
         setActivities(activitiesData.activities || []);
+
+        // Fetch reminders
+        const remindersData = await getRemindersForContact(parseInt(id), token);
+        setReminders(remindersData);
 
         setLoading(false);
       } catch (err) {
@@ -431,6 +453,65 @@ export default function ContactDetailPage({ token }: { token: string }) {
     } catch (err) {
       console.error('Error deleting circle:', err);
     }
+  };
+
+  // Reminder handlers
+  const refreshReminders = async () => {
+    if (!id) return;
+    try {
+      const fetchedReminders = await getRemindersForContact(parseInt(id), token);
+      setReminders(fetchedReminders);
+    } catch (err) {
+      console.error('Error fetching reminders:', err);
+    }
+  };
+
+  const handleSaveReminder = async (reminderData: ReminderFormData) => {
+    if (!id) return;
+
+    try {
+      if (editingReminder) {
+        await updateReminder(editingReminder.ID, reminderData, token);
+      } else {
+        await createReminder(parseInt(id), reminderData, token);
+      }
+      await refreshReminders();
+      setReminderDialogOpen(false);
+      setEditingReminder(null);
+    } catch (err) {
+      console.error('Error saving reminder:', err);
+      throw err;
+    }
+  };
+
+  const handleCompleteReminder = async (reminderId: number) => {
+    try {
+      await completeReminder(reminderId, token);
+      await refreshReminders();
+    } catch (err) {
+      console.error('Error completing reminder:', err);
+      throw err;
+    }
+  };
+
+  const handleEditReminder = (reminder: Reminder) => {
+    setEditingReminder(reminder);
+    setReminderDialogOpen(true);
+  };
+
+  const handleDeleteReminder = async (reminderId: number) => {
+    try {
+      await deleteReminder(reminderId, token);
+      await refreshReminders();
+    } catch (err) {
+      console.error('Error deleting reminder:', err);
+      throw err;
+    }
+  };
+
+  const handleAddReminder = () => {
+    setEditingReminder(null);
+    setReminderDialogOpen(true);
   };
 
   const handleStartEditProfile = () => {
@@ -1080,9 +1161,35 @@ export default function ContactDetailPage({ token }: { token: string }) {
         </Card>
       </Box>
 
-      {/* Speed Dial for Adding Notes and Activities */}
+      {/* Reminders Section */}
+      <Card>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h5" sx={{ fontWeight: 500 }}>
+              {t('reminders.title')}
+            </Typography>
+            <Button 
+              startIcon={<AddIcon />} 
+              onClick={handleAddReminder}
+              variant="outlined"
+              size="small"
+            >
+              {t('reminders.add')}
+            </Button>
+          </Box>
+          <Divider sx={{ mb: 2 }} />
+          <ReminderList
+            reminders={reminders}
+            onComplete={handleCompleteReminder}
+            onEdit={handleEditReminder}
+            onDelete={handleDeleteReminder}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Speed Dial for Adding Notes, Activities, and Reminders */}
       <SpeedDial
-        ariaLabel="Add note or activity"
+        ariaLabel="Add note, activity, or reminder"
         sx={{ position: 'fixed', bottom: 16, right: 16 }}
         icon={<SpeedDialIcon />}
       >
@@ -1095,6 +1202,11 @@ export default function ContactDetailPage({ token }: { token: string }) {
           icon={<EventIcon />}
           tooltipTitle={t('contactDetail.addActivity')}
           onClick={() => setActivityDialogOpen(true)}
+        />
+        <SpeedDialAction
+          icon={<NotificationsIcon />}
+          tooltipTitle={t('reminders.add')}
+          onClick={handleAddReminder}
         />
       </SpeedDial>
 
@@ -1111,6 +1223,17 @@ export default function ContactDetailPage({ token }: { token: string }) {
         onSave={handleSaveActivity}
         token={token}
         preselectedContactId={contact?.ID}
+      />
+
+      <ReminderDialog
+        open={reminderDialogOpen}
+        onClose={() => {
+          setReminderDialogOpen(false);
+          setEditingReminder(null);
+        }}
+        onSave={handleSaveReminder}
+        reminder={editingReminder}
+        contactId={contact?.ID || 0}
       />
     </Box>
   );

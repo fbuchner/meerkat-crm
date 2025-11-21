@@ -16,5 +16,5 @@ type Reminder struct {
 	Completed             bool       `gorm:"default:false" json:"completed"`
 	LastSent              *time.Time `gorm:"default:null" json:"last_sent"`
 	ContactID             *uint      `gorm:"not null" json:"contact_id" validate:"required"`
-	Contact               Contact    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"contact,omitempty"`
+	Contact               Contact    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"contact,omitempty" validate:"-"`
 }

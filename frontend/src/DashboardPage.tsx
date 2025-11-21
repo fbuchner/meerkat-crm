@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -9,11 +9,19 @@ import {
   Avatar,
   Stack,
   Chip,
-  Alert
+  Alert,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import CakeIcon from '@mui/icons-material/Cake';
 import ShuffleIcon from '@mui/icons-material/Shuffle';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import EmailIcon from '@mui/icons-material/Email';
+import RepeatIcon from '@mui/icons-material/Repeat';
+import WarningIcon from '@mui/icons-material/Warning';
 import { Contact, getRandomContacts, getUpcomingBirthdays } from './api/contacts';
+import { Reminder, getUpcomingReminders, completeReminder } from './api/reminders';
 import { ContactListSkeleton } from './components/LoadingSkeletons';
 
 interface DashboardPageProps {
@@ -22,8 +30,10 @@ interface DashboardPageProps {
 
 function DashboardPage({ token }: DashboardPageProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [birthdayContacts, setBirthdayContacts] = useState<Contact[]>([]);
   const [randomContacts, setRandomContacts] = useState<Contact[]>([]);
+  const [upcomingReminders, setUpcomingReminders] = useState<Reminder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,19 +46,36 @@ function DashboardPage({ token }: DashboardPageProps) {
       setLoading(true);
       setError(null);
       
-      const [birthdays, random] = await Promise.all([
+      const [birthdays, random, reminders] = await Promise.all([
         getUpcomingBirthdays(token),
-        getRandomContacts(token)
+        getRandomContacts(token),
+        getUpcomingReminders(token)
       ]);
       
       setBirthdayContacts(birthdays);
       setRandomContacts(random);
+      setUpcomingReminders(reminders);
     } catch (err) {
       console.error('Error loading dashboard data:', err);
       setError(t('dashboard.error') || 'Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCompleteReminder = async (reminderId: number) => {
+    try {
+      await completeReminder(reminderId, token);
+      // Reload reminders after completion
+      const reminders = await getUpcomingReminders(token);
+      setUpcomingReminders(reminders);
+    } catch (err) {
+      console.error('Error completing reminder:', err);
+    }
+  };
+
+  const isOverdue = (remindAt: string) => {
+    return new Date(remindAt) < new Date();
   };
 
   const formatBirthday = (birthday: string | undefined) => {
@@ -239,20 +266,94 @@ function DashboardPage({ token }: DashboardPageProps) {
           )}
         </Box>
 
-        {/* Column 3: Empty for now */}
+        {/* Column 3: Upcoming Reminders */}
         <Box>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="h6" color="text.secondary">
-              {t('dashboard.comingSoon')}
+          <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <NotificationsIcon color="primary" />
+            <Typography variant="h6">
+              {t('dashboard.upcomingReminders')}
             </Typography>
           </Box>
-          <Card>
-            <CardContent>
-              <Typography variant="body2" color="text.secondary">
-                {t('dashboard.moreFeaturesComingSoon')}
-              </Typography>
-            </CardContent>
-          </Card>
+
+          {upcomingReminders.length === 0 ? (
+            <Card>
+              <CardContent>
+                <Typography variant="body2" color="text.secondary">
+                  {t('dashboard.noReminders')}
+                </Typography>
+              </CardContent>
+            </Card>
+          ) : (
+            <Stack spacing={2}>
+              {upcomingReminders.map((reminder) => {
+                const overdue = isOverdue(reminder.remind_at);
+                const reminderDate = new Date(reminder.remind_at);
+                
+                return (
+                  <Card
+                    key={reminder.ID}
+                    sx={{
+                      border: overdue ? '2px solid' : 'none',
+                      borderColor: overdue ? 'warning.main' : 'transparent',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        boxShadow: 3,
+                        transform: 'translateY(-2px)',
+                        transition: 'all 0.2s'
+                      }
+                    }}
+                    onClick={() => navigate(`/contacts/${reminder.contact_id}`)}
+                  >
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                        <Box sx={{ flexGrow: 1 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
+                            {reminder.message}
+                          </Typography>
+                          <Box sx={{ mt: 1, display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
+                            <Chip
+                              icon={overdue ? <WarningIcon /> : undefined}
+                              label={reminderDate.toLocaleDateString()}
+                              size="small"
+                              color={overdue ? 'warning' : 'default'}
+                            />
+                            {reminder.recurrence !== 'once' && (
+                              <Chip
+                                icon={<RepeatIcon />}
+                                label={t(`reminders.recurrence.${reminder.recurrence}`)}
+                                size="small"
+                                variant="outlined"
+                              />
+                            )}
+                            {reminder.by_mail && (
+                              <Chip
+                                icon={<EmailIcon />}
+                                label={t('reminders.email')}
+                                size="small"
+                                variant="outlined"
+                              />
+                            )}
+                          </Box>
+                        </Box>
+                        <Tooltip title={t('reminders.complete')}>
+                          <IconButton
+                            size="small"
+                            color="success"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCompleteReminder(reminder.ID);
+                            }}
+                          >
+                            <CheckCircleIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </Stack>
+          )}
         </Box>
       </Box>
     </Box>

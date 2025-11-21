@@ -44,6 +44,21 @@ export async function getAllReminders(token: string): Promise<Reminder[]> {
   return data.reminders || [];
 }
 
+// Get upcoming reminders (next 7 days or at least next 10 reminders)
+export async function getUpcomingReminders(token: string): Promise<Reminder[]> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/reminders/upcoming`,
+    { headers: getAuthHeaders(token) }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch upcoming reminders');
+  }
+
+  const data: RemindersResponse = await response.json();
+  return data.reminders || [];
+}
+
 // Get reminders for a specific contact
 export async function getRemindersForContact(contactId: number, token: string): Promise<Reminder[]> {
   const response = await apiFetch(

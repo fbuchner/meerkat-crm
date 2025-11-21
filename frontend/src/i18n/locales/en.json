@@ -16,8 +16,10 @@
     "title": "Dashboard",
     "upcomingBirthdays": "Upcoming Birthdays",
     "randomContacts": "Random Contacts",
+    "upcomingReminders": "Upcoming Reminders",
     "noBirthdays": "No upcoming birthdays",
     "noContacts": "No contacts available",
+    "noReminders": "No upcoming reminders",
     "comingSoon": "Coming Soon",
     "moreFeaturesComingSoon": "More features coming soon...",
     "error": "Failed to load dashboard data"
@@ -84,7 +86,10 @@
     "gender": "Gender",
     "male": "Male",
     "female": "Female",
-    "other": "Other"
+    "other": "Other",
+    "deleteContact": "Delete Contact",
+    "confirmDeleteContact": "Are you sure you want to delete {{name}}? This action cannot be undone and will also delete all notes, activities, and reminders associated with this contact.",
+    "deleteContactError": "Failed to delete contact. Please try again."
   },
   "noteDialog": {
     "title": "Add Note",

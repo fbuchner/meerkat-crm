@@ -68,6 +68,7 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 
 			// Reminder routes
 			protected.GET("/reminders", controllers.GetAllReminders)
+			protected.GET("/reminders/upcoming", controllers.GetUpcomingReminders)
 			protected.GET("/contacts/:id/reminders", controllers.GetRemindersForContact)
 			protected.POST("/contacts/:id/reminders", middleware.ValidateJSONMiddleware(&models.Reminder{}), controllers.CreateReminder)
 			protected.GET("/reminders/:id", controllers.GetReminder)

@@ -28,11 +28,17 @@ func CreateReminder(c *gin.Context) {
 		return
 	}
 
-	// Bind the incoming JSON request to the Reminder struct
-	var reminder models.Reminder
-	if err := c.ShouldBindJSON(&reminder); err != nil {
-		logger.FromContext(c).Error().Err(err).Msg("Error binding JSON for create reminder")
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("reminder", err.Error()))
+	// Get the validated reminder from context (already bound by ValidateJSONMiddleware)
+	validated, exists := c.Get("validated")
+	if !exists {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("reminder", "validation data not found"))
+		return
+	}
+
+	// Type assert to Reminder
+	reminder, ok := validated.(*models.Reminder)
+	if !ok {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("reminder", "invalid data type"))
 		return
 	}
 
@@ -86,9 +92,17 @@ func UpdateReminder(c *gin.Context) {
 		return
 	}
 
-	var updatedReminder models.Reminder
-	if err := c.ShouldBindJSON(&updatedReminder); err != nil {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("reminder", err.Error()))
+	// Get the validated reminder from context (already bound by ValidateJSONMiddleware)
+	validated, exists := c.Get("validated")
+	if !exists {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("reminder", "validation data not found"))
+		return
+	}
+
+	// Type assert to Reminder
+	updatedReminder, ok := validated.(*models.Reminder)
+	if !ok {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("reminder", "invalid data type"))
 		return
 	}
 
@@ -170,6 +184,45 @@ func GetAllReminders(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"reminders": reminders,
+	})
+}
+
+// GetUpcomingReminders returns reminders for the next 7 days or at least the next 10 reminders
+func GetUpcomingReminders(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	now := time.Now()
+	sevenDaysFromNow := now.AddDate(0, 0, 7)
+
+	// Get reminders for the next 7 days
+	var remindersNext7Days []models.Reminder
+	if err := db.Where("remind_at >= ? AND remind_at <= ? AND completed = ?", now, sevenDaysFromNow, false).
+		Order("remind_at ASC").
+		Find(&remindersNext7Days).Error; err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve reminders").WithError(err))
+		return
+	}
+
+	// If we have at least 10 reminders, return them
+	if len(remindersNext7Days) >= 10 {
+		c.JSON(http.StatusOK, gin.H{
+			"reminders": remindersNext7Days,
+		})
+		return
+	}
+
+	// Otherwise, get the next 10 reminders regardless of date
+	var remindersNext10 []models.Reminder
+	if err := db.Where("remind_at >= ? AND completed = ?", now, false).
+		Order("remind_at ASC").
+		Limit(10).
+		Find(&remindersNext10).Error; err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve reminders").WithError(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"reminders": remindersNext10,
 	})
 }
 

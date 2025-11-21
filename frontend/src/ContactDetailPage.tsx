@@ -5,7 +5,8 @@ import {
   getContact,
   updateContact,
   getContactProfilePicture,
-  getContacts
+  getContacts,
+  deleteContact
 } from './api/contacts';
 import { 
   getContactNotes, 
@@ -551,6 +552,27 @@ export default function ContactDetailPage({ token }: { token: string }) {
     }
   };
 
+  const handleDeleteContact = async () => {
+    if (!contact || !id) return;
+
+    const confirmMessage = t('contactDetail.confirmDeleteContact', { 
+      name: `${contact.firstname} ${contact.lastname}` 
+    });
+    
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      await deleteContact(id, token);
+      // Navigate back to contacts list after successful deletion
+      navigate('/contacts');
+    } catch (err) {
+      console.error('Error deleting contact:', err);
+      alert(t('contactDetail.deleteContactError'));
+    }
+  };
+
   // Reusable EditableField component
   const EditableField = ({ 
     icon, 
@@ -696,13 +718,23 @@ export default function ContactDetailPage({ token }: { token: string }) {
                     <option value="female">{t('contactDetail.female')}</option>
                     <option value="other">{t('contactDetail.other')}</option>
                   </TextField>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <IconButton size="small" color="primary" onClick={handleSaveProfile}>
-                      <SaveIcon />
+                  <Box sx={{ display: 'flex', gap: 1, justifyContent: 'space-between' }}>
+                    <IconButton 
+                      size="small" 
+                      color="error" 
+                      onClick={handleDeleteContact}
+                      title={t('contactDetail.deleteContact')}
+                    >
+                      <DeleteIcon />
                     </IconButton>
-                    <IconButton size="small" onClick={handleCancelEditProfile}>
-                      <CloseIcon />
-                    </IconButton>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <IconButton size="small" color="primary" onClick={handleSaveProfile}>
+                        <SaveIcon />
+                      </IconButton>
+                      <IconButton size="small" onClick={handleCancelEditProfile}>
+                        <CloseIcon />
+                      </IconButton>
+                    </Box>
                   </Box>
                 </Box>
               ) : (

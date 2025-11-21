@@ -10,20 +10,20 @@ import (
 )
 
 type Config struct {
-	DBPath             string
-	ReminderTime       string
-	FrontendURL        string
-	Port               string
-	TrustedProxies     []string
-	UseSendgrid        bool
-	SendgridToEmail    string
-	SendgridTemplateID string
-	SendgridAPIKey     string
-	JWTSecretKey       string
-	JWTExpiryHours     int
-	ReadTimeout        int // HTTP server read timeout in seconds
-	WriteTimeout       int // HTTP server write timeout in seconds
-	IdleTimeout        int // HTTP server idle timeout in seconds
+	DBPath          string
+	ReminderTime    string
+	FrontendURL     string
+	Port            string
+	TrustedProxies  []string
+	UseResend       bool
+	ResendAPIKey    string
+	ResendFromEmail string
+	ResendToEmail   string
+	JWTSecretKey    string
+	JWTExpiryHours  int
+	ReadTimeout     int // HTTP server read timeout in seconds
+	WriteTimeout    int // HTTP server write timeout in seconds
+	IdleTimeout     int // HTTP server idle timeout in seconds
 }
 
 func LoadConfig() *Config {
@@ -41,24 +41,24 @@ func LoadConfig() *Config {
 	idleTimeout := getIntEnv("HTTP_IDLE_TIMEOUT", 60)
 
 	cfg := &Config{
-		DBPath:             getEnv("SQLITE_DB_PATH", "perema.db"),
-		ReminderTime:       getEnv("REMINDER_TIME", "12:00"),
-		FrontendURL:        getEnv("FRONTEND_URL", "*"),
-		Port:               getEnv("PORT", "8080"),
-		UseSendgrid:        true,
-		SendgridAPIKey:     getEnv("SENDGRID_API_KEY", ""),
-		SendgridTemplateID: getEnv("SENDGRID_BIRTHDAY_TEMPLATE_ID", ""),
-		SendgridToEmail:    getEnv("SENDGRID_TO_EMAIL", ""),
-		JWTSecretKey:       getEnv("JWT_SECRET_KEY", ""),
-		JWTExpiryHours:     jwtExpiryHours,
-		TrustedProxies:     getProxies(getEnv("TRUSTED_PROXIES", "")),
-		ReadTimeout:        readTimeout,
-		WriteTimeout:       writeTimeout,
-		IdleTimeout:        idleTimeout,
+		DBPath:          getEnv("SQLITE_DB_PATH", "perema.db"),
+		ReminderTime:    getEnv("REMINDER_TIME", "12:00"),
+		FrontendURL:     getEnv("FRONTEND_URL", "*"),
+		Port:            getEnv("PORT", "8080"),
+		UseResend:       true,
+		ResendAPIKey:    getEnv("RESEND_API_KEY", ""),
+		ResendFromEmail: getEnv("RESEND_FROM_EMAIL", ""),
+		ResendToEmail:   getEnv("RESEND_TO_EMAIL", ""),
+		JWTSecretKey:    getEnv("JWT_SECRET_KEY", ""),
+		JWTExpiryHours:  jwtExpiryHours,
+		TrustedProxies:  getProxies(getEnv("TRUSTED_PROXIES", "")),
+		ReadTimeout:     readTimeout,
+		WriteTimeout:    writeTimeout,
+		IdleTimeout:     idleTimeout,
 	}
 
-	if cfg.SendgridAPIKey == "" || cfg.SendgridTemplateID == "" || cfg.SendgridToEmail == "" {
-		cfg.UseSendgrid = false
+	if cfg.ResendAPIKey == "" || cfg.ResendFromEmail == "" || cfg.ResendToEmail == "" {
+		cfg.UseResend = false
 	}
 
 	return cfg
@@ -191,24 +191,24 @@ func (c *Config) Validate() []ValidationError {
 		})
 	}
 
-	// Validate SendGrid configuration if emails are enabled
-	if c.UseSendgrid {
-		if c.SendgridAPIKey == "" {
+	// Validate Resend configuration if emails are enabled
+	if c.UseResend {
+		if c.ResendAPIKey == "" {
 			errors = append(errors, ValidationError{
-				Field:   "SENDGRID_API_KEY",
-				Message: "SendGrid API key is required when email is enabled.",
+				Field:   "RESEND_API_KEY",
+				Message: "Resend API key is required when email is enabled.",
 			})
 		}
-		if c.SendgridToEmail == "" {
+		if c.ResendToEmail == "" {
 			errors = append(errors, ValidationError{
-				Field:   "SENDGRID_TO_EMAIL",
-				Message: "SendGrid recipient email is required when email is enabled.",
+				Field:   "RESEND_TO_EMAIL",
+				Message: "Resend recipient email is required when email is enabled.",
 			})
 		}
-		if c.SendgridTemplateID == "" {
+		if c.ResendFromEmail == "" {
 			errors = append(errors, ValidationError{
-				Field:   "SENDGRID_BIRTHDAY_TEMPLATE_ID",
-				Message: "SendGrid template ID is required when email is enabled.",
+				Field:   "RESEND_FROM_EMAIL",
+				Message: "Resend sender email is required when email is enabled.",
 			})
 		}
 	}

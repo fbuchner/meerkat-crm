@@ -7,8 +7,7 @@ import (
 	"perema/models"
 	"time"
 
-	"github.com/sendgrid/sendgrid-go"
-	"github.com/sendgrid/sendgrid-go/helpers/mail"
+	"github.com/resend/resend-go/v2"
 	"gorm.io/gorm"
 )
 
@@ -66,12 +65,8 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 	return nil
 }
 
-// Send email using SendGrid with daily reminders
+// Send email using Resend with daily reminders
 func sendReminderEmail(reminders []models.Reminder, config config.Config, db *gorm.DB) error {
-	from := mail.NewEmail("Meerkat CRM", config.SendgridToEmail)
-	subject := "Your Daily Reminders"
-	to := mail.NewEmail("CRM User", config.SendgridToEmail)
-
 	// Build the HTML content
 	htmlContent := "<h1>Your Reminders for Today:</h1><ul>"
 	for _, reminder := range reminders {
@@ -88,16 +83,25 @@ func sendReminderEmail(reminders []models.Reminder, config config.Config, db *go
 
 	logger.Debug().Str("html_content", htmlContent).Int("reminder_count", len(reminders)).Msg("Sending reminder email")
 
-	message := mail.NewSingleEmail(from, subject, to, "", htmlContent)
-	client := sendgrid.NewSendClient(config.SendgridAPIKey)
-	res, err := client.Send(message)
+	// Initialize Resend client
+	client := resend.NewClient(config.ResendAPIKey)
 
+	// Prepare email parameters
+	params := &resend.SendEmailRequest{
+		From:    config.ResendFromEmail,
+		To:      []string{config.ResendToEmail},
+		Subject: "Your Daily Reminders",
+		Html:    htmlContent,
+	}
+
+	// Send email
+	sent, err := client.Emails.Send(params)
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to send reminder email")
 		return err
 	}
 
-	logger.Info().Int("status_code", res.StatusCode).Msg("Reminder email sent successfully")
+	logger.Info().Str("email_id", sent.Id).Msg("Reminder email sent successfully")
 
 	return nil
 }

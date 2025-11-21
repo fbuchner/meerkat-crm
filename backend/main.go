@@ -55,8 +55,8 @@ func main() {
 
 	logger.Info().Msg("Running scheduler...")
 	// Schedule the reminder task daily
-	if !cfg.UseSendgrid {
-		logger.Warn().Msg("No Mails to be sent since Sendgrid configuration is not set")
+	if !cfg.UseResend {
+		logger.Warn().Msg("No Mails to be sent since Resend configuration is not set")
 	}
 	s := gocron.NewScheduler(time.UTC)
 	task := func() {

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useContacts } from './hooks/useContacts';
 import { getCircles, getContactProfilePicture } from './api/contacts';
+import AddContactDialog from './components/AddContactDialog';
 import {
   Box,
   Card,
@@ -16,9 +17,11 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Pagination
+  Pagination,
+  Button
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import AddIcon from '@mui/icons-material/Add';
 import { ContactListSkeleton } from './components/LoadingSkeletons';
 
 export default function ContactsPage({ token }: { token: string }) {
@@ -30,6 +33,7 @@ export default function ContactsPage({ token }: { token: string }) {
   const [selectedCircle, setSelectedCircle] = useState('');
   const [circles, setCircles] = useState<string[]>([]);
   const [page, setPage] = useState(1);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
   const pageSize = 10;
 
   // Memoize params to prevent infinite re-renders
@@ -41,7 +45,7 @@ export default function ContactsPage({ token }: { token: string }) {
   }), [page, debouncedSearch, selectedCircle]);
 
   // Use custom hook for fetching contacts
-  const { contacts, total: totalContacts, loading } = useContacts(contactParams);
+  const { contacts, total: totalContacts, loading, refetch } = useContacts(contactParams);
 
   // Fetch circles for filter
   useEffect(() => {
@@ -95,10 +99,21 @@ export default function ContactsPage({ token }: { token: string }) {
   const filteredContacts = contacts;
 
   const isFiltered = selectedCircle !== '';
+
+  const handleContactAdded = async () => {
+    await refetch();
+    // Also refresh circles
+    try {
+      const data = await getCircles(token);
+      setCircles(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error fetching circles:', err);
+    }
+  };
   
   return (
     <Box sx={{ maxWidth: 800, mx: 'auto', mt: 4 }}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2} alignItems="center">
         <TextField
           label={t('contacts.search')}
           variant="outlined"
@@ -126,6 +141,14 @@ export default function ContactsPage({ token }: { token: string }) {
             ))}
           </Select>
         </FormControl>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setAddDialogOpen(true)}
+          sx={{ whiteSpace: 'nowrap' }}
+        >
+          {t('contacts.add.button')}
+        </Button>
       </Stack>
       {isFiltered && (
         <Box sx={{ mb: 2, p: 1, bgcolor: '#f5f5f5', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -188,6 +211,13 @@ export default function ContactsPage({ token }: { token: string }) {
           )}
         </>
       )}
+      <AddContactDialog
+        open={addDialogOpen}
+        onClose={() => setAddDialogOpen(false)}
+        onContactAdded={handleContactAdded}
+        token={token}
+        availableCircles={circles}
+      />
     </Box>
   );
 }

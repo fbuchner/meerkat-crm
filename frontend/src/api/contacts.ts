@@ -76,6 +76,28 @@ export async function getContact(
   return response.json();
 }
 
+// Create contact
+export async function createContact(
+  data: Partial<Contact>,
+  token: string
+): Promise<Contact> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/contacts`,
+    {
+      method: 'POST',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(data),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to create contact');
+  }
+
+  const result = await response.json();
+  return result.contact || result;
+}
+
 // Update contact
 export async function updateContact(
   id: string | number,

@@ -25,7 +25,6 @@ import {
 import EventIcon from '@mui/icons-material/Event';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { useActivities } from './hooks/useActivities';
@@ -180,7 +179,7 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">{t('activities.title')}</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddActivity}>
+        <Button variant="outlined" startIcon={<EventIcon />} onClick={handleAddActivity}>
           {t('activities.addActivity')}
         </Button>
       </Box>

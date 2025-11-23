@@ -24,7 +24,6 @@ import {
 import NoteIcon from '@mui/icons-material/Note';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { ListSkeleton } from './components/LoadingSkeletons';
@@ -155,7 +154,7 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">{t('notes.title')}</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddNote}>
+        <Button variant="outlined" startIcon={<NoteIcon />} onClick={handleAddNote}>
           {t('notes.addNote')}
         </Button>
       </Box>

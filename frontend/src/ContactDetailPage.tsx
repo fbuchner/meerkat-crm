@@ -43,9 +43,6 @@ import {
   Stack,
   Paper,
   TextField,
-  SpeedDial,
-  SpeedDialAction,
-  SpeedDialIcon,
   Autocomplete,
   Link,
   Button
@@ -70,12 +67,12 @@ import RestaurantIcon from '@mui/icons-material/Restaurant';
 import PeopleIcon from '@mui/icons-material/People';
 import NoteIcon from '@mui/icons-material/Note';
 import EventIcon from '@mui/icons-material/Event';
-import NotificationsIcon from '@mui/icons-material/Notifications';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import AddNoteDialog from './components/AddNoteDialog';
 import AddActivityDialog from './components/AddActivityDialog';
 import ReminderDialog from './components/ReminderDialog';
@@ -946,9 +943,29 @@ export default function ContactDetailPage({ token }: { token: string }) {
         {/* Timeline - Notes and Activities */}
         <Card sx={{ flex: 1 }}>
         <CardContent>
-          <Typography variant="h5" sx={{ mb: 2, fontWeight: 500 }}>
-            {t('contactDetail.timeline')}
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h5" sx={{ fontWeight: 500 }}>
+              {t('contactDetail.timeline')}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button 
+                startIcon={<NoteIcon />} 
+                onClick={() => setNoteDialogOpen(true)}
+                variant="outlined"
+                size="small"
+              >
+                {t('contactDetail.addNote')}
+              </Button>
+              <Button 
+                startIcon={<EventIcon />} 
+                onClick={() => setActivityDialogOpen(true)}
+                variant="outlined"
+                size="small"
+              >
+                {t('contactDetail.addActivity')}
+              </Button>
+            </Box>
+          </Box>
           <Divider sx={{ mb: 3 }} />
           
           {timelineItems.length === 0 ? (
@@ -1201,7 +1218,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
               {t('reminders.title')}
             </Typography>
             <Button 
-              startIcon={<AddIcon />} 
+              startIcon={<NotificationsActiveIcon />} 
               onClick={handleAddReminder}
               variant="outlined"
               size="small"
@@ -1218,29 +1235,6 @@ export default function ContactDetailPage({ token }: { token: string }) {
           />
         </CardContent>
       </Card>
-
-      {/* Speed Dial for Adding Notes, Activities, and Reminders */}
-      <SpeedDial
-        ariaLabel="Add note, activity, or reminder"
-        sx={{ position: 'fixed', bottom: 16, right: 16 }}
-        icon={<SpeedDialIcon />}
-      >
-        <SpeedDialAction
-          icon={<NoteIcon />}
-          tooltipTitle={t('contactDetail.addNote')}
-          onClick={() => setNoteDialogOpen(true)}
-        />
-        <SpeedDialAction
-          icon={<EventIcon />}
-          tooltipTitle={t('contactDetail.addActivity')}
-          onClick={() => setActivityDialogOpen(true)}
-        />
-        <SpeedDialAction
-          icon={<NotificationsIcon />}
-          tooltipTitle={t('reminders.add')}
-          onClick={handleAddReminder}
-        />
-      </SpeedDial>
 
       {/* Dialogs */}
       <AddNoteDialog

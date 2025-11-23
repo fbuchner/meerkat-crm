@@ -21,7 +21,7 @@ import {
   Button
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import AddIcon from '@mui/icons-material/Add';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import { ContactListSkeleton } from './components/LoadingSkeletons';
 
 export default function ContactsPage({ token }: { token: string }) {
@@ -142,8 +142,8 @@ export default function ContactsPage({ token }: { token: string }) {
           </Select>
         </FormControl>
         <Button
-          variant="contained"
-          startIcon={<AddIcon />}
+          variant="outlined"
+          startIcon={<PersonAddIcon />}
           onClick={() => setAddDialogOpen(true)}
           sx={{ whiteSpace: 'nowrap' }}
         >

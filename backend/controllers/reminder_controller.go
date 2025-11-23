@@ -6,6 +6,7 @@ import (
 	apperrors "perema/errors"
 	"perema/logger"
 	"perema/models"
+	"perema/services"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -248,22 +249,7 @@ func CompleteReminder(c *gin.Context) {
 
 	// If reoccur from completion, calculate next reminder time
 	if reminder.ReocurrFromCompletion && reminder.Recurrence != "once" {
-		now := time.Now()
-		baseTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-
-		switch reminder.Recurrence {
-		case "weekly":
-			reminder.RemindAt = baseTime.AddDate(0, 0, 7)
-		case "monthly":
-			reminder.RemindAt = baseTime.AddDate(0, 1, 0)
-		case "quarterly":
-			reminder.RemindAt = baseTime.AddDate(0, 3, 0)
-		case "six-months":
-			reminder.RemindAt = baseTime.AddDate(0, 6, 0)
-		case "yearly":
-			reminder.RemindAt = baseTime.AddDate(1, 0, 0)
-		}
-
+		reminder.RemindAt = services.CalculateNextReminderTime(reminder)
 		// Reset completed flag for recurring reminders
 		reminder.Completed = false
 

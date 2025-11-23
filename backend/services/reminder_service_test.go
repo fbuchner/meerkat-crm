@@ -53,9 +53,9 @@ func TestSendReminders(t *testing.T) {
 	db.Create(&reminder)
 
 	config := config.Config{
-		SendgridAPIKey:  "test_api_key",
-		SendgridToEmail: "test_email@example.com",
-		ReminderTime:    "12:00",
+		ResendAPIKey:  "test_api_key",
+		ResendToEmail: "test_email@example.com",
+		ReminderTime:  "12:00",
 	}
 
 	err := SendReminders(db, config)

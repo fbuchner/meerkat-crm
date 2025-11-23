@@ -54,7 +54,7 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 			// Update recurring reminders
 			reminder.LastSent = new(time.Time)
 			*reminder.LastSent = time.Now()
-			reminder.RemindAt = calculateNextReminderTime(reminder)
+			reminder.RemindAt = CalculateNextReminderTime(reminder)
 			logger.Debug().Time("next_remind_at", reminder.RemindAt).Uint("reminder_id", reminder.ID).Msg("Updated reminder time")
 			if err := db.Save(&reminder).Error; err != nil {
 				logger.Error().Err(err).Uint("reminder_id", reminder.ID).Msg("Failed to update reminder after sending")
@@ -106,20 +106,27 @@ func sendReminderEmail(reminders []models.Reminder, config config.Config, db *go
 	return nil
 }
 
-func calculateNextReminderTime(reminder models.Reminder) time.Time {
+// CalculateNextReminderTime determines the next reminder date based on recurrence settings
+func CalculateNextReminderTime(reminder models.Reminder) time.Time {
 	// Determine the base time to use for calculation
 	now := time.Now()
 	var baseTime time.Time
 	if reminder.ReocurrFromCompletion {
-		baseTime = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		if reminder.RemindAt.After(now) {
+			// For reminders in the future, use the original remind at time (e.g. if I already complete a monthly reminder set for next week I am remindet again next week in one month)
+			baseTime = reminder.RemindAt
+		} else {
+			// For reminders in the past use now as reference (if I complete a weekly reminder that was due last week, the next reminder is in one week from today)
+			baseTime = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		}
 	} else {
 		baseTime = reminder.RemindAt
 	}
 
 	switch reminder.Recurrence {
 	case "once":
-		// For "once" reminders, return a far future date (will be deleted anyway)
-		return time.Date(9999, 12, 31, 0, 0, 0, 0, baseTime.Location())
+		// Will be deleted anyway
+		return reminder.RemindAt
 	case "weekly":
 		return baseTime.AddDate(0, 0, 7)
 	case "monthly":

@@ -4,6 +4,7 @@ import ContactDetailPage from './ContactDetailPage';
 import ActivitiesPage from './ActivitiesPage';
 import NotesPage from './NotesPage';
 import DashboardPage from './DashboardPage';
+import SettingsPage from './SettingsPage';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
 import { getToken, logoutUser } from './auth';
@@ -21,11 +22,7 @@ import {
   ListItemIcon,
   ListItemText,
   Box,
-  MenuItem,
   Button,
-  Select,
-  FormControl,
-  InputLabel,
   CircularProgress,
   useTheme,
   useMediaQuery
@@ -35,14 +32,14 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import ContactsIcon from '@mui/icons-material/Contacts';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import NoteIcon from '@mui/icons-material/Note';
+import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
-import LanguageIcon from '@mui/icons-material/Language';
 import './App.css';
 
 const drawerWidth = 200;
 
 function App() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
@@ -62,15 +59,12 @@ function App() {
     window.location.href = '/login';
   };
 
-  const handleLanguageChange = (newLang: string) => {
-    i18n.changeLanguage(newLang);
-  };
-
   const navItems = [
     { text: t('nav.dashboard'), icon: <DashboardIcon />, path: '/' },
     { text: t('nav.contacts'), icon: <ContactsIcon />, path: '/contacts' },
     { text: t('nav.activities'), icon: <EventNoteIcon />, path: '/activities' },
-    { text: t('nav.notes'), icon: <NoteIcon />, path: '/notes' }
+    { text: t('nav.notes'), icon: <NoteIcon />, path: '/notes' },
+    { text: t('nav.settings'), icon: <SettingsIcon />, path: '/settings' }
   ];
 
   const drawerContent = (
@@ -122,22 +116,6 @@ function App() {
                 <Typography variant="h6" sx={{ flexGrow: 1 }}>
                   {t('app.title')}
                 </Typography>
-                <FormControl variant="standard" sx={{ minWidth: 80, mr: 2 }}>
-                  <InputLabel id="lang-select-label">
-                    <LanguageIcon fontSize="small" />
-                  </InputLabel>
-                  <Select
-                    labelId="lang-select-label"
-                    id="lang-select"
-                    value={i18n.language}
-                    onChange={(event) => handleLanguageChange(event.target.value as string)}
-                    label="Language"
-                    sx={{ color: 'white' }}
-                  >
-                    <MenuItem value={'en'}>EN</MenuItem>
-                    <MenuItem value={'de'}>DE</MenuItem>
-                  </Select>
-                </FormControl>
                 <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>
                   {t('app.logout')}
                 </Button>
@@ -187,6 +165,7 @@ function App() {
                 <Route path="/contacts/:id" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ContactDetailPage token={token} /></Suspense>} />
                 <Route path="/notes" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><NotesPage token={token} /></Suspense>} />
                 <Route path="/activities" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ActivitiesPage token={token} /></Suspense>} />
+                <Route path="/settings" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><SettingsPage /></Suspense>} />
                 <Route path="/reminders" element={<div>{t('pages.reminders')}</div>} />
                 <Route path="/" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><DashboardPage token={token} /></Suspense>} />
               </Routes>

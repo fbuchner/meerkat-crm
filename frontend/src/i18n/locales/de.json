@@ -9,7 +9,8 @@
     "contacts": "Kontakte",
     "activities": "Aktivitäten",
     "notes": "Notizen",
-    "reminders": "Erinnerungen"
+    "reminders": "Erinnerungen",
+    "settings": "Einstellungen"
   },
   "dashboard": {
     "welcome": "Willkommen zum Perema CRM Dashboard",
@@ -201,6 +202,16 @@
     "edit": "Bearbeiten",
     "delete": "Löschen",
     "close": "Schließen"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "language": {
+      "title": "Sprache",
+      "label": "Sprache",
+      "description": "Wählen Sie Ihre bevorzugte Sprache für die Anwendungsoberfläche."
+    },
+    "moreComingSoon": "Weitere Einstellungen folgen bald",
+    "moreComingSoonDescription": "Zusätzliche Einstellungen und Anpassungsoptionen werden hier in zukünftigen Updates verfügbar sein."
   },
   "pages": {
     "notes": "Notizen Seite",

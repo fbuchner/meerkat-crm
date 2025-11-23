@@ -112,11 +112,12 @@ export default function ContactsPage({ token }: { token: string }) {
   };
   
   return (
-    <Box sx={{ maxWidth: 800, mx: 'auto', mt: 4 }}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2} alignItems="center">
+    <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} mb={2} alignItems="center">
         <TextField
           label={t('contacts.search')}
           variant="outlined"
+          size="small"
           value={search}
           onChange={e => setSearch(e.target.value)}
           InputProps={{
@@ -127,7 +128,7 @@ export default function ContactsPage({ token }: { token: string }) {
             )
           }}
         />
-        <FormControl sx={{ minWidth: 120 }}>
+        <FormControl sx={{ minWidth: 120 }} size="small">
           <InputLabel id="circle-select-label">{t('contacts.filterByCircle')}</InputLabel>
           <Select
             labelId="circle-select-label"
@@ -169,7 +170,7 @@ export default function ContactsPage({ token }: { token: string }) {
                 sx={{ 
                   display: 'flex', 
                   alignItems: 'center', 
-                  p: 1,
+                  p: 1.5,
                   cursor: 'pointer',
                   '&:hover': {
                     bgcolor: 'action.hover'
@@ -177,12 +178,12 @@ export default function ContactsPage({ token }: { token: string }) {
                 }}
                 onClick={() => navigate(`/contacts/${contact.ID}`)}
               >
-                <Avatar src={profilePics[contact.ID] || undefined} sx={{ width: 56, height: 56, mr: 2 }} />
+                <Avatar src={profilePics[contact.ID] || undefined} sx={{ width: 48, height: 48, mr: 1.5 }} />
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
                     {contact.firstname} {contact.nickname && `"${contact.nickname}"`} {contact.lastname}
                   </Typography>
-                  <Stack direction="row" spacing={1} mt={0.5}>
+                  <Stack direction="row" spacing={0.5} mt={0.5} flexWrap="wrap" gap={0.5}>
                     {contact.circles && contact.circles.map((circle: string) => (
                       <Chip
                         key={`${contact.ID}-${circle}`}
@@ -191,6 +192,7 @@ export default function ContactsPage({ token }: { token: string }) {
                         variant="outlined"
                         clickable
                         onClick={() => { setSelectedCircle(circle); setPage(1); }}
+                        sx={{ height: 20, fontSize: '0.75rem' }}
                       />
                     ))}
                   </Stack>

@@ -45,7 +45,9 @@ import {
   TextField,
   Autocomplete,
   Link,
-  Button
+  Button,
+  Tabs,
+  Tab
 } from '@mui/material';
 import { ContactDetailHeaderSkeleton, TimelineSkeleton } from './components/LoadingSkeletons';
 import {
@@ -142,6 +144,9 @@ export default function ContactDetailPage({ token }: { token: string }) {
     nickname: '',
     gender: ''
   });
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState(0);
 
   // Fetch contact details, notes, and activities
   useEffect(() => {
@@ -661,21 +666,19 @@ export default function ContactDetailPage({ token }: { token: string }) {
   };
 
   return (
-    <Box sx={{ maxWidth: 1000, mx: 'auto', mt: 4, p: 2 }}>
+    <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 1 }}>
       {/* Header with back button */}
-      <Box sx={{ mb: 3 }}>
-        <IconButton onClick={() => navigate('/contacts')} sx={{ mr: 2 }}>
-          <ArrowBackIcon />
-        </IconButton>
-      </Box>
+      <IconButton onClick={() => navigate('/contacts')} sx={{ mb: 1, ml: -1 }}>
+        <ArrowBackIcon />
+      </IconButton>
 
       {/* Contact Header Card */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+      <Card sx={{ mb: 2 }}>
+        <CardContent sx={{ py: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1.5 }}>
             <Avatar
               src={profilePic || undefined}
-              sx={{ width: 100, height: 100, mr: 3 }}
+              sx={{ width: 80, height: 80, mr: 2 }}
             />
             <Box sx={{ flex: 1 }}>
               {editingProfile ? (
@@ -864,33 +867,33 @@ export default function ContactDetailPage({ token }: { token: string }) {
       <Box sx={{ 
         display: 'flex', 
         flexDirection: { xs: 'column', md: 'row' }, 
-        gap: 3 
+        gap: 2 
       }}>
         {/* General Information */}
         <Card sx={{ flex: 1 }}>
-          <CardContent>
-            <Typography variant="h5" sx={{ mb: 2, fontWeight: 500 }}>
+          <CardContent sx={{ py: 2 }}>
+            <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 500 }}>
               {t('contactDetail.generalInfo')}
             </Typography>
-            <Divider sx={{ mb: 2 }} />
+            <Divider sx={{ mb: 1.5 }} />
           
-          <Stack spacing={3}>
+          <Stack spacing={2}>
             <EditableField
-              icon={<EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />}
+              icon={<EmailIcon sx={{ mr: 1, color: 'text.secondary', fontSize: '1.2rem' }} />}
               label={t('contactDetail.email')}
               field="email"
               value={contact.email || ''}
             />
 
             <EditableField
-              icon={<PhoneIcon sx={{ mr: 1, color: 'text.secondary' }} />}
+              icon={<PhoneIcon sx={{ mr: 1, color: 'text.secondary', fontSize: '1.2rem' }} />}
               label={t('contactDetail.phone')}
               field="phone"
               value={contact.phone || ''}
             />
 
             <EditableField
-              icon={<CakeIcon sx={{ mr: 1, color: 'text.secondary' }} />}
+              icon={<CakeIcon sx={{ mr: 1, color: 'text.secondary', fontSize: '1.2rem' }} />}
               label={t('contactDetail.birthday')}
               field="birthday"
               value={contact.birthday || ''}
@@ -898,7 +901,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
             />
 
             <EditableField
-              icon={<HomeIcon sx={{ mr: 1, color: 'text.secondary' }} />}
+              icon={<HomeIcon sx={{ mr: 1, color: 'text.secondary', fontSize: '1.2rem' }} />}
               label={t('contactDetail.address')}
               field="address"
               value={contact.address || ''}
@@ -906,7 +909,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
             />
 
             <EditableField
-              icon={<WorkIcon sx={{ mr: 1, mt: 0.5, color: 'text.secondary' }} />}
+              icon={<WorkIcon sx={{ mr: 1, mt: 0.5, color: 'text.secondary', fontSize: '1.2rem' }} />}
               label={t('contactDetail.workInfo')}
               field="work_information"
               value={contact.work_information || ''}
@@ -914,7 +917,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
             />
 
             <EditableField
-              icon={<RestaurantIcon sx={{ mr: 1, mt: 0.5, color: 'text.secondary' }} />}
+              icon={<RestaurantIcon sx={{ mr: 1, mt: 0.5, color: 'text.secondary', fontSize: '1.2rem' }} />}
               label={t('contactDetail.foodPreferences')}
               field="food_preference"
               value={contact.food_preference || ''}
@@ -922,7 +925,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
             />
 
             <EditableField
-              icon={<PeopleIcon sx={{ mr: 1, mt: 0.5, color: 'text.secondary' }} />}
+              icon={<PeopleIcon sx={{ mr: 1, mt: 0.5, color: 'text.secondary', fontSize: '1.2rem' }} />}
               label={t('contactDetail.howWeMet')}
               field="how_we_met"
               value={contact.how_we_met || ''}
@@ -940,33 +943,37 @@ export default function ContactDetailPage({ token }: { token: string }) {
           </CardContent>
         </Card>
 
-        {/* Timeline - Notes and Activities */}
+        {/* Timeline and Reminders Tabs */}
         <Card sx={{ flex: 1 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h5" sx={{ fontWeight: 500 }}>
-              {t('contactDetail.timeline')}
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button 
-                startIcon={<NoteIcon />} 
-                onClick={() => setNoteDialogOpen(true)}
-                variant="outlined"
-                size="small"
-              >
-                {t('contactDetail.addNote')}
-              </Button>
-              <Button 
-                startIcon={<EventIcon />} 
-                onClick={() => setActivityDialogOpen(true)}
-                variant="outlined"
-                size="small"
-              >
-                {t('contactDetail.addActivity')}
-              </Button>
-            </Box>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} aria-label="timeline and reminders tabs">
+              <Tab label={t('contactDetail.timeline')} />
+              <Tab label={t('reminders.title')} />
+            </Tabs>
           </Box>
-          <Divider sx={{ mb: 3 }} />
+
+          {/* Tab Panel 0: Timeline - Notes and Activities */}
+          {activeTab === 0 && (
+            <CardContent sx={{ py: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mb: 1.5, gap: 0.5 }}>
+                <Button 
+                  startIcon={<NoteIcon />} 
+                  onClick={() => setNoteDialogOpen(true)}
+                  variant="outlined"
+                  size="small"
+                >
+                  {t('contactDetail.addNote')}
+                </Button>
+                <Button 
+                  startIcon={<EventIcon />} 
+                  onClick={() => setActivityDialogOpen(true)}
+                  variant="outlined"
+                  size="small"
+                >
+                  {t('contactDetail.addActivity')}
+                </Button>
+              </Box>
+              <Divider sx={{ mb: 2 }} />
           
           {timelineItems.length === 0 ? (
             <Typography variant="body2" color="text.secondary">
@@ -1008,9 +1015,9 @@ export default function ContactDetailPage({ token }: { token: string }) {
                   </TimelineSeparator>
                   <TimelineContent>
                     <Paper 
-                      elevation={2} 
+                      elevation={1} 
                       sx={{ 
-                        p: 2,
+                        p: 1.5,
                         position: 'relative',
                         '&:hover .edit-icon': {
                           opacity: 1
@@ -1206,35 +1213,33 @@ export default function ContactDetailPage({ token }: { token: string }) {
               )})}
             </Timeline>
           )}
-        </CardContent>
+            </CardContent>
+          )}
+
+          {/* Tab Panel 1: Reminders */}
+          {activeTab === 1 && (
+            <CardContent sx={{ py: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mb: 1.5 }}>
+                <Button 
+                  startIcon={<NotificationsActiveIcon />} 
+                  onClick={handleAddReminder}
+                  variant="outlined"
+                  size="small"
+                >
+                  {t('reminders.add')}
+                </Button>
+              </Box>
+              <Divider sx={{ mb: 1.5 }} />
+              <ReminderList
+                reminders={reminders}
+                onComplete={handleCompleteReminder}
+                onEdit={handleEditReminder}
+                onDelete={handleDeleteReminder}
+              />
+            </CardContent>
+          )}
         </Card>
       </Box>
-
-      {/* Reminders Section */}
-      <Card>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h5" sx={{ fontWeight: 500 }}>
-              {t('reminders.title')}
-            </Typography>
-            <Button 
-              startIcon={<NotificationsActiveIcon />} 
-              onClick={handleAddReminder}
-              variant="outlined"
-              size="small"
-            >
-              {t('reminders.add')}
-            </Button>
-          </Box>
-          <Divider sx={{ mb: 2 }} />
-          <ReminderList
-            reminders={reminders}
-            onComplete={handleCompleteReminder}
-            onEdit={handleEditReminder}
-            onDelete={handleDeleteReminder}
-          />
-        </CardContent>
-      </Card>
 
       {/* Dialogs */}
       <AddNoteDialog

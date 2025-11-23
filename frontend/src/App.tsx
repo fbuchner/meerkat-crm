@@ -36,7 +36,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
 import './App.css';
 
-const drawerWidth = 200;
+const drawerWidth = 180;
 
 function App() {
   const { t } = useTranslation();
@@ -155,9 +155,9 @@ function App() {
               component="main" 
               sx={{ 
                 flexGrow: 1, 
-                p: 3,
+                p: 2,
                 width: { md: `calc(100% - ${drawerWidth}px)` },
-                mt: 8
+                mt: 7
               }}
             >
               <Routes>

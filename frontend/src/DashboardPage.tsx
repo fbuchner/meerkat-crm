@@ -129,35 +129,35 @@ function DashboardPage({ token }: DashboardPageProps) {
   }
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: 'auto', p: 3 }}>
-      <Typography variant="h4" gutterBottom>
+    <Box sx={{ maxWidth: 1600, mx: 'auto', p: 2 }}>
+      <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
         {t('dashboard.title')}
       </Typography>
 
       <Box sx={{ 
         display: 'grid', 
         gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-        gap: 3 
+        gap: 2 
       }}>
         {/* Column 1: Upcoming Birthdays */}
         <Box>
-          <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CakeIcon color="primary" />
-            <Typography variant="h6">
+          <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CakeIcon color="primary" fontSize="small" />
+            <Typography variant="subtitle1" fontWeight={500}>
               {t('dashboard.upcomingBirthdays')}
             </Typography>
           </Box>
 
           {birthdayContacts.length === 0 ? (
             <Card>
-              <CardContent>
+              <CardContent sx={{ py: 2 }}>
                 <Typography variant="body2" color="text.secondary">
                   {t('dashboard.noBirthdays')}
                 </Typography>
               </CardContent>
             </Card>
           ) : (
-            <Stack spacing={2}>
+            <Stack spacing={1.5}>
               {birthdayContacts.map((contact) => (
                 <Card
                   key={contact.ID}
@@ -166,22 +166,22 @@ function DashboardPage({ token }: DashboardPageProps) {
                   sx={{
                     textDecoration: 'none',
                     '&:hover': {
-                      boxShadow: 3,
-                      transform: 'translateY(-2px)',
+                      boxShadow: 2,
+                      transform: 'translateY(-1px)',
                       transition: 'all 0.2s'
                     }
                   }}
                 >
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar sx={{ bgcolor: 'primary.main' }}>
+                  <CardContent sx={{ py: 1.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Avatar sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}>
                         {contact.firstname.charAt(0)}
                       </Avatar>
                       <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="subtitle1">
+                        <Typography variant="body2" fontWeight={500}>
                           {getContactName(contact)}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary">
                           {formatBirthday(contact.birthday)}
                         </Typography>
                       </Box>
@@ -191,6 +191,7 @@ function DashboardPage({ token }: DashboardPageProps) {
                             label={contact.circles[0]}
                             size="small"
                             variant="outlined"
+                            sx={{ height: 20, fontSize: '0.7rem' }}
                           />
                         </Box>
                       )}
@@ -204,23 +205,23 @@ function DashboardPage({ token }: DashboardPageProps) {
 
         {/* Column 2: Random Contacts */}
         <Box>
-          <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <ShuffleIcon color="primary" />
-            <Typography variant="h6">
+          <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <ShuffleIcon color="primary" fontSize="small" />
+            <Typography variant="subtitle1" fontWeight={500}>
               {t('dashboard.randomContacts')}
             </Typography>
           </Box>
 
           {randomContacts.length === 0 ? (
             <Card>
-              <CardContent>
+              <CardContent sx={{ py: 2 }}>
                 <Typography variant="body2" color="text.secondary">
                   {t('dashboard.noContacts')}
                 </Typography>
               </CardContent>
             </Card>
           ) : (
-            <Stack spacing={2}>
+            <Stack spacing={1.5}>
               {randomContacts.map((contact) => (
                 <Card
                   key={contact.ID}
@@ -229,19 +230,19 @@ function DashboardPage({ token }: DashboardPageProps) {
                   sx={{
                     textDecoration: 'none',
                     '&:hover': {
-                      boxShadow: 3,
-                      transform: 'translateY(-2px)',
+                      boxShadow: 2,
+                      transform: 'translateY(-1px)',
                       transition: 'all 0.2s'
                     }
                   }}
                 >
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar sx={{ bgcolor: 'secondary.main' }}>
+                  <CardContent sx={{ py: 1.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Avatar sx={{ bgcolor: 'secondary.main', width: 40, height: 40 }}>
                         {contact.firstname.charAt(0)}
                       </Avatar>
                       <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="subtitle1">
+                        <Typography variant="body2" fontWeight={500}>
                           {getContactName(contact)}
                         </Typography>
                         {contact.circles && contact.circles.length > 0 && (
@@ -252,7 +253,7 @@ function DashboardPage({ token }: DashboardPageProps) {
                                 label={circle}
                                 size="small"
                                 variant="outlined"
-                                sx={{ mr: 0.5 }}
+                                sx={{ mr: 0.5, height: 20, fontSize: '0.7rem' }}
                               />
                             ))}
                           </Box>
@@ -268,23 +269,23 @@ function DashboardPage({ token }: DashboardPageProps) {
 
         {/* Column 3: Upcoming Reminders */}
         <Box>
-          <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <NotificationsIcon color="primary" />
-            <Typography variant="h6">
+          <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <NotificationsIcon color="primary" fontSize="small" />
+            <Typography variant="subtitle1" fontWeight={500}>
               {t('dashboard.upcomingReminders')}
             </Typography>
           </Box>
 
           {upcomingReminders.length === 0 ? (
             <Card>
-              <CardContent>
+              <CardContent sx={{ py: 2 }}>
                 <Typography variant="body2" color="text.secondary">
                   {t('dashboard.noReminders')}
                 </Typography>
               </CardContent>
             </Card>
           ) : (
-            <Stack spacing={2}>
+            <Stack spacing={1.5}>
               {upcomingReminders.map((reminder) => {
                 const overdue = isOverdue(reminder.remind_at);
                 const reminderDate = new Date(reminder.remind_at);
@@ -293,44 +294,47 @@ function DashboardPage({ token }: DashboardPageProps) {
                   <Card
                     key={reminder.ID}
                     sx={{
-                      border: overdue ? '2px solid' : 'none',
+                      border: overdue ? '1px solid' : 'none',
                       borderColor: overdue ? 'warning.main' : 'transparent',
                       cursor: 'pointer',
                       '&:hover': {
-                        boxShadow: 3,
-                        transform: 'translateY(-2px)',
+                        boxShadow: 2,
+                        transform: 'translateY(-1px)',
                         transition: 'all 0.2s'
                       }
                     }}
                     onClick={() => navigate(`/contacts/${reminder.contact_id}`)}
                   >
-                    <CardContent>
+                    <CardContent sx={{ py: 1.5 }}>
                       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
                         <Box sx={{ flexGrow: 1 }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
                             {reminder.message}
                           </Typography>
-                          <Box sx={{ mt: 1, display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <Box sx={{ mt: 0.75, display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
                             <Chip
-                              icon={overdue ? <WarningIcon /> : undefined}
+                              icon={overdue ? <WarningIcon fontSize="small" /> : undefined}
                               label={reminderDate.toLocaleDateString()}
                               size="small"
                               color={overdue ? 'warning' : 'default'}
+                              sx={{ height: 20, fontSize: '0.7rem' }}
                             />
                             {reminder.recurrence !== 'once' && (
                               <Chip
-                                icon={<RepeatIcon />}
+                                icon={<RepeatIcon fontSize="small" />}
                                 label={t(`reminders.recurrence.${reminder.recurrence}`)}
                                 size="small"
                                 variant="outlined"
+                                sx={{ height: 20, fontSize: '0.7rem' }}
                               />
                             )}
                             {reminder.by_mail && (
                               <Chip
-                                icon={<EmailIcon />}
+                                icon={<EmailIcon fontSize="small" />}
                                 label={t('reminders.email')}
                                 size="small"
                                 variant="outlined"
+                                sx={{ height: 20, fontSize: '0.7rem' }}
                               />
                             )}
                           </Box>

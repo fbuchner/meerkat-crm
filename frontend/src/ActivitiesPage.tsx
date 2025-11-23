@@ -177,16 +177,17 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">{t('activities.title')}</Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h5">{t('activities.title')}</Typography>
         <Button variant="outlined" startIcon={<EventIcon />} onClick={handleAddActivity}>
           {t('activities.addActivity')}
         </Button>
       </Box>
 
-      <Paper sx={{ p: 2, mb: 3 }}>
+      <Paper sx={{ p: 1.5, mb: 2 }}>
         <TextField
           fullWidth
+          size="small"
           label={t('activities.search')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}

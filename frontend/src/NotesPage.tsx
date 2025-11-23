@@ -152,16 +152,17 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">{t('notes.title')}</Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h5">{t('notes.title')}</Typography>
         <Button variant="outlined" startIcon={<NoteIcon />} onClick={handleAddNote}>
           {t('notes.addNote')}
         </Button>
       </Box>
 
-      <Paper sx={{ p: 2, mb: 3 }}>
+      <Paper sx={{ p: 1.5, mb: 2 }}>
         <TextField
           fullWidth
+          size="small"
           label={t('notes.search')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -170,7 +171,7 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
       </Paper>
 
       {filteredNotes.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
+        <Paper sx={{ p: 3, textAlign: 'center' }}>
           <Typography variant="body1" color="text.secondary">
             {searchQuery ? t('notes.noResults') : t('notes.noNotes')}
           </Typography>

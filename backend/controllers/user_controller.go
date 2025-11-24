@@ -15,13 +15,19 @@ import (
 )
 
 func RegisterUser(context *gin.Context) {
-	var user models.User
-	err := context.ShouldBindJSON(&user)
-
-	if err != nil {
-		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("", err.Error()))
+	// Get validated user from middleware
+	validated, exists := context.Get("validated")
+	if !exists {
+		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("", "validation data not found"))
 		return
 	}
+
+	userPtr, ok := validated.(*models.User)
+	if !ok {
+		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("", "invalid validation data type"))
+		return
+	}
+	user := *userPtr
 
 	if user.Email == "" {
 		apperrors.AbortWithError(context, apperrors.ErrMissingField("email"))

@@ -105,6 +105,8 @@
     "cancel": "Abbrechen",
     "delete": "Löschen",
     "confirmDelete": "Möchten Sie dieses Element wirklich löschen?",
+    "editNote": "Notiz bearbeiten",
+    "editActivity": "Aktivität bearbeiten",
     "circles": "Kreise",
     "addCircle": "Kreis hinzufügen",
     "newCircle": "Neuer Kreisname...",

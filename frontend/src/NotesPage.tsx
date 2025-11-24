@@ -7,10 +7,6 @@ import {
   TextField,
   Button,
   IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
 } from '@mui/material';
 import {
   Timeline,
@@ -24,12 +20,11 @@ import {
 import NoteIcon from '@mui/icons-material/Note';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import SaveIcon from '@mui/icons-material/Save';
-import CancelIcon from '@mui/icons-material/Cancel';
 import { ListSkeleton } from './components/LoadingSkeletons';
 import { useNotes } from './hooks/useNotes';
 import { createUnassignedNote, updateNote, deleteNote, Note } from './api/notes';
 import AddNoteDialog from './components/AddNoteDialog';
+import EditTimelineItemDialog from './components/EditTimelineItemDialog';
 
 interface NotesPageProps {
   token: string;
@@ -41,13 +36,8 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
   const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
-  const [editValues, setEditValues] = useState<{ content: string; date: string }>({
-    content: '',
-    date: '',
-  });
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [noteToDelete, setNoteToDelete] = useState<number | null>(null);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [editValues, setEditValues] = useState<{ noteContent?: string; noteDate?: string }>({});
 
   // Sort notes by date descending (newest first) and filter
   useEffect(() => {
@@ -82,20 +72,23 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
   };
 
   const handleEditClick = (note: Note) => {
-    setEditingNoteId(note.ID);
+    setEditingNote(note);
     setEditValues({
-      content: note.content || '',
-      date: note.date ? new Date(note.date).toISOString().split('T')[0] : '',
+      noteContent: note.content || '',
+      noteDate: note.date ? new Date(note.date).toISOString().split('T')[0] : '',
     });
   };
 
-  const handleSaveEdit = async (noteId: number) => {
+  const handleSaveEdit = async () => {
+    if (!editingNote || !editValues.noteContent?.trim()) return;
+
     try {
-      await updateNote(noteId, {
-        content: editValues.content,
-        date: new Date(editValues.date).toISOString(),
+      await updateNote(editingNote.ID, {
+        content: editValues.noteContent,
+        date: editValues.noteDate ? new Date(editValues.noteDate).toISOString() : new Date().toISOString(),
       }, token);
-      setEditingNoteId(null);
+      setEditingNote(null);
+      setEditValues({});
       refetch();
     } catch (err) {
       console.error('Failed to update note:', err);
@@ -103,31 +96,21 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
   };
 
   const handleCancelEdit = () => {
-    setEditingNoteId(null);
-    setEditValues({ content: '', date: '' });
+    setEditingNote(null);
+    setEditValues({});
   };
 
-  const handleDeleteClick = (noteId: number) => {
-    setNoteToDelete(noteId);
-    setDeleteConfirmOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!noteToDelete) return;
+  const handleDeleteNote = async () => {
+    if (!editingNote) return;
 
     try {
-      await deleteNote(noteToDelete, token);
-      setDeleteConfirmOpen(false);
-      setNoteToDelete(null);
+      await deleteNote(editingNote.ID, token);
+      setEditingNote(null);
+      setEditValues({});
       refetch();
     } catch (err) {
       console.error('Failed to delete note:', err);
     }
-  };
-
-  const handleCancelDelete = () => {
-    setDeleteConfirmOpen(false);
-    setNoteToDelete(null);
   };
 
   const formatDate = (dateString: string) => {
@@ -199,68 +182,28 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
                     },
                   }}
                 >
-                  {editingNoteId === note.ID ? (
-                    <Box>
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={4}
-                        value={editValues.content}
-                        onChange={(e) => setEditValues({ ...editValues, content: e.target.value })}
-                        sx={{ mb: 2 }}
-                      />
-                      <TextField
-                        fullWidth
-                        type="date"
-                        label={t('notes.date')}
-                        value={editValues.date}
-                        onChange={(e) => setEditValues({ ...editValues, date: e.target.value })}
-                        InputLabelProps={{ shrink: true }}
-                        sx={{ mb: 2 }}
-                      />
-                      <Box display="flex" gap={1}>
-                        <Button
+                  <Box>
+                    <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', flex: 1 }}>
+                        {note.content}
+                      </Typography>
+                      <Box
+                        className="edit-actions"
+                        sx={{ opacity: 0, transition: 'opacity 0.2s', display: 'flex', gap: 1 }}
+                      >
+                        <IconButton size="small" onClick={() => handleEditClick(note)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
                           size="small"
-                          variant="contained"
-                          startIcon={<SaveIcon />}
-                          onClick={() => handleSaveEdit(note.ID)}
+                          color="error"
+                          onClick={() => handleEditClick(note)}
                         >
-                          {t('common.save')}
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          startIcon={<CancelIcon />}
-                          onClick={handleCancelEdit}
-                        >
-                          {t('common.cancel')}
-                        </Button>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
                       </Box>
                     </Box>
-                  ) : (
-                    <Box>
-                      <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-                        <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', flex: 1 }}>
-                          {note.content}
-                        </Typography>
-                        <Box
-                          className="edit-actions"
-                          sx={{ opacity: 0, transition: 'opacity 0.2s', display: 'flex', gap: 1 }}
-                        >
-                          <IconButton size="small" onClick={() => handleEditClick(note)}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleDeleteClick(note.ID)}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      </Box>
-                    </Box>
-                  )}
+                  </Box>
                 </Paper>
               </TimelineContent>
             </TimelineItem>
@@ -274,18 +217,18 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
         onSave={handleNoteSave}
       />
 
-      <Dialog open={deleteConfirmOpen} onClose={handleCancelDelete}>
-        <DialogTitle>{t('notes.deleteConfirm')}</DialogTitle>
-        <DialogContent>
-          <Typography>{t('notes.deleteMessage')}</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCancelDelete}>{t('common.cancel')}</Button>
-          <Button onClick={handleConfirmDelete} color="error" variant="contained">
-            {t('common.delete')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {editingNote && (
+        <EditTimelineItemDialog
+          open={!!editingNote}
+          onClose={handleCancelEdit}
+          onSave={handleSaveEdit}
+          onDelete={handleDeleteNote}
+          type="note"
+          values={editValues}
+          onChange={setEditValues}
+          allContacts={[]}
+        />
+      )}
     </Box>
   );
 };

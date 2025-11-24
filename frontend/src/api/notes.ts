@@ -66,7 +66,7 @@ export async function getNote(
 // Create note for contact
 export async function createNote(
   contactId: string | number,
-  data: { content: string; date: string },
+  data: { content: string; date: string; contact_id?: number },
   token: string
 ): Promise<Note> {
   const response = await apiFetch(

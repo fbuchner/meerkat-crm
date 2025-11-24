@@ -7,10 +7,6 @@ import {
   TextField,
   Button,
   IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Chip,
 } from '@mui/material';
 import {
@@ -24,12 +20,11 @@ import {
 } from '@mui/lab';
 import EventIcon from '@mui/icons-material/Event';
 import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import SaveIcon from '@mui/icons-material/Save';
-import CancelIcon from '@mui/icons-material/Cancel';
 import { useActivities } from './hooks/useActivities';
 import { createActivity, updateActivity, deleteActivity, Activity } from './api/activities';
+import { getContacts } from './api/contacts';
 import AddActivityDialog from './components/AddActivityDialog';
+import EditTimelineItemDialog from './components/EditTimelineItemDialog';
 import { ListSkeleton } from './components/LoadingSkeletons';
 
 interface Contact {
@@ -53,13 +48,15 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
   const [filteredActivities, setFilteredActivities] = useState<Activity[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [editingActivityId, setEditingActivityId] = useState<number | null>(null);
-  const [editValues, setEditValues] = useState<{ description: string; date: string }>({
-    description: '',
-    date: '',
-  });
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [activityToDelete, setActivityToDelete] = useState<number | null>(null);
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+  const [editValues, setEditValues] = useState<{
+    activityTitle?: string;
+    activityDescription?: string;
+    activityLocation?: string;
+    activityDate?: string;
+    activityContacts?: Contact[];
+  }>({});
+  const [allContacts, setAllContacts] = useState<Contact[]>([]);
 
   // Sort activities by date descending (newest first) and filter
   useEffect(() => {
@@ -106,21 +103,41 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
     }
   };
 
-  const handleEditClick = (activity: Activity) => {
-    setEditingActivityId(activity.ID);
+  const handleEditClick = async (activity: Activity) => {
+    setEditingActivity(activity);
+    
+    // Fetch all contacts if not already loaded
+    if (allContacts.length === 0) {
+      try {
+        const data = await getContacts({ page: 1, limit: 1000 }, token);
+        setAllContacts(data.contacts || []);
+      } catch (err) {
+        console.error('Failed to fetch contacts:', err);
+      }
+    }
+    
     setEditValues({
-      description: activity.description || '',
-      date: activity.date ? new Date(activity.date).toISOString().split('T')[0] : '',
+      activityTitle: activity.title || '',
+      activityDescription: activity.description || '',
+      activityLocation: activity.location || '',
+      activityDate: activity.date ? new Date(activity.date).toISOString().split('T')[0] : '',
+      activityContacts: activity.contacts || [],
     });
   };
 
-  const handleSaveEdit = async (activityId: number) => {
+  const handleSaveEdit = async () => {
+    if (!editingActivity || !editValues.activityTitle?.trim()) return;
+
     try {
-      await updateActivity(activityId, {
-        description: editValues.description,
-        date: new Date(editValues.date).toISOString(),
+      await updateActivity(editingActivity.ID, {
+        title: editValues.activityTitle,
+        description: editValues.activityDescription || '',
+        location: editValues.activityLocation || '',
+        date: editValues.activityDate ? new Date(editValues.activityDate).toISOString() : new Date().toISOString(),
+        contact_ids: editValues.activityContacts?.map(c => c.ID) || [],
       }, token);
-      setEditingActivityId(null);
+      setEditingActivity(null);
+      setEditValues({});
       refetch();
     } catch (err) {
       console.error('Failed to update activity:', err);
@@ -128,31 +145,21 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
   };
 
   const handleCancelEdit = () => {
-    setEditingActivityId(null);
-    setEditValues({ description: '', date: '' });
+    setEditingActivity(null);
+    setEditValues({});
   };
 
-  const handleDeleteClick = (activityId: number) => {
-    setActivityToDelete(activityId);
-    setDeleteConfirmOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!activityToDelete) return;
+  const handleDeleteActivity = async () => {
+    if (!editingActivity) return;
 
     try {
-      await deleteActivity(activityToDelete, token);
-      setDeleteConfirmOpen(false);
-      setActivityToDelete(null);
+      await deleteActivity(editingActivity.ID, token);
+      setEditingActivity(null);
+      setEditValues({});
       refetch();
     } catch (err) {
       console.error('Failed to delete activity:', err);
     }
-  };
-
-  const handleCancelDelete = () => {
-    setDeleteConfirmOpen(false);
-    setActivityToDelete(null);
   };
 
   const formatDate = (dateString: string) => {
@@ -224,82 +231,33 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
                     },
                   }}
                 >
-                  {editingActivityId === activity.ID ? (
-                    <Box>
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={3}
-                        value={editValues.description}
-                        onChange={(e) =>
-                          setEditValues({ ...editValues, description: e.target.value })
-                        }
-                        sx={{ mb: 2 }}
-                      />
-                      <TextField
-                        fullWidth
-                        type="date"
-                        label={t('activities.date')}
-                        value={editValues.date}
-                        onChange={(e) => setEditValues({ ...editValues, date: e.target.value })}
-                        InputLabelProps={{ shrink: true }}
-                        sx={{ mb: 2 }}
-                      />
-                      <Box display="flex" gap={1}>
-                        <Button
-                          size="small"
-                          variant="contained"
-                          startIcon={<SaveIcon />}
-                          onClick={() => handleSaveEdit(activity.ID)}
-                        >
-                          {t('common.save')}
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          startIcon={<CancelIcon />}
-                          onClick={handleCancelEdit}
-                        >
-                          {t('common.cancel')}
-                        </Button>
+                  <Box>
+                    <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', flex: 1 }}>
+                        {activity.description}
+                      </Typography>
+                      <Box
+                        className="edit-actions"
+                        sx={{ opacity: 0, transition: 'opacity 0.2s', display: 'flex', gap: 1 }}
+                      >
+                        <IconButton size="small" onClick={() => handleEditClick(activity)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
                       </Box>
                     </Box>
-                  ) : (
-                    <Box>
-                      <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-                        <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', flex: 1 }}>
-                          {activity.description}
-                        </Typography>
-                        <Box
-                          className="edit-actions"
-                          sx={{ opacity: 0, transition: 'opacity 0.2s', display: 'flex', gap: 1 }}
-                        >
-                          <IconButton size="small" onClick={() => handleEditClick(activity)}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
+                    {activity.contacts && activity.contacts.length > 0 && (
+                      <Box mt={1} display="flex" flexWrap="wrap" gap={0.5}>
+                        {activity.contacts.map((contact: Contact) => (
+                          <Chip
+                            key={contact.ID}
+                            label={`${contact.firstname} ${contact.lastname}`}
                             size="small"
-                            color="error"
-                            onClick={() => handleDeleteClick(activity.ID)}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
+                            variant="outlined"
+                          />
+                        ))}
                       </Box>
-                      {activity.contacts && activity.contacts.length > 0 && (
-                        <Box mt={1} display="flex" flexWrap="wrap" gap={0.5}>
-                          {activity.contacts.map((contact: Contact) => (
-                            <Chip
-                              key={contact.ID}
-                              label={`${contact.firstname} ${contact.lastname}`}
-                              size="small"
-                              variant="outlined"
-                            />
-                          ))}
-                        </Box>
-                      )}
-                    </Box>
-                  )}
+                    )}
+                  </Box>
                 </Paper>
               </TimelineContent>
             </TimelineItem>
@@ -314,18 +272,18 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
         token={token}
       />
 
-      <Dialog open={deleteConfirmOpen} onClose={handleCancelDelete}>
-        <DialogTitle>{t('activities.deleteConfirm')}</DialogTitle>
-        <DialogContent>
-          <Typography>{t('activities.deleteMessage')}</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCancelDelete}>{t('common.cancel')}</Button>
-          <Button onClick={handleConfirmDelete} color="error" variant="contained">
-            {t('common.delete')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {editingActivity && (
+        <EditTimelineItemDialog
+          open={!!editingActivity}
+          onClose={handleCancelEdit}
+          onSave={handleSaveEdit}
+          onDelete={handleDeleteActivity}
+          type="activity"
+          values={editValues}
+          onChange={setEditValues}
+          allContacts={allContacts}
+        />
+      )}
     </Box>
   );
 };

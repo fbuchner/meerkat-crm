@@ -105,6 +105,8 @@
     "cancel": "Cancel",
     "delete": "Delete",
     "confirmDelete": "Are you sure you want to delete this item?",
+    "editNote": "Edit Note",
+    "editActivity": "Edit Activity",
     "circles": "Circles",
     "addCircle": "Add Circle",
     "newCircle": "New circle name...",

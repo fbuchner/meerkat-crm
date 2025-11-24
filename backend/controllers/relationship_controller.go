@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"errors"
+	apperrors "meerkat/errors"
+	"meerkat/models"
 	"net/http"
-	apperrors "perema/errors"
-	"perema/models"
 	"strconv"
 
 	"github.com/gin-gonic/gin"

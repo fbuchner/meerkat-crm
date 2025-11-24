@@ -1,10 +1,10 @@
 package routes
 
 import (
-	"perema/config"
-	"perema/controllers"
-	"perema/middleware"
-	"perema/models"
+	"meerkat/config"
+	"meerkat/controllers"
+	"meerkat/middleware"
+	"meerkat/models"
 
 	"github.com/gin-gonic/gin"
 )

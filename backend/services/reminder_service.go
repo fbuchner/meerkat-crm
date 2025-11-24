@@ -2,9 +2,9 @@ package services
 
 import (
 	"fmt"
-	"perema/config"
-	"perema/logger"
-	"perema/models"
+	"meerkat/config"
+	"meerkat/logger"
+	"meerkat/models"
 	"time"
 
 	"github.com/resend/resend-go/v2"

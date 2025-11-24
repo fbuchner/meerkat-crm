@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	apperrors "perema/errors"
-	"perema/logger"
+	apperrors "meerkat/errors"
+	"meerkat/logger"
 	"regexp"
 	"strings"
 	"unicode"

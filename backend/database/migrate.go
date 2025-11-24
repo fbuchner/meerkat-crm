@@ -3,7 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"perema/logger"
+	"meerkat/logger"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"

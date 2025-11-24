@@ -1,5 +1,5 @@
 // src/api.ts
-// Basic API service for Perema backend (Legacy - prefer using api/client.ts)
+// Basic API service for meerkat crm backend (Legacy - prefer using api/client.ts)
 
 const API_SERVER_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 export const API_BASE_URL = `${API_SERVER_URL}/api/v1`;

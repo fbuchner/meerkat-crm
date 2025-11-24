@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
+	"meerkat/config"
+	"meerkat/database"
+	apperrors "meerkat/errors"
+	"meerkat/logger"
+	"meerkat/middleware"
+	"meerkat/routes"
+	"meerkat/services"
 	"net/http"
 	"os"
-	"perema/config"
-	"perema/database"
-	apperrors "perema/errors"
-	"perema/logger"
-	"perema/middleware"
-	"perema/routes"
-	"perema/services"
 
 	"time"
 

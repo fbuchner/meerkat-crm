@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"errors"
+	apperrors "meerkat/errors"
+	"meerkat/logger"
+	"meerkat/models"
 	"net/http"
-	apperrors "perema/errors"
-	"perema/logger"
-	"perema/models"
 	"strconv"
 
 	"github.com/gin-gonic/gin"

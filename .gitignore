@@ -9,10 +9,10 @@ environment.env
 *.db
 *.db-shm
 *.db-wal
-perema.db
-static/perema.db
-backend/perema.db
-backend/static/perema.db
+meerkat.db
+static/meerkat.db
+backend/meerkat.db
+backend/static/meerkat.db
 
 # TLS/SSL certificates
 *.pem
@@ -26,7 +26,7 @@ backend/static/photos/
 static/photos/
 
 # Build artifacts
-backend/perema
+backend/meerkat
 backend/main
 *.exe
 *.exe~

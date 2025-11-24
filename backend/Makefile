@@ -1,7 +1,7 @@
 .PHONY: migrate-up migrate-down migrate-create migrate-status migrate-force migrate-version help
 
 # Database path
-DB_PATH ?= perema.db
+DB_PATH ?= meerkat.db
 MIGRATIONS_DIR = ./migrations
 
 help: ## Show this help message
@@ -47,14 +47,14 @@ migrate-version: ## Show available migration files
 
 # Development helpers
 dev: ## Build and run the server in development mode
-	@go build -o perema . && ./perema
+	@go build -o meerkat . && ./meerkat
 
 test: ## Run all tests
 	@go test ./... -v
 
 build: ## Build the application
-	@go build -o perema .
+	@go build -o meerkat .
 
 clean: ## Clean build artifacts
-	@rm -f perema
+	@rm -f meerkat
 	@echo "Build artifacts cleaned!"

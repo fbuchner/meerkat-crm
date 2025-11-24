@@ -3,9 +3,9 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
+	"meerkat/models"
 	"net/http"
 	"net/http/httptest"
-	"perema/models"
 	"strconv"
 	"testing"
 	"time"

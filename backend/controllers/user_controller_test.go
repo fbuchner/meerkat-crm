@@ -3,11 +3,11 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
+	"meerkat/config"
+	"meerkat/models"
+	"meerkat/services"
 	"net/http"
 	"net/http/httptest"
-	"perema/config"
-	"perema/models"
-	"perema/services"
 	"testing"
 
 	"github.com/gin-gonic/gin"

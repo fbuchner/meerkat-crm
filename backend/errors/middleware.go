@@ -2,7 +2,7 @@ package errors
 
 import (
 	"fmt"
-	"perema/logger"
+	"meerkat/logger"
 	"runtime/debug"
 	"time"
 

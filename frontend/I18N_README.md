@@ -1,6 +1,6 @@
 # Internationalization (i18n) Setup
 
-This document describes the i18n implementation in the Perema CRM frontend application.
+This document describes the i18n implementation in the meerkat CRM frontend application.
 
 ## Overview
 

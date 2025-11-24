@@ -42,8 +42,8 @@ To set up this repository for development, follow these steps:
 
 1. **Clone the repository:**
     ```sh
-    git clone https://github.com/fbuchner/perema.git
-    cd perema
+    git clone https://github.com/fbuchner/meerkat-crm.git
+    cd meerkat
     ```
 
 1. **Run the backend:**

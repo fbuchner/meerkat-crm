@@ -18,7 +18,7 @@ func main() {
 	}
 
 	command := os.Args[1]
-	dbPath := "perema.db"
+	dbPath := "meerkat.db"
 	migrationsPath := "file://migrations"
 
 	// Open database connection

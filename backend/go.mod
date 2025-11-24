@@ -1,4 +1,4 @@
-module perema
+module meerkat
 
 go 1.25.3
 

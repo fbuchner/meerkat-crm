@@ -2,8 +2,8 @@ package services
 
 import (
 	"errors"
-	"perema/config"
-	"perema/models"
+	"meerkat/config"
+	"meerkat/models"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"

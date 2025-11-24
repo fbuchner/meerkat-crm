@@ -2,12 +2,12 @@ package controllers
 
 import (
 	"errors"
+	"meerkat/config"
+	apperrors "meerkat/errors"
+	"meerkat/middleware"
+	"meerkat/models"
+	"meerkat/services"
 	"net/http"
-	"perema/config"
-	apperrors "perema/errors"
-	"perema/middleware"
-	"perema/models"
-	"perema/services"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"

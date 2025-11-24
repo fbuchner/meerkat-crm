@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Perema CRM",
+    "title": "Meerkat CRM",
     "logout": "Abmelden",
     "loading": "Laden..."
   },
@@ -13,7 +13,7 @@
     "settings": "Einstellungen"
   },
   "dashboard": {
-    "welcome": "Willkommen zum Perema CRM Dashboard",
+    "welcome": "Willkommen zum Meerkat CRM Dashboard",
     "title": "Dashboard",
     "upcomingBirthdays": "Anstehende Geburtstage",
     "randomContacts": "Zufällige Kontakte",

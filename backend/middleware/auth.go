@@ -2,8 +2,8 @@ package middleware
 
 import (
 	"fmt"
+	"meerkat/config"
 	"net/http"
-	"perema/config"
 	"strings"
 
 	"github.com/gin-gonic/gin"

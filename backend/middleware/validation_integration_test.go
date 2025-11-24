@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	apperrors "perema/errors"
-	"perema/logger"
+	apperrors "meerkat/errors"
+	"meerkat/logger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"

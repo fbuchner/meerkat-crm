@@ -60,13 +60,13 @@ If you have `migrate` CLI installed:
 brew install golang-migrate
 
 # Run migrations
-migrate -path ./migrations -database "sqlite3://perema.db" up
+migrate -path ./migrations -database "sqlite3://meerkat.db" up
 
 # Check version
-migrate -path ./migrations -database "sqlite3://perema.db" version
+migrate -path ./migrations -database "sqlite3://meerkat.db" version
 
 # Rollback
-migrate -path ./migrations -database "sqlite3://perema.db" down 1
+migrate -path ./migrations -database "sqlite3://meerkat.db" down 1
 ```
 
 ## Application Startup
@@ -131,13 +131,13 @@ DROP TABLE IF EXISTS user_settings;
 make migrate-up
 
 # Verify it worked
-sqlite3 perema.db ".schema user_settings"
+sqlite3 meerkat.db ".schema user_settings"
 
 # Test rollback
 make migrate-down
 
 # Verify table is gone
-sqlite3 perema.db ".schema user_settings"
+sqlite3 meerkat.db ".schema user_settings"
 
 # Re-apply for production
 make migrate-up
@@ -271,10 +271,10 @@ make migrate-force VERSION=1
 In development, you can reset to a clean state:
 ```bash
 # Delete database
-rm perema.db
+rm meerkat.db
 
 # Recreate and run all migrations
-./perema  # Application auto-runs migrations
+./meerkat  # Application auto-runs migrations
 ```
 
 ### Migration Out of Sync
@@ -303,7 +303,7 @@ Run migrations separately before deploying new code:
 migrate -path ./migrations -database "sqlite3://prod.db" up
 
 # Then deploy application
-./perema
+./meerkat
 ```
 
 ### Option 3: Kubernetes Init Container
@@ -335,7 +335,7 @@ DB_PATH=prod.db make migrate-up
 You can also use migrations programmatically in Go code:
 
 ```go
-import "perema/database"
+import "meerkat/database"
 
 // Run migrations
 db, err := database.InitDB("path/to/db.db")

@@ -952,7 +952,7 @@ Frontend:
 ```bash
 PORT=8080
 FRONTEND_URL=http://localhost:3000
-DB_PATH=./perema.db
+DB_PATH=./meerkat.db
 SECRET_KEY=your-secret-key-here
 SENDGRID_API_KEY=your-sendgrid-key
 SENDGRID_FROM_EMAIL=noreply@example.com
@@ -988,8 +988,8 @@ npm start
 ```bash
 # Backend
 cd backend
-go build -o perema-server main.go
-./perema-server
+go build -o meerkat-server main.go
+./meerkat-server
 
 # Frontend
 cd frontend
@@ -1025,10 +1025,10 @@ After=network.target
 
 [Service]
 Type=simple
-User=perema
-WorkingDirectory=/opt/perema/backend
-EnvironmentFile=/opt/perema/backend/environment.env
-ExecStart=/opt/perema/backend/perema-server
+User=meerkat
+WorkingDirectory=/opt/meerkat/backend
+EnvironmentFile=/opt/meerkat/backend/environment.env
+ExecStart=/opt/meerkat/backend/meerkat-server
 Restart=always
 
 [Install]

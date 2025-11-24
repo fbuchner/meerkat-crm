@@ -16,7 +16,7 @@ export default function RegisterPage() {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -33,11 +33,19 @@ export default function RegisterPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, name }),
+        body: JSON.stringify({ email, password, username }),
       });
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || t('register.registrationFailed'));
+        // Handle structured error response: { error: { code, message, details } }
+        if (data.error?.details && Object.keys(data.error.details).length > 0) {
+          // Format validation errors from details
+          const detailMessages = Object.entries(data.error.details)
+            .map(([, value]) => value)
+            .join('. ');
+          throw new Error(detailMessages);
+        }
+        throw new Error(data.error?.message || t('register.registrationFailed'));
       }
       setSuccess(t('register.registrationSuccess'));
       setTimeout(() => navigate('/login'), 1500);
@@ -56,9 +64,9 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit}>
           <Stack spacing={2}>
             <TextField
-              label={t('register.name')}
-              value={name}
-              onChange={e => setName(e.target.value)}
+              label={t('register.username')}
+              value={username}
+              onChange={e => setUsername(e.target.value)}
               required
               fullWidth
             />

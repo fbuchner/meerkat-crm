@@ -36,7 +36,7 @@
   },
   "register": {
     "title": "Registrieren",
-    "name": "Name",
+    "username": "Benutzername",
     "email": "E-Mail",
     "password": "Passwort",
     "registerButton": "Registrieren",

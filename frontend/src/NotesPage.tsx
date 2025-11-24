@@ -19,7 +19,6 @@ import {
 } from '@mui/lab';
 import NoteIcon from '@mui/icons-material/Note';
 import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
 import { ListSkeleton } from './components/LoadingSkeletons';
 import { useNotes } from './hooks/useNotes';
 import { createUnassignedNote, updateNote, deleteNote, Note } from './api/notes';
@@ -193,13 +192,6 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
                       >
                         <IconButton size="small" onClick={() => handleEditClick(note)}>
                           <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleEditClick(note)}
-                        >
-                          <DeleteIcon fontSize="small" />
                         </IconButton>
                       </Box>
                     </Box>

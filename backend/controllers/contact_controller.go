@@ -294,8 +294,38 @@ func DeleteContact(c *gin.Context) {
 		return
 	}
 
-	if err := db.Delete(&contact).Error; err != nil {
-		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to delete contact").WithError(err))
+	// Start a transaction to ensure all deletes succeed together
+	err := db.Transaction(func(tx *gorm.DB) error {
+		// Manually delete associated reminders (soft delete doesn't trigger CASCADE)
+		if err := tx.Where("contact_id = ?", id).Delete(&models.Reminder{}).Error; err != nil {
+			return err
+		}
+
+		// Manually delete associated notes
+		if err := tx.Where("contact_id = ?", id).Delete(&models.Note{}).Error; err != nil {
+			return err
+		}
+
+		// Manually delete associated relationships
+		if err := tx.Where("contact_id = ?", id).Delete(&models.Relationship{}).Error; err != nil {
+			return err
+		}
+
+		// Delete activity associations (many-to-many)
+		if err := tx.Exec("DELETE FROM activity_contacts WHERE contact_id = ?", id).Error; err != nil {
+			return err
+		}
+
+		// Finally, delete the contact
+		if err := tx.Delete(&contact).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to delete contact and associated data").WithError(err))
 		return
 	}
 

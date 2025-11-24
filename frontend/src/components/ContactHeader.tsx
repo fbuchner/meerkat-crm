@@ -1,9 +1,10 @@
-import { Box, Card, CardContent, Avatar, Typography, Chip, IconButton, Stack, TextField } from '@mui/material';
+import { Box, Card, CardContent, Avatar, Typography, Chip, IconButton, Stack, TextField, Badge } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import { useTranslation } from 'react-i18next';
 
 interface ContactHeaderProps {
@@ -34,6 +35,7 @@ interface ContactHeaderProps {
   onAddCircle: () => void;
   onDeleteCircle: (circle: string) => void;
   onNewCircleNameChange: (name: string) => void;
+  onUploadProfilePicture: () => void;
 }
 
 export default function ContactHeader({
@@ -51,7 +53,8 @@ export default function ContactHeader({
   onToggleEditCircles,
   onAddCircle,
   onDeleteCircle,
-  onNewCircleNameChange
+  onNewCircleNameChange,
+  onUploadProfilePicture
 }: ContactHeaderProps) {
   const { t } = useTranslation();
 
@@ -59,11 +62,37 @@ export default function ContactHeader({
     <Card sx={{ mb: 2 }}>
       <CardContent sx={{ py: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1.5 }}>
-          <Avatar
-            src={profilePic || undefined}
-            sx={{ width: 80, height: 80, mr: 2 }}
-          />
-          <Box sx={{ flex: 1 }}>
+          <Badge
+            overlap="circular"
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            badgeContent={
+              <IconButton
+                size="small"
+                onClick={onUploadProfilePicture}
+                sx={{
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  width: 28,
+                  height: 28,
+                  '&:hover': { bgcolor: 'primary.dark' }
+                }}
+              >
+                <CameraAltIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            }
+          >
+            <Avatar
+              src={profilePic || undefined}
+              sx={{ 
+                width: 80, 
+                height: 80,
+                cursor: 'pointer',
+                '&:hover': { opacity: 0.8 }
+              }}
+              onClick={onUploadProfilePicture}
+            />
+          </Badge>
+          <Box sx={{ flex: 1, ml: 2 }}>
             {editingProfile ? (
               // Edit Mode
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

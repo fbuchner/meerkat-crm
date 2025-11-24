@@ -205,6 +205,17 @@
     "delete": "Delete",
     "close": "Close"
   },
+  "profilePicture": {
+    "title": "Upload Profile Picture",
+    "selectImage": "Select an image",
+    "dragOrClick": "Click to browse or drag and drop",
+    "changeImage": "Change image",
+    "zoom": "Zoom",
+    "uploading": "Uploading...",
+    "uploadError": "Failed to upload profile picture",
+    "invalidFileType": "Please select an image file",
+    "fileTooLarge": "File is too large. Maximum size is 10MB."
+  },
   "settings": {
     "title": "Settings",
     "language": {

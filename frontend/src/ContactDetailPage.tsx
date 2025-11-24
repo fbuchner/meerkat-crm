@@ -5,7 +5,8 @@ import {
   getContact,
   updateContact,
   getContactProfilePicture,
-  deleteContact
+  deleteContact,
+  uploadProfilePicture
 } from './api/contacts';
 import { 
   getContactNotes, 
@@ -39,6 +40,7 @@ import EditTimelineItemDialog from './components/EditTimelineItemDialog';
 import ContactHeader from './components/ContactHeader';
 import ContactInformation from './components/ContactInformation';
 import ContactTimeline from './components/ContactTimeline';
+import ProfilePictureUploadDialog from './components/ProfilePictureUploadDialog';
 import { useContactDialogs } from './hooks/useContactDialogs';
 import { useTimelineEditing } from './hooks/useTimelineEditing';
 import { useReminderManagement } from './hooks/useReminderManagement';
@@ -90,6 +92,9 @@ export default function ContactDetailPage({ token }: { token: string }) {
 
   // Tab state
   const [activeTab, setActiveTab] = useState(0);
+
+  // Profile picture upload state
+  const [profilePictureDialogOpen, setProfilePictureDialogOpen] = useState(false);
 
   // Unified refresh function for notes and activities
   const refreshNotesAndActivities = async () => {
@@ -323,6 +328,22 @@ export default function ContactDetailPage({ token }: { token: string }) {
     }
   };
 
+  const handleUploadProfilePicture = async (croppedImageBlob: Blob) => {
+    if (!id) return;
+
+    await uploadProfilePicture(id, croppedImageBlob, token);
+    
+    // Refresh the profile picture
+    const blob = await getContactProfilePicture(id, token);
+    if (blob) {
+      // Revoke old URL to prevent memory leaks
+      if (profilePic) {
+        URL.revokeObjectURL(profilePic);
+      }
+      setProfilePic(URL.createObjectURL(blob));
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
@@ -366,6 +387,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
         onAddCircle={handleAddCircle}
         onDeleteCircle={handleDeleteCircle}
         onNewCircleNameChange={setNewCircleName}
+        onUploadProfilePicture={() => setProfilePictureDialogOpen(true)}
       />
 
       {/* General Information and Timeline - Two Column Layout */}
@@ -503,6 +525,12 @@ export default function ContactDetailPage({ token }: { token: string }) {
           allContacts={allContacts}
         />
       )}
+
+      <ProfilePictureUploadDialog
+        open={profilePictureDialogOpen}
+        onClose={() => setProfilePictureDialogOpen(false)}
+        onUpload={handleUploadProfilePicture}
+      />
     </Box>
   );
 }

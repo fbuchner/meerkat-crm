@@ -155,6 +155,29 @@ export async function getContactProfilePicture(
   return response.blob();
 }
 
+// Upload contact profile picture
+export async function uploadProfilePicture(
+  id: string | number,
+  imageBlob: Blob,
+  token: string
+): Promise<void> {
+  const formData = new FormData();
+  formData.append('photo', imageBlob, 'profile.jpg');
+
+  const response = await apiFetch(
+    `${API_BASE_URL}/contacts/${id}/profile_picture`,
+    {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to upload profile picture');
+  }
+}
+
 // Get all circles
 export async function getCircles(token: string): Promise<string[]> {
   const response = await apiFetch(

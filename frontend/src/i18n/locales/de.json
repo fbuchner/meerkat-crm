@@ -205,6 +205,17 @@
     "delete": "Löschen",
     "close": "Schließen"
   },
+  "profilePicture": {
+    "title": "Profilbild hochladen",
+    "selectImage": "Bild auswählen",
+    "dragOrClick": "Klicken zum Durchsuchen oder per Drag & Drop",
+    "changeImage": "Bild ändern",
+    "zoom": "Zoom",
+    "uploading": "Hochladen...",
+    "uploadError": "Profilbild konnte nicht hochgeladen werden",
+    "invalidFileType": "Bitte wählen Sie eine Bilddatei",
+    "fileTooLarge": "Datei ist zu groß. Maximale Größe ist 10MB."
+  },
   "settings": {
     "title": "Einstellungen",
     "language": {

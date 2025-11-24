@@ -61,7 +61,7 @@ func main() {
 	s := gocron.NewScheduler(time.UTC)
 	task := func() {
 		if err := services.SendReminders(db, *cfg); err != nil {
-			logger.Error().Err(err).Msg("Error sending birthday reminders")
+			logger.Error().Err(err).Msg("Error sending reminders")
 		}
 	}
 	s.Every(1).Day().At(cfg.ReminderTime).Do(task)

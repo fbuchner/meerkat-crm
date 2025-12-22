@@ -41,6 +41,12 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
+		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			if username, exists := claims["username"].(string); exists {
+				c.Set("username", username)
+			}
+		}
+
 		c.Next()
 	}
 }

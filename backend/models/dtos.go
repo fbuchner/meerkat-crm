@@ -34,3 +34,20 @@ type ContactInput struct {
 	ContactInformation string   `json:"contact_information" validate:"max=1000,safe_string"`
 	Circles            []string `json:"circles"`
 }
+
+// PasswordResetRequestInput captures email for initiating password reset
+type PasswordResetRequestInput struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+// PasswordResetConfirmInput carries token and new password for reset flow
+type PasswordResetConfirmInput struct {
+	Token    string `json:"token" validate:"required,min=16"`
+	Password string `json:"password" validate:"required,min=8,strong_password"`
+}
+
+// ChangePasswordInput is used by authenticated users to rotate credentials
+type ChangePasswordInput struct {
+	CurrentPassword string `json:"current_password" validate:"required"`
+	NewPassword     string `json:"new_password" validate:"required,min=8,strong_password"`
+}

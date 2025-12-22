@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { loginUser, saveToken } from './auth';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Box,
@@ -11,6 +11,7 @@ import {
   Paper,
   Stack
 } from '@mui/material';
+import ForgotPasswordDialog from './components/ForgotPasswordDialog';
 
 type LoginPageProps = {
   setToken?: (token: string | null) => void;
@@ -22,6 +23,7 @@ export default function LoginPage({ setToken }: LoginPageProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,9 +32,9 @@ export default function LoginPage({ setToken }: LoginPageProps) {
     setError('');
     try {
       const token = await loginUser(email, password);
-  saveToken(token);
-  if (setToken) setToken(token);
-  navigate('/');
+      saveToken(token);
+      if (setToken) setToken(token);
+      navigate('/');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : t('login.loginFailed');
       setError(errorMessage);
@@ -67,12 +69,16 @@ export default function LoginPage({ setToken }: LoginPageProps) {
             <Button type="submit" variant="contained" color="primary" disabled={loading}>
               {loading ? t('login.loggingIn') : t('login.loginButton')}
             </Button>
-            <Button component={require('react-router-dom').Link} to="/register" color="secondary" variant="text">
+            <Button variant="text" color="secondary" onClick={() => setForgotOpen(true)}>
+              {t('login.forgotPassword')}
+            </Button>
+            <Button component={Link} to="/register" color="secondary" variant="text">
               {t('login.noAccount')}
             </Button>
           </Stack>
         </form>
       </Paper>
+      <ForgotPasswordDialog open={forgotOpen} onClose={() => setForgotOpen(false)} />
     </Box>
   );
 }

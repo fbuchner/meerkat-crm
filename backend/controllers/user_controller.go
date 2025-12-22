@@ -2,12 +2,15 @@ package controllers
 
 import (
 	"errors"
+	"net/http"
+	"time"
+
 	"meerkat/config"
 	apperrors "meerkat/errors"
+	"meerkat/logger"
 	"meerkat/middleware"
 	"meerkat/models"
 	"meerkat/services"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -114,4 +117,203 @@ func CheckPasswordStrength(context *gin.Context) {
 
 	strength := middleware.EvaluatePasswordStrength(request.Password)
 	context.JSON(http.StatusOK, strength)
+}
+
+// RequestPasswordReset generates a reset token and sends instructions to the user.
+func RequestPasswordReset(context *gin.Context, cfg *config.Config) {
+	log := logger.FromContext(context)
+
+	validated, exists := context.Get("validated")
+	if !exists {
+		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("", "validation data not found"))
+		return
+	}
+
+	inputPtr, ok := validated.(*models.PasswordResetRequestInput)
+	if !ok || inputPtr == nil {
+		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("", "invalid validation data type"))
+		return
+	}
+	input := *inputPtr
+
+	db := context.MustGet("db").(*gorm.DB)
+
+	var user models.User
+	if err := db.Where("email = ?", input.Email).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			context.JSON(http.StatusOK, gin.H{"message": "If an account exists, password reset instructions were sent"})
+			return
+		}
+
+		log.Error().Err(err).Msg("Failed to lookup user for password reset")
+		apperrors.AbortWithError(context, apperrors.ErrDatabase("query user").WithError(err))
+		return
+	}
+
+	token, hash, err := services.GeneratePasswordResetToken()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to generate password reset token")
+		apperrors.AbortWithError(context, apperrors.ErrInternal("Could not generate password reset token").WithError(err))
+		return
+	}
+
+	expires := services.PasswordResetExpiry()
+	requested := time.Now()
+
+	user.PasswordResetTokenHash = &hash
+	user.PasswordResetExpiresAt = &expires
+	user.PasswordResetRequestedAt = &requested
+
+	if err := db.Save(&user).Error; err != nil {
+		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to persist password reset token")
+		apperrors.AbortWithError(context, apperrors.ErrDatabase("update user").WithError(err))
+		return
+	}
+
+	if err := services.SendPasswordResetEmail(user.Email, token, cfg); err != nil {
+		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to send password reset email")
+		apperrors.AbortWithError(context, apperrors.ErrExternal("email", "Failed to send password reset email").WithError(err))
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "If an account exists, password reset instructions were sent"})
+}
+
+// ConfirmPasswordReset validates the token and updates the password.
+func ConfirmPasswordReset(context *gin.Context) {
+	log := logger.FromContext(context)
+
+	validated, exists := context.Get("validated")
+	if !exists {
+		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("", "validation data not found"))
+		return
+	}
+
+	inputPtr, ok := validated.(*models.PasswordResetConfirmInput)
+	if !ok || inputPtr == nil {
+		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("", "invalid validation data type"))
+		return
+	}
+	input := *inputPtr
+
+	db := context.MustGet("db").(*gorm.DB)
+
+	tokenHash := services.HashPasswordResetToken(input.Token)
+
+	var user models.User
+	if err := db.Where("password_reset_token_hash = ?", tokenHash).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(context, apperrors.ErrInvalidInput("token", "Password reset token is invalid or expired"))
+			return
+		}
+
+		log.Error().Err(err).Msg("Failed to lookup password reset token")
+		apperrors.AbortWithError(context, apperrors.ErrDatabase("query user").WithError(err))
+		return
+	}
+
+	if user.PasswordResetExpiresAt == nil || time.Now().After(*user.PasswordResetExpiresAt) {
+		user.PasswordResetTokenHash = nil
+		user.PasswordResetExpiresAt = nil
+		user.PasswordResetRequestedAt = nil
+		if err := db.Save(&user).Error; err != nil {
+			log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to clear expired reset token")
+		}
+		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("token", "Password reset token is invalid or expired"))
+		return
+	}
+
+	hashedPassword, err := services.HashPassword(input.Password)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to hash password during reset")
+		apperrors.AbortWithError(context, apperrors.ErrInternal("Could not hash password").WithError(err))
+		return
+	}
+
+	user.Password = hashedPassword
+	user.PasswordResetTokenHash = nil
+	user.PasswordResetExpiresAt = nil
+	user.PasswordResetRequestedAt = nil
+
+	if err := db.Save(&user).Error; err != nil {
+		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to persist password reset")
+		apperrors.AbortWithError(context, apperrors.ErrDatabase("update user").WithError(err))
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Password reset successful"})
+}
+
+// ChangePassword lets authenticated users rotate their password.
+func ChangePassword(context *gin.Context) {
+	log := logger.FromContext(context)
+
+	validated, exists := context.Get("validated")
+	if !exists {
+		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("", "validation data not found"))
+		return
+	}
+
+	inputPtr, ok := validated.(*models.ChangePasswordInput)
+	if !ok || inputPtr == nil {
+		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("", "invalid validation data type"))
+		return
+	}
+	input := *inputPtr
+
+	usernameValue, exists := context.Get("username")
+	if !exists {
+		apperrors.AbortWithError(context, apperrors.ErrUnauthorized("Authentication required"))
+		return
+	}
+
+	username, ok := usernameValue.(string)
+	if !ok || username == "" {
+		apperrors.AbortWithError(context, apperrors.ErrUnauthorized("Authentication required"))
+		return
+	}
+
+	db := context.MustGet("db").(*gorm.DB)
+
+	var user models.User
+	if err := db.Where("username = ?", username).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(context, apperrors.ErrUnauthorized("Authentication required"))
+			return
+		}
+
+		log.Error().Err(err).Msg("Failed to lookup user for password change")
+		apperrors.AbortWithError(context, apperrors.ErrDatabase("query user").WithError(err))
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.CurrentPassword)); err != nil {
+		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("current_password", "Current password is incorrect"))
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.NewPassword)); err == nil {
+		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("new_password", "New password must differ from current password"))
+		return
+	}
+
+	hashedPassword, err := services.HashPassword(input.NewPassword)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to hash password during change")
+		apperrors.AbortWithError(context, apperrors.ErrInternal("Could not hash password").WithError(err))
+		return
+	}
+
+	user.Password = hashedPassword
+	user.PasswordResetTokenHash = nil
+	user.PasswordResetExpiresAt = nil
+	user.PasswordResetRequestedAt = nil
+
+	if err := db.Save(&user).Error; err != nil {
+		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to persist password change")
+		apperrors.AbortWithError(context, apperrors.ErrDatabase("update user").WithError(err))
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Password updated successfully"})
 }

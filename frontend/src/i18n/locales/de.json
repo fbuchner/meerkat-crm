@@ -32,7 +32,36 @@
     "loginButton": "Anmelden",
     "loggingIn": "Anmeldung läuft...",
     "loginFailed": "Anmeldung fehlgeschlagen",
-    "noAccount": "Noch kein Konto? Registrieren"
+    "noAccount": "Noch kein Konto? Registrieren",
+    "forgotPassword": "Passwort vergessen?"
+  },
+  "passwordReset": {
+    "title": "Passwort zurücksetzen",
+    "description": "Geben Sie die E-Mail-Adresse Ihres Kontos ein. Wir senden Ihnen ein Zurücksetzungstoken.",
+    "email": "E-Mail",
+    "requestButton": "Reset-E-Mail senden",
+    "requesting": "Sende...",
+    "confirmButton": "Passwort zurücksetzen",
+    "confirming": "Setze zurück...",
+    "token": "Reset-Token",
+    "newPassword": "Neues Passwort",
+    "confirmPassword": "Neues Passwort bestätigen",
+    "closeButton": "Zur Anmeldung",
+    "backButton": "Zurück",
+    "cancelButton": "Abbrechen",
+    "success": "Ihr Passwort wurde aktualisiert.",
+    "doneDescription": "Sie können sich jetzt mit dem neuen Passwort anmelden.",
+    "checkEmail": "Wir haben ein Token an {{email}} gesendet. Bitte fügen Sie es unten ein, um ein neues Passwort festzulegen.",
+    "errors": {
+      "requestFailed": "Der Reset konnte nicht gestartet werden. Bitte versuchen Sie es erneut.",
+      "confirmFailed": "Das Passwort konnte nicht zurückgesetzt werden. Prüfen Sie das Token und versuchen Sie es erneut."
+    },
+    "validation": {
+      "emailRequired": "E-Mail ist erforderlich.",
+      "tokenRequired": "Token ist erforderlich.",
+      "passwordRequired": "Passwort ist erforderlich.",
+      "passwordMismatch": "Passwörter stimmen nicht überein."
+    }
   },
   "register": {
     "title": "Registrieren",
@@ -222,6 +251,18 @@
       "title": "Sprache",
       "label": "Sprache",
       "description": "Wählen Sie Ihre bevorzugte Sprache für die Anwendungsoberfläche."
+    },
+    "password": {
+      "title": "Passwort ändern",
+      "description": "Verwenden Sie ein starkes Passwort, das Sie noch nicht genutzt haben.",
+      "current": "Aktuelles Passwort",
+      "new": "Neues Passwort",
+      "confirm": "Neues Passwort bestätigen",
+      "changeButton": "Passwort aktualisieren",
+      "changing": "Aktualisiere...",
+      "success": "Passwort erfolgreich aktualisiert.",
+      "error": "Passwort konnte nicht geändert werden. Bitte versuchen Sie es erneut.",
+      "mismatch": "Die neuen Passwörter stimmen nicht überein."
     },
     "moreComingSoon": "Weitere Einstellungen folgen bald",
     "moreComingSoonDescription": "Zusätzliche Einstellungen und Anpassungsoptionen werden hier in zukünftigen Updates verfügbar sein."

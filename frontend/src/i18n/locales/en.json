@@ -32,7 +32,36 @@
     "loginButton": "Login",
     "loggingIn": "Logging in...",
     "loginFailed": "Login failed",
-    "noAccount": "Don't have an account? Register"
+    "noAccount": "Don't have an account? Register",
+    "forgotPassword": "Forgot your password?"
+  },
+  "passwordReset": {
+    "title": "Reset Password",
+    "description": "Enter the email associated with your account and we'll send you a reset token.",
+    "email": "Email",
+    "requestButton": "Send reset email",
+    "requesting": "Sending...",
+    "confirmButton": "Reset password",
+    "confirming": "Resetting...",
+    "token": "Reset token",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "closeButton": "Return to login",
+    "backButton": "Back",
+    "cancelButton": "Cancel",
+    "success": "Your password has been updated.",
+    "doneDescription": "You can now sign in with your new password.",
+    "checkEmail": "We sent a token to {{email}}. Paste it below to choose a new password.",
+    "errors": {
+      "requestFailed": "We couldn't start the reset. Please try again.",
+      "confirmFailed": "We couldn't reset your password. Double-check the token and try again."
+    },
+    "validation": {
+      "emailRequired": "Email is required.",
+      "tokenRequired": "Token is required.",
+      "passwordRequired": "Password is required.",
+      "passwordMismatch": "Passwords do not match."
+    }
   },
   "register": {
     "title": "Register",
@@ -222,6 +251,18 @@
       "title": "Language",
       "label": "Language",
       "description": "Choose your preferred language for the application interface."
+    },
+    "password": {
+      "title": "Change Password",
+      "description": "Use a strong password that you haven't used elsewhere.",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Confirm new password",
+      "changeButton": "Update password",
+      "changing": "Updating...",
+      "success": "Password updated successfully.",
+      "error": "We couldn't change your password. Please try again.",
+      "mismatch": "New passwords do not match."
     },
     "moreComingSoon": "More Settings Coming Soon",
     "moreComingSoonDescription": "Additional settings and customization options will be available here in future updates."

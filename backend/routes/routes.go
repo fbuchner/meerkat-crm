@@ -23,12 +23,18 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 			controllers.LoginUser(c, cfg)
 		})
 		v1.POST("/check-password-strength", middleware.AuthRateLimitMiddleware(), controllers.CheckPasswordStrength)
+		v1.POST("/password-reset/request", middleware.AuthRateLimitMiddleware(), middleware.ValidateJSONMiddleware(&models.PasswordResetRequestInput{}), func(c *gin.Context) {
+			controllers.RequestPasswordReset(c, cfg)
+		})
+		v1.POST("/password-reset/confirm", middleware.AuthRateLimitMiddleware(), middleware.ValidateJSONMiddleware(&models.PasswordResetConfirmInput{}), controllers.ConfirmPasswordReset)
 
 		// Protected routes (authentication required, general rate limiting)
 		protected := v1.Group("/")
 		protected.Use(middleware.APIRateLimitMiddleware())
 		protected.Use(middleware.AuthMiddleware(cfg))
 		{
+			protected.POST("/users/change-password", middleware.ValidateJSONMiddleware(&models.ChangePasswordInput{}), controllers.ChangePassword)
+
 			// Contact routes
 			protected.GET("/contacts", controllers.GetContacts)
 			protected.GET("/contacts/circles", controllers.GetCircles)

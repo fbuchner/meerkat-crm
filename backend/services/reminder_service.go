@@ -111,7 +111,7 @@ func CalculateNextReminderTime(reminder models.Reminder) time.Time {
 	// Determine the base time to use for calculation
 	now := time.Now()
 	var baseTime time.Time
-	if reminder.ReocurrFromCompletion {
+	if reminder.ReoccurFromCompletion {
 		if reminder.RemindAt.After(now) {
 			// For reminders in the future, use the original remind at time (e.g. if I already complete a monthly reminder set for next week I am remindet again next week in one month)
 			baseTime = reminder.RemindAt

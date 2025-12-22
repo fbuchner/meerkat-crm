@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -20,7 +20,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EmailIcon from '@mui/icons-material/Email';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import WarningIcon from '@mui/icons-material/Warning';
-import { Contact, getRandomContacts, getUpcomingBirthdays } from './api/contacts';
+import { Contact, getRandomContacts, getUpcomingBirthdays, getContactProfilePicture } from './api/contacts';
 import { Reminder, getUpcomingReminders, completeReminder } from './api/reminders';
 import { ContactListSkeleton } from './components/LoadingSkeletons';
 
@@ -34,14 +34,29 @@ function DashboardPage({ token }: DashboardPageProps) {
   const [birthdayContacts, setBirthdayContacts] = useState<Contact[]>([]);
   const [randomContacts, setRandomContacts] = useState<Contact[]>([]);
   const [upcomingReminders, setUpcomingReminders] = useState<Reminder[]>([]);
+  const [profilePics, setProfilePics] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadDashboardData();
+  // Load profile pictures for contacts
+  const loadProfilePictures = useCallback(async (contacts: Contact[]) => {
+    const pics: Record<number, string> = {};
+    await Promise.all(
+      contacts.map(async (contact) => {
+        try {
+          const blob = await getContactProfilePicture(contact.ID, token);
+          if (blob) {
+            pics[contact.ID] = URL.createObjectURL(blob);
+          }
+        } catch {
+          // Ignore errors for individual profile pictures
+        }
+      })
+    );
+    setProfilePics(prev => ({ ...prev, ...pics }));
   }, [token]);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -55,13 +70,31 @@ function DashboardPage({ token }: DashboardPageProps) {
       setBirthdayContacts(birthdays);
       setRandomContacts(random);
       setUpcomingReminders(reminders);
+
+      // Load profile pictures for all contacts
+      const allContacts = [...birthdays, ...random];
+      const uniqueContacts = allContacts.filter(
+        (contact, index, self) => self.findIndex(c => c.ID === contact.ID) === index
+      );
+      await loadProfilePictures(uniqueContacts);
     } catch (err) {
       console.error('Error loading dashboard data:', err);
       setError(t('dashboard.error') || 'Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
-  };
+  }, [loadProfilePictures, t, token]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(profilePics).forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [profilePics]);
 
   const handleCompleteReminder = async (reminderId: number) => {
     try {
@@ -174,7 +207,10 @@ function DashboardPage({ token }: DashboardPageProps) {
                 >
                   <CardContent sx={{ py: 1.5 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Avatar sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}>
+                      <Avatar 
+                        src={profilePics[contact.ID] || undefined}
+                        sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}
+                      >
                         {contact.firstname.charAt(0)}
                       </Avatar>
                       <Box sx={{ flexGrow: 1 }}>
@@ -238,7 +274,10 @@ function DashboardPage({ token }: DashboardPageProps) {
                 >
                   <CardContent sx={{ py: 1.5 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Avatar sx={{ bgcolor: 'secondary.main', width: 40, height: 40 }}>
+                      <Avatar 
+                        src={profilePics[contact.ID] || undefined}
+                        sx={{ bgcolor: 'secondary.main', width: 40, height: 40 }}
+                      >
                         {contact.firstname.charAt(0)}
                       </Avatar>
                       <Box sx={{ flexGrow: 1 }}>

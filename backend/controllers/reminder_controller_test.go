@@ -97,7 +97,7 @@ func TestUpdateReminder(t *testing.T) {
 		ByMail:                false,
 		RemindAt:              time.Now().Add(24 * 4 * 8 * time.Hour),
 		Recurrence:            "Once",
-		ReocurrFromCompletion: false,
+		ReoccurFromCompletion: false,
 		Contact:               contact,
 	}
 	db.Create(&reminder)
@@ -110,7 +110,7 @@ func TestUpdateReminder(t *testing.T) {
 		ByMail:                true,
 		RemindAt:              time.Now().Add(24 * 4 * 3 * time.Hour),
 		Recurrence:            "Monthly",
-		ReocurrFromCompletion: true,
+		ReoccurFromCompletion: true,
 	}
 	jsonValue, _ := json.Marshal(updatedReminder)
 
@@ -137,7 +137,7 @@ func TestDeleteReminder(t *testing.T) {
 		ByMail:                true,
 		RemindAt:              time.Date(2025, 05, 22, 12, 0, 0, 0, time.UTC), // Fixed date
 		Recurrence:            "Yearly",
-		ReocurrFromCompletion: false,
+		ReoccurFromCompletion: false,
 	}
 	db.Create(&reminder)
 
@@ -175,7 +175,7 @@ func TestGetRemindersForContact(t *testing.T) {
 		ByMail:                false,
 		RemindAt:              time.Now().Add(48 * time.Hour), // 2 days from now
 		Recurrence:            "Quarterly",
-		ReocurrFromCompletion: true,
+		ReoccurFromCompletion: true,
 		ContactID:             &contact.ID,
 	}
 	reminder2 := models.Reminder{
@@ -183,7 +183,7 @@ func TestGetRemindersForContact(t *testing.T) {
 		ByMail:                true,
 		RemindAt:              time.Date(2025, 8, 4, 12, 0, 0, 0, time.UTC), // Fixed date
 		Recurrence:            "Yearly",
-		ReocurrFromCompletion: false,
+		ReoccurFromCompletion: false,
 		ContactID:             &contact.ID,
 	}
 	db.Create(&reminder1)

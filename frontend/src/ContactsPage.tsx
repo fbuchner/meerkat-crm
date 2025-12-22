@@ -191,7 +191,7 @@ export default function ContactsPage({ token }: { token: string }) {
                         size="small"
                         variant="outlined"
                         clickable
-                        onClick={() => { setSelectedCircle(circle); setPage(1); }}
+                        onClick={(e) => { e.stopPropagation(); setSelectedCircle(circle); setPage(1); }}
                         sx={{ height: 20, fontSize: '0.75rem' }}
                       />
                     ))}

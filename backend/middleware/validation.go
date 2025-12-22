@@ -3,6 +3,7 @@ package middleware
 import (
 	apperrors "meerkat/errors"
 	"meerkat/logger"
+	"reflect"
 	"regexp"
 	"strings"
 	"unicode"
@@ -182,8 +183,17 @@ func ValidateEmail(email string) bool {
 
 // ValidateJSONMiddleware validates JSON request body against a struct
 // Usage: router.POST("/endpoint", ValidateJSONMiddleware(&MyStruct{}), handler)
-func ValidateJSONMiddleware(obj interface{}) gin.HandlerFunc {
+func ValidateJSONMiddleware(template interface{}) gin.HandlerFunc {
+	// Get the type of the template to create new instances per request
+	templateType := reflect.TypeOf(template)
+	if templateType.Kind() == reflect.Ptr {
+		templateType = templateType.Elem()
+	}
+
 	return func(c *gin.Context) {
+		// Create a new instance of the struct for each request
+		obj := reflect.New(templateType).Interface()
+
 		if err := c.ShouldBindJSON(obj); err != nil {
 			logger.FromContext(c).Warn().Err(err).Msg("Invalid JSON in request body")
 

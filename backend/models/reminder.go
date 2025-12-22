@@ -12,7 +12,7 @@ type Reminder struct {
 	ByMail                bool       `gorm:"default:false" json:"by_mail"`
 	RemindAt              time.Time  `gorm:"not null" json:"remind_at" validate:"required"`
 	Recurrence            string     `gorm:"not null" json:"recurrence" validate:"required,oneof=once weekly monthly quarterly six-months yearly"`
-	ReocurrFromCompletion bool       `gorm:"default:true" json:"reoccur_from_completion"`
+	ReoccurFromCompletion bool       `gorm:"default:true" json:"reoccur_from_completion"`
 	Completed             bool       `gorm:"default:false" json:"completed"`
 	LastSent              *time.Time `gorm:"default:null" json:"last_sent"`
 	ContactID             *uint      `gorm:"not null" json:"contact_id" validate:"required"`

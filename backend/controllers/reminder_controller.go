@@ -115,7 +115,7 @@ func UpdateReminder(c *gin.Context) {
 		updatedReminder.RemindAt.Day(), 0, 0, 0, 0,
 		updatedReminder.RemindAt.Location())
 	reminder.Recurrence = updatedReminder.Recurrence
-	reminder.ReocurrFromCompletion = updatedReminder.ReocurrFromCompletion
+	reminder.ReoccurFromCompletion = updatedReminder.ReoccurFromCompletion
 	reminder.ContactID = updatedReminder.ContactID
 
 	db.Updates(&reminder)
@@ -248,7 +248,7 @@ func CompleteReminder(c *gin.Context) {
 	*reminder.LastSent = time.Now()
 
 	// If reoccur from completion, calculate next reminder time
-	if reminder.ReocurrFromCompletion && reminder.Recurrence != "once" {
+	if reminder.ReoccurFromCompletion && reminder.Recurrence != "once" {
 		reminder.RemindAt = services.CalculateNextReminderTime(reminder)
 		// Reset completed flag for recurring reminders
 		reminder.Completed = false

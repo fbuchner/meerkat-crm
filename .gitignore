@@ -85,3 +85,4 @@ coverage/
 *.bak
 *.backup
 *~
+.github/copilot-instructions.md

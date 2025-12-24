@@ -47,14 +47,16 @@ func TestSendReminders(t *testing.T) {
 	db.Create(&contact)
 
 	// Create test reminder which should be sent
+	reoccurFalse := false
+	byMailTrue := true
 	reminder := models.Reminder{
 		UserID:                user.ID,
 		ContactID:             &contact.ID,
 		Message:               "Test reminder",
-		ByMail:                true,
+		ByMail:                &byMailTrue,
 		RemindAt:              time.Now().Add(-1 * time.Hour), // already due today
 		Recurrence:            "once",
-		ReoccurFromCompletion: false,
+		ReoccurFromCompletion: &reoccurFalse,
 	}
 
 	db.Create(&reminder)

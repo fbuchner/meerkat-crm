@@ -21,6 +21,9 @@ func TestCreateReminder(t *testing.T) {
 	db.First(&user)
 	router.POST("/contacts/:id/reminders", withValidated(func() any { return &models.Reminder{} }), CreateReminder)
 
+	// Helper for bool pointers
+	boolPtr := func(b bool) *bool { return &b }
+
 	// Create a contact for the reminder
 	contact := models.Contact{
 		UserID:    user.ID,
@@ -33,7 +36,7 @@ func TestCreateReminder(t *testing.T) {
 	newReminder := models.Reminder{
 		UserID:     user.ID,
 		Message:    "Catch-up with Tom",
-		ByMail:     false,
+		ByMail:     boolPtr(false),
 		RemindAt:   time.Now().Add(24 * time.Hour), // Tomorrow
 		Recurrence: "Once",
 		Contact:    contact,
@@ -60,6 +63,9 @@ func TestGetReminder(t *testing.T) {
 	db.First(&user)
 	router.GET("/reminders/:id", GetReminder)
 
+	// Helper for bool pointers
+	boolPtr := func(b bool) *bool { return &b }
+
 	// Create a contact
 	contact := models.Contact{
 		UserID:    user.ID,
@@ -71,7 +77,7 @@ func TestGetReminder(t *testing.T) {
 	reminder := models.Reminder{
 		UserID:     user.ID,
 		Message:    "Catch-up",
-		ByMail:     false,
+		ByMail:     boolPtr(false),
 		RemindAt:   time.Now().Add(24 * 7 * time.Hour), // In 1 week
 		Recurrence: "Monthly",
 		Contact:    contact,
@@ -97,6 +103,9 @@ func TestUpdateReminder(t *testing.T) {
 	db.First(&user)
 	router.PUT("/reminders/:id", withValidated(func() any { return &models.Reminder{} }), UpdateReminder)
 
+	// Helper for bool pointers
+	boolPtr := func(b bool) *bool { return &b }
+
 	// Create a contact
 	contact := models.Contact{
 		UserID:    user.ID,
@@ -109,10 +118,10 @@ func TestUpdateReminder(t *testing.T) {
 	reminder := models.Reminder{
 		UserID:                user.ID,
 		Message:               "Catch-up",
-		ByMail:                false,
+		ByMail:                boolPtr(false),
 		RemindAt:              time.Now().Add(24 * 4 * 8 * time.Hour),
 		Recurrence:            "Once",
-		ReoccurFromCompletion: false,
+		ReoccurFromCompletion: boolPtr(false),
 		Contact:               contact,
 	}
 	db.Create(&reminder)
@@ -123,10 +132,10 @@ func TestUpdateReminder(t *testing.T) {
 	updatedReminder := models.Reminder{
 		UserID:                user.ID,
 		Message:               "Catch-up with Jamie",
-		ByMail:                true,
+		ByMail:                boolPtr(true),
 		RemindAt:              time.Now().Add(24 * 4 * 3 * time.Hour),
 		Recurrence:            "Monthly",
-		ReoccurFromCompletion: true,
+		ReoccurFromCompletion: boolPtr(true),
 	}
 	jsonValue, _ := json.Marshal(updatedReminder)
 
@@ -150,6 +159,9 @@ func TestDeleteReminder(t *testing.T) {
 	db.First(&user)
 	router.DELETE("/reminders/:id", DeleteReminder)
 
+	// Helper for bool pointers
+	boolPtr := func(b bool) *bool { return &b }
+
 	// Create a contact for the reminder
 	contact := models.Contact{
 		UserID:    user.ID,
@@ -162,10 +174,10 @@ func TestDeleteReminder(t *testing.T) {
 	reminder := models.Reminder{
 		UserID:                user.ID,
 		Message:               "Wish happy birthday to Joan",
-		ByMail:                true,
+		ByMail:                boolPtr(true),
 		RemindAt:              time.Date(2025, 05, 22, 12, 0, 0, 0, time.UTC), // Fixed date
 		Recurrence:            "yearly",
-		ReoccurFromCompletion: false,
+		ReoccurFromCompletion: boolPtr(false),
 		ContactID:             &contact.ID,
 	}
 	db.Create(&reminder)
@@ -194,6 +206,9 @@ func TestGetRemindersForContact(t *testing.T) {
 	db.First(&user)
 	router.GET("/contacts/:id/reminders", GetRemindersForContact)
 
+	// Helper for bool pointers
+	boolPtr := func(b bool) *bool { return &b }
+
 	// Create a contact
 	contact := models.Contact{
 		UserID:    user.ID,
@@ -206,19 +221,19 @@ func TestGetRemindersForContact(t *testing.T) {
 	reminder1 := models.Reminder{
 		UserID:                user.ID,
 		Message:               "Catch-up with Emily",
-		ByMail:                false,
+		ByMail:                boolPtr(false),
 		RemindAt:              time.Now().Add(48 * time.Hour), // 2 days from now
 		Recurrence:            "Quarterly",
-		ReoccurFromCompletion: true,
+		ReoccurFromCompletion: boolPtr(true),
 		ContactID:             &contact.ID,
 	}
 	reminder2 := models.Reminder{
 		UserID:                user.ID,
 		Message:               "Book flight tickets",
-		ByMail:                true,
+		ByMail:                boolPtr(true),
 		RemindAt:              time.Date(2025, 8, 4, 12, 0, 0, 0, time.UTC), // Fixed date
 		Recurrence:            "Yearly",
-		ReoccurFromCompletion: false,
+		ReoccurFromCompletion: boolPtr(false),
 		ContactID:             &contact.ID,
 	}
 	db.Create(&reminder1)

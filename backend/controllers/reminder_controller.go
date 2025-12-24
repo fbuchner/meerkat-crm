@@ -303,7 +303,9 @@ func CompleteReminder(c *gin.Context) {
 	*reminder.LastSent = time.Now()
 
 	// If reoccur from completion, calculate next reminder time
-	if reminder.ReoccurFromCompletion && reminder.Recurrence != "once" {
+	// Default to true if not specified (nil)
+	reoccurFromCompletion := reminder.ReoccurFromCompletion == nil || *reminder.ReoccurFromCompletion
+	if reoccurFromCompletion && reminder.Recurrence != "once" {
 		reminder.RemindAt = services.CalculateNextReminderTime(reminder)
 		// Reset completed flag for recurring reminders
 		reminder.Completed = false

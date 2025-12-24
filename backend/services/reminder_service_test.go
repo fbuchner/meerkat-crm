@@ -34,8 +34,13 @@ func setupRouter() (*gorm.DB, *gin.Engine) {
 func TestSendReminders(t *testing.T) {
 	db, _ := setupRouter()
 
-	// Create a contact and relationships
+	user := models.User{Username: "reminder-user", Password: "password123", Email: "owner@example.com"}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatal(err)
+	}
+
 	contact := models.Contact{
+		UserID:    user.ID,
 		Firstname: "Jane",
 		Lastname:  "Doe",
 	}
@@ -43,26 +48,51 @@ func TestSendReminders(t *testing.T) {
 
 	// Create test reminder which should be sent
 	reminder := models.Reminder{
-		ContactID:  &contact.ID,
-		Message:    "Test reminder",
-		ByMail:     true,
-		RemindAt:   time.Now().Add(1 * time.Hour), // Tomorrow
-		Recurrence: "Once",
+		UserID:                user.ID,
+		ContactID:             &contact.ID,
+		Message:               "Test reminder",
+		ByMail:                true,
+		RemindAt:              time.Now().Add(-1 * time.Hour), // already due today
+		Recurrence:            "once",
+		ReoccurFromCompletion: false,
 	}
 
 	db.Create(&reminder)
 
+	var (
+		calledUser      models.User
+		calledReminders []models.Reminder
+		callCount       int
+	)
+
+	originalSender := sendReminderEmailFn
+	sendReminderEmailFn = func(u models.User, reminders []models.Reminder, cfg config.Config, db *gorm.DB) error {
+		calledUser = u
+		calledReminders = reminders
+		callCount++
+		return nil
+	}
+	defer func() {
+		sendReminderEmailFn = originalSender
+	}()
+
 	config := config.Config{
-		ResendAPIKey:  "test_api_key",
-		ResendToEmail: "test_email@example.com",
-		ReminderTime:  "12:00",
+		UseResend:       true,
+		ResendAPIKey:    "test_api_key",
+		ResendFromEmail: "noreply@example.com",
+		ReminderTime:    "12:00",
 	}
 
 	err := SendReminders(db, config)
 	assert.NoError(t, err)
 
-	// Check saved last_sent and other updates
+	assert.Equal(t, 1, callCount)
+	assert.Equal(t, user.ID, calledUser.ID)
+	if assert.Len(t, calledReminders, 1) {
+		assert.Equal(t, reminder.ID, calledReminders[0].ID)
+	}
+
 	var updatedReminder models.Reminder
-	db.First(&updatedReminder, reminder.ID)
-	assert.NotNil(t, updatedReminder.LastSent)
+	result := db.Unscoped().First(&updatedReminder, reminder.ID)
+	assert.ErrorIs(t, result.Error, gorm.ErrRecordNotFound)
 }

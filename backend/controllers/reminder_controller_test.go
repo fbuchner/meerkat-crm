@@ -16,10 +16,14 @@ import (
 
 func TestCreateReminder(t *testing.T) {
 	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
 	router.POST("/contacts/:id/reminders", CreateReminder)
 
 	// Create a contact for the reminder
 	contact := models.Contact{
+		UserID:    user.ID,
 		Firstname: "Tom",
 		Lastname:  "Smith",
 	}
@@ -27,6 +31,7 @@ func TestCreateReminder(t *testing.T) {
 
 	// Create a new reminder
 	newReminder := models.Reminder{
+		UserID:     user.ID,
 		Message:    "Catch-up with Tom",
 		ByMail:     false,
 		RemindAt:   time.Now().Add(24 * time.Hour), // Tomorrow
@@ -50,16 +55,21 @@ func TestCreateReminder(t *testing.T) {
 
 func TestGetReminder(t *testing.T) {
 	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
 	router.GET("/reminders/:id", GetReminder)
 
 	// Create a contact
 	contact := models.Contact{
+		UserID:    user.ID,
 		Firstname: "Emily",
 		Lastname:  "Johnson",
 	}
 
 	// Create a reminder
 	reminder := models.Reminder{
+		UserID:     user.ID,
 		Message:    "Catch-up",
 		ByMail:     false,
 		RemindAt:   time.Now().Add(24 * 7 * time.Hour), // In 1 week
@@ -82,10 +92,14 @@ func TestGetReminder(t *testing.T) {
 
 func TestUpdateReminder(t *testing.T) {
 	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
 	router.PUT("/reminders/:id", UpdateReminder)
 
 	// Create a contact
 	contact := models.Contact{
+		UserID:    user.ID,
 		Firstname: "Jamie",
 		Lastname:  "Smith",
 	}
@@ -93,6 +107,7 @@ func TestUpdateReminder(t *testing.T) {
 
 	// Create a reminder
 	reminder := models.Reminder{
+		UserID:                user.ID,
 		Message:               "Catch-up",
 		ByMail:                false,
 		RemindAt:              time.Now().Add(24 * 4 * 8 * time.Hour),
@@ -106,6 +121,7 @@ func TestUpdateReminder(t *testing.T) {
 
 	// Create updated reminder data
 	updatedReminder := models.Reminder{
+		UserID:                user.ID,
 		Message:               "Catch-up with Jamie",
 		ByMail:                true,
 		RemindAt:              time.Now().Add(24 * 4 * 3 * time.Hour),
@@ -129,10 +145,14 @@ func TestUpdateReminder(t *testing.T) {
 
 func TestDeleteReminder(t *testing.T) {
 	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
 	router.DELETE("/reminders/:id", DeleteReminder)
 
 	// Create a reminder
 	reminder := models.Reminder{
+		UserID:                user.ID,
 		Message:               "Wish happy birthday to Joan",
 		ByMail:                true,
 		RemindAt:              time.Date(2025, 05, 22, 12, 0, 0, 0, time.UTC), // Fixed date
@@ -160,10 +180,14 @@ func TestDeleteReminder(t *testing.T) {
 
 func TestGetRemindersForContact(t *testing.T) {
 	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
 	router.GET("/contacts/:id/reminders", GetRemindersForContact)
 
 	// Create a contact
 	contact := models.Contact{
+		UserID:    user.ID,
 		Firstname: "Emily",
 		Lastname:  "Johnson",
 	}
@@ -171,6 +195,7 @@ func TestGetRemindersForContact(t *testing.T) {
 
 	// Create reminders for this contact
 	reminder1 := models.Reminder{
+		UserID:                user.ID,
 		Message:               "Catch-up with Emily",
 		ByMail:                false,
 		RemindAt:              time.Now().Add(48 * time.Hour), // 2 days from now
@@ -179,6 +204,7 @@ func TestGetRemindersForContact(t *testing.T) {
 		ContactID:             &contact.ID,
 	}
 	reminder2 := models.Reminder{
+		UserID:                user.ID,
 		Message:               "Book flight tickets",
 		ByMail:                true,
 		RemindAt:              time.Date(2025, 8, 4, 12, 0, 0, 0, time.UTC), // Fixed date

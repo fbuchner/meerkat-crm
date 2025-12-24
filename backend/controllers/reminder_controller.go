@@ -16,11 +16,16 @@ import (
 func CreateReminder(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
 	contactID := c.Param("id")
 
 	// Find the contact by the ID
 	var contact models.Contact
-	if err := db.First(&contact, contactID).Error; err != nil {
+	if err := db.Where("user_id = ?", userID).First(&contact, contactID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", contactID))
 		} else {
@@ -45,6 +50,7 @@ func CreateReminder(c *gin.Context) {
 
 	// Assign the ContactID to the reminder to link it to the contact
 	reminder.ContactID = &contact.ID
+	reminder.UserID = userID
 
 	// Set hours, minutes, seconds to 0 to ensure reminders are found when comparing for "until date"
 	reminder.RemindAt = time.Date(reminder.RemindAt.Year(),
@@ -68,7 +74,13 @@ func GetReminder(c *gin.Context) {
 	id := c.Param("id")
 	var reminder models.Reminder
 	db := c.MustGet("db").(*gorm.DB)
-	if err := db.First(&reminder, id).Error; err != nil {
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	if err := db.Where("user_id = ?", userID).First(&reminder, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			apperrors.AbortWithError(c, apperrors.ErrNotFound("Reminder").WithDetails("id", id))
 		} else {
@@ -84,7 +96,13 @@ func UpdateReminder(c *gin.Context) {
 	id := c.Param("id")
 	var reminder models.Reminder
 	db := c.MustGet("db").(*gorm.DB)
-	if err := db.First(&reminder, id).Error; err != nil {
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	if err := db.Where("user_id = ?", userID).First(&reminder, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			apperrors.AbortWithError(c, apperrors.ErrNotFound("Reminder").WithDetails("id", id))
 		} else {
@@ -118,6 +136,18 @@ func UpdateReminder(c *gin.Context) {
 	reminder.ReoccurFromCompletion = updatedReminder.ReoccurFromCompletion
 	reminder.ContactID = updatedReminder.ContactID
 
+	if reminder.ContactID != nil {
+		var contact models.Contact
+		if err := db.Where("user_id = ?", userID).First(&contact, *reminder.ContactID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact"))
+			} else {
+				apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve contact").WithError(err))
+			}
+			return
+		}
+	}
+
 	db.Updates(&reminder)
 
 	// Clear the Contact association to avoid including it in the response
@@ -130,9 +160,14 @@ func DeleteReminder(c *gin.Context) {
 	id := c.Param("id")
 	db := c.MustGet("db").(*gorm.DB)
 
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
 	// Check if reminder exists first
 	var reminder models.Reminder
-	if err := db.First(&reminder, id).Error; err != nil {
+	if err := db.Where("user_id = ?", userID).First(&reminder, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			apperrors.AbortWithError(c, apperrors.ErrNotFound("Reminder").WithDetails("id", id))
 		} else {
@@ -154,9 +189,14 @@ func GetRemindersForContact(c *gin.Context) {
 
 	db := c.MustGet("db").(*gorm.DB)
 
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
 	var contact models.Contact
 
-	if err := db.Preload("Reminders").First(&contact, contactID).Error; err != nil {
+	if err := db.Preload("Reminders", "reminders.user_id = ?", userID).Where("user_id = ?", userID).First(&contact, contactID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", contactID))
 		} else {
@@ -174,11 +214,16 @@ func GetRemindersForContact(c *gin.Context) {
 func GetAllReminders(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
 	var reminders []models.Reminder
 
 	// Get all reminders, ordered by remind_at date
 	// Don't preload Contact to avoid validation issues with invalid contact data
-	if err := db.Order("remind_at ASC").Find(&reminders).Error; err != nil {
+	if err := db.Where("user_id = ?", userID).Order("remind_at ASC").Find(&reminders).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve reminders").WithError(err))
 		return
 	}
@@ -192,12 +237,17 @@ func GetAllReminders(c *gin.Context) {
 func GetUpcomingReminders(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
 	now := time.Now()
 	sevenDaysFromNow := now.AddDate(0, 0, 7)
 
 	// Get reminders for the next 7 days
 	var remindersNext7Days []models.Reminder
-	if err := db.Where("remind_at >= ? AND remind_at <= ? AND completed = ?", now, sevenDaysFromNow, false).
+	if err := db.Where("user_id = ? AND remind_at >= ? AND remind_at <= ? AND completed = ?", userID, now, sevenDaysFromNow, false).
 		Order("remind_at ASC").
 		Find(&remindersNext7Days).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve reminders").WithError(err))
@@ -214,7 +264,7 @@ func GetUpcomingReminders(c *gin.Context) {
 
 	// Otherwise, get the next 10 reminders regardless of date
 	var remindersNext10 []models.Reminder
-	if err := db.Where("remind_at >= ? AND completed = ?", now, false).
+	if err := db.Where("user_id = ? AND remind_at >= ? AND completed = ?", userID, now, false).
 		Order("remind_at ASC").
 		Limit(10).
 		Find(&remindersNext10).Error; err != nil {
@@ -232,8 +282,13 @@ func CompleteReminder(c *gin.Context) {
 	id := c.Param("id")
 	db := c.MustGet("db").(*gorm.DB)
 
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
 	var reminder models.Reminder
-	if err := db.First(&reminder, id).Error; err != nil {
+	if err := db.Where("user_id = ?", userID).First(&reminder, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			apperrors.AbortWithError(c, apperrors.ErrNotFound("Reminder").WithDetails("id", id))
 		} else {

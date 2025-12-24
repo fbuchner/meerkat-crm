@@ -15,15 +15,18 @@ import (
 func TestGetContacts(t *testing.T) {
 	db, router := setupRouter()
 
+	var user models.User
+	db.First(&user)
+
 	router.GET("/contacts", GetContacts)
 
 	// Create some contacts
 	contacts := []models.Contact{
-		{Firstname: "Alice", Lastname: "Johnson"},
-		{Firstname: "Bob", Lastname: "Smith"},
-		{Firstname: "Carol", Lastname: "Williams"},
-		{Firstname: "David", Lastname: "Brown"},
-		{Firstname: "Eve", Lastname: "Davis"},
+		{UserID: user.ID, Firstname: "Alice", Lastname: "Johnson"},
+		{UserID: user.ID, Firstname: "Bob", Lastname: "Smith"},
+		{UserID: user.ID, Firstname: "Carol", Lastname: "Williams"},
+		{UserID: user.ID, Firstname: "David", Lastname: "Brown"},
+		{UserID: user.ID, Firstname: "Eve", Lastname: "Davis"},
 	}
 
 	for _, contact := range contacts {
@@ -84,10 +87,14 @@ func TestGetContacts(t *testing.T) {
 func TestGetContact(t *testing.T) {
 	db, router := setupRouter()
 
+	var user models.User
+	db.First(&user)
+
 	router.GET("/contacts/:id", GetContact)
 
 	// Create a contact
 	contact := models.Contact{
+		UserID:    user.ID,
 		Firstname: "Jane",
 		Lastname:  "Doe",
 	}
@@ -112,10 +119,10 @@ func TestGetContact(t *testing.T) {
 func TestCreateContact(t *testing.T) {
 	_, router := setupRouter()
 
-	router.POST("/contacts", CreateContact)
+	router.POST("/contacts", withValidated(func() any { return &models.ContactInput{} }), CreateContact)
 
 	// Create a contact
-	newContact := models.Contact{
+	newContact := models.ContactInput{
 		Firstname: "Alice",
 		Lastname:  "Johnson",
 		Email:     "alice@example.com",
@@ -143,17 +150,21 @@ func TestCreateContact(t *testing.T) {
 func TestUpdateContact(t *testing.T) {
 	db, router := setupRouter()
 
-	router.PUT("/contacts/:id", UpdateContact)
+	var user models.User
+	db.First(&user)
+
+	router.PUT("/contacts/:id", withValidated(func() any { return &models.ContactInput{} }), UpdateContact)
 
 	// Create a contact
 	contact := models.Contact{
+		UserID:    user.ID,
 		Firstname: "Alice",
 		Lastname:  "Johnson",
 	}
 	db.Create(&contact)
 
 	// Update the contact
-	updatedContact := models.Contact{
+	updatedContact := models.ContactInput{
 		Firstname: "Alice Updated",
 		Lastname:  "Johnson Updated",
 	}
@@ -174,10 +185,14 @@ func TestUpdateContact(t *testing.T) {
 func TestDeleteContact(t *testing.T) {
 	db, router := setupRouter()
 
+	var user models.User
+	db.First(&user)
+
 	router.DELETE("/contacts/:id", DeleteContact)
 
 	// Create a contact
 	contact := models.Contact{
+		UserID:    user.ID,
 		Firstname: "Alice",
 		Lastname:  "Johnson",
 	}
@@ -198,11 +213,14 @@ func TestDeleteContact(t *testing.T) {
 func TestGetCircles(t *testing.T) {
 	db, router := setupRouter()
 
+	var user models.User
+	db.First(&user)
+
 	router.GET("/contacts/circles", GetCircles)
 
 	contacts := []models.Contact{
-		{Firstname: "Alice", Lastname: "Johnson", Circles: []string{"Friends", "Family"}},
-		{Firstname: "Bob", Lastname: "Smith", Circles: []string{"Friends", "Work"}},
+		{UserID: user.ID, Firstname: "Alice", Lastname: "Johnson", Circles: []string{"Friends", "Family"}},
+		{UserID: user.ID, Firstname: "Bob", Lastname: "Smith", Circles: []string{"Friends", "Work"}},
 	}
 	db.Create(&contacts[0])
 	db.Create(&contacts[1])

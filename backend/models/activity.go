@@ -9,6 +9,7 @@ import (
 // Activity struct to represent shared activities with one or more contacts
 type Activity struct {
 	gorm.Model
+	UserID      uint      `gorm:"not null;index" json:"-"`
 	Title       string    `json:"title" validate:"required,min=1,max=200,safe_string"`
 	Description string    `json:"description" validate:"max=2000,safe_string"`
 	Location    string    `json:"location" validate:"max=300,safe_string"`

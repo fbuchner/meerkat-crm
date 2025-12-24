@@ -6,6 +6,7 @@ import (
 
 type Contact struct {
 	gorm.Model
+	UserID             uint           `gorm:"not null;index" json:"-"`
 	Firstname          string         `gorm:"type:text not null COLLATE NOCASE" json:"firstname" validate:"required,min=1,max=100,safe_string"`
 	Lastname           string         `gorm:"type:text COLLATE NOCASE" json:"lastname" validate:"max=100,safe_string"`
 	Nickname           string         `gorm:"type:text COLLATE NOCASE" json:"nickname" validate:"max=50,safe_string"`

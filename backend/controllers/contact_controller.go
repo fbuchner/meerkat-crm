@@ -19,6 +19,11 @@ func CreateContact(c *gin.Context) {
 	// Save to the database
 	db := c.MustGet("db").(*gorm.DB)
 
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
 	// Get validated input from validation middleware
 	validated, exists := c.Get("validated")
 	if !exists {
@@ -34,6 +39,7 @@ func CreateContact(c *gin.Context) {
 
 	// Create contact from validated input
 	contact := models.Contact{
+		UserID:             userID,
 		Firstname:          contactInput.Firstname,
 		Lastname:           contactInput.Lastname,
 		Nickname:           contactInput.Nickname,
@@ -61,6 +67,11 @@ func CreateContact(c *gin.Context) {
 
 func GetContacts(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
 
 	// Get pagination parameters
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -102,7 +113,7 @@ func GetContacts(c *gin.Context) {
 	}
 
 	var contacts []models.Contact
-	query := db.Model(&models.Contact{}).Limit(limit).Offset(offset)
+	query := db.Model(&models.Contact{}).Where("user_id = ?", userID).Limit(limit).Offset(offset)
 
 	if len(selectedFields) > 0 {
 		query = query.Select(selectedFields)
@@ -121,7 +132,16 @@ func GetContacts(c *gin.Context) {
 	// Preload requested relationships
 	for rel, include := range relationshipMap {
 		if include {
-			query = query.Preload(rel)
+			switch rel {
+			case "notes":
+				query = query.Preload("Notes", "notes.user_id = ?", userID)
+			case "activities":
+				query = query.Preload("Activities", "activities.user_id = ?", userID)
+			case "relationships":
+				query = query.Preload("Relationships", "relationships.user_id = ?", userID)
+			case "reminders":
+				query = query.Preload("Reminders", "reminders.user_id = ?", userID)
+			}
 		}
 	}
 
@@ -132,7 +152,7 @@ func GetContacts(c *gin.Context) {
 	}
 
 	var total int64
-	countQuery := db.Model(&models.Contact{})
+	countQuery := db.Model(&models.Contact{}).Where("user_id = ?", userID)
 
 	// Apply the same search filters to the count query
 	if searchTerm := c.Query("search"); searchTerm != "" {
@@ -158,10 +178,15 @@ func GetContacts(c *gin.Context) {
 func GetContactsRandom(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
 	var selectedFields = []string{"ID", "firstname", "lastname", "nickname", "circles"}
 
 	var contacts []models.Contact
-	query := db.Model(&models.Contact{})
+	query := db.Model(&models.Contact{}).Where("user_id = ?", userID)
 
 	if len(selectedFields) > 0 {
 		query = query.Select(selectedFields)
@@ -185,6 +210,11 @@ func GetContactsRandom(c *gin.Context) {
 func GetUpcomingBirthdays(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
 	// Get current date
 	now := time.Now()
 	currentDay := now.Format("02")
@@ -198,6 +228,7 @@ func GetUpcomingBirthdays(c *gin.Context) {
 	// Part 2: Next month (all days)
 	// Order by month, then day, limit to 10
 	query := db.Model(&models.Contact{}).
+		Where("user_id = ?", userID).
 		Where("birthday IS NOT NULL AND birthday != ''").
 		Where(
 			db.Where("SUBSTR(birthday, 4, 2) = ? AND SUBSTR(birthday, 1, 2) >= ?", currentMonth, currentDay).
@@ -219,9 +250,20 @@ func GetUpcomingBirthdays(c *gin.Context) {
 
 func GetContact(c *gin.Context) {
 	id := c.Param("id")
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
 	var contact models.Contact
 	db := c.MustGet("db").(*gorm.DB)
-	if err := db.Preload("Notes").Preload("Activities").Preload("Relationships").Preload("Reminders").First(&contact, id).Error; err != nil {
+	if err := db.
+		Where("user_id = ?", userID).
+		Preload("Notes", "notes.user_id = ?", userID).
+		Preload("Activities", "activities.user_id = ?", userID).
+		Preload("Relationships", "relationships.user_id = ?", userID).
+		Preload("Reminders", "reminders.user_id = ?", userID).
+		First(&contact, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", id))
 		} else {
@@ -236,8 +278,13 @@ func UpdateContact(c *gin.Context) {
 	id := c.Param("id")
 	db := c.MustGet("db").(*gorm.DB)
 
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
 	var contact models.Contact
-	if err := db.First(&contact, id).Error; err != nil {
+	if err := db.Where("user_id = ?", userID).First(&contact, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", id))
 		} else {
@@ -283,9 +330,14 @@ func DeleteContact(c *gin.Context) {
 	id := c.Param("id")
 	db := c.MustGet("db").(*gorm.DB)
 
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
 	// Check if contact exists first
 	var contact models.Contact
-	if err := db.First(&contact, id).Error; err != nil {
+	if err := db.Where("user_id = ?", userID).First(&contact, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", id))
 		} else {
@@ -335,11 +387,17 @@ func DeleteContact(c *gin.Context) {
 // GetCircles returns all unique circles associated with contacts.
 func GetCircles(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
 	var circleNames []string
 
 	// Raw SQL query to extract unique circle names
 	err := db.Raw(`SELECT DISTINCT json_each.value AS circle
-	               FROM contacts, json_each(contacts.circles)`).Scan(&circleNames).Error
+	               FROM contacts, json_each(contacts.circles)
+	               WHERE contacts.user_id = ?`, userID).Scan(&circleNames).Error
 	if err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve circles").WithError(err))
 		return

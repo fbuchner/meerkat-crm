@@ -28,10 +28,20 @@ func CreateActivity(c *gin.Context) {
 
 	// Fetch the contacts from the database using the ContactIDs
 	db := c.MustGet("db").(*gorm.DB)
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
 	var contacts []models.Contact
 	if len(activityInput.ContactIDs) > 0 {
-		if err := db.Where("id IN ?", activityInput.ContactIDs).Find(&contacts).Error; err != nil {
+		if err := db.Where("user_id = ? AND id IN ?", userID, activityInput.ContactIDs).Find(&contacts).Error; err != nil {
 			logger.FromContext(c).Error().Err(err).Uints("contact_ids", activityInput.ContactIDs).Msg("Error finding contacts with IDs")
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("One or more contacts"))
+			return
+		}
+
+		if len(contacts) != len(activityInput.ContactIDs) {
 			apperrors.AbortWithError(c, apperrors.ErrNotFound("One or more contacts"))
 			return
 		}
@@ -39,6 +49,7 @@ func CreateActivity(c *gin.Context) {
 
 	// Create a new activity without the associations initially
 	activity := models.Activity{
+		UserID:      userID,
 		Title:       activityInput.Title,
 		Date:        activityInput.Date,
 		Description: activityInput.Description,
@@ -69,7 +80,13 @@ func GetActivity(c *gin.Context) {
 	id := c.Param("id")
 	var activity models.Activity
 	db := c.MustGet("db").(*gorm.DB)
-	if err := db.Preload("Contacts").First(&activity, id).Error; err != nil {
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	if err := db.Preload("Contacts", "contacts.user_id = ?", userID).Where("user_id = ?", userID).First(&activity, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			apperrors.AbortWithError(c, apperrors.ErrNotFound("Activity").WithDetails("id", id))
 		} else {
@@ -82,7 +99,12 @@ func GetActivity(c *gin.Context) {
 }
 
 func GetActivities(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB).Debug()
+	db := c.MustGet("db").(*gorm.DB)
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
 
 	// Get pagination parameters from query
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -104,16 +126,17 @@ func GetActivities(c *gin.Context) {
 	var total int64
 
 	// Get the total count of activities
-	db.Model(&models.Activity{}).Count(&total)
+	db.Model(&models.Activity{}).Where("user_id = ?", userID).Count(&total)
 
 	// Build the query with optional preloading and ordering by date in descending order
 	query := db.Model(&models.Activity{}).
+		Where("user_id = ?", userID).
 		Order("date DESC").
 		Limit(limit).
 		Offset(offset)
 
 	if includeContacts {
-		query = query.Preload("Contacts")
+		query = query.Preload("Contacts", "contacts.user_id = ?", userID)
 		logger.FromContext(c).Debug().Msg("Preloading contacts for activities")
 	}
 
@@ -136,8 +159,13 @@ func UpdateActivity(c *gin.Context) {
 	id := c.Param("id")
 	db := c.MustGet("db").(*gorm.DB)
 
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
 	var activity models.Activity
-	if err := db.Preload("Contacts").First(&activity, id).Error; err != nil {
+	if err := db.Preload("Contacts", "contacts.user_id = ?", userID).Where("user_id = ?", userID).First(&activity, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			apperrors.AbortWithError(c, apperrors.ErrNotFound("Activity").WithDetails("id", id))
 		} else {
@@ -170,8 +198,13 @@ func UpdateActivity(c *gin.Context) {
 		// Fetch the new contacts from the database
 		var contacts []models.Contact
 		if len(activityInput.ContactIDs) > 0 {
-			if err := db.Where("id IN ?", activityInput.ContactIDs).Find(&contacts).Error; err != nil {
+			if err := db.Where("user_id = ? AND id IN ?", userID, activityInput.ContactIDs).Find(&contacts).Error; err != nil {
 				logger.FromContext(c).Error().Err(err).Uints("contact_ids", activityInput.ContactIDs).Msg("Error finding contacts with IDs")
+				apperrors.AbortWithError(c, apperrors.ErrNotFound("One or more contacts"))
+				return
+			}
+
+			if len(contacts) != len(activityInput.ContactIDs) {
 				apperrors.AbortWithError(c, apperrors.ErrNotFound("One or more contacts"))
 				return
 			}
@@ -205,9 +238,14 @@ func DeleteActivity(c *gin.Context) {
 	id := c.Param("id")
 	db := c.MustGet("db").(*gorm.DB)
 
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
 	// Check if activity exists first
 	var activity models.Activity
-	if err := db.First(&activity, id).Error; err != nil {
+	if err := db.Where("user_id = ?", userID).First(&activity, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			apperrors.AbortWithError(c, apperrors.ErrNotFound("Activity").WithDetails("id", id))
 		} else {
@@ -231,12 +269,28 @@ func GetActivitiesForContact(c *gin.Context) {
 	// Get the database instance from the context
 	db := c.MustGet("db").(*gorm.DB)
 
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	var contact models.Contact
+	if err := db.Where("user_id = ?", userID).First(&contact, contactID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", contactID))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve contact").WithError(err))
+		}
+		return
+	}
+
 	var activities []models.Activity
 	// Eager load contacts associated with each activity
-	if err := db.Preload("Contacts").
+	if err := db.Preload("Contacts", "contacts.user_id = ?", userID).
 		Model(&models.Activity{}).
+		Where("activities.user_id = ?", userID).
 		Joins("JOIN activity_contacts ON activities.id = activity_contacts.activity_id").
-		Where("activity_contacts.contact_id = ?", contactID).
+		Where("activity_contacts.contact_id = ?", contact.ID).
 		Find(&activities).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve activities for contact").WithError(err))
 		return

@@ -14,16 +14,21 @@ import (
 
 func TestGetRelationships(t *testing.T) {
 	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
 	router.GET("/contacts/:id/relationships", GetRelationships)
 
 	// Create a contact and relationships
 	contact := models.Contact{
+		UserID:    user.ID,
 		Firstname: "Jane",
 		Lastname:  "Doe",
 	}
 	db.Create(&contact)
 
 	relationship1 := models.Relationship{
+		UserID:           user.ID,
 		Name:             "Brother",
 		Type:             "Sibling",
 		Gender:           "Male",
@@ -31,6 +36,7 @@ func TestGetRelationships(t *testing.T) {
 		RelatedContactID: nil, // Using no linked contact for this test
 	}
 	relationship2 := models.Relationship{
+		UserID:           user.ID,
 		Name:             "Sister",
 		Type:             "Sibling",
 		Gender:           "Female",
@@ -53,10 +59,14 @@ func TestGetRelationships(t *testing.T) {
 
 func TestCreateRelationship(t *testing.T) {
 	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
 	router.POST("/contacts/:id/relationships", CreateRelationship)
 
 	// Create a contact to associate with the relationship
 	contact := models.Contact{
+		UserID:    user.ID,
 		Firstname: "Alice",
 		Lastname:  "Wonderland",
 	}
@@ -64,6 +74,7 @@ func TestCreateRelationship(t *testing.T) {
 
 	// Create a new relationship
 	newRelationship := models.Relationship{
+		UserID: user.ID,
 		Name:   "Best Friend",
 		Type:   "Friendship",
 		Gender: "Female",
@@ -85,10 +96,14 @@ func TestCreateRelationship(t *testing.T) {
 
 func TestUpdateRelationship(t *testing.T) {
 	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
 	router.PUT("/relationships/:rid", UpdateRelationship)
 
 	// Create a relationship to update
 	existingRelationship := models.Relationship{
+		UserID: user.ID,
 		Name:   "Colleague",
 		Type:   "Work",
 		Gender: "Male",
@@ -97,6 +112,7 @@ func TestUpdateRelationship(t *testing.T) {
 
 	// Update the relationship
 	updatedRelationship := models.Relationship{
+		UserID: user.ID,
 		Name:   "Close Colleague",
 		Type:   "Work",
 		Gender: "Male",
@@ -118,10 +134,14 @@ func TestUpdateRelationship(t *testing.T) {
 
 func TestDeleteRelationship(t *testing.T) {
 	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
 	router.DELETE("/relationships/:rid", DeleteRelationship)
 
 	// Create a relationship to delete
 	relationshipToDelete := models.Relationship{
+		UserID: user.ID,
 		Name:   "Cousin",
 		Type:   "Family",
 		Gender: "Female",

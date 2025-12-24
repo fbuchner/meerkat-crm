@@ -37,15 +37,27 @@ export default function RegisterPage() {
       });
       if (!response.ok) {
         const data = await response.json();
-        // Handle structured error response: { error: { code, message, details } }
-        if (data.error?.details && Object.keys(data.error.details).length > 0) {
-          // Format validation errors from details
-          const detailMessages = Object.entries(data.error.details)
-            .map(([, value]) => value)
-            .join('. ');
-          throw new Error(detailMessages);
+        const apiError = data.error;
+        if (apiError) {
+          const baseMessage = apiError.message || '';
+          let detailMessages = '';
+
+          if (apiError.details && Object.keys(apiError.details).length > 0) {
+            // Flatten detail values into a human-readable string.
+            detailMessages = Object.values(apiError.details)
+              .flatMap(value => (Array.isArray(value) ? value : [value]))
+              .filter(Boolean)
+              .join('. ');
+          }
+
+          const combinedMessage = [baseMessage, detailMessages]
+            .filter(Boolean)
+            .join(': ');
+
+          throw new Error(combinedMessage || t('register.registrationFailed'));
         }
-        throw new Error(data.error?.message || t('register.registrationFailed'));
+
+        throw new Error(t('register.registrationFailed'));
       }
       setSuccess(t('register.registrationSuccess'));
       setTimeout(() => navigate('/login'), 1500);

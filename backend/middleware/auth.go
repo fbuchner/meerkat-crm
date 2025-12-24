@@ -45,6 +45,25 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			if username, exists := claims["username"].(string); exists {
 				c.Set("username", username)
 			}
+
+			if idValue, exists := claims["user_id"]; exists {
+				switch v := idValue.(type) {
+				case float64:
+					c.Set("userID", uint(v))
+				case int:
+					c.Set("userID", uint(v))
+				case uint:
+					c.Set("userID", v)
+				default:
+					c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+					c.Abort()
+					return
+				}
+			} else {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+				c.Abort()
+				return
+			}
 		}
 
 		c.Next()

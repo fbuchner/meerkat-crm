@@ -57,7 +57,7 @@ func LoadConfig() *Config {
 		IdleTimeout:     idleTimeout,
 	}
 
-	if cfg.ResendAPIKey == "" || cfg.ResendFromEmail == "" || cfg.ResendToEmail == "" {
+	if cfg.ResendAPIKey == "" || cfg.ResendFromEmail == "" {
 		cfg.UseResend = false
 	}
 
@@ -197,12 +197,6 @@ func (c *Config) Validate() []ValidationError {
 			errors = append(errors, ValidationError{
 				Field:   "RESEND_API_KEY",
 				Message: "Resend API key is required when email is enabled.",
-			})
-		}
-		if c.ResendToEmail == "" {
-			errors = append(errors, ValidationError{
-				Field:   "RESEND_TO_EMAIL",
-				Message: "Resend recipient email is required when email is enabled.",
 			})
 		}
 		if c.ResendFromEmail == "" {

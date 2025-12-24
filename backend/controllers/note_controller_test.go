@@ -16,18 +16,22 @@ import (
 func TestGetContactNotes(t *testing.T) {
 	db, router := setupRouter()
 
+	var user models.User
+	db.First(&user)
+
 	router.GET("/contacts/:id/notes", GetNotesForContact)
 
 	// Create a contact
 	contact := models.Contact{
+		UserID:    user.ID,
 		Firstname: "John",
 		Lastname:  "Doe",
 	}
 	db.Create(&contact)
 
 	// Create some notes for the contact
-	note1 := models.Note{Content: "First note", Date: time.Now(), ContactID: &contact.ID}
-	note2 := models.Note{Content: "Second note", Date: time.Now(), ContactID: &contact.ID}
+	note1 := models.Note{UserID: user.ID, Content: "First note", Date: time.Now(), ContactID: &contact.ID}
+	note2 := models.Note{UserID: user.ID, Content: "Second note", Date: time.Now(), ContactID: &contact.ID}
 	db.Create(&note1)
 	db.Create(&note2)
 
@@ -52,18 +56,25 @@ func TestGetContactNotes(t *testing.T) {
 func TestCreateContactNote(t *testing.T) {
 	db, router := setupRouter()
 
-	router.POST("/contacts/:id/notes", CreateNote)
+	var user models.User
+	db.First(&user)
+
+	router.POST("/contacts/:id/notes", withValidated(func() any { return &models.NoteInput{} }), CreateNote)
 
 	// Create a contact
 	contact := models.Contact{
+		UserID:    user.ID,
 		Firstname: "Jane",
 		Lastname:  "Smith",
 	}
 	db.Create(&contact)
 
 	// Create a note
-	newNote := models.Note{
-		Content: "This is a new note.",
+	now := time.Now()
+	newNote := models.NoteInput{
+		Content:   "This is a new note.",
+		Date:      now,
+		ContactID: &contact.ID,
 	}
 
 	jsonValue, _ := json.Marshal(newNote)
@@ -84,10 +95,14 @@ func TestCreateContactNote(t *testing.T) {
 func TestGetNote(t *testing.T) {
 	db, router := setupRouter()
 
+	var user models.User
+	db.First(&user)
+
 	router.GET("/notes/:id", GetNote)
 
 	// Create a note
 	note := models.Note{
+		UserID:  user.ID,
 		Content: "Note for retrieval.",
 	}
 	db.Create(&note)
@@ -107,12 +122,15 @@ func TestGetNote(t *testing.T) {
 func TestGetNotes(t *testing.T) {
 	db, router := setupRouter()
 
+	var user models.User
+	db.First(&user)
+
 	router.GET("/notes", GetUnassignedNotes)
 
 	// Create some unassigned notes
 	notes := []models.Note{
-		{Content: "Unassigned Note 1"},
-		{Content: "Unassigned Note 2"},
+		{UserID: user.ID, Content: "Unassigned Note 1"},
+		{UserID: user.ID, Content: "Unassigned Note 2"},
 	}
 	db.Create(&notes)
 
@@ -133,13 +151,26 @@ func TestGetNotes(t *testing.T) {
 }
 
 func TestCreateNote(t *testing.T) {
-	_, router := setupRouter()
+	db, router := setupRouter()
 
-	router.POST("/notes", CreateUnassignedNote)
+	var user models.User
+	db.First(&user)
+
+	router.POST("/notes", withValidated(func() any { return &models.NoteInput{} }), CreateUnassignedNote)
+
+	contact := models.Contact{
+		UserID:    user.ID,
+		Firstname: "Standalone",
+		Lastname:  "Owner",
+	}
+	db.Create(&contact)
 
 	// Create a note
-	newNote := models.Note{
-		Content: "This is a standalone note.",
+	noteDate := time.Now()
+	newNote := models.NoteInput{
+		Content:   "This is a standalone note.",
+		Date:      noteDate,
+		ContactID: &contact.ID,
 	}
 
 	jsonValue, _ := json.Marshal(newNote)
@@ -160,18 +191,34 @@ func TestCreateNote(t *testing.T) {
 func TestUpdateNote(t *testing.T) {
 	db, router := setupRouter()
 
-	router.PUT("/notes/:id", UpdateNote)
+	var user models.User
+	db.First(&user)
+
+	router.PUT("/notes/:id", withValidated(func() any { return &models.NoteInput{} }), UpdateNote)
 	router.GET("/notes/:id", GetNote)
+
+	// Seed a contact to satisfy validation and ownership checks.
+	contact := models.Contact{
+		UserID:    user.ID,
+		Firstname: "Linked",
+		Lastname:  "Contact",
+	}
+	db.Create(&contact)
 
 	// Create a note
 	note := models.Note{
-		Content: "Original note content.",
+		UserID:    user.ID,
+		Content:   "Original note content.",
+		Date:      time.Now(),
+		ContactID: &contact.ID,
 	}
 	db.Create(&note)
 
 	// Update the note
-	updatedNote := models.Note{
-		Content: "Updated note content.",
+	updatedNote := models.NoteInput{
+		Content:   "Updated note content.",
+		Date:      time.Now().Add(time.Hour),
+		ContactID: &contact.ID,
 	}
 	jsonValue, _ := json.Marshal(updatedNote)
 
@@ -200,10 +247,14 @@ func TestUpdateNote(t *testing.T) {
 func TestDeleteNote(t *testing.T) {
 	db, router := setupRouter()
 
+	var user models.User
+	db.First(&user)
+
 	router.DELETE("/notes/:id", DeleteNote)
 
 	// Create a note
 	note := models.Note{
+		UserID:  user.ID,
 		Content: "Note to be deleted.",
 	}
 	db.Create(&note)

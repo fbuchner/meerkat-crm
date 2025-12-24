@@ -27,26 +27,51 @@ func setupRouter() (*gorm.DB, *gin.Engine) {
 
 	db.AutoMigrate(&models.Contact{}, &models.Activity{}, &models.Note{}, models.Relationship{}, models.Reminder{}, models.User{})
 
+	user := models.User{Username: "tester", Password: "password123", Email: "tester@example.com"}
+	if err := db.Create(&user).Error; err != nil {
+		panic("failed to seed user")
+	}
+
 	router := gin.Default()
 	router.Use(func(c *gin.Context) {
 		c.Set("db", db)
+		c.Set("userID", user.ID)
 		c.Next()
 	})
 
 	return db, router
 }
 
+func withValidated(factory func() any) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		payload := factory()
+		if payload != nil {
+			if err := c.ShouldBindJSON(payload); err != nil {
+				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			c.Set("validated", payload)
+		}
+		c.Next()
+	}
+}
+
 func TestCreateActivity(t *testing.T) {
 	db, router := setupRouter()
 
-	router.POST("/activities", CreateActivity)
+	var user models.User
+	db.First(&user)
+
+	router.POST("/activities", withValidated(func() any { return &models.ActivityInput{} }), CreateActivity)
 
 	contacts := []models.Contact{
 		{
+			UserID:    user.ID,
 			Firstname: "John",
 			Lastname:  "Doe",
 		},
 		{
+			UserID:    user.ID,
 			Firstname: "Jane",
 			Lastname:  "Smith",
 		},
@@ -55,14 +80,14 @@ func TestCreateActivity(t *testing.T) {
 	db.Create(&contacts[0])
 	db.Create(&contacts[1])
 
-	activity := models.Activity{
+	activityPayload := models.ActivityInput{
 		Title:       "Great activity",
 		Description: "A fun get-together.",
 		Location:    "Somewhere out there",
-		Date:        time.Now().AddDate(0, 0, 1), // Tomorrow
-		Contacts:    []models.Contact{contacts[0], contacts[1]},
+		Date:        time.Now().AddDate(0, 0, 1),
+		ContactIDs:  []uint{contacts[0].ID, contacts[1].ID},
 	}
-	jsonValue, _ := json.Marshal(activity)
+	jsonValue, _ := json.Marshal(activityPayload)
 
 	req, _ := http.NewRequest("POST", "/activities", bytes.NewBuffer(jsonValue))
 	req.Header.Set("Content-Type", "application/json")
@@ -80,10 +105,14 @@ func TestCreateActivity(t *testing.T) {
 func TestGetActivitiesForContact(t *testing.T) {
 	db, router := setupRouter()
 
+	var user models.User
+	db.First(&user)
+
 	router.GET("/contacts/:id/activities", GetActivitiesForContact)
 
 	// Create a contact
 	contact := models.Contact{
+		UserID:    user.ID,
 		Firstname: "John",
 		Lastname:  "Doe",
 	}
@@ -91,12 +120,14 @@ func TestGetActivitiesForContact(t *testing.T) {
 
 	// Create some activities
 	activity1 := models.Activity{
+		UserID:      user.ID,
 		Title:       "Activity One",
 		Description: "First activity",
 		Location:    "Location One",
 		Date:        time.Now().AddDate(0, 0, 1),
 	}
 	activity2 := models.Activity{
+		UserID:      user.ID,
 		Title:       "Activity Two",
 		Description: "Second activity",
 		Location:    "Location Two",
@@ -124,16 +155,21 @@ func TestGetActivitiesForContact(t *testing.T) {
 func TestGetActivities(t *testing.T) {
 	db, router := setupRouter()
 
+	var user models.User
+	db.First(&user)
+
 	router.GET("/activities", GetActivities)
 
 	// Create some activities
 	activity1 := models.Activity{
+		UserID:      user.ID,
 		Title:       "Activity One",
 		Description: "First activity",
 		Location:    "Location One",
 		Date:        time.Now().AddDate(0, 0, 1),
 	}
 	activity2 := models.Activity{
+		UserID:      user.ID,
 		Title:       "Activity Two",
 		Description: "Second activity",
 		Location:    "Location Two",
@@ -157,10 +193,14 @@ func TestGetActivities(t *testing.T) {
 func TestGetActivity(t *testing.T) {
 	db, router := setupRouter()
 
+	var user models.User
+	db.First(&user)
+
 	router.GET("/activities/:id", GetActivity)
 
 	// Create an activity
 	activity := models.Activity{
+		UserID:      user.ID,
 		Title:       "Activity One",
 		Description: "First activity",
 		Location:    "Location One",
@@ -183,10 +223,14 @@ func TestGetActivity(t *testing.T) {
 func TestUpdateActivity(t *testing.T) {
 	db, router := setupRouter()
 
-	router.PUT("/activities/:id", UpdateActivity)
+	var user models.User
+	db.First(&user)
+
+	router.PUT("/activities/:id", withValidated(func() any { return &models.ActivityInput{} }), UpdateActivity)
 
 	// Create an activity
 	activity := models.Activity{
+		UserID:      user.ID,
 		Title:       "Activity One",
 		Description: "First activity",
 		Location:    "Location One",
@@ -195,11 +239,12 @@ func TestUpdateActivity(t *testing.T) {
 	db.Create(&activity)
 
 	// Update activity details
-	activityUpdate := models.Activity{
+	activityUpdate := models.ActivityInput{
 		Title:       "Updated Activity",
 		Description: "Updated description",
 		Location:    "Updated location",
 		Date:        time.Now(),
+		ContactIDs:  []uint{},
 	}
 	jsonValue, _ := json.Marshal(activityUpdate)
 
@@ -219,10 +264,14 @@ func TestUpdateActivity(t *testing.T) {
 func TestDeleteActivity(t *testing.T) {
 	db, router := setupRouter()
 
+	var user models.User
+	db.First(&user)
+
 	router.DELETE("/activities/:id", DeleteActivity)
 
 	// Create an activity
 	activity := models.Activity{
+		UserID:      user.ID,
 		Title:       "Activity One",
 		Description: "First activity",
 		Location:    "Location One",

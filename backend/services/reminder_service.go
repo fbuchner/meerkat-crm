@@ -5,11 +5,14 @@ import (
 	"meerkat/config"
 	"meerkat/logger"
 	"meerkat/models"
+	"sort"
 	"time"
 
 	"github.com/resend/resend-go/v2"
 	"gorm.io/gorm"
 )
+
+var sendReminderEmailFn = sendReminderEmail
 
 func SendReminders(db *gorm.DB, config config.Config) error {
 	logger.Info().Msg("Sending reminders...")
@@ -34,24 +37,54 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 		return nil
 	}
 
-	// Prepare email notification
-	err = sendReminderEmail(reminders, config, db)
-	if err != nil {
-		logger.Error().Err(err).Msg("Error sending daily reminder email")
-		return err
+	remindersByUser := make(map[uint][]models.Reminder)
+	for _, reminder := range reminders {
+		remindersByUser[reminder.UserID] = append(remindersByUser[reminder.UserID], reminder)
 	}
 
-	// Update last_sent for reminders and handle "once" reminders
-	for _, reminder := range reminders {
-		if reminder.Recurrence == "once" {
-			// Delete "once" reminders after sending
-			if err := db.Delete(&reminder).Error; err != nil {
-				logger.Error().Err(err).Uint("reminder_id", reminder.ID).Msg("Failed to delete 'once' reminder after sending")
-			} else {
-				logger.Info().Uint("reminder_id", reminder.ID).Msg("Deleted 'once' reminder after sending")
+	userIDs := make([]uint, 0, len(remindersByUser))
+	for userID := range remindersByUser {
+		userIDs = append(userIDs, userID)
+	}
+
+	var users []models.User
+	if err := db.Where("id IN ?", userIDs).Find(&users).Error; err != nil {
+		return fmt.Errorf("failed to fetch users for reminders: %w", err)
+	}
+
+	userByID := make(map[uint]models.User, len(users))
+	for _, user := range users {
+		userByID[user.ID] = user
+	}
+
+	sort.Slice(userIDs, func(i, j int) bool { return userIDs[i] < userIDs[j] })
+
+	for _, userID := range userIDs {
+		user, exists := userByID[userID]
+		if !exists {
+			logger.Warn().Uint("user_id", userID).Msg("Skipping reminders for missing user")
+			continue
+		}
+
+		userReminders := remindersByUser[userID]
+
+		if config.UseResend {
+			if err := sendReminderEmailFn(user, userReminders, config, db); err != nil {
+				logger.Error().Err(err).Uint("user_id", user.ID).Msg("Error sending daily reminder email")
+				return err
 			}
-		} else {
-			// Update recurring reminders
+		}
+
+		for _, reminder := range userReminders {
+			if reminder.Recurrence == "once" {
+				if err := db.Delete(&reminder).Error; err != nil {
+					logger.Error().Err(err).Uint("reminder_id", reminder.ID).Msg("Failed to delete 'once' reminder after sending")
+				} else {
+					logger.Info().Uint("reminder_id", reminder.ID).Msg("Deleted 'once' reminder after sending")
+				}
+				continue
+			}
+
 			reminder.LastSent = new(time.Time)
 			*reminder.LastSent = time.Now()
 			reminder.RemindAt = CalculateNextReminderTime(reminder)
@@ -66,14 +99,19 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 }
 
 // Send email using Resend with daily reminders
-func sendReminderEmail(reminders []models.Reminder, config config.Config, db *gorm.DB) error {
+func sendReminderEmail(user models.User, reminders []models.Reminder, config config.Config, db *gorm.DB) error {
+	if user.Email == "" {
+		logger.Warn().Uint("user_id", user.ID).Msg("Skipping reminder email because user email is missing")
+		return nil
+	}
+
 	// Build the HTML content
 	htmlContent := "<h1>Your Reminders for Today:</h1><ul>"
 	for _, reminder := range reminders {
 		contactName := "Unknown" // Default value for contact's name
 		if reminder.ContactID != nil {
 			var contact models.Contact
-			if err := db.First(&contact, *reminder.ContactID).Error; err == nil {
+			if err := db.Where("user_id = ?", reminder.UserID).First(&contact, *reminder.ContactID).Error; err == nil {
 				contactName = contact.Firstname + " " + contact.Lastname
 			}
 		}
@@ -81,7 +119,7 @@ func sendReminderEmail(reminders []models.Reminder, config config.Config, db *go
 	}
 	htmlContent += "</ul>"
 
-	logger.Debug().Str("html_content", htmlContent).Int("reminder_count", len(reminders)).Msg("Sending reminder email")
+	logger.Debug().Str("html_content", htmlContent).Int("reminder_count", len(reminders)).Uint("user_id", user.ID).Msg("Sending reminder email")
 
 	// Initialize Resend client
 	client := resend.NewClient(config.ResendAPIKey)
@@ -89,7 +127,7 @@ func sendReminderEmail(reminders []models.Reminder, config config.Config, db *go
 	// Prepare email parameters
 	params := &resend.SendEmailRequest{
 		From:    config.ResendFromEmail,
-		To:      []string{config.ResendToEmail},
+		To:      []string{user.Email},
 		Subject: "Your Daily Reminders",
 		Html:    htmlContent,
 	}
@@ -101,7 +139,7 @@ func sendReminderEmail(reminders []models.Reminder, config config.Config, db *go
 		return err
 	}
 
-	logger.Info().Str("email_id", sent.Id).Msg("Reminder email sent successfully")
+	logger.Info().Str("email_id", sent.Id).Uint("user_id", user.ID).Msg("Reminder email sent successfully")
 
 	return nil
 }

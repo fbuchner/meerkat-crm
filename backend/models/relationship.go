@@ -6,6 +6,7 @@ import (
 
 type Relationship struct {
 	gorm.Model
+	UserID           uint     `gorm:"not null;index" json:"-"`
 	Name             string   `json:"name" validate:"required,min=1,max=100,safe_string"`                    // Name of the related person
 	Type             string   `json:"type" validate:"required,min=1,max=50,safe_string"`                     // Relationship type (e.g., "Child", "Mother")
 	Gender           string   `json:"gender" validate:"omitempty,oneof=male female other prefer_not_to_say"` // Gender of the related person

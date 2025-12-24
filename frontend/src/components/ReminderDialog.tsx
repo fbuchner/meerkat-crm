@@ -50,7 +50,7 @@ export default function ReminderDialog({
       // Reset form for new reminder
       setMessage('');
       setByMail(true);
-      setRemindAt('');
+      setRemindAt(new Date().toISOString().split('T')[0]);
       setRecurrence('once');
       setReoccurFromCompletion(true);
     }

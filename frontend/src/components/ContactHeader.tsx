@@ -1,4 +1,4 @@
-import { Box, Card, CardContent, Avatar, Typography, Chip, IconButton, Stack, TextField, Badge } from '@mui/material';
+import { Box, Card, CardContent, Avatar, Typography, Chip, IconButton, Stack, TextField } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
@@ -62,24 +62,13 @@ export default function ContactHeader({
     <Card sx={{ mb: 2 }}>
       <CardContent sx={{ py: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1.5 }}>
-          <Badge
-            overlap="circular"
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            badgeContent={
-              <IconButton
-                size="small"
-                onClick={onUploadProfilePicture}
-                sx={{
-                  bgcolor: 'primary.main',
-                  color: 'white',
-                  width: 28,
-                  height: 28,
-                  '&:hover': { bgcolor: 'primary.dark' }
-                }}
-              >
-                <CameraAltIcon sx={{ fontSize: 16 }} />
-              </IconButton>
-            }
+          <Box
+            sx={{
+              position: 'relative',
+              '&:hover .camera-badge': {
+                opacity: 1
+              }
+            }}
           >
             <Avatar
               src={profilePic || undefined}
@@ -91,7 +80,26 @@ export default function ContactHeader({
               }}
               onClick={onUploadProfilePicture}
             />
-          </Badge>
+            <IconButton
+              className="camera-badge"
+              size="small"
+              onClick={onUploadProfilePicture}
+              sx={{
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
+                bgcolor: 'primary.main',
+                color: 'white',
+                width: 28,
+                height: 28,
+                opacity: 0,
+                transition: 'opacity 0.2s',
+                '&:hover': { bgcolor: 'primary.dark' }
+              }}
+            >
+              <CameraAltIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          </Box>
           <Box sx={{ flex: 1, ml: 2 }}>
             {editingProfile ? (
               // Edit Mode

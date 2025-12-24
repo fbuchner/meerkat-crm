@@ -8,7 +8,7 @@ import SettingsPage from './SettingsPage';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
 import { getToken, logoutUser } from './auth';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   AppBar,
@@ -25,8 +25,14 @@ import {
   Button,
   CircularProgress,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  TextField,
+  Autocomplete,
+  InputAdornment
 } from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
+import { getContacts, Contact } from './api/contacts';
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ContactsIcon from '@mui/icons-material/Contacts';
@@ -43,12 +49,39 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
   const { t } = useTranslation();
   const theme = useTheme();
   const location = useLocation();
+  const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Contact[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   
   const handleDrawerToggle = () => {
     setMobileDrawerOpen(!mobileDrawerOpen);
   };
+
+  // Debounced search for contacts
+  useEffect(() => {
+    if (!token || searchQuery.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const result = await getContacts({ search: searchQuery, limit: 10 }, token);
+        setSearchResults(result.contacts || []);
+      } catch (err) {
+        console.error('Search error:', err);
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, token]);
 
   const handleLogout = () => {
     logoutUser();
@@ -136,6 +169,107 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             {t('app.title')}
           </Typography>
+          <Autocomplete
+            freeSolo
+            size="small"
+            options={searchResults}
+            getOptionLabel={(option) => 
+              typeof option === 'string' 
+                ? option 
+                : `${option.firstname} ${option.lastname}`
+            }
+            loading={searchLoading}
+            onInputChange={(_, value) => setSearchQuery(value)}
+            onChange={(_, value) => {
+              if (value && typeof value !== 'string') {
+                navigate(`/contacts/${value.ID}`);
+                setSearchQuery('');
+                setSearchResults([]);
+              }
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && searchQuery.trim()) {
+                // Navigate to contacts page with search query
+                navigate(`/contacts?search=${encodeURIComponent(searchQuery.trim())}`);
+                setSearchQuery('');
+                setSearchResults([]);
+              }
+            }}
+            inputValue={searchQuery}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                placeholder={t('contacts.search')}
+                variant="outlined"
+                sx={{
+                  width: { xs: 150, sm: 200, md: 250 },
+                  mr: 2,
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                    },
+                    '& fieldset': {
+                      borderColor: 'rgba(255, 255, 255, 0.3)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: 'rgba(255, 255, 255, 0.5)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: 'rgba(255, 255, 255, 0.7)',
+                    },
+                  },
+                  '& .MuiInputBase-input': {
+                    color: 'white',
+                  },
+                  '& .MuiInputBase-input::placeholder': {
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    opacity: 1,
+                  },
+                }}
+                InputProps={{
+                  ...params.InputProps,
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: 'rgba(255, 255, 255, 0.7)' }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchQuery ? (
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setSearchResults([]);
+                          // Clear search filter if on contacts page
+                          if (location.pathname.startsWith('/contacts')) {
+                            navigate('/contacts');
+                          }
+                        }}
+                        sx={{ color: 'rgba(255, 255, 255, 0.7)', p: 0.5 }}
+                      >
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                }}
+              />
+            )}
+            renderOption={(props, option) => (
+              <li {...props} key={option.ID}>
+                <Box>
+                  <Typography variant="body1">
+                    {option.firstname} {option.lastname}
+                  </Typography>
+                  {option.email && (
+                    <Typography variant="caption" color="text.secondary">
+                      {option.email}
+                    </Typography>
+                  )}
+                </Box>
+              </li>
+            )}
+          />
           <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>
             {t('app.logout')}
           </Button>

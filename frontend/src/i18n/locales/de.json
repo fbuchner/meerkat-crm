@@ -79,6 +79,8 @@
     "filterByCircle": "Nach Kreis filtern",
     "allCircles": "Alle Kreise",
     "filteredMessage": "{{count}} von {{total}} Kontakten in '{{circle}}'",
+    "filteredBySearch": "{{count}} Kontakte für '{{search}}'",
+    "filteredBySearchAndCircle": "{{count}} Kontakte für '{{search}}' in '{{circle}}'",
     "resetFilter": "Filter zurücksetzen",
     "noContacts": "Keine Kontakte gefunden",
     "addContact": "Kontakt hinzufügen",

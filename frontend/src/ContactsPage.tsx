@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useContacts } from './hooks/useContacts';
 import { getCircles, getContactProfilePicture } from './api/contacts';
@@ -10,8 +10,6 @@ import {
   Avatar,
   Typography,
   Chip,
-  TextField,
-  InputAdornment,
   Stack,
   Select,
   MenuItem,
@@ -20,16 +18,15 @@ import {
   Pagination,
   Button
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import { ContactListSkeleton } from './components/LoadingSkeletons';
 
 export default function ContactsPage({ token }: { token: string }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [profilePics, setProfilePics] = useState<{ [key: string]: string }>({});
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const searchQuery = searchParams.get('search') || '';
   const [selectedCircle, setSelectedCircle] = useState('');
   const [circles, setCircles] = useState<string[]>([]);
   const [page, setPage] = useState(1);
@@ -40,9 +37,9 @@ export default function ContactsPage({ token }: { token: string }) {
   const contactParams = useMemo(() => ({
     page,
     limit: pageSize,
-    search: debouncedSearch,
+    search: searchQuery,
     circle: selectedCircle
-  }), [page, debouncedSearch, selectedCircle]);
+  }), [page, searchQuery, selectedCircle]);
 
   // Use custom hook for fetching contacts
   const { contacts, total: totalContacts, loading, refetch } = useContacts(contactParams);
@@ -60,14 +57,10 @@ export default function ContactsPage({ token }: { token: string }) {
     fetchCircles();
   }, [token]);
 
-  // Debounce search input
+  // Reset to page 1 when search changes
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1); // Reset to page 1 when search changes
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [search]);
+    setPage(1);
+  }, [searchQuery]);
 
   // Fetch profile pictures when contacts change
   useEffect(() => {
@@ -98,7 +91,7 @@ export default function ContactsPage({ token }: { token: string }) {
   // With backend pagination, contacts are already filtered
   const filteredContacts = contacts;
 
-  const isFiltered = selectedCircle !== '';
+  const isFiltered = selectedCircle !== '' || searchQuery !== '';
 
   const handleContactAdded = async () => {
     await refetch();
@@ -114,20 +107,6 @@ export default function ContactsPage({ token }: { token: string }) {
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2 }}>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} mb={2} alignItems="center">
-        <TextField
-          label={t('contacts.search')}
-          variant="outlined"
-          size="small"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position="end">
-                <SearchIcon />
-              </InputAdornment>
-            )
-          }}
-        />
         <FormControl sx={{ minWidth: 120 }} size="small">
           <InputLabel id="circle-select-label">{t('contacts.filterByCircle')}</InputLabel>
           <Select
@@ -152,11 +131,29 @@ export default function ContactsPage({ token }: { token: string }) {
         </Button>
       </Stack>
       {isFiltered && (
-        <Box sx={{ mb: 2, p: 1, bgcolor: '#f5f5f5', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="body2">
-            {t('contacts.filteredMessage', { count: filteredContacts.length, total: totalContacts, circle: selectedCircle })}
+        <Box sx={{ mb: 2, p: 1.5, bgcolor: 'action.hover', borderRadius: 1, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+          <Typography variant="body2" sx={{ flexGrow: 1 }}>
+            {searchQuery && selectedCircle 
+              ? t('contacts.filteredBySearchAndCircle', { search: searchQuery, circle: selectedCircle, count: totalContacts })
+              : searchQuery 
+                ? t('contacts.filteredBySearch', { search: searchQuery, count: totalContacts })
+                : t('contacts.filteredMessage', { count: filteredContacts.length, total: totalContacts, circle: selectedCircle })
+            }
           </Typography>
-          <Chip label={t('contacts.resetFilter')} color="primary" size="small" onClick={() => { setSelectedCircle(''); setPage(1); }} clickable />
+          {searchQuery && (
+            <Chip 
+              label={`"${searchQuery}"`} 
+              size="small" 
+              onDelete={() => navigate('/contacts')} 
+            />
+          )}
+          {selectedCircle && (
+            <Chip 
+              label={selectedCircle} 
+              size="small" 
+              onDelete={() => { setSelectedCircle(''); setPage(1); }} 
+            />
+          )}
         </Box>
       )}
       {loading ? (

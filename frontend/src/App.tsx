@@ -166,7 +166,21 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
               <MenuIcon />
             </IconButton>
           )}
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+          <Typography 
+            variant="h6" 
+            component={Link} 
+            to="/" 
+            onClick={() => {
+              setSearchQuery('');
+              setSearchResults([]);
+            }}
+            sx={{ 
+              flexGrow: 1, 
+              textDecoration: 'none', 
+              color: 'inherit',
+              '&:hover': { opacity: 0.8 }
+            }}
+          >
             {t('app.title')}
           </Typography>
           <Autocomplete

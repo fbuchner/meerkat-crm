@@ -346,7 +346,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
 
   if (loading) {
     return (
-      <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 2 }}>
+      <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 1, px: 2, pb: 2 }}>
         <ContactDetailHeaderSkeleton />
         <Box sx={{ mt: 3 }}>
           <TimelineSkeleton count={5} />
@@ -364,10 +364,10 @@ export default function ContactDetailPage({ token }: { token: string }) {
   }
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 2 }}>
+    <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 1, px: 2, pb: 2 }}>
       {/* Header with back button */}
-      <IconButton onClick={() => navigate('/contacts')} sx={{ mb: 1, ml: -1 }}>
-        <ArrowBackIcon />
+      <IconButton onClick={() => navigate('/contacts')} size="small" sx={{ mb: 0.5, ml: -1 }}>
+        <ArrowBackIcon fontSize="small" />
       </IconButton>
 
       {/* Contact Header Card */}

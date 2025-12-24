@@ -59,9 +59,9 @@ export default function ContactHeader({
   const { t } = useTranslation();
 
   return (
-    <Card sx={{ mb: 2 }}>
-      <CardContent sx={{ py: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1.5 }}>
+    <Card sx={{ mb: 1.5 }}>
+      <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
           <Box
             sx={{
               position: 'relative',
@@ -73,8 +73,8 @@ export default function ContactHeader({
             <Avatar
               src={profilePic || undefined}
               sx={{ 
-                width: 80, 
-                height: 80,
+                width: 56, 
+                height: 56,
                 cursor: 'pointer',
                 '&:hover': { opacity: 0.8 }
               }}
@@ -86,21 +86,21 @@ export default function ContactHeader({
               onClick={onUploadProfilePicture}
               sx={{
                 position: 'absolute',
-                bottom: 0,
-                right: 0,
+                bottom: -4,
+                right: -4,
                 bgcolor: 'primary.main',
                 color: 'white',
-                width: 28,
-                height: 28,
+                width: 22,
+                height: 22,
                 opacity: 0,
                 transition: 'opacity 0.2s',
                 '&:hover': { bgcolor: 'primary.dark' }
               }}
             >
-              <CameraAltIcon sx={{ fontSize: 16 }} />
+              <CameraAltIcon sx={{ fontSize: 14 }} />
             </IconButton>
           </Box>
-          <Box sx={{ flex: 1, ml: 2 }}>
+          <Box sx={{ flex: 1, ml: 1.5 }}>
             {editingProfile ? (
               // Edit Mode
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -169,7 +169,7 @@ export default function ContactHeader({
                     }
                   }}
                 >
-                  <Typography variant="h4" sx={{ fontWeight: 500 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 500, lineHeight: 1.2 }}>
                     {contact.firstname} {contact.nickname && `"${contact.nickname}"`} {contact.lastname}
                   </Typography>
                   <IconButton
@@ -177,16 +177,16 @@ export default function ContactHeader({
                     size="small"
                     onClick={onStartEditProfile}
                     sx={{
-                      ml: 2,
+                      ml: 1,
                       opacity: 0,
                       transition: 'opacity 0.2s'
                     }}
                   >
-                    <EditIcon />
+                    <EditIcon fontSize="small" />
                   </IconButton>
                 </Box>
                 {contact.gender && (
-                  <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
                     {contact.gender}
                   </Typography>
                 )}
@@ -196,13 +196,13 @@ export default function ContactHeader({
             {/* Circles Section */}
             <Box
               sx={{
-                mt: 2,
+                mt: 1,
                 '&:hover .edit-icon': {
                   opacity: 1
                 }
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
                 <Typography variant="caption" color="text.secondary">
                   {t('contactDetail.circles')}
                 </Typography>

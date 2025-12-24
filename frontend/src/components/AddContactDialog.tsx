@@ -11,9 +11,12 @@ import {
   Chip,
   Box,
   Typography,
-  Stack
+  Stack,
+  FormControlLabel,
+  Switch
 } from '@mui/material';
 import { createContact } from '../api/contacts';
+import { createReminder } from '../api/reminders';
 
 interface AddContactDialogProps {
   open: boolean;
@@ -47,6 +50,7 @@ export default function AddContactDialog({
   });
   const [selectedCircles, setSelectedCircles] = useState<string[]>([]);
   const [newCircle, setNewCircle] = useState('');
+  const [createBirthdayReminder, setCreateBirthdayReminder] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -82,7 +86,38 @@ export default function AddContactDialog({
         circles: selectedCircles.length > 0 ? selectedCircles : undefined
       };
 
-      await createContact(contactData, token);
+      const newContact = await createContact(contactData, token);
+
+      if (createBirthdayReminder && formData.birthday) {
+        const parts = formData.birthday.split('.');
+        if (parts.length >= 2) {
+          const day = parseInt(parts[0], 10);
+          const month = parseInt(parts[1], 10) - 1;
+          
+          if (!isNaN(day) && !isNaN(month)) {
+            const today = new Date();
+            let nextBirthday = new Date(today.getFullYear(), month, day);
+            
+            // If birthday has passed this year, set for next year
+            if (nextBirthday < today) {
+              nextBirthday.setFullYear(today.getFullYear() + 1);
+            }
+
+            // Set reminder for 9 AM
+            nextBirthday.setHours(9, 0, 0, 0);
+
+            await createReminder(newContact.ID, {
+              message: t('reminders.birthdayMessage', { name: `${newContact.firstname} ${newContact.lastname}` }),
+              by_mail: true,
+              remind_at: nextBirthday.toISOString(),
+              recurrence: 'yearly',
+              reoccur_from_completion: false,
+              contact_id: newContact.ID
+            }, token);
+          }
+        }
+      }
+
       onContactAdded();
       handleClose();
     } catch (err) {
@@ -183,6 +218,17 @@ export default function AddContactDialog({
             placeholder="DD.MM.YYYY"
             helperText={t('contacts.birthdayFormat')}
           />
+          {formData.birthday && (
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={createBirthdayReminder}
+                  onChange={(e) => setCreateBirthdayReminder(e.target.checked)}
+                />
+              }
+              label={t('contacts.add.createBirthdayReminder')}
+            />
+          )}
           <TextField
             label={t('contacts.address')}
             fullWidth

@@ -212,6 +212,7 @@
     "deleteConfirm": "Erinnerung löschen",
     "deleteMessage": "Möchten Sie diese Erinnerung wirklich löschen?",
     "email": "E-Mail",
+    "birthdayMessage": "Geburtstag von {{name}}",
     "flexible": "Flexibel",
     "overdue": "Überfällig",
     "reoccurFromCompletion": "Ab Erledigungsdatum neu planen",

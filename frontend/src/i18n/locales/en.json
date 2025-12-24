@@ -108,7 +108,8 @@
       "create": "Create",
       "addCircle": "Add",
       "requiredFields": "First name and last name are required",
-      "error": "Failed to create contact. Please try again."
+      "error": "Failed to create contact. Please try again.",
+      "createBirthdayReminder": "Create birthday reminder"
     }
   },
   "contactDetail": {
@@ -212,6 +213,7 @@
     "deleteConfirm": "Delete Reminder",
     "deleteMessage": "Are you sure you want to delete this reminder?",
     "email": "Email",
+    "birthdayMessage": "Birthday of {{name}}",
     "flexible": "Flexible",
     "overdue": "Overdue",
     "reoccurFromCompletion": "Reschedule from completion date",

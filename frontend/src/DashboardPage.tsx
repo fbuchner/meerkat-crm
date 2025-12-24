@@ -20,7 +20,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EmailIcon from '@mui/icons-material/Email';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import WarningIcon from '@mui/icons-material/Warning';
-import { Contact, getRandomContacts, getUpcomingBirthdays, getContactProfilePicture } from './api/contacts';
+import { Contact, getRandomContacts, getUpcomingBirthdays, getContactProfilePicture, getContact } from './api/contacts';
 import { Reminder, getUpcomingReminders, completeReminder } from './api/reminders';
 import { ContactListSkeleton } from './components/LoadingSkeletons';
 
@@ -35,6 +35,7 @@ function DashboardPage({ token }: DashboardPageProps) {
   const [randomContacts, setRandomContacts] = useState<Contact[]>([]);
   const [upcomingReminders, setUpcomingReminders] = useState<Reminder[]>([]);
   const [profilePics, setProfilePics] = useState<Record<number, string>>({});
+  const [contactsMap, setContactsMap] = useState<Record<number, Contact>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -71,11 +72,31 @@ function DashboardPage({ token }: DashboardPageProps) {
       setRandomContacts(random);
       setUpcomingReminders(reminders);
 
-      // Load profile pictures for all contacts
+      // Build contact map from birthdays and random contacts
       const allContacts = [...birthdays, ...random];
       const uniqueContacts = allContacts.filter(
         (contact, index, self) => self.findIndex(c => c.ID === contact.ID) === index
       );
+      
+      const newContactsMap: Record<number, Contact> = {};
+      uniqueContacts.forEach(c => { newContactsMap[c.ID] = c; });
+      
+      // Fetch missing contacts for reminders
+      const missingContactIds = reminders
+        .map(r => r.contact_id)
+        .filter(id => !newContactsMap[id]);
+      const uniqueMissingIds = Array.from(new Set(missingContactIds));
+      
+      if (uniqueMissingIds.length > 0) {
+        const fetchedContacts = await Promise.all(
+          uniqueMissingIds.map(id => getContact(id, token).catch(() => null))
+        );
+        fetchedContacts.forEach(c => {
+          if (c) newContactsMap[c.ID] = c;
+        });
+      }
+      
+      setContactsMap(newContactsMap);
       await loadProfilePictures(uniqueContacts);
     } catch (err) {
       console.error('Error loading dashboard data:', err);
@@ -122,7 +143,7 @@ function DashboardPage({ token }: DashboardPageProps) {
   };
 
   const getContactName = (contact: Contact) => {
-    if (contact.nickname) return contact.nickname;
+    if (contact.nickname) return `${contact.nickname} ${contact.lastname}`;
     return `${contact.firstname} ${contact.lastname}`;
   };
 
@@ -143,10 +164,8 @@ function DashboardPage({ token }: DashboardPageProps) {
           <Box>
             <ContactListSkeleton count={5} />
           </Box>
-          <Box sx={{ p: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              {t('dashboard.comingSoon')}
-            </Typography>
+          <Box>
+            <ContactListSkeleton count={5} />
           </Box>
         </Box>
       </Box>
@@ -261,6 +280,7 @@ function DashboardPage({ token }: DashboardPageProps) {
               {upcomingReminders.map((reminder) => {
                 const overdue = isOverdue(reminder.remind_at);
                 const reminderDate = new Date(reminder.remind_at);
+                const contact = contactsMap[reminder.contact_id];
                 
                 return (
                   <Card
@@ -283,6 +303,11 @@ function DashboardPage({ token }: DashboardPageProps) {
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
                             {reminder.message}
                           </Typography>
+                          {contact && (
+                            <Typography variant="caption" color="text.secondary">
+                              {getContactName(contact)}
+                            </Typography>
+                          )}
                           <Box sx={{ mt: 0.75, display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
                             <Chip
                               icon={overdue ? <WarningIcon fontSize="small" /> : undefined}

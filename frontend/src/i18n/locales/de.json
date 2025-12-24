@@ -16,13 +16,11 @@
     "welcome": "Willkommen zum Meerkat CRM Dashboard",
     "title": "Dashboard",
     "upcomingBirthdays": "Anstehende Geburtstage",
-    "randomContacts": "Zufällige Kontakte",
+    "randomContacts": "Bleibe in Kontakt",
     "upcomingReminders": "Anstehende Erinnerungen",
     "noBirthdays": "Keine anstehenden Geburtstage",
     "noContacts": "Keine Kontakte verfügbar",
     "noReminders": "Keine anstehenden Erinnerungen",
-    "comingSoon": "Demnächst",
-    "moreFeaturesComingSoon": "Weitere Funktionen folgen bald...",
     "error": "Dashboard-Daten konnten nicht geladen werden"
   },
   "login": {
@@ -224,7 +222,7 @@
       "weekly": "Wöchentlich",
       "monthly": "Monatlich",
       "quarterly": "Vierteljährlich",
-      "sixMonths": "Alle 6 Monate",
+      "six-months": "Alle 6 Monate",
       "yearly": "Jährlich"
     }
   },
@@ -265,10 +263,8 @@
       "success": "Passwort erfolgreich aktualisiert.",
       "error": "Passwort konnte nicht geändert werden. Bitte versuchen Sie es erneut.",
       "mismatch": "Die neuen Passwörter stimmen nicht überein."
-    },
-    "moreComingSoon": "Weitere Einstellungen folgen bald",
-    "moreComingSoonDescription": "Zusätzliche Einstellungen und Anpassungsoptionen werden hier in zukünftigen Updates verfügbar sein."
-  },
+    }
+   },
   "pages": {
     "notes": "Notizen Seite",
     "activities": "Aktivitäten Seite",

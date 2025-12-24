@@ -96,7 +96,7 @@ export default function ReminderDialog({
     { value: 'weekly', label: t('reminders.recurrence.weekly') },
     { value: 'monthly', label: t('reminders.recurrence.monthly') },
     { value: 'quarterly', label: t('reminders.recurrence.quarterly') },
-    { value: 'six-months', label: t('reminders.recurrence.sixMonths') },
+    { value: 'six-months', label: t('reminders.recurrence.six-months') },
     { value: 'yearly', label: t('reminders.recurrence.yearly') }
   ];
 

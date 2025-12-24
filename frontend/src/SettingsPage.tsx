@@ -143,18 +143,6 @@ export default function SettingsPage() {
           </form>
         </CardContent>
       </Card>
-
-      {/* Placeholder for future settings */}
-      <Card>
-        <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 500, mb: 2 }}>
-            {t('settings.moreComingSoon')}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {t('settings.moreComingSoonDescription')}
-          </Typography>
-        </CardContent>
-      </Card>
     </Box>
   );
 }

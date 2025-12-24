@@ -16,13 +16,11 @@
     "welcome": "Welcome to Meerkat CRM Dashboard",
     "title": "Dashboard",
     "upcomingBirthdays": "Upcoming Birthdays",
-    "randomContacts": "Random Contacts",
+    "randomContacts": "Stay in Touch",
     "upcomingReminders": "Upcoming Reminders",
     "noBirthdays": "No upcoming birthdays",
     "noContacts": "No contacts available",
     "noReminders": "No upcoming reminders",
-    "comingSoon": "Coming Soon",
-    "moreFeaturesComingSoon": "More features coming soon...",
     "error": "Failed to load dashboard data"
   },
   "login": {
@@ -224,7 +222,7 @@
       "weekly": "Weekly",
       "monthly": "Monthly",
       "quarterly": "Quarterly",
-      "sixMonths": "Every 6 months",
+      "six-months": "Every 6 months",
       "yearly": "Yearly"
     }
   },
@@ -265,9 +263,7 @@
       "success": "Password updated successfully.",
       "error": "We couldn't change your password. Please try again.",
       "mismatch": "New passwords do not match."
-    },
-    "moreComingSoon": "More Settings Coming Soon",
-    "moreComingSoonDescription": "Additional settings and customization options will be available here in future updates."
+    }
   },
   "pages": {
     "notes": "Notes Page",

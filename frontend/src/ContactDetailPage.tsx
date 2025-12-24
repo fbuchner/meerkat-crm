@@ -241,7 +241,15 @@ export default function ContactDetailPage({ token }: { token: string }) {
   const handleAddCircle = async () => {
     if (!contact || !newCircleName.trim()) return;
 
-    const updatedCircles = [...(contact.circles || []), newCircleName.trim()];
+    const trimmedCircleName = newCircleName.trim();
+    const existingCircles = contact.circles || [];
+    
+    // Check if the circle already exists (case-insensitive)
+    if (existingCircles.some(circle => circle.toLowerCase() === trimmedCircleName.toLowerCase())) {
+      return; // Don't add duplicate circles
+    }
+
+    const updatedCircles = [...existingCircles, trimmedCircleName];
 
     try {
       const updatedContact = await updateContact(id!, {

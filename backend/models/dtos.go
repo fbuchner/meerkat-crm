@@ -32,7 +32,7 @@ type ContactInput struct {
 	FoodPreference     string   `json:"food_preference" validate:"max=500,safe_string"`
 	WorkInformation    string   `json:"work_information" validate:"max=1000,safe_string"`
 	ContactInformation string   `json:"contact_information" validate:"max=1000,safe_string"`
-	Circles            []string `json:"circles"`
+	Circles            []string `json:"circles" validate:"unique_circles"`
 }
 
 // PasswordResetRequestInput captures email for initiating password reset

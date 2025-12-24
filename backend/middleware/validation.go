@@ -23,6 +23,7 @@ func init() {
 	validate.RegisterValidation("birthday", validateBirthday)
 	validate.RegisterValidation("safe_string", validateSafeString)
 	validate.RegisterValidation("strong_password", validateStrongPassword)
+	validate.RegisterValidation("unique_circles", validateUniqueCircles)
 }
 
 // ValidationError represents a validation error response
@@ -69,6 +70,8 @@ func formatValidationError(err validator.FieldError) string {
 		return field + " contains invalid characters"
 	case "strong_password":
 		return field + " is too weak. Use a longer password (15+ characters) or a passphrase (20+ characters). Avoid common passwords."
+	case "unique_circles":
+		return field + " cannot contain duplicate circles"
 	case "url":
 		return field + " must be a valid URL"
 	default:
@@ -173,6 +176,34 @@ func validateStrongPassword(fl validator.FieldLevel) bool {
 	// Check entropy
 	err := ValidatePasswordStrength(password)
 	return err == nil
+}
+
+// validateUniqueCircles checks that all circles in the slice are unique (case-insensitive)
+func validateUniqueCircles(fl validator.FieldLevel) bool {
+	circles := fl.Field()
+	if circles.Kind() != reflect.Slice {
+		return true // Not a slice, let other validators handle this
+	}
+
+	seen := make(map[string]bool)
+	for i := 0; i < circles.Len(); i++ {
+		circle := circles.Index(i)
+		if circle.Kind() != reflect.String {
+			continue // Skip non-string elements
+		}
+
+		circleValue := strings.ToLower(strings.TrimSpace(circle.String()))
+		if circleValue == "" {
+			continue // Skip empty strings
+		}
+
+		if seen[circleValue] {
+			return false // Duplicate found
+		}
+		seen[circleValue] = true
+	}
+
+	return true
 }
 
 // ValidateEmail validates email format with regex

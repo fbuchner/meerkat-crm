@@ -239,74 +239,7 @@ function DashboardPage({ token }: DashboardPageProps) {
           )}
         </Box>
 
-        {/* Column 2: Random Contacts */}
-        <Box>
-          <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <ShuffleIcon color="primary" fontSize="small" />
-            <Typography variant="subtitle1" fontWeight={500}>
-              {t('dashboard.randomContacts')}
-            </Typography>
-          </Box>
-
-          {randomContacts.length === 0 ? (
-            <Card>
-              <CardContent sx={{ py: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  {t('dashboard.noContacts')}
-                </Typography>
-              </CardContent>
-            </Card>
-          ) : (
-            <Stack spacing={1.5}>
-              {randomContacts.map((contact) => (
-                <Card
-                  key={contact.ID}
-                  component={Link}
-                  to={`/contacts/${contact.ID}`}
-                  sx={{
-                    textDecoration: 'none',
-                    '&:hover': {
-                      boxShadow: 2,
-                      transform: 'translateY(-1px)',
-                      transition: 'all 0.2s'
-                    }
-                  }}
-                >
-                  <CardContent sx={{ py: 1.5 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Avatar 
-                        src={profilePics[contact.ID] || undefined}
-                        sx={{ bgcolor: 'secondary.main', width: 40, height: 40 }}
-                      >
-                        {contact.firstname.charAt(0)}
-                      </Avatar>
-                      <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="body2" fontWeight={500}>
-                          {getContactName(contact)}
-                        </Typography>
-                        {contact.circles && contact.circles.length > 0 && (
-                          <Box sx={{ mt: 0.5 }}>
-                            {contact.circles.slice(0, 2).map((circle, idx) => (
-                              <Chip
-                                key={idx}
-                                label={circle}
-                                size="small"
-                                variant="outlined"
-                                sx={{ mr: 0.5, height: 20, fontSize: '0.7rem' }}
-                              />
-                            ))}
-                          </Box>
-                        )}
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              ))}
-            </Stack>
-          )}
-        </Box>
-
-        {/* Column 3: Upcoming Reminders */}
+        {/* Column 2: Upcoming Reminders */}
         <Box>
           <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
             <NotificationsIcon color="primary" fontSize="small" />
@@ -395,6 +328,73 @@ function DashboardPage({ token }: DashboardPageProps) {
                   </Card>
                 );
               })}
+            </Stack>
+          )}
+        </Box>
+
+        {/* Column 3: Random Contacts */}
+        <Box>
+          <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <ShuffleIcon color="primary" fontSize="small" />
+            <Typography variant="subtitle1" fontWeight={500}>
+              {t('dashboard.randomContacts')}
+            </Typography>
+          </Box>
+
+          {randomContacts.length === 0 ? (
+            <Card>
+              <CardContent sx={{ py: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  {t('dashboard.noContacts')}
+                </Typography>
+              </CardContent>
+            </Card>
+          ) : (
+            <Stack spacing={1.5}>
+              {randomContacts.map((contact) => (
+                <Card
+                  key={contact.ID}
+                  component={Link}
+                  to={`/contacts/${contact.ID}`}
+                  sx={{
+                    textDecoration: 'none',
+                    '&:hover': {
+                      boxShadow: 2,
+                      transform: 'translateY(-1px)',
+                      transition: 'all 0.2s'
+                    }
+                  }}
+                >
+                  <CardContent sx={{ py: 1.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Avatar 
+                        src={profilePics[contact.ID] || undefined}
+                        sx={{ bgcolor: 'secondary.main', width: 40, height: 40 }}
+                      >
+                        {contact.firstname.charAt(0)}
+                      </Avatar>
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Typography variant="body2" fontWeight={500}>
+                          {getContactName(contact)}
+                        </Typography>
+                        {contact.circles && contact.circles.length > 0 && (
+                          <Box sx={{ mt: 0.5 }}>
+                            {contact.circles.slice(0, 2).map((circle, idx) => (
+                              <Chip
+                                key={idx}
+                                label={circle}
+                                size="small"
+                                variant="outlined"
+                                sx={{ mr: 0.5, height: 20, fontSize: '0.7rem' }}
+                              />
+                            ))}
+                          </Box>
+                        )}
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
             </Stack>
           )}
         </Box>

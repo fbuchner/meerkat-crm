@@ -8,7 +8,7 @@ import SettingsPage from './SettingsPage';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
 import { getToken, logoutUser } from './auth';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   AppBar,
@@ -38,22 +38,18 @@ import './App.css';
 
 const drawerWidth = 180;
 
-function App() {
+// Inner component that can use useLocation (must be inside Router)
+function AppContent({ token, setToken }: { token: string | null; setToken: (token: string | null) => void }) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const location = useLocation();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   
   const handleDrawerToggle = () => {
     setMobileDrawerOpen(!mobileDrawerOpen);
   };
-  // Remove the custom handler and use inline in Select
-    const [token, setToken] = useState(getToken());
-    useEffect(() => {
-      const onStorage = () => setToken(getToken());
-      window.addEventListener('storage', onStorage);
-      return () => window.removeEventListener('storage', onStorage);
-    }, []);
+
   const handleLogout = () => {
     logoutUser();
     window.location.href = '/login';
@@ -67,6 +63,14 @@ function App() {
     { text: t('nav.settings'), icon: <SettingsIcon />, path: '/settings' }
   ];
 
+  // Check if current path matches the nav item (handle exact match for "/" and prefix match for others)
+  const isActiveRoute = (path: string) => {
+    if (path === '/') {
+      return location.pathname === '/';
+    }
+    return location.pathname.startsWith(path);
+  };
+
   const drawerContent = (
     <Box>
       <Toolbar />
@@ -77,6 +81,15 @@ function App() {
               component={Link} 
               to={item.path} 
               onClick={isMobile ? handleDrawerToggle : undefined}
+              selected={isActiveRoute(item.path)}
+              sx={{
+                '&.Mui-selected': {
+                  backgroundColor: 'action.selected',
+                },
+                '&.Mui-selected:hover': {
+                  backgroundColor: 'action.selected',
+                },
+              }}
             >
               <ListItemIcon>{item.icon}</ListItemIcon>
               <ListItemText primary={item.text} />
@@ -87,98 +100,113 @@ function App() {
     </Box>
   );
 
-  // Removed duplicate token declaration. Use state version only.
+  if (!token) {
+    return (
+      <Box sx={{ p: 2, width: '100%' }}>
+        <Routes>
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="*" element={<LoginPage setToken={setToken} />} />
+        </Routes>
+      </Box>
+    );
+  }
+
+  return (
+    <>
+      <AppBar 
+        position="fixed" 
+        sx={{ 
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          width: { md: `calc(100% - ${drawerWidth}px)` },
+          ml: { md: `${drawerWidth}px` }
+        }}
+      >
+        <Toolbar>
+          {isMobile && (
+            <IconButton 
+              edge="start" 
+              color="inherit" 
+              aria-label="menu" 
+              onClick={handleDrawerToggle} 
+              sx={{ mr: 2 }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            {t('app.title')}
+          </Typography>
+          <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>
+            {t('app.logout')}
+          </Button>
+        </Toolbar>
+      </AppBar>
+
+      {/* Mobile drawer */}
+      <Drawer 
+        variant="temporary"
+        open={mobileDrawerOpen} 
+        onClose={handleDrawerToggle}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth }
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+
+      {/* Desktop drawer */}
+      <Drawer
+        variant="permanent"
+        sx={{
+          display: { xs: 'none', md: 'block' },
+          width: drawerWidth,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': { 
+            width: drawerWidth, 
+            boxSizing: 'border-box' 
+          }
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+
+      <Box 
+        component="main" 
+        sx={{ 
+          flexGrow: 1, 
+          p: 2,
+          width: { md: `calc(100% - ${drawerWidth}px)` },
+          mt: 7
+        }}
+      >
+        <Routes>
+          <Route path="/contacts" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ContactsPage token={token} /></Suspense>} />
+          <Route path="/contacts/:id" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ContactDetailPage token={token} /></Suspense>} />
+          <Route path="/notes" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><NotesPage token={token} /></Suspense>} />
+          <Route path="/activities" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ActivitiesPage token={token} /></Suspense>} />
+          <Route path="/settings" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><SettingsPage /></Suspense>} />
+          <Route path="/reminders" element={<div>{t('pages.reminders')}</div>} />
+          <Route path="/" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><DashboardPage token={token} /></Suspense>} />
+        </Routes>
+      </Box>
+    </>
+  );
+}
+
+function App() {
+  const [token, setToken] = useState(getToken());
+  
+  useEffect(() => {
+    const onStorage = () => setToken(getToken());
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
   return (
     <Router>
       <Box sx={{ display: 'flex' }}>
-        {token ? (
-          <>
-            <AppBar 
-              position="fixed" 
-              sx={{ 
-                zIndex: (theme) => theme.zIndex.drawer + 1,
-                width: { md: `calc(100% - ${drawerWidth}px)` },
-                ml: { md: `${drawerWidth}px` }
-              }}
-            >
-              <Toolbar>
-                {isMobile && (
-                  <IconButton 
-                    edge="start" 
-                    color="inherit" 
-                    aria-label="menu" 
-                    onClick={handleDrawerToggle} 
-                    sx={{ mr: 2 }}
-                  >
-                    <MenuIcon />
-                  </IconButton>
-                )}
-                <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                  {t('app.title')}
-                </Typography>
-                <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>
-                  {t('app.logout')}
-                </Button>
-              </Toolbar>
-            </AppBar>
-
-            {/* Mobile drawer */}
-            <Drawer 
-              variant="temporary"
-              open={mobileDrawerOpen} 
-              onClose={handleDrawerToggle}
-              sx={{
-                display: { xs: 'block', md: 'none' },
-                '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth }
-              }}
-            >
-              {drawerContent}
-            </Drawer>
-
-            {/* Desktop drawer */}
-            <Drawer
-              variant="permanent"
-              sx={{
-                display: { xs: 'none', md: 'block' },
-                width: drawerWidth,
-                flexShrink: 0,
-                '& .MuiDrawer-paper': { 
-                  width: drawerWidth, 
-                  boxSizing: 'border-box' 
-                }
-              }}
-            >
-              {drawerContent}
-            </Drawer>
-
-            <Box 
-              component="main" 
-              sx={{ 
-                flexGrow: 1, 
-                p: 2,
-                width: { md: `calc(100% - ${drawerWidth}px)` },
-                mt: 7
-              }}
-            >
-              <Routes>
-                <Route path="/contacts" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ContactsPage token={token} /></Suspense>} />
-                <Route path="/contacts/:id" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ContactDetailPage token={token} /></Suspense>} />
-                <Route path="/notes" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><NotesPage token={token} /></Suspense>} />
-                <Route path="/activities" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ActivitiesPage token={token} /></Suspense>} />
-                <Route path="/settings" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><SettingsPage /></Suspense>} />
-                <Route path="/reminders" element={<div>{t('pages.reminders')}</div>} />
-                <Route path="/" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><DashboardPage token={token} /></Suspense>} />
-              </Routes>
-            </Box>
-          </>
-        ) : (
-          <Box sx={{ p: 2, width: '100%' }}>
-            <Routes>
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="*" element={<LoginPage setToken={setToken} />} />
-            </Routes>
-          </Box>
-        )}
+        <AppContent token={token} setToken={setToken} />
       </Box>
     </Router>
   );

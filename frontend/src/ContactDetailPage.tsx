@@ -44,6 +44,8 @@ import ProfilePictureUploadDialog from './components/ProfilePictureUploadDialog'
 import { useContactDialogs } from './hooks/useContactDialogs';
 import { useTimelineEditing } from './hooks/useTimelineEditing';
 import { useReminderManagement } from './hooks/useReminderManagement';
+import { useRelationships } from './hooks/useRelationships';
+import AddRelationshipDialog from './components/AddRelationshipDialog';
 
 interface Contact {
   ID: number;
@@ -148,6 +150,19 @@ export default function ContactDetailPage({ token }: { token: string }) {
     setEditingReminder
   } = useReminderManagement(id, token);
 
+  const {
+    relationships,
+    relationshipDialogOpen,
+    editingRelationship,
+    refreshRelationships,
+    handleSaveRelationship,
+    handleEditRelationship,
+    handleDeleteRelationship,
+    handleAddRelationship,
+    setRelationshipDialogOpen,
+    setEditingRelationship,
+  } = useRelationships(id, token);
+
   // Fetch contact details, notes, and activities
   useEffect(() => {
     if (!id) return;
@@ -164,6 +179,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
         setActivities(activitiesData.activities || []);
 
         await refreshReminders();
+        await refreshRelationships();
 
         setLoading(false);
       } catch (err) {
@@ -417,6 +433,10 @@ export default function ContactDetailPage({ token }: { token: string }) {
             setEditValue(value);
             setValidationError('');
           }}
+          relationships={relationships}
+          onAddRelationship={handleAddRelationship}
+          onEditRelationship={handleEditRelationship}
+          onDeleteRelationship={handleDeleteRelationship}
         />
 
         {/* Timeline and Reminders Tabs */}
@@ -538,6 +558,18 @@ export default function ContactDetailPage({ token }: { token: string }) {
         open={profilePictureDialogOpen}
         onClose={() => setProfilePictureDialogOpen(false)}
         onUpload={handleUploadProfilePicture}
+      />
+
+      <AddRelationshipDialog
+        open={relationshipDialogOpen}
+        onClose={() => {
+          setRelationshipDialogOpen(false);
+          setEditingRelationship(null);
+        }}
+        onSave={handleSaveRelationship}
+        relationship={editingRelationship}
+        token={token}
+        currentContactId={contact?.ID || 0}
       />
     </Box>
   );

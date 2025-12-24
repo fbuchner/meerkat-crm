@@ -344,6 +344,13 @@ function DashboardPage({ token }: DashboardPageProps) {
                               e.stopPropagation();
                               handleCompleteReminder(reminder.ID);
                             }}
+                            sx={{
+                              transition: 'transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out',
+                              '&:hover': {
+                                transform: 'scale(1.15)',
+                                boxShadow: '0 0 8px rgba(76, 175, 80, 0.5)',
+                              },
+                            }}
                           >
                             <CheckCircleIcon fontSize="small" />
                           </IconButton>

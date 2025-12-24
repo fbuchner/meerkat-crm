@@ -34,9 +34,9 @@ func GetRelationships(c *gin.Context) {
 	// Define a slice to hold the retrieved relationships
 	var relationships []models.Relationship
 
-	// Query the database for relationships belonging to the given contact ID, preloading only specific fields of RelatedContact
+	// Query the database for relationships belonging to the given contact ID, preloading related contact fields
 	if err := db.Preload("RelatedContact", func(db *gorm.DB) *gorm.DB {
-		return db.Select("ID", "Firstname", "Lastname").Where("user_id = ?", userID)
+		return db.Select("ID", "Firstname", "Lastname", "Gender", "Birthday").Where("user_id = ?", userID)
 	}).Where("user_id = ? AND contact_id = ?", userID, contactID).Find(&relationships).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve relationships").WithError(err))
 		return
@@ -64,10 +64,16 @@ func CreateRelationship(c *gin.Context) {
 		return
 	}
 
-	// Bind the JSON input to a new Relationship object
-	var relationship models.Relationship
-	if err := c.ShouldBindJSON(&relationship); err != nil {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("relationship", err.Error()))
+	// Get validated input from validation middleware
+	validated, exists := c.Get("validated")
+	if !exists {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("relationship", "validation data not found"))
+		return
+	}
+
+	input, ok := validated.(*models.RelationshipInput)
+	if !ok {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("relationship", "invalid validation data type"))
 		return
 	}
 
@@ -81,9 +87,16 @@ func CreateRelationship(c *gin.Context) {
 		return
 	}
 
-	// Set the ContactID to associate the relationship with the given contact
-	relationship.ContactID = uint(contactID)
-	relationship.UserID = userID
+	// Create the relationship model from input
+	relationship := models.Relationship{
+		Name:             input.Name,
+		Type:             input.Type,
+		Gender:           input.Gender,
+		Birthday:         input.Birthday,
+		RelatedContactID: input.RelatedContactID,
+		ContactID:        uint(contactID),
+		UserID:           userID,
+	}
 
 	if relationship.RelatedContactID != nil {
 		var relatedContact models.Contact
@@ -125,31 +138,25 @@ func UpdateRelationship(c *gin.Context) {
 		return
 	}
 
-	var updatedRelationship models.Relationship
-	if err := c.ShouldBindJSON(&updatedRelationship); err != nil {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("relationship", err.Error()))
+	// Get validated input from validation middleware
+	validated, exists := c.Get("validated")
+	if !exists {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("relationship", "validation data not found"))
 		return
 	}
 
-	// Updateable fields
-	relationship.Name = updatedRelationship.Name
-	relationship.Type = updatedRelationship.Type
-	relationship.Gender = updatedRelationship.Gender
-	relationship.Birthday = updatedRelationship.Birthday
-	relationship.ContactID = updatedRelationship.ContactID
-	relationship.RelatedContactID = updatedRelationship.RelatedContactID
-
-	if relationship.ContactID != 0 {
-		var contact models.Contact
-		if err := db.Where("user_id = ?", userID).First(&contact, relationship.ContactID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", strconv.FormatUint(uint64(relationship.ContactID), 10)))
-			} else {
-				apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve contact").WithError(err))
-			}
-			return
-		}
+	input, ok := validated.(*models.RelationshipInput)
+	if !ok {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("relationship", "invalid validation data type"))
+		return
 	}
+
+	// Update fields from input (ContactID stays the same, comes from URL)
+	relationship.Name = input.Name
+	relationship.Type = input.Type
+	relationship.Gender = input.Gender
+	relationship.Birthday = input.Birthday
+	relationship.RelatedContactID = input.RelatedContactID
 
 	if relationship.RelatedContactID != nil {
 		var relatedContact models.Contact

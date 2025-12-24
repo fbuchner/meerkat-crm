@@ -47,8 +47,8 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 
 			// Relationship routes
 			protected.GET("/contacts/:id/relationships", controllers.GetRelationships)
-			protected.POST("/contacts/:id/relationships", middleware.ValidateJSONMiddleware(&models.Relationship{}), controllers.CreateRelationship)
-			protected.PUT("/contacts/:id/relationships/:rid", middleware.ValidateJSONMiddleware(&models.Relationship{}), controllers.UpdateRelationship)
+			protected.POST("/contacts/:id/relationships", middleware.ValidateJSONMiddleware(&models.RelationshipInput{}), controllers.CreateRelationship)
+			protected.PUT("/contacts/:id/relationships/:rid", middleware.ValidateJSONMiddleware(&models.RelationshipInput{}), controllers.UpdateRelationship)
 			protected.DELETE("/contacts/:id/relationships/:rid", controllers.DeleteRelationship)
 
 			// Profile picture routes

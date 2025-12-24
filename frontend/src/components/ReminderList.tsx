@@ -108,7 +108,10 @@ export default function ReminderList({
             key={reminder.ID}
             sx={{
               border: isOverdue(reminder.remind_at) ? '2px solid' : '1px solid',
-              borderColor: isOverdue(reminder.remind_at) ? 'warning.main' : 'divider'
+              borderColor: isOverdue(reminder.remind_at) ? 'warning.main' : 'divider',
+              '&:hover .action-buttons': {
+                opacity: 1,
+              },
             }}
           >
             <CardContent>
@@ -163,31 +166,48 @@ export default function ReminderList({
                       onClick={() => handleCompleteClick(reminder.ID)}
                       disabled={loading === reminder.ID}
                       color="success"
+                      sx={{
+                        transition: 'transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out',
+                        '&:hover': {
+                          transform: 'scale(1.15)',
+                          boxShadow: '0 0 8px rgba(76, 175, 80, 0.5)',
+                        },
+                      }}
                     >
                       <CheckCircleIcon />
                     </IconButton>
                   </Tooltip>
                   
-                  <Tooltip title={t('common.edit')}>
-                    <IconButton
-                      size="small"
-                      onClick={() => onEdit(reminder)}
-                      disabled={loading === reminder.ID}
-                    >
-                      <EditIcon />
-                    </IconButton>
-                  </Tooltip>
-                  
-                  <Tooltip title={t('common.delete')}>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDeleteClick(reminder.ID)}
-                      disabled={loading === reminder.ID}
-                      color="error"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Tooltip>
+                  <Box
+                    className="action-buttons"
+                    sx={{
+                      display: 'flex',
+                      gap: 0.5,
+                      opacity: 0,
+                      transition: 'opacity 0.2s ease-in-out',
+                    }}
+                  >
+                    <Tooltip title={t('common.edit')}>
+                      <IconButton
+                        size="small"
+                        onClick={() => onEdit(reminder)}
+                        disabled={loading === reminder.ID}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+                    
+                    <Tooltip title={t('common.delete')}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDeleteClick(reminder.ID)}
+                        disabled={loading === reminder.ID}
+                        color="error"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
                 </Box>
               </Box>
             </CardContent>

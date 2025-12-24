@@ -1,4 +1,5 @@
-import { Card, CardContent, Typography, Divider, Stack } from '@mui/material';
+import { useState } from 'react';
+import { Card, CardContent, Divider, Stack, Box, Tabs, Tab, Button } from '@mui/material';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
 import CakeIcon from '@mui/icons-material/Cake';
@@ -6,8 +7,11 @@ import HomeIcon from '@mui/icons-material/Home';
 import WorkIcon from '@mui/icons-material/Work';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import PeopleIcon from '@mui/icons-material/People';
+import AddIcon from '@mui/icons-material/Add';
 import { useTranslation } from 'react-i18next';
 import EditableField from './EditableField';
+import RelationshipList from './RelationshipList';
+import { Relationship } from '../api/relationships';
 
 interface ContactInformationProps {
   contact: {
@@ -27,6 +31,11 @@ interface ContactInformationProps {
   onEditCancel: () => void;
   onEditSave: (field: string) => void;
   onEditValueChange: (value: string) => void;
+  // Relationship props
+  relationships?: Relationship[];
+  onAddRelationship?: () => void;
+  onEditRelationship?: (relationship: Relationship) => void;
+  onDeleteRelationship?: (relationshipId: number) => void;
 }
 
 export default function ContactInformation({
@@ -37,19 +46,28 @@ export default function ContactInformation({
   onEditStart,
   onEditCancel,
   onEditSave,
-  onEditValueChange
+  onEditValueChange,
+  relationships = [],
+  onAddRelationship,
+  onEditRelationship,
+  onDeleteRelationship,
 }: ContactInformationProps) {
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState(0);
 
   return (
     <Card sx={{ flex: 1 }}>
-      <CardContent sx={{ py: 2 }}>
-        <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 500 }}>
-          {t('contactDetail.generalInfo')}
-        </Typography>
-        <Divider sx={{ mb: 1.5 }} />
+      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} aria-label="contact information tabs">
+          <Tab label={t('contactDetail.generalInfo')} />
+          <Tab label={t('relationships.title')} />
+        </Tabs>
+      </Box>
 
-        <Stack spacing={2}>
+      {/* General Information Tab */}
+      {activeTab === 0 && (
+        <CardContent sx={{ py: 2 }}>
+          <Stack spacing={2}>
           <EditableField
             icon={<EmailIcon sx={{ mr: 1, color: 'text.secondary', fontSize: '1.2rem' }} />}
             label={t('contactDetail.email')}
@@ -169,6 +187,29 @@ export default function ContactInformation({
           />
         </Stack>
       </CardContent>
+      )}
+
+      {/* Relationships Tab */}
+      {activeTab === 1 && (
+        <CardContent sx={{ py: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
+            <Button
+              startIcon={<AddIcon />}
+              onClick={onAddRelationship}
+              variant="outlined"
+              size="small"
+            >
+              {t('relationships.addRelationship')}
+            </Button>
+          </Box>
+          <Divider sx={{ mb: 1.5 }} />
+          <RelationshipList
+            relationships={relationships}
+            onEdit={onEditRelationship || (() => {})}
+            onDelete={onDeleteRelationship || (() => {})}
+          />
+        </CardContent>
+      )}
     </Card>
   );
 }

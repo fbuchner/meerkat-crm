@@ -51,3 +51,13 @@ type ChangePasswordInput struct {
 	CurrentPassword string `json:"current_password" validate:"required"`
 	NewPassword     string `json:"new_password" validate:"required,min=8,strong_password"`
 }
+
+// RelationshipInput represents the DTO for creating/updating relationships
+// ContactID is not included as it comes from the URL parameter
+type RelationshipInput struct {
+	Name             string `json:"name" validate:"required,min=1,max=100,safe_string"`
+	Type             string `json:"type" validate:"required,min=1,max=50,safe_string"`
+	Gender           string `json:"gender" validate:"omitempty,oneof=male female other prefer_not_to_say"`
+	Birthday         string `json:"birthday" validate:"omitempty,birthday"`
+	RelatedContactID *uint  `json:"related_contact_id"`
+}

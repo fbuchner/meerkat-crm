@@ -19,7 +19,7 @@ func TestCreateReminder(t *testing.T) {
 
 	var user models.User
 	db.First(&user)
-	router.POST("/contacts/:id/reminders", CreateReminder)
+	router.POST("/contacts/:id/reminders", withValidated(func() any { return &models.Reminder{} }), CreateReminder)
 
 	// Create a contact for the reminder
 	contact := models.Contact{
@@ -95,7 +95,7 @@ func TestUpdateReminder(t *testing.T) {
 
 	var user models.User
 	db.First(&user)
-	router.PUT("/reminders/:id", UpdateReminder)
+	router.PUT("/reminders/:id", withValidated(func() any { return &models.Reminder{} }), UpdateReminder)
 
 	// Create a contact
 	contact := models.Contact{
@@ -150,14 +150,23 @@ func TestDeleteReminder(t *testing.T) {
 	db.First(&user)
 	router.DELETE("/reminders/:id", DeleteReminder)
 
+	// Create a contact for the reminder
+	contact := models.Contact{
+		UserID:    user.ID,
+		Firstname: "Joan",
+		Lastname:  "Doe",
+	}
+	db.Create(&contact)
+
 	// Create a reminder
 	reminder := models.Reminder{
 		UserID:                user.ID,
 		Message:               "Wish happy birthday to Joan",
 		ByMail:                true,
 		RemindAt:              time.Date(2025, 05, 22, 12, 0, 0, 0, time.UTC), // Fixed date
-		Recurrence:            "Yearly",
+		Recurrence:            "yearly",
 		ReoccurFromCompletion: false,
+		ContactID:             &contact.ID,
 	}
 	db.Create(&reminder)
 

@@ -107,16 +107,16 @@ func TestValidateJSONMiddleware_MissingRequiredFields(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
 
-	var response apperrors.AppError
+	var response apperrors.ErrorResponse
 	err := json.Unmarshal(resp.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	assert.Equal(t, "VALIDATION_ERROR", response.Code)
-	assert.NotNil(t, response.Details)
+	assert.Equal(t, "VALIDATION_ERROR", response.Error.Code)
+	assert.NotNil(t, response.Error.Details)
 
-	// Check that all missing fields are reported
-	assert.Contains(t, response.Details, "username")
-	assert.Contains(t, response.Details, "phone")
-	assert.Contains(t, response.Details, "password")
+	// Check that all missing fields are reported (using struct field names, which are capitalized)
+	assert.Contains(t, response.Error.Details, "Username")
+	assert.Contains(t, response.Error.Details, "Phone")
+	assert.Contains(t, response.Error.Details, "Password")
 }
 
 func TestValidateJSONMiddleware_InvalidEmail(t *testing.T) {
@@ -148,7 +148,7 @@ func TestValidateJSONMiddleware_InvalidEmail(t *testing.T) {
 	err := json.Unmarshal(resp.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, "VALIDATION_ERROR", response.Error.Code)
-	assert.Contains(t, response.Error.Details, "email")
+	assert.Contains(t, response.Error.Details, "Email")
 }
 
 func TestValidateJSONMiddleware_InvalidPhone(t *testing.T) {
@@ -180,7 +180,7 @@ func TestValidateJSONMiddleware_InvalidPhone(t *testing.T) {
 	err := json.Unmarshal(resp.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, "VALIDATION_ERROR", response.Error.Code)
-	assert.Contains(t, response.Error.Details, "phone")
+	assert.Contains(t, response.Error.Details, "Phone")
 }
 
 func TestValidateJSONMiddleware_InvalidBirthday(t *testing.T) {
@@ -213,7 +213,7 @@ func TestValidateJSONMiddleware_InvalidBirthday(t *testing.T) {
 	err := json.Unmarshal(resp.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, "VALIDATION_ERROR", response.Error.Code)
-	assert.Contains(t, response.Error.Details, "birthday")
+	assert.Contains(t, response.Error.Details, "Birthday")
 }
 
 func TestValidateJSONMiddleware_WeakPassword(t *testing.T) {
@@ -245,7 +245,7 @@ func TestValidateJSONMiddleware_WeakPassword(t *testing.T) {
 	err := json.Unmarshal(resp.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, "VALIDATION_ERROR", response.Error.Code)
-	assert.Contains(t, response.Error.Details, "password")
+	assert.Contains(t, response.Error.Details, "Password")
 }
 
 func TestValidateJSONMiddleware_UnsafeString(t *testing.T) {
@@ -277,7 +277,7 @@ func TestValidateJSONMiddleware_UnsafeString(t *testing.T) {
 	err := json.Unmarshal(resp.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, "VALIDATION_ERROR", response.Error.Code)
-	assert.Contains(t, response.Error.Details, "username")
+	assert.Contains(t, response.Error.Details, "Username")
 }
 
 func TestValidateJSONMiddleware_MultipleErrors(t *testing.T) {
@@ -305,14 +305,14 @@ func TestValidateJSONMiddleware_MultipleErrors(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
 
-	var response apperrors.AppError
+	var response apperrors.ErrorResponse
 	err := json.Unmarshal(resp.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	assert.Equal(t, "VALIDATION_ERROR", response.Code)
+	assert.Equal(t, "VALIDATION_ERROR", response.Error.Code)
 
-	// Check that all invalid fields are reported
-	assert.Contains(t, response.Details, "email")
-	assert.Contains(t, response.Details, "username")
-	assert.Contains(t, response.Details, "phone")
-	assert.Contains(t, response.Details, "password")
+	// Check that all invalid fields are reported (using struct field names, which are capitalized)
+	assert.Contains(t, response.Error.Details, "Email")
+	assert.Contains(t, response.Error.Details, "Username")
+	assert.Contains(t, response.Error.Details, "Phone")
+	assert.Contains(t, response.Error.Details, "Password")
 }

@@ -77,7 +77,8 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 
 		for _, reminder := range userReminders {
 			if reminder.Recurrence == "once" {
-				if err := db.Delete(&reminder).Error; err != nil {
+				// Use Unscoped to hard delete the reminder permanently
+				if err := db.Unscoped().Delete(&reminder).Error; err != nil {
 					logger.Error().Err(err).Uint("reminder_id", reminder.ID).Msg("Failed to delete 'once' reminder after sending")
 				} else {
 					logger.Info().Uint("reminder_id", reminder.ID).Msg("Deleted 'once' reminder after sending")

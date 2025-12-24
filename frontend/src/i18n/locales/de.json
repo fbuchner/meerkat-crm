@@ -252,6 +252,16 @@
       "label": "Sprache",
       "description": "Wählen Sie Ihre bevorzugte Sprache für die Anwendungsoberfläche."
     },
+    "theme": {
+      "title": "Darstellung",
+      "label": "Design",
+      "description": "Wählen Sie, wie Meerkat CRM aussehen soll. Systemeinstellung folgt den Angaben Ihres Betriebssystems.",
+      "options": {
+        "system": "Systemeinstellung verwenden",
+        "light": "Helles Design",
+        "dark": "Dunkles Design"
+      }
+    },
     "password": {
       "title": "Passwort ändern",
       "description": "Verwenden Sie ein starkes Passwort, das Sie noch nicht genutzt haben.",

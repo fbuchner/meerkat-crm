@@ -15,12 +15,16 @@ import {
   Stack,
   Alert
 } from '@mui/material';
+import { SelectChangeEvent } from '@mui/material/Select';
 import LanguageIcon from '@mui/icons-material/Language';
 import LockResetIcon from '@mui/icons-material/LockReset';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
 import { changePassword } from './api/auth';
+import { ThemePreference, useThemePreference } from './AppThemeProvider';
 
 export default function SettingsPage() {
   const { t, i18n } = useTranslation();
+  const { preference: themePreference, setPreference: setThemePreference } = useThemePreference();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -30,6 +34,10 @@ export default function SettingsPage() {
 
   const handleLanguageChange = (event: any) => {
     i18n.changeLanguage(event.target.value);
+  };
+
+  const handleThemeChange = (event: SelectChangeEvent<ThemePreference>) => {
+    setThemePreference(event.target.value as ThemePreference);
   };
 
   const handlePasswordChange = async (event: FormEvent) => {
@@ -91,6 +99,38 @@ export default function SettingsPage() {
           
           <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
             {t('settings.language.description')}
+          </Typography>
+        </CardContent>
+      </Card>
+
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <DarkModeIcon sx={{ mr: 1, color: 'text.secondary' }} />
+            <Typography variant="h6" sx={{ fontWeight: 500 }}>
+              {t('settings.theme.title')}
+            </Typography>
+          </Box>
+          <Divider sx={{ mb: 3 }} />
+
+          <FormControl fullWidth>
+            <InputLabel id="theme-select-label">
+              {t('settings.theme.label')}
+            </InputLabel>
+            <Select
+              labelId="theme-select-label"
+              value={themePreference}
+              label={t('settings.theme.label')}
+              onChange={handleThemeChange}
+            >
+              <MenuItem value="system">{t('settings.theme.options.system')}</MenuItem>
+              <MenuItem value="light">{t('settings.theme.options.light')}</MenuItem>
+              <MenuItem value="dark">{t('settings.theme.options.dark')}</MenuItem>
+            </Select>
+          </FormControl>
+
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
+            {t('settings.theme.description')}
           </Typography>
         </CardContent>
       </Card>

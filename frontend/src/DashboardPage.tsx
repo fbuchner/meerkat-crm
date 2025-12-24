@@ -286,8 +286,8 @@ function DashboardPage({ token }: DashboardPageProps) {
                   <Card
                     key={reminder.ID}
                     sx={{
-                      border: overdue ? '1px solid' : 'none',
-                      borderColor: overdue ? 'warning.main' : 'transparent',
+                      border: '1px solid',
+                      borderColor: overdue ? 'warning.main' : 'divider',
                       cursor: 'pointer',
                       '&:hover': {
                         boxShadow: 2,

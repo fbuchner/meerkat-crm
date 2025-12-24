@@ -1,14 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { ThemeProvider } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-import { theme } from './theme';
 import './index.css';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 import reportWebVitals from './reportWebVitals';
 import './i18n/config';
+import { AppThemeProvider } from './AppThemeProvider';
 
 // Error logging function (can be replaced with Sentry, LogRocket, etc.)
 const logError = (error: Error, errorInfo: React.ErrorInfo) => {
@@ -25,8 +23,7 @@ const root = ReactDOM.createRoot(
 
 root.render(
   <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <AppThemeProvider>
       <ErrorBoundary
         name="Application"
         onError={logError}
@@ -34,7 +31,7 @@ root.render(
       >
         <App />
       </ErrorBoundary>
-    </ThemeProvider>
+    </AppThemeProvider>
   </React.StrictMode>
 );
 

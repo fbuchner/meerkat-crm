@@ -252,6 +252,16 @@
       "label": "Language",
       "description": "Choose your preferred language for the application interface."
     },
+    "theme": {
+      "title": "Appearance",
+      "label": "Theme",
+      "description": "Choose how Meerkat CRM should look. System default follows your OS preference.",
+      "options": {
+        "system": "Use system default",
+        "light": "Light mode",
+        "dark": "Dark mode"
+      }
+    },
     "password": {
       "title": "Change Password",
       "description": "Use a strong password that you haven't used elsewhere.",

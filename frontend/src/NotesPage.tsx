@@ -123,9 +123,9 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
 
   if (loading) {
     return (
-      <Box>
+      <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 2 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h4">{t('notes.title')}</Typography>
+          <Typography variant="h5">{t('notes.title')}</Typography>
         </Box>
         <ListSkeleton count={8} />
       </Box>
@@ -133,7 +133,7 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
   }
 
   return (
-    <Box>
+    <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 2 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h5">{t('notes.title')}</Typography>
         <Button variant="outlined" startIcon={<NoteIcon />} onClick={handleAddNote}>

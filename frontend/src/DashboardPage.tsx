@@ -149,8 +149,8 @@ function DashboardPage({ token }: DashboardPageProps) {
 
   if (loading) {
     return (
-      <Box sx={{ maxWidth: 1400, mx: 'auto', p: 3 }}>
-        <Typography variant="h4" gutterBottom>
+      <Box sx={{ maxWidth: 1400, mx: 'auto', mt: 2, p: 2 }}>
+        <Typography variant="h5" gutterBottom>
           {t('dashboard.title')}
         </Typography>
         <Box sx={{ 
@@ -174,14 +174,14 @@ function DashboardPage({ token }: DashboardPageProps) {
 
   if (error) {
     return (
-      <Box sx={{ maxWidth: 1400, mx: 'auto', p: 3 }}>
+      <Box sx={{ maxWidth: 1400, mx: 'auto', mt: 2, p: 2 }}>
         <Alert severity="error">{error}</Alert>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ maxWidth: 1600, mx: 'auto', p: 2 }}>
+    <Box sx={{ maxWidth: 1400, mx: 'auto', mt: 2, p: 2 }}>
       <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
         {t('dashboard.title')}
       </Typography>

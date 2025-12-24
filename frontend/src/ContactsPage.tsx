@@ -105,7 +105,10 @@ export default function ContactsPage({ token }: { token: string }) {
   };
   
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2 }}>
+    <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 2 }}>
+      <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
+        {t('contacts.title')}
+      </Typography>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} mb={2} alignItems="center">
         <FormControl sx={{ minWidth: 120 }} size="small">
           <InputLabel id="circle-select-label">{t('contacts.filterByCircle')}</InputLabel>

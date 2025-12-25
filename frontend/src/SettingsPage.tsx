@@ -13,13 +13,16 @@ import {
   TextField,
   Button,
   Stack,
-  Alert
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import { SelectChangeEvent } from '@mui/material/Select';
 import LanguageIcon from '@mui/icons-material/Language';
 import LockResetIcon from '@mui/icons-material/LockReset';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
+import DownloadIcon from '@mui/icons-material/Download';
 import { changePassword } from './api/auth';
+import { exportDataAsCsv } from './api/export';
 import { ThemePreference, useThemePreference } from './AppThemeProvider';
 
 export default function SettingsPage() {
@@ -31,6 +34,9 @@ export default function SettingsPage() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
+  const [exportSuccess, setExportSuccess] = useState('');
 
   const handleLanguageChange = (event: any) => {
     i18n.changeLanguage(event.target.value);
@@ -38,6 +44,22 @@ export default function SettingsPage() {
 
   const handleThemeChange = (event: SelectChangeEvent<ThemePreference>) => {
     setThemePreference(event.target.value as ThemePreference);
+  };
+
+  const handleExportData = async () => {
+    setExportError('');
+    setExportSuccess('');
+    setExporting(true);
+
+    try {
+      await exportDataAsCsv();
+      setExportSuccess(t('settings.export.success'));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : t('settings.export.error');
+      setExportError(errorMessage);
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handlePasswordChange = async (event: FormEvent) => {
@@ -181,6 +203,34 @@ export default function SettingsPage() {
               </Button>
             </Stack>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <DownloadIcon sx={{ mr: 1, color: 'text.secondary' }} />
+            <Typography variant="h6" sx={{ fontWeight: 500 }}>
+              {t('settings.export.title')}
+            </Typography>
+          </Box>
+          <Divider sx={{ mb: 3 }} />
+
+          <Stack spacing={2}>
+            <Typography variant="body2" color="text.secondary">
+              {t('settings.export.description')}
+            </Typography>
+            {exportError && <Alert severity="error">{exportError}</Alert>}
+            {exportSuccess && <Alert severity="success">{exportSuccess}</Alert>}
+            <Button
+              variant="contained"
+              startIcon={exporting ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
+              onClick={handleExportData}
+              disabled={exporting}
+            >
+              {exporting ? t('settings.export.exporting') : t('settings.export.downloadButton')}
+            </Button>
+          </Stack>
         </CardContent>
       </Card>
     </Box>

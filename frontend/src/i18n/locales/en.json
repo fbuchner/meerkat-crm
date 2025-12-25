@@ -278,6 +278,14 @@
       "success": "Password updated successfully.",
       "error": "We couldn't change your password. Please try again.",
       "mismatch": "New passwords do not match."
+    },
+    "export": {
+      "title": "Export Data",
+      "description": "Download all your data as a CSV file. This includes contacts, activities, notes, reminders, and relationships. Profile photos are not included.",
+      "downloadButton": "Download CSV",
+      "exporting": "Exporting...",
+      "success": "Your data has been exported successfully.",
+      "error": "Failed to export data. Please try again."
     }
   },
   "pages": {

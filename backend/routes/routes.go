@@ -81,6 +81,9 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 			protected.PUT("/reminders/:id", middleware.ValidateJSONMiddleware(&models.Reminder{}), controllers.UpdateReminder)
 			protected.POST("/reminders/:id/complete", controllers.CompleteReminder)
 			protected.DELETE("/reminders/:id", controllers.DeleteReminder)
+
+			// Export routes
+			protected.GET("/export", controllers.ExportData)
 		}
 	}
 }

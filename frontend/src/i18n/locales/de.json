@@ -277,6 +277,14 @@
       "success": "Passwort erfolgreich aktualisiert.",
       "error": "Passwort konnte nicht geändert werden. Bitte versuchen Sie es erneut.",
       "mismatch": "Die neuen Passwörter stimmen nicht überein."
+    },
+    "export": {
+      "title": "Daten exportieren",
+      "description": "Laden Sie alle Ihre Daten als CSV-Datei herunter. Dies umfasst Kontakte, Aktivitäten, Notizen, Erinnerungen und Beziehungen. Profilfotos sind nicht enthalten.",
+      "downloadButton": "CSV herunterladen",
+      "exporting": "Exportiere...",
+      "success": "Ihre Daten wurden erfolgreich exportiert.",
+      "error": "Daten konnten nicht exportiert werden. Bitte versuchen Sie es erneut."
     }
    },
   "pages": {

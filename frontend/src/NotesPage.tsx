@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo, ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Box,
@@ -7,6 +7,7 @@ import {
   TextField,
   Button,
   IconButton,
+  Pagination,
 } from '@mui/material';
 import {
   Timeline,
@@ -21,6 +22,7 @@ import NoteIcon from '@mui/icons-material/Note';
 import EditIcon from '@mui/icons-material/Edit';
 import { ListSkeleton } from './components/LoadingSkeletons';
 import { useNotes } from './hooks/useNotes';
+import { useDebouncedValue } from './hooks/useDebounce';
 import { createUnassignedNote, updateNote, deleteNote, Note } from './api/notes';
 import AddNoteDialog from './components/AddNoteDialog';
 import EditTimelineItemDialog from './components/EditTimelineItemDialog';
@@ -31,29 +33,44 @@ interface NotesPageProps {
 
 const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
   const { t } = useTranslation();
-  const { notes: allNotes, loading, refetch } = useNotes();
-  const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebouncedValue(searchInput, 400);
+  const [page, setPage] = useState(1);
+  const NOTES_PER_PAGE = 25;
+
+  const notesParams = useMemo(
+    () => ({
+      page,
+      limit: NOTES_PER_PAGE,
+      search: debouncedSearch.trim() || undefined,
+    }),
+    [page, debouncedSearch]
+  );
+
+  const {
+    notes,
+    total,
+    page: serverPage,
+    limit,
+    loading,
+    refetch,
+  } = useNotes(undefined, notesParams);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [editValues, setEditValues] = useState<{ noteContent?: string; noteDate?: string }>({});
 
-  // Sort notes by date descending (newest first) and filter
-  useEffect(() => {
-    const sorted = [...allNotes].sort((a, b) => {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    });
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    setPage(1);
+  };
 
-    if (searchQuery.trim() === '') {
-      setFilteredNotes(sorted);
-    } else {
-      const query = searchQuery.toLowerCase();
-      const filtered = sorted.filter((note) => {
-        return note.content?.toLowerCase().includes(query);
-      });
-      setFilteredNotes(filtered);
-    }
-  }, [searchQuery, allNotes]);
+  const handlePageChange = (_: ChangeEvent<unknown>, value: number) => {
+    setPage(value);
+  };
+
+  const currentPage = serverPage || page;
+  const pageSize = limit || NOTES_PER_PAGE;
+  const totalPages = Math.max(1, Math.ceil((total || 0) / pageSize));
 
   const handleAddNote = () => {
     setAddDialogOpen(true);
@@ -121,16 +138,8 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
     });
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 2 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h5">{t('notes.title')}</Typography>
-        </Box>
-        <ListSkeleton count={8} />
-      </Box>
-    );
-  }
+  const isInitialLoading = loading && notes.length === 0;
+  const hasSearchQuery = searchInput.trim().length > 0;
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 2 }}>
@@ -146,21 +155,23 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
           fullWidth
           size="small"
           label={t('notes.search')}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          value={searchInput}
+          onChange={(e) => handleSearchChange(e.target.value)}
           variant="outlined"
         />
       </Paper>
 
-      {filteredNotes.length === 0 ? (
+      {isInitialLoading ? (
+        <ListSkeleton count={8} />
+      ) : notes.length === 0 ? (
         <Paper sx={{ p: 3, textAlign: 'center' }}>
           <Typography variant="body1" color="text.secondary">
-            {searchQuery ? t('notes.noResults') : t('notes.noNotes')}
+            {hasSearchQuery ? t('notes.noResults') : t('notes.noNotes')}
           </Typography>
         </Paper>
       ) : (
         <Timeline position="right">
-          {filteredNotes.map((note, index) => (
+          {notes.map((note, index) => (
             <TimelineItem key={note.ID}>
               <TimelineOppositeContent color="text.secondary" sx={{ flex: 0.2 }}>
                 {formatDate(note.date)}
@@ -169,7 +180,7 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
                 <TimelineDot color="primary">
                   <NoteIcon />
                 </TimelineDot>
-                {index < filteredNotes.length - 1 && <TimelineConnector />}
+                {index < notes.length - 1 && <TimelineConnector />}
               </TimelineSeparator>
               <TimelineContent sx={{ flex: 0.8 }}>
                 <Paper
@@ -201,6 +212,19 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
             </TimelineItem>
           ))}
         </Timeline>
+      )}
+
+      {totalPages > 1 && (
+        <Box display="flex" justifyContent="center" mt={3}>
+          <Pagination
+            color="primary"
+            count={totalPages}
+            page={currentPage}
+            onChange={handlePageChange}
+            showFirstButton
+            showLastButton
+          />
+        </Box>
       )}
 
       <AddNoteDialog

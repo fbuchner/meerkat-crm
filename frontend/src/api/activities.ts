@@ -30,6 +30,7 @@ export interface GetActivitiesParams {
   page?: number;
   limit?: number;
   includeContacts?: boolean;
+  search?: string;
 }
 
 // Get all activities
@@ -38,6 +39,7 @@ export async function getActivities(
   token: string
 ): Promise<ActivitiesResponse> {
   const { page = 1, limit = 25, includeContacts = false } = params;
+  const search = params.search?.trim();
   
   const queryParams = new URLSearchParams({
     page: page.toString(),
@@ -46,6 +48,10 @@ export async function getActivities(
   
   if (includeContacts) {
     queryParams.append('include', 'contacts');
+  }
+
+  if (search) {
+    queryParams.append('search', search);
   }
 
   const response = await apiFetch(

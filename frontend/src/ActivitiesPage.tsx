@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo, ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Box,
@@ -8,6 +8,7 @@ import {
   Button,
   IconButton,
   Chip,
+  Pagination,
 } from '@mui/material';
 import {
   Timeline,
@@ -21,6 +22,7 @@ import {
 import EventIcon from '@mui/icons-material/Event';
 import EditIcon from '@mui/icons-material/Edit';
 import { useActivities } from './hooks/useActivities';
+import { useDebouncedValue } from './hooks/useDebounce';
 import { createActivity, updateActivity, deleteActivity, Activity } from './api/activities';
 import { getContacts } from './api/contacts';
 import AddActivityDialog from './components/AddActivityDialog';
@@ -40,13 +42,31 @@ interface ActivitiesPageProps {
 
 const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
   const { t } = useTranslation();
-  
-  // Memoize params to prevent infinite re-renders
-  const activityParams = useMemo(() => ({ includeContacts: true }), []);
-  
-  const { activities: allActivities, loading, refetch } = useActivities(activityParams);
-  const [filteredActivities, setFilteredActivities] = useState<Activity[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebouncedValue(searchInput, 400);
+  const [page, setPage] = useState(1);
+  const ACTIVITIES_PER_PAGE = 25;
+
+  // Memoize params to prevent unnecessary refetching
+  const activityParams = useMemo(
+    () => ({
+      includeContacts: true,
+      page,
+      limit: ACTIVITIES_PER_PAGE,
+      search: debouncedSearch.trim() || undefined,
+    }),
+    [page, debouncedSearch]
+  );
+
+  const {
+    activities,
+    total,
+    page: serverPage,
+    limit,
+    loading,
+    refetch,
+  } = useActivities(activityParams);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [editValues, setEditValues] = useState<{
@@ -58,26 +78,18 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
   }>({});
   const [allContacts, setAllContacts] = useState<Contact[]>([]);
 
-  // Sort activities by date descending (newest first) and filter
-  useEffect(() => {
-    const sorted = [...allActivities].sort((a, b) => {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    });
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    setPage(1);
+  };
 
-    if (searchQuery.trim() === '') {
-      setFilteredActivities(sorted);
-    } else {
-      const query = searchQuery.toLowerCase();
-      const filtered = sorted.filter((activity) => {
-        const descriptionMatch = activity.description?.toLowerCase().includes(query);
-        const contactMatch = activity.contacts?.some((contact: Contact) =>
-          `${contact.firstname} ${contact.lastname}`.toLowerCase().includes(query)
-        );
-        return descriptionMatch || contactMatch;
-      });
-      setFilteredActivities(filtered);
-    }
-  }, [searchQuery, allActivities]);
+  const handlePageChange = (_: ChangeEvent<unknown>, value: number) => {
+    setPage(value);
+  };
+
+  const currentPage = serverPage || page;
+  const pageSize = limit || ACTIVITIES_PER_PAGE;
+  const totalPages = Math.max(1, Math.ceil((total || 0) / pageSize));
 
   const handleAddActivity = () => {
     setAddDialogOpen(true);
@@ -171,16 +183,8 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
     });
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 2 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h5">{t('activities.title')}</Typography>
-        </Box>
-        <ListSkeleton count={8} />
-      </Box>
-    );
-  }
+  const isInitialLoading = loading && activities.length === 0;
+  const hasSearchQuery = searchInput.trim().length > 0;
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 2 }}>
@@ -196,21 +200,23 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
           fullWidth
           size="small"
           label={t('activities.search')}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          value={searchInput}
+          onChange={(e) => handleSearchChange(e.target.value)}
           variant="outlined"
         />
       </Paper>
 
-      {filteredActivities.length === 0 ? (
+      {isInitialLoading ? (
+        <ListSkeleton count={8} />
+      ) : activities.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
           <Typography variant="body1" color="text.secondary">
-            {searchQuery ? t('activities.noResults') : t('activities.noActivities')}
+            {hasSearchQuery ? t('activities.noResults') : t('activities.noActivities')}
           </Typography>
         </Paper>
       ) : (
         <Timeline position="right">
-          {filteredActivities.map((activity, index) => (
+          {activities.map((activity, index) => (
             <TimelineItem key={activity.ID}>
               <TimelineOppositeContent color="text.secondary" sx={{ flex: 0.2 }}>
                 {formatDate(activity.date)}
@@ -219,7 +225,7 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
                 <TimelineDot color="primary">
                   <EventIcon />
                 </TimelineDot>
-                {index < filteredActivities.length - 1 && <TimelineConnector />}
+                {index < activities.length - 1 && <TimelineConnector />}
               </TimelineSeparator>
               <TimelineContent sx={{ flex: 0.8 }}>
                 <Paper
@@ -263,6 +269,19 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
             </TimelineItem>
           ))}
         </Timeline>
+      )}
+
+      {totalPages > 1 && (
+        <Box display="flex" justifyContent="center" mt={3}>
+          <Pagination
+            color="primary"
+            count={totalPages}
+            page={currentPage}
+            onChange={handlePageChange}
+            showFirstButton
+            showLastButton
+          />
+        </Box>
       )}
 
       <AddActivityDialog

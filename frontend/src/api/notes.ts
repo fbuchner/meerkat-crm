@@ -12,6 +12,15 @@ export interface Note {
 
 export interface NotesResponse {
   notes: Note[];
+  total?: number;
+  page?: number;
+  limit?: number;
+}
+
+export interface GetNotesParams {
+  page?: number;
+  limit?: number;
+  search?: string;
 }
 
 // Get notes for a contact
@@ -32,9 +41,24 @@ export async function getContactNotes(
 }
 
 // Get all unassigned notes
-export async function getUnassignedNotes(token: string): Promise<Note[]> {
+export async function getUnassignedNotes(
+  token: string,
+  params: GetNotesParams = {}
+): Promise<NotesResponse> {
+  const { page = 1, limit = 25 } = params;
+  const search = params.search?.trim();
+
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+
+  if (search) {
+    queryParams.append('search', search);
+  }
+
   const response = await apiFetch(
-    `${API_BASE_URL}/notes`,
+    `${API_BASE_URL}/notes?${queryParams.toString()}`,
     { headers: getAuthHeaders(token) }
   );
 
@@ -42,8 +66,7 @@ export async function getUnassignedNotes(token: string): Promise<Note[]> {
     throw new Error('Failed to fetch notes');
   }
 
-  const data = await response.json();
-  return Array.isArray(data) ? data : (data.notes || []);
+  return response.json();
 }
 
 // Get single note

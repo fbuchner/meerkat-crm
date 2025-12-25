@@ -187,7 +187,53 @@ func TestGetActivities(t *testing.T) {
 
 	var responseBody map[string]any
 	json.Unmarshal(w.Body.Bytes(), &responseBody)
-	assert.Len(t, responseBody["activities"], 2) // Should return both activities
+	assert.Len(t, responseBody["activities"], 2)
+	assert.EqualValues(t, 2, responseBody["total"])
+	assert.EqualValues(t, 1, responseBody["page"])
+}
+
+func TestGetActivitiesSearchByContact(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+
+	router.GET("/activities", GetActivities)
+
+	contact := models.Contact{UserID: user.ID, Firstname: "Search", Lastname: "Target"}
+	db.Create(&contact)
+
+	activityWithContact := models.Activity{
+		UserID:      user.ID,
+		Title:       "Targeted Activity",
+		Description: "Includes contact",
+		Date:        time.Now().AddDate(0, 0, 1),
+	}
+	activityWithoutContact := models.Activity{
+		UserID:      user.ID,
+		Title:       "Other Activity",
+		Description: "No matching contact",
+		Date:        time.Now().AddDate(0, 0, 2),
+	}
+	db.Create(&activityWithContact)
+	db.Create(&activityWithoutContact)
+	db.Model(&activityWithContact).Association("Contacts").Append(&contact)
+
+	req, _ := http.NewRequest("GET", "/activities?search=target", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var responseBody map[string]any
+	json.Unmarshal(w.Body.Bytes(), &responseBody)
+
+	activitiesRaw, ok := responseBody["activities"].([]any)
+	if !ok {
+		t.Fatalf("expected activities array in response")
+	}
+	assert.Len(t, activitiesRaw, 1)
+	assert.EqualValues(t, 1, responseBody["total"])
 }
 
 func TestGetActivity(t *testing.T) {

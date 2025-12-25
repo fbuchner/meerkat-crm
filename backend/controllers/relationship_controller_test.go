@@ -62,7 +62,7 @@ func TestCreateRelationship(t *testing.T) {
 
 	var user models.User
 	db.First(&user)
-	router.POST("/contacts/:id/relationships", CreateRelationship)
+	router.POST("/contacts/:id/relationships", withValidated(func() any { return &models.RelationshipInput{} }), CreateRelationship)
 
 	// Create a contact to associate with the relationship
 	contact := models.Contact{
@@ -99,7 +99,7 @@ func TestUpdateRelationship(t *testing.T) {
 
 	var user models.User
 	db.First(&user)
-	router.PUT("/relationships/:rid", UpdateRelationship)
+	router.PUT("/relationships/:rid", withValidated(func() any { return &models.RelationshipInput{} }), UpdateRelationship)
 
 	// Create a relationship to update
 	existingRelationship := models.Relationship{

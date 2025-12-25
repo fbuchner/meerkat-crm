@@ -15,7 +15,7 @@ type ActivityInput struct {
 type NoteInput struct {
 	Content   string    `json:"content" validate:"required,min=1,max=5000,safe_string"`
 	Date      time.Time `json:"date" validate:"required"`
-	ContactID *uint     `json:"contact_id" validate:"required"`
+	ContactID *uint     `json:"contact_id" validate:"omitempty,gt=0"`
 }
 
 // ContactInput represents the DTO for creating/updating contacts

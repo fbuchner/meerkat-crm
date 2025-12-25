@@ -3,6 +3,7 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
+	"meerkat/middleware"
 	"meerkat/models"
 	"net/http"
 	"net/http/httptest"
@@ -141,13 +142,44 @@ func TestGetNotes(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var responseBody []models.Note
+	var responseBody map[string]any
 	json.Unmarshal(w.Body.Bytes(), &responseBody)
 
-	// Assert that we received the correct number of unassigned notes
-	assert.Len(t, responseBody, 2)
-	assert.Equal(t, notes[0].Content, responseBody[0].Content)
-	assert.Equal(t, notes[1].Content, responseBody[1].Content)
+	noteItems, ok := responseBody["notes"].([]any)
+	if !ok {
+		t.Fatalf("expected notes array in response")
+	}
+	assert.Len(t, noteItems, 2)
+	assert.EqualValues(t, 2, responseBody["total"])
+	assert.EqualValues(t, 1, responseBody["page"])
+}
+
+func TestGetNotesSearch(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+
+	router.GET("/notes", GetUnassignedNotes)
+
+	db.Create(&models.Note{UserID: user.ID, Content: "Call Alice"})
+	db.Create(&models.Note{UserID: user.ID, Content: "Call Bob"})
+
+	req, _ := http.NewRequest("GET", "/notes?search=alice", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var responseBody map[string]any
+	json.Unmarshal(w.Body.Bytes(), &responseBody)
+
+	noteItems, ok := responseBody["notes"].([]any)
+	if !ok {
+		t.Fatalf("expected notes array in response")
+	}
+	assert.Len(t, noteItems, 1)
+	assert.EqualValues(t, 1, responseBody["total"])
 }
 
 func TestCreateNote(t *testing.T) {
@@ -186,6 +218,37 @@ func TestCreateNote(t *testing.T) {
 	var responseBody map[string]any
 	json.Unmarshal(w.Body.Bytes(), &responseBody)
 	assert.Equal(t, "Note created successfully", responseBody["message"])
+}
+
+func TestCreateUnassignedNoteWithoutContactID(t *testing.T) {
+	_, router := setupRouter()
+
+	router.POST("/notes", middleware.ValidateJSONMiddleware(&models.NoteInput{}), CreateUnassignedNote)
+
+	noteDate := time.Now()
+	newNote := models.NoteInput{
+		Content: "This is a floating note without a contact.",
+		Date:    noteDate,
+	}
+
+	jsonValue, _ := json.Marshal(newNote)
+
+	req, _ := http.NewRequest("POST", "/notes", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response struct {
+		Message string      `json:"message"`
+		Note    models.Note `json:"note"`
+	}
+	json.Unmarshal(w.Body.Bytes(), &response)
+
+	assert.Equal(t, "Note created successfully", response.Message)
+	assert.Nil(t, response.Note.ContactID)
 }
 
 func TestUpdateNote(t *testing.T) {

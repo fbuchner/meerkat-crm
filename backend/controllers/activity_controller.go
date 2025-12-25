@@ -7,6 +7,7 @@ import (
 	"meerkat/models"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -121,17 +122,38 @@ func GetActivities(c *gin.Context) {
 	offset := (page - 1) * limit
 
 	includeContacts := c.DefaultQuery("include", "") == "contacts"
+	search := strings.ToLower(strings.TrimSpace(c.Query("search")))
 
 	var activities []models.Activity
 	var total int64
 
-	// Get the total count of activities
-	db.Model(&models.Activity{}).Where("user_id = ?", userID).Count(&total)
+	baseQuery := db.Model(&models.Activity{}).
+		Where("activities.user_id = ?", userID)
 
-	// Build the query with optional preloading and ordering by date in descending order
-	query := db.Model(&models.Activity{}).
-		Where("user_id = ?", userID).
-		Order("date DESC").
+	if search != "" {
+		like := "%" + search + "%"
+		searchClause := db.Where("LOWER(activities.title) LIKE ?", like).
+			Or("LOWER(activities.description) LIKE ?", like).
+			Or("LOWER(activities.location) LIKE ?", like).
+			Or("LOWER(COALESCE(contacts.firstname, '')) LIKE ?", like).
+			Or("LOWER(COALESCE(contacts.lastname, '')) LIKE ?", like).
+			Or("LOWER(COALESCE(contacts.nickname, '')) LIKE ?", like)
+
+		baseQuery = baseQuery.
+			Select("DISTINCT activities.*").
+			Joins("LEFT JOIN activity_contacts ON activity_contacts.activity_id = activities.id").
+			Joins("LEFT JOIN contacts ON contacts.id = activity_contacts.contact_id AND contacts.user_id = ?", userID).
+			Where(searchClause)
+	}
+
+	countQuery := baseQuery.Session(&gorm.Session{})
+	if err := countQuery.Count(&total).Error; err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to count activities").WithError(err))
+		return
+	}
+
+	query := baseQuery.Session(&gorm.Session{}).
+		Order("activities.date DESC, activities.id DESC").
 		Limit(limit).
 		Offset(offset)
 
@@ -140,13 +162,11 @@ func GetActivities(c *gin.Context) {
 		logger.FromContext(c).Debug().Msg("Preloading contacts for activities")
 	}
 
-	// Execute the query
 	if err := query.Find(&activities).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve activities").WithError(err))
 		return
 	}
 
-	// Include pagination metadata in response
 	c.JSON(http.StatusOK, gin.H{
 		"activities": activities,
 		"total":      total,

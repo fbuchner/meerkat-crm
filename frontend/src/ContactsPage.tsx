@@ -110,7 +110,7 @@ export default function ContactsPage({ token }: { token: string }) {
         {t('contacts.title')}
       </Typography>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} mb={2} alignItems="center">
-        <FormControl sx={{ minWidth: 120 }} size="small">
+        <FormControl sx={{ minWidth: 180 }} size="small">
           <InputLabel id="circle-select-label">{t('contacts.filterByCircle')}</InputLabel>
           <Select
             labelId="circle-select-label"

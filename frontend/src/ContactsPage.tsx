@@ -184,7 +184,7 @@ export default function ContactsPage({ token }: { token: string }) {
                     {contact.firstname} {contact.nickname && `"${contact.nickname}"`} {contact.lastname}
                   </Typography>
                   <Stack direction="row" spacing={0.5} mt={0.5} flexWrap="wrap" gap={0.5}>
-                    {contact.circles && contact.circles.map((circle: string) => (
+                    {contact.circles && contact.circles.filter((circle, idx, arr) => arr.indexOf(circle) === idx).map((circle: string) => (
                       <Chip
                         key={`${contact.ID}-${circle}`}
                         label={circle}

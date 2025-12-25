@@ -46,16 +46,27 @@ func GetProfilePicture(c *gin.Context) {
 
 	uploadDir := os.Getenv("PROFILE_PHOTO_DIR")
 
-	if contact.Photo == "" {
+	// Check if thumbnail is requested via query parameter
+	wantsThumbnail := c.Query("thumbnail") == "true"
+
+	// Determine which photo to serve
+	var photoFilename string
+	if wantsThumbnail {
+		photoFilename = contact.PhotoThumbnail
+	} else {
+		photoFilename = contact.Photo
+	}
+
+	if photoFilename == "" {
 		filePath := "./static/placeholder-avatar.png"
 		c.File(filePath)
 		return
 	}
 
 	// Construct the full path to the image
-	filePath := filepath.Join(uploadDir, contact.Photo)
+	filePath := filepath.Join(uploadDir, photoFilename)
 
-	logger.FromContext(c).Debug().Str("file_path", filePath).Msg("Serving profile picture")
+	logger.FromContext(c).Debug().Str("file_path", filePath).Bool("thumbnail", wantsThumbnail).Msg("Serving profile picture")
 
 	// Check if the file exists
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {

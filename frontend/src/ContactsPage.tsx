@@ -62,12 +62,12 @@ export default function ContactsPage({ token }: { token: string }) {
     setPage(1);
   }, [searchQuery]);
 
-  // Fetch profile pictures when contacts change
+  // Fetch profile pictures (thumbnails) when contacts change
   useEffect(() => {
     const fetchProfilePics = async () => {
       const picPromises = contacts.map(async (contact) => {
         try {
-          const blob = await getContactProfilePicture(contact.ID, token);
+          const blob = await getContactProfilePicture(contact.ID, token, true);
           if (blob) {
             return { id: contact.ID, url: URL.createObjectURL(blob) };
           }

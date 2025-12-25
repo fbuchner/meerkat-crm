@@ -39,13 +39,13 @@ function DashboardPage({ token }: DashboardPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load profile pictures for contacts
+  // Load profile pictures (thumbnails) for contacts
   const loadProfilePictures = useCallback(async (contacts: Contact[]) => {
     const pics: Record<number, string> = {};
     await Promise.all(
       contacts.map(async (contact) => {
         try {
-          const blob = await getContactProfilePicture(contact.ID, token);
+          const blob = await getContactProfilePicture(contact.ID, token, true);
           if (blob) {
             pics[contact.ID] = URL.createObjectURL(blob);
           }

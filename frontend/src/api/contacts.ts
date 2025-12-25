@@ -141,10 +141,14 @@ export async function deleteContact(
 // Get contact profile picture
 export async function getContactProfilePicture(
   id: string | number,
-  token: string
+  token: string,
+  thumbnail: boolean = false
 ): Promise<Blob | null> {
+  const url = thumbnail
+    ? `${API_BASE_URL}/contacts/${id}/profile_picture?thumbnail=true`
+    : `${API_BASE_URL}/contacts/${id}/profile_picture`;
   const response = await apiFetch(
-    `${API_BASE_URL}/contacts/${id}/profile_picture`,
+    url,
     { headers: { 'Authorization': `Bearer ${token}` } }
   );
 

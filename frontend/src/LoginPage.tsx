@@ -46,6 +46,14 @@ export default function LoginPage({ setToken }: LoginPageProps) {
   return (
     <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
       <Paper sx={{ p: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+          <Box
+            component="img"
+            src="/meerkat-crm-logo.svg"
+            alt="Meerkat CRM"
+            sx={{ width: 150, height: 'auto' }}
+          />
+        </Box>
         <Typography variant="h5" mb={2}>{t('login.title')}</Typography>
         <form onSubmit={handleSubmit}>
           <Stack spacing={2}>

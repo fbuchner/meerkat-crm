@@ -25,6 +25,7 @@
   },
   "login": {
     "title": "Anmelden",
+    "identifier": "Benutzername oder E-Mail",
     "email": "E-Mail",
     "password": "Passwort",
     "loginButton": "Anmelden",

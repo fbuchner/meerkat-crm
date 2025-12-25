@@ -95,13 +95,93 @@ func TestLoginUser(t *testing.T) {
 	newUser.Password = hashedPassword
 	db.Create(&newUser)
 
-	// Now try to login
-	loginUser := models.User{
+	// Now try to login with email
+	loginData := map[string]string{
+		"identifier": "testuser@example.com",
+		"password":   strongPassword,
+	}
+
+	jsonValue, _ := json.Marshal(loginData)
+	req, _ := http.NewRequest("POST", "/login", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var responseBody map[string]string
+	json.Unmarshal(w.Body.Bytes(), &responseBody)
+	assert.Contains(t, responseBody, "token")
+}
+
+func TestLoginUser_WithUsername(t *testing.T) {
+	config := config.Config{
+		JWTSecretKey:   "mysecretkey",
+		JWTExpiryHours: 24,
+	}
+
+	db, router := setupRouter()
+	router.POST("/login", func(c *gin.Context) {
+		LoginUser(c, &config)
+	})
+
+	// First, register a user to test login
+	newUser := models.User{
+		Username: "testuser",
 		Email:    "testuser@example.com",
 		Password: strongPassword,
 	}
+	hashedPassword, _ := services.HashPassword(newUser.Password)
+	newUser.Password = hashedPassword
+	db.Create(&newUser)
 
-	jsonValue, _ := json.Marshal(loginUser)
+	// Now try to login with username
+	loginData := map[string]string{
+		"identifier": "testuser",
+		"password":   strongPassword,
+	}
+
+	jsonValue, _ := json.Marshal(loginData)
+	req, _ := http.NewRequest("POST", "/login", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var responseBody map[string]string
+	json.Unmarshal(w.Body.Bytes(), &responseBody)
+	assert.Contains(t, responseBody, "token")
+}
+
+func TestLoginUser_LegacyEmailField(t *testing.T) {
+	config := config.Config{
+		JWTSecretKey:   "mysecretkey",
+		JWTExpiryHours: 24,
+	}
+
+	db, router := setupRouter()
+	router.POST("/login", func(c *gin.Context) {
+		LoginUser(c, &config)
+	})
+
+	// First, register a user to test login
+	newUser := models.User{
+		Username: "testuser",
+		Email:    "testuser@example.com",
+		Password: strongPassword,
+	}
+	hashedPassword, _ := services.HashPassword(newUser.Password)
+	newUser.Password = hashedPassword
+	db.Create(&newUser)
+
+	// Now try to login with legacy email field (backward compatibility)
+	loginData := map[string]string{
+		"email":    "testuser@example.com",
+		"password": strongPassword,
+	}
+
+	jsonValue, _ := json.Marshal(loginData)
 	req, _ := http.NewRequest("POST", "/login", bytes.NewBuffer(jsonValue))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -124,12 +204,12 @@ func TestLoginUser_InvalidCredentials(t *testing.T) {
 		LoginUser(c, &config)
 	})
 	// Try to login with unregistered user
-	loginUser := models.User{
-		Email:    "wronguser@example.com",
-		Password: "wrongpassword",
+	loginData := map[string]string{
+		"identifier": "wronguser@example.com",
+		"password":   "wrongpassword",
 	}
 
-	jsonValue, _ := json.Marshal(loginUser)
+	jsonValue, _ := json.Marshal(loginData)
 	req, _ := http.NewRequest("POST", "/login", bytes.NewBuffer(jsonValue))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -153,12 +233,12 @@ func TestLoginUser_InvalidInput(t *testing.T) {
 		LoginUser(c, &config)
 	})
 
-	// Trying to login with invalid input (missing email)
-	invalidUser := models.User{
-		Password: strongPassword,
+	// Trying to login with invalid input (missing identifier)
+	invalidData := map[string]string{
+		"password": strongPassword,
 	}
 
-	jsonValue, _ := json.Marshal(invalidUser)
+	jsonValue, _ := json.Marshal(invalidData)
 	req, _ := http.NewRequest("POST", "/login", bytes.NewBuffer(jsonValue))
 	req.Header.Set("Content-Type", "application/json")
 

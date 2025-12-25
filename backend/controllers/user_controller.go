@@ -3,6 +3,7 @@ package controllers
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"meerkat/config"
@@ -58,28 +59,50 @@ func RegisterUser(context *gin.Context) {
 	context.JSON(http.StatusCreated, gin.H{"message": "User registered successfully"})
 }
 
+// LoginInput represents the DTO for login requests
+type LoginInput struct {
+	Identifier string `json:"identifier"` // Can be username or email
+	Email      string `json:"email"`      // Legacy field for backward compatibility
+	Password   string `json:"password"`
+}
+
 func LoginUser(context *gin.Context, cfg *config.Config) {
-	var user models.User
+	var input LoginInput
 	var foundUser models.User
 
-	err := context.ShouldBindJSON(&user)
+	err := context.ShouldBindJSON(&input)
 	if err != nil {
 		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("", err.Error()))
 		return
 	}
 
-	if user.Email == "" {
-		apperrors.AbortWithError(context, apperrors.ErrMissingField("email"))
+	// Support both "identifier" and legacy "email" field
+	identifier := input.Identifier
+	if identifier == "" {
+		identifier = input.Email
+	}
+
+	if identifier == "" {
+		apperrors.AbortWithError(context, apperrors.ErrMissingField("identifier"))
 		return
 	}
 
-	if user.Password == "" {
+	if input.Password == "" {
 		apperrors.AbortWithError(context, apperrors.ErrMissingField("password"))
 		return
 	}
 
 	db := context.MustGet("db").(*gorm.DB)
-	if err := db.Where("email = ?", user.Email).First(&foundUser).Error; err != nil {
+
+	// Check if identifier contains @ to determine if it's an email or username
+	var query *gorm.DB
+	if strings.Contains(identifier, "@") {
+		query = db.Where("email = ?", identifier)
+	} else {
+		query = db.Where("username = ?", identifier)
+	}
+
+	if err := query.First(&foundUser).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			apperrors.AbortWithError(context, apperrors.ErrInvalidCredentials())
 		} else {
@@ -89,7 +112,7 @@ func LoginUser(context *gin.Context, cfg *config.Config) {
 	}
 
 	// Compare the hashed password
-	if err := bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(user.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(input.Password)); err != nil {
 		apperrors.AbortWithError(context, apperrors.ErrInvalidCredentials())
 		return
 	}

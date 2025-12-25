@@ -24,6 +24,7 @@ func init() {
 	validate.RegisterValidation("safe_string", validateSafeString)
 	validate.RegisterValidation("strong_password", validateStrongPassword)
 	validate.RegisterValidation("unique_circles", validateUniqueCircles)
+	validate.RegisterValidation("no_at_sign", validateNoAtSign)
 }
 
 // ValidationError represents a validation error response
@@ -72,6 +73,8 @@ func formatValidationError(err validator.FieldError) string {
 		return field + " is too weak. Use a longer password (15+ characters) or a passphrase (20+ characters). Avoid common passwords."
 	case "unique_circles":
 		return field + " cannot contain duplicate circles"
+	case "no_at_sign":
+		return field + " cannot contain the @ character"
 	case "url":
 		return field + " must be a valid URL"
 	default:
@@ -204,6 +207,12 @@ func validateUniqueCircles(fl validator.FieldLevel) bool {
 	}
 
 	return true
+}
+
+// validateNoAtSign checks that a string field does not contain the @ character
+func validateNoAtSign(fl validator.FieldLevel) bool {
+	value := fl.Field().String()
+	return !strings.Contains(value, "@")
 }
 
 // ValidateEmail validates email format with regex

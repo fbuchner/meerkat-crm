@@ -19,7 +19,7 @@ type LoginPageProps = {
 
 export default function LoginPage({ setToken }: LoginPageProps) {
   const { t } = useTranslation();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,7 +31,7 @@ export default function LoginPage({ setToken }: LoginPageProps) {
     setLoading(true);
     setError('');
     try {
-      const token = await loginUser(email, password);
+      const token = await loginUser(identifier, password);
       saveToken(token);
       if (setToken) setToken(token);
       navigate('/');
@@ -58,10 +58,10 @@ export default function LoginPage({ setToken }: LoginPageProps) {
         <form onSubmit={handleSubmit}>
           <Stack spacing={2}>
             <TextField
-              label={t('login.email')}
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              label={t('login.identifier')}
+              type="text"
+              value={identifier}
+              onChange={e => setIdentifier(e.target.value)}
               required
               fullWidth
             />

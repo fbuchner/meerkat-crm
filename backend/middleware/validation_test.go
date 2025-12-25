@@ -274,3 +274,58 @@ func TestValidateStruct_SafeString(t *testing.T) {
 		})
 	}
 }
+
+// TestValidateStruct_NoAtSign tests that usernames cannot contain @ character
+func TestValidateStruct_NoAtSign(t *testing.T) {
+	type TestStruct struct {
+		Username string `validate:"no_at_sign"`
+	}
+
+	tests := []struct {
+		name    string
+		input   string
+		isValid bool
+	}{
+		{
+			name:    "valid username without @",
+			input:   "johndoe",
+			isValid: true,
+		},
+		{
+			name:    "valid username with numbers",
+			input:   "john123",
+			isValid: true,
+		},
+		{
+			name:    "valid username with underscore",
+			input:   "john_doe",
+			isValid: true,
+		},
+		{
+			name:    "invalid - contains @",
+			input:   "john@doe",
+			isValid: false,
+		},
+		{
+			name:    "invalid - email-like",
+			input:   "john@example.com",
+			isValid: false,
+		},
+		{
+			name:    "empty string is valid (no @ present)",
+			input:   "",
+			isValid: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			obj := TestStruct{Username: tt.input}
+			errors := ValidateStruct(obj)
+			hasErrors := len(errors) > 0
+			if hasErrors == tt.isValid {
+				t.Errorf("ValidateStruct with username %q: hasErrors=%v, want isValid=%v", tt.input, hasErrors, tt.isValid)
+			}
+		})
+	}
+}

@@ -21,6 +21,9 @@ import LanguageIcon from '@mui/icons-material/Language';
 import LockResetIcon from '@mui/icons-material/LockReset';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import DownloadIcon from '@mui/icons-material/Download';
+import InfoIcon from '@mui/icons-material/Info';
+import GitHubIcon from '@mui/icons-material/GitHub';
+import Link from '@mui/material/Link';
 import { changePassword } from './api/auth';
 import { exportDataAsCsv } from './api/export';
 import { ThemePreference, useThemePreference } from './AppThemeProvider';
@@ -90,21 +93,53 @@ export default function SettingsPage() {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 2 }}>
-      <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
+      <Typography variant="h5" gutterBottom sx={{ mb: 1.5 }}>
         {t('settings.title')}
       </Typography>
 
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <LanguageIcon sx={{ mr: 1, color: 'text.secondary' }} />
-            <Typography variant="h6" sx={{ fontWeight: 500 }}>
+      <Card sx={{ mb: 2 }}>
+        <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <InfoIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+              {t('settings.about.title')}
+            </Typography>
+          </Box>
+          <Divider sx={{ mb: 1.5 }} />
+
+          <Stack spacing={1}>
+            <Typography variant="body2" color="text.secondary">
+              {t('settings.about.description')}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {t('settings.about.contribute')}
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+              <GitHubIcon sx={{ mr: 1, fontSize: 18, color: 'text.secondary' }} />
+              <Link
+                href="https://github.com/fbuchner/meerkat-crm"
+                target="_blank"
+                rel="noopener noreferrer"
+                underline="hover"
+              >
+                github.com/fbuchner/meerkat-crm
+              </Link>
+            </Box>
+          </Stack>
+        </CardContent>
+      </Card>
+
+      <Card sx={{ mb: 2 }}>
+        <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <LanguageIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
               {t('settings.language.title')}
             </Typography>
           </Box>
-          <Divider sx={{ mb: 3 }} />
+          <Divider sx={{ mb: 1.5 }} />
           
-          <FormControl fullWidth>
+          <FormControl fullWidth size="small">
             <InputLabel id="language-select-label">
               {t('settings.language.label')}
             </InputLabel>
@@ -119,23 +154,23 @@ export default function SettingsPage() {
             </Select>
           </FormControl>
           
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
             {t('settings.language.description')}
           </Typography>
         </CardContent>
       </Card>
 
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <DarkModeIcon sx={{ mr: 1, color: 'text.secondary' }} />
-            <Typography variant="h6" sx={{ fontWeight: 500 }}>
+      <Card sx={{ mb: 2 }}>
+        <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <DarkModeIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
               {t('settings.theme.title')}
             </Typography>
           </Box>
-          <Divider sx={{ mb: 3 }} />
+          <Divider sx={{ mb: 1.5 }} />
 
-          <FormControl fullWidth>
+          <FormControl fullWidth size="small">
             <InputLabel id="theme-select-label">
               {t('settings.theme.label')}
             </InputLabel>
@@ -151,29 +186,29 @@ export default function SettingsPage() {
             </Select>
           </FormControl>
 
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
             {t('settings.theme.description')}
           </Typography>
         </CardContent>
       </Card>
 
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <LockResetIcon sx={{ mr: 1, color: 'text.secondary' }} />
-            <Typography variant="h6" sx={{ fontWeight: 500 }}>
+      <Card sx={{ mb: 2 }}>
+        <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <LockResetIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
               {t('settings.password.title')}
             </Typography>
           </Box>
-          <Divider sx={{ mb: 3 }} />
+          <Divider sx={{ mb: 1.5 }} />
 
           <form onSubmit={handlePasswordChange}>
-            <Stack spacing={2}>
+            <Stack spacing={1.5}>
               <Typography variant="body2" color="text.secondary">
                 {t('settings.password.description')}
               </Typography>
-              {passwordError && <Alert severity="error">{passwordError}</Alert>}
-              {passwordSuccess && <Alert severity="success">{passwordSuccess}</Alert>}
+              {passwordError && <Alert severity="error" sx={{ py: 0 }}>{passwordError}</Alert>}
+              {passwordSuccess && <Alert severity="success" sx={{ py: 0 }}>{passwordSuccess}</Alert>}
               <TextField
                 label={t('settings.password.current')}
                 type="password"
@@ -181,6 +216,7 @@ export default function SettingsPage() {
                 onChange={event => setCurrentPassword(event.target.value)}
                 fullWidth
                 required
+                size="small"
               />
               <TextField
                 label={t('settings.password.new')}
@@ -189,6 +225,7 @@ export default function SettingsPage() {
                 onChange={event => setNewPassword(event.target.value)}
                 fullWidth
                 required
+                size="small"
               />
               <TextField
                 label={t('settings.password.confirm')}
@@ -197,8 +234,9 @@ export default function SettingsPage() {
                 onChange={event => setConfirmPassword(event.target.value)}
                 fullWidth
                 required
+                size="small"
               />
-              <Button type="submit" variant="contained" disabled={changingPassword}>
+              <Button type="submit" variant="contained" size="small" disabled={changingPassword}>
                 {changingPassword ? t('settings.password.changing') : t('settings.password.changeButton')}
               </Button>
             </Stack>
@@ -206,25 +244,26 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <DownloadIcon sx={{ mr: 1, color: 'text.secondary' }} />
-            <Typography variant="h6" sx={{ fontWeight: 500 }}>
+      <Card sx={{ mb: 2 }}>
+        <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <DownloadIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
               {t('settings.export.title')}
             </Typography>
           </Box>
-          <Divider sx={{ mb: 3 }} />
+          <Divider sx={{ mb: 1.5 }} />
 
-          <Stack spacing={2}>
+          <Stack spacing={1.5}>
             <Typography variant="body2" color="text.secondary">
               {t('settings.export.description')}
             </Typography>
-            {exportError && <Alert severity="error">{exportError}</Alert>}
-            {exportSuccess && <Alert severity="success">{exportSuccess}</Alert>}
+            {exportError && <Alert severity="error" sx={{ py: 0 }}>{exportError}</Alert>}
+            {exportSuccess && <Alert severity="success" sx={{ py: 0 }}>{exportSuccess}</Alert>}
             <Button
               variant="contained"
-              startIcon={exporting ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
+              size="small"
+              startIcon={exporting ? <CircularProgress size={16} color="inherit" /> : <DownloadIcon />}
               onClick={handleExportData}
               disabled={exporting}
             >

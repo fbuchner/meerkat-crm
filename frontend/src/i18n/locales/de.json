@@ -285,8 +285,13 @@
       "exporting": "Exportiere...",
       "success": "Ihre Daten wurden erfolgreich exportiert.",
       "error": "Daten konnten nicht exportiert werden. Bitte versuchen Sie es erneut."
+    },
+    "about": {
+      "title": "Über Meerkat CRM",
+      "description": "Meerkat CRM ist eine Open-Source-Anwendung zur persönlichen Kontaktverwaltung, die Ihnen hilft, Ihre Kontakte und Beziehungen zu pflegen.",
+      "contribute": "Mitwirkende sind willkommen! Sie können Probleme melden, Funktionen vorschlagen oder Code auf GitHub beitragen."
     }
-   },
+  },
   "pages": {
     "notes": "Notizen Seite",
     "activities": "Aktivitäten Seite",

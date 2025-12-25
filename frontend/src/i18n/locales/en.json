@@ -286,6 +286,11 @@
       "exporting": "Exporting...",
       "success": "Your data has been exported successfully.",
       "error": "Failed to export data. Please try again."
+    },
+    "about": {
+      "title": "About Meerkat CRM",
+      "description": "Meerkat CRM is an open source personal CRM application designed to help you manage your contacts and relationships.",
+      "contribute": "Contributors are welcome! You can report issues, suggest features, or contribute code on GitHub."
     }
   },
   "pages": {

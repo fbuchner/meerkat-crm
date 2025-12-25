@@ -1,5 +1,6 @@
 import { useState, useMemo, ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -239,9 +240,20 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
                 >
                   <Box>
                     <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-                      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', flex: 1 }}>
-                        {activity.description}
-                      </Typography>
+                      <Box sx={{ flex: 1, pr: 2 }}>
+                        {activity.title && (
+                          <Typography
+                            variant="body2"
+                            fontWeight={600}
+                            sx={{ wordBreak: 'break-word', color: 'text.primary' }}
+                          >
+                            {activity.title}
+                          </Typography>
+                        )}
+                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: activity.title ? 0.5 : 0 }}>
+                          {activity.description}
+                        </Typography>
+                      </Box>
                       <Box
                         className="edit-actions"
                         sx={{ opacity: 0, transition: 'opacity 0.2s', display: 'flex', gap: 1 }}
@@ -259,6 +271,9 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
                             label={`${contact.firstname} ${contact.lastname}`}
                             size="small"
                             variant="outlined"
+                            component={RouterLink}
+                            to={`/contacts/${contact.ID}`}
+                            clickable
                           />
                         ))}
                       </Box>

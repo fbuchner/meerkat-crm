@@ -107,25 +107,32 @@ export default function SettingsPage() {
           </Box>
           <Divider sx={{ mb: 1.5 }} />
 
-          <Stack spacing={1}>
-            <Typography variant="body2" color="text.secondary">
-              {t('settings.about.description')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {t('settings.about.contribute')}
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-              <GitHubIcon sx={{ mr: 1, fontSize: 18, color: 'text.secondary' }} />
-              <Link
-                href="https://github.com/fbuchner/meerkat-crm"
-                target="_blank"
-                rel="noopener noreferrer"
-                underline="hover"
-              >
-                github.com/fbuchner/meerkat-crm
-              </Link>
-            </Box>
-          </Stack>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+            <img
+              src="/meerkat-crm-logo.svg"
+              alt="Meerkat CRM Logo"
+              style={{ height: 100, flexShrink: 0 }}
+            />
+            <Stack spacing={1}>
+              <Typography variant="body2" color="text.secondary">
+                {t('settings.about.description')}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {t('settings.about.contribute')}
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                <GitHubIcon sx={{ mr: 1, fontSize: 18, color: 'text.secondary' }} />
+                <Link
+                  href="https://github.com/fbuchner/meerkat-crm"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  underline="hover"
+                >
+                  github.com/fbuchner/meerkat-crm
+                </Link>
+              </Box>
+            </Stack>
+          </Box>
         </CardContent>
       </Card>
 

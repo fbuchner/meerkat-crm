@@ -21,6 +21,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Relationship, RelationshipFormData, RELATIONSHIP_TYPES } from '../api/relationships';
 import { Contact, getContacts } from '../api/contacts';
+import { useSnackbar } from '../context/SnackbarContext';
+import { ApiError } from '../api/client';
 
 interface AddRelationshipDialogProps {
   open: boolean;
@@ -42,6 +44,7 @@ export default function AddRelationshipDialog({
   currentContactId,
 }: AddRelationshipDialogProps) {
   const { t } = useTranslation();
+  const { showError } = useSnackbar();
   const [entryMode, setEntryMode] = useState<EntryMode>('manual');
   const [name, setName] = useState('');
   const [type, setType] = useState('');
@@ -191,7 +194,15 @@ export default function AddRelationshipDialog({
       await onSave(data);
       handleClose();
     } catch (err) {
-      setError(t('relationships.saveFailed'));
+      if (err instanceof ApiError) {
+        const errorMessage = err.getDisplayMessage();
+        setError(errorMessage);
+        showError(errorMessage);
+      } else {
+        const errorMessage = t('relationships.saveFailed');
+        setError(errorMessage);
+        showError(errorMessage);
+      }
     } finally {
       setSaving(false);
     }

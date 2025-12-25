@@ -177,13 +177,14 @@ func processAndSavePhoto(file *multipart.FileHeader, uploadDir string) (string, 
 	}
 
 	// Save the original photo as JPG
+	fullPhoto := resize.Resize(125, 125, img, resize.Lanczos3)
 	fullPhotoPath := filepath.Join(uploadDir, photoPath)
-	if err := saveImage(fullPhotoPath, img); err != nil {
+	if err := saveImage(fullPhotoPath, fullPhoto); err != nil {
 		return "", "", err
 	}
 
 	// Create and save the thumbnail
-	thumbnail := resize.Resize(100, 100, img, resize.Lanczos3)
+	thumbnail := resize.Resize(48, 48, img, resize.Lanczos3)
 	fullThumbnailPath := filepath.Join(uploadDir, thumbnailPath)
 	if err := saveImage(fullThumbnailPath, thumbnail); err != nil {
 		return "", "", err

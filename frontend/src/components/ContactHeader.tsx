@@ -73,8 +73,8 @@ export default function ContactHeader({
             <Avatar
               src={profilePic || undefined}
               sx={{ 
-                width: 56, 
-                height: 56,
+                width: 90, 
+                height: 90,
                 cursor: 'pointer',
                 '&:hover': { opacity: 0.8 }
               }}

@@ -1,5 +1,5 @@
 // Relationship-related API calls
-import { apiFetch, API_BASE_URL, getAuthHeaders } from './client';
+import { apiFetch, API_BASE_URL, getAuthHeaders, parseErrorResponse } from './client';
 import { Contact } from './contacts';
 
 export interface Relationship {
@@ -60,7 +60,7 @@ export async function createRelationship(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to create relationship');
+    throw await parseErrorResponse(response);
   }
 
   const result = await response.json();
@@ -84,7 +84,7 @@ export async function updateRelationship(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to update relationship');
+    throw await parseErrorResponse(response);
   }
 
   const result = await response.json();

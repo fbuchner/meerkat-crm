@@ -84,7 +84,7 @@ export default function ContactTimeline({ timelineItems, onEditItem }: ContactTi
                   </Typography>
                 )}
                 {item.type === 'activity' && (item.data as Activity).contacts && (item.data as Activity).contacts!.length > 0 && (
-                  <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
+                  <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
                     <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
                       👥
                     </Typography>
@@ -103,12 +103,12 @@ export default function ContactTimeline({ timelineItems, onEditItem }: ContactTi
                             '&:hover': { textDecoration: 'underline' }
                           }}
                         >
-                          {activityContact.firstname}
-                          {activityContact.nickname ? ` "${activityContact.nickname}"` : ''}
+                          {activityContact.firstname}{' '}
+                          {activityContact.nickname ? `"${activityContact.nickname}" ` : ''}
                           {activityContact.lastname}
                         </Link>
                         {idx < (item.data as Activity).contacts!.length - 1 && (
-                          <Typography variant="caption" color="text.secondary">, </Typography>
+                          <Typography variant="caption" color="text.secondary">,&nbsp;</Typography>
                         )}
                       </Fragment>
                     ))}

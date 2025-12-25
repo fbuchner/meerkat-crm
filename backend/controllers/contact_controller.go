@@ -321,7 +321,7 @@ func UpdateContact(c *gin.Context) {
 	contact.ContactInformation = contactInput.ContactInformation
 	contact.Circles = contactInput.Circles
 
-	db.Updates(&contact)
+	db.Save(&contact)
 
 	c.JSON(http.StatusOK, contact)
 }

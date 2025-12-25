@@ -46,7 +46,7 @@ export default function LoginPage({ setToken }: LoginPageProps) {
   return (
     <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
       <Paper sx={{ p: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
           <Box
             component="img"
             src="/meerkat-crm-logo.svg"

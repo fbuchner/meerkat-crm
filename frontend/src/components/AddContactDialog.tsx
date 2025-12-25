@@ -75,7 +75,7 @@ export default function AddContactDialog({
 
   const handleSubmit = async () => {
     // Validate required fields
-    if (!formData.firstname.trim() || !formData.lastname.trim()) {
+    if (!formData.firstname.trim()) {
       setError(t('contacts.add.requiredFields'));
       return;
     }
@@ -184,7 +184,6 @@ export default function AddContactDialog({
               fullWidth
               value={formData.lastname}
               onChange={handleChange('lastname')}
-              required
             />
           </Stack>
           <Stack direction="row" spacing={2}>

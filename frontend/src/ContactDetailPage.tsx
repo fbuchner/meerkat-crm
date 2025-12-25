@@ -332,8 +332,8 @@ export default function ContactDetailPage({ token }: { token: string }) {
   };
 
   const handleSaveProfile = async () => {
-    if (!contact || !profileValues.firstname.trim() || !profileValues.lastname.trim()) {
-      alert('First name and last name are required');
+    if (!contact || !profileValues.firstname.trim()) {
+      alert('First name is required');
       return;
     }
 

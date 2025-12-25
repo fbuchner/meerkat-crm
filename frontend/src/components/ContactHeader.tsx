@@ -117,7 +117,6 @@ export default function ContactHeader({
                   value={profileValues.lastname}
                   onChange={(e) => onProfileValueChange({ ...profileValues, lastname: e.target.value })}
                   size="small"
-                  required
                 />
                 <TextField
                   label={t('contactDetail.nickname')}

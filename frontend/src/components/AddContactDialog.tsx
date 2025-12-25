@@ -17,6 +17,8 @@ import {
 } from '@mui/material';
 import { createContact } from '../api/contacts';
 import { createReminder } from '../api/reminders';
+import { useSnackbar } from '../context/SnackbarContext';
+import { ApiError } from '../api/client';
 
 interface AddContactDialogProps {
   open: boolean;
@@ -34,6 +36,7 @@ export default function AddContactDialog({
   availableCircles
 }: AddContactDialogProps) {
   const { t } = useTranslation();
+  const { showError, showSuccess } = useSnackbar();
   const [formData, setFormData] = useState({
     firstname: '',
     lastname: '',
@@ -119,10 +122,19 @@ export default function AddContactDialog({
       }
 
       onContactAdded();
+      showSuccess(t('contacts.add.success'));
       handleClose();
     } catch (err) {
       console.error('Error creating contact:', err);
-      setError(t('contacts.add.error'));
+      if (err instanceof ApiError) {
+        const errorMessage = err.getDisplayMessage();
+        setError(errorMessage);
+        showError(errorMessage);
+      } else {
+        const errorMessage = t('contacts.add.error');
+        setError(errorMessage);
+        showError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }

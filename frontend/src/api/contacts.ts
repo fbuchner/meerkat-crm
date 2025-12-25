@@ -1,5 +1,5 @@
 // Contact-related API calls
-import { apiFetch, API_BASE_URL, getAuthHeaders } from './client';
+import { apiFetch, API_BASE_URL, getAuthHeaders, parseErrorResponse } from './client';
 
 export interface Contact {
   ID: number;
@@ -91,7 +91,7 @@ export async function createContact(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to create contact');
+    throw await parseErrorResponse(response);
   }
 
   const result = await response.json();
@@ -114,7 +114,7 @@ export async function updateContact(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to update contact');
+    throw await parseErrorResponse(response);
   }
 
   return response.json();

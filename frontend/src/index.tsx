@@ -7,6 +7,7 @@ import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 import reportWebVitals from './reportWebVitals';
 import './i18n/config';
 import { AppThemeProvider } from './AppThemeProvider';
+import { SnackbarProvider } from './context/SnackbarContext';
 
 // Error logging function (can be replaced with Sentry, LogRocket, etc.)
 const logError = (error: Error, errorInfo: React.ErrorInfo) => {
@@ -24,13 +25,15 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <AppThemeProvider>
-      <ErrorBoundary
-        name="Application"
-        onError={logError}
-        showDetails={process.env.NODE_ENV === 'development'}
-      >
-        <App />
-      </ErrorBoundary>
+      <SnackbarProvider>
+        <ErrorBoundary
+          name="Application"
+          onError={logError}
+          showDetails={process.env.NODE_ENV === 'development'}
+        >
+          <App />
+        </ErrorBoundary>
+      </SnackbarProvider>
     </AppThemeProvider>
   </React.StrictMode>
 );

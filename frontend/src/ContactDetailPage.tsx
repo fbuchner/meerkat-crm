@@ -46,6 +46,8 @@ import { useTimelineEditing } from './hooks/useTimelineEditing';
 import { useReminderManagement } from './hooks/useReminderManagement';
 import { useRelationships } from './hooks/useRelationships';
 import AddRelationshipDialog from './components/AddRelationshipDialog';
+import { useSnackbar } from './context/SnackbarContext';
+import { ApiError } from './api/client';
 
 interface Contact {
   ID: number;
@@ -70,6 +72,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { showError } = useSnackbar();
   const [contact, setContact] = useState<Contact | null>(null);
   const [profilePic, setProfilePic] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -251,6 +254,13 @@ export default function ContactDetailPage({ token }: { token: string }) {
       setValidationError('');
     } catch (err) {
       console.error('Error updating contact:', err);
+      if (err instanceof ApiError) {
+        const errorMessage = err.getDisplayMessage();
+        setValidationError(errorMessage);
+        showError(errorMessage);
+      } else {
+        showError(t('contactDetail.updateError'));
+      }
     }
   };
 
@@ -276,6 +286,11 @@ export default function ContactDetailPage({ token }: { token: string }) {
       setNewCircleName('');
     } catch (err) {
       console.error('Error adding circle:', err);
+      if (err instanceof ApiError) {
+        showError(err.getDisplayMessage());
+      } else {
+        showError(t('contactDetail.updateError'));
+      }
     }
   };
 
@@ -292,6 +307,11 @@ export default function ContactDetailPage({ token }: { token: string }) {
       setContact(updatedContact);
     } catch (err) {
       console.error('Error deleting circle:', err);
+      if (err instanceof ApiError) {
+        showError(err.getDisplayMessage());
+      } else {
+        showError(t('contactDetail.updateError'));
+      }
     }
   };
 
@@ -329,6 +349,11 @@ export default function ContactDetailPage({ token }: { token: string }) {
       setEditingProfile(false);
     } catch (err) {
       console.error('Error updating profile:', err);
+      if (err instanceof ApiError) {
+        showError(err.getDisplayMessage());
+      } else {
+        showError(t('contactDetail.updateError'));
+      }
     }
   };
 

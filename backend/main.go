@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"meerkat/config"
 	"meerkat/database"
@@ -11,6 +12,8 @@ import (
 	"meerkat/services"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"time"
 
@@ -137,7 +140,44 @@ func main() {
 		Int("idle_timeout", cfg.IdleTimeout).
 		Msg("Starting server")
 
-	if err := srv.ListenAndServe(); err != nil {
-		logger.Fatal().Err(err).Msg("Failed to run server")
+	// Graceful shutdown handling
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	// Start server in a goroutine
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal().Err(err).Msg("Failed to run server")
+		}
+	}()
+
+	logger.Info().Msg("Server is ready to handle requests")
+
+	// Block until we receive a shutdown signal
+	<-quit
+	logger.Info().Msg("Shutting down server...")
+
+	// Stop the scheduler first to prevent new jobs from starting
+	logger.Info().Msg("Stopping scheduler...")
+	s.Stop()
+
+	// Create a deadline to wait for active requests to complete
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Attempt graceful shutdown of HTTP server
+	if err := srv.Shutdown(ctx); err != nil {
+		logger.Error().Err(err).Msg("Server forced to shutdown")
 	}
+
+	// Close database connection
+	logger.Info().Msg("Closing database connection...")
+	sqlDB, err := db.DB()
+	if err == nil {
+		if err := sqlDB.Close(); err != nil {
+			logger.Error().Err(err).Msg("Error closing database connection")
+		}
+	}
+
+	logger.Info().Msg("Server exited gracefully")
 }

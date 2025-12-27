@@ -74,13 +74,9 @@ func main() {
 
 	r := gin.Default()
 
-	// CORS configuration with preflight caching
-	// MaxAge: Browsers cache preflight OPTIONS requests for 12 hours
-	// This reduces redundant OPTIONS requests and improves performance
-	//
-	// Note: When AllowCredentials is true, AllowOrigins cannot be "*"
-	// This is a security restriction in the CORS specification.
-	// For development, we allow any origin dynamically via AllowOriginFunc.
+	// Limit multipart form memory to 10MB to prevent DoS via large request bodies
+	r.MaxMultipartMemory = 10 << 20 // 10 MB
+
 	// For production, set FRONTEND_URL to specific origin(s) like "https://yourdomain.com"
 	corsConfig := cors.Config{
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -101,6 +97,9 @@ func main() {
 	}
 
 	r.Use(cors.New(corsConfig))
+
+	// Add request body size limit middleware (10MB default) to prevent DoS
+	r.Use(middleware.DefaultBodySizeLimitMiddleware())
 
 	// Add request ID middleware for tracing
 	r.Use(middleware.RequestIDMiddleware())

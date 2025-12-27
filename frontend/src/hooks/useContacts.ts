@@ -18,9 +18,13 @@ interface UseContactsResult {
 }
 
 export function useContacts(params: GetContactsParams = {}): UseContactsResult {
+  // Destructure params to use primitive values as dependencies
+  // This prevents re-fetches when callers pass new object references with identical values
+  const { page: paramPage, limit, search, circle } = params;
+
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(params.page || 1);
+  const [page, setPage] = useState(paramPage || 1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,7 +38,13 @@ export function useContacts(params: GetContactsParams = {}): UseContactsResult {
         throw new Error('No authentication token found');
       }
 
-      const data: ContactsResponse = await getContacts(params, token);
+      const fetchParams: GetContactsParams = {
+        page: paramPage,
+        limit,
+        search,
+        circle,
+      };
+      const data: ContactsResponse = await getContacts(fetchParams, token);
       setContacts(data.contacts || []);
       setTotal(data.total || 0);
       setPage(data.page || 1);
@@ -44,7 +54,7 @@ export function useContacts(params: GetContactsParams = {}): UseContactsResult {
     } finally {
       setLoading(false);
     }
-  }, [params]);
+  }, [paramPage, limit, search, circle]);
 
   useEffect(() => {
     fetchContacts();

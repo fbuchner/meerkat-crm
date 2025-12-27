@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/base64"
 	"errors"
 	apperrors "meerkat/errors"
 	"meerkat/logger"
@@ -87,7 +88,7 @@ func GetContacts(c *gin.Context) {
 	offset := (page - 1) * limit
 
 	// Define allowed fields and parse requested fields with validation
-	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles"}
+	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail"}
 	var selectedFields []string
 	fields := c.Query("fields")
 	if fields != "" {
@@ -168,9 +169,33 @@ func GetContacts(c *gin.Context) {
 
 	countQuery.Count(&total)
 
+	// Map contacts to ContactResponse with thumbnail URLs
+	uploadDir := os.Getenv("PROFILE_PHOTO_DIR")
+	contactResponses := make([]models.ContactResponse, len(contacts))
+	for i, contact := range contacts {
+		contactResponses[i] = models.ContactResponse{
+			Contact: contact,
+		}
+		// Add base64-encoded thumbnail if photo thumbnail exists
+		if contact.PhotoThumbnail != "" && uploadDir != "" {
+			thumbnailPath := filepath.Join(uploadDir, contact.PhotoThumbnail)
+			if fileData, err := os.ReadFile(thumbnailPath); err == nil {
+				// Detect content type from file extension
+				contentType := "image/jpeg"
+				ext := filepath.Ext(contact.PhotoThumbnail)
+				if ext == ".png" {
+					contentType = "image/png"
+				}
+				// Encode as base64 data URL
+				base64Data := base64.StdEncoding.EncodeToString(fileData)
+				contactResponses[i].ThumbnailURL = "data:" + contentType + ";base64," + base64Data
+			}
+		}
+	}
+
 	// Respond with contacts and pagination metadata
 	c.JSON(http.StatusOK, gin.H{
-		"contacts": contacts,
+		"contacts": contactResponses,
 		"total":    total,
 		"page":     page,
 		"limit":    limit,

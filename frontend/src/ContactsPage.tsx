@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useContacts } from './hooks/useContacts';
-import { getCircles, getContactProfilePicture } from './api/contacts';
+import { getCircles } from './api/contacts';
 import AddContactDialog from './components/AddContactDialog';
 import {
   Box,
@@ -25,7 +25,6 @@ export default function ContactsPage({ token }: { token: string }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [profilePics, setProfilePics] = useState<{ [key: string]: string }>({});
   const searchQuery = searchParams.get('search') || '';
   const [selectedCircle, setSelectedCircle] = useState('');
   const [circles, setCircles] = useState<string[]>([]);
@@ -61,47 +60,6 @@ export default function ContactsPage({ token }: { token: string }) {
   useEffect(() => {
     setPage(1);
   }, [searchQuery]);
-
-  // Fetch profile pictures (thumbnails) when contacts change
-  useEffect(() => {
-    const fetchProfilePics = async () => {
-      const picPromises = contacts.map(async (contact) => {
-        try {
-          const blob = await getContactProfilePicture(contact.ID, token, true);
-          if (blob) {
-            return { id: contact.ID, url: URL.createObjectURL(blob) };
-          }
-        } catch {
-          // Silently fail for profile picture loading
-        }
-        return { id: contact.ID, url: '' };
-      });
-      const picResults = await Promise.all(picPromises);
-      const picMap: { [key: string]: string } = {};
-      picResults.forEach(({ id, url }) => { picMap[id] = url; });
-      setProfilePics((prevPics) => {
-        // Revoke old blob URLs to prevent memory leaks
-        Object.values(prevPics).forEach((url) => {
-          if (url) URL.revokeObjectURL(url);
-        });
-        return picMap;
-      });
-    };
-    
-    if (contacts.length > 0) {
-      fetchProfilePics();
-    }
-
-    // Cleanup blob URLs on unmount
-    return () => {
-      setProfilePics((prevPics) => {
-        Object.values(prevPics).forEach((url) => {
-          if (url) URL.revokeObjectURL(url);
-        });
-        return {};
-      });
-    };
-  }, [contacts, token]);
 
   // Filter contacts by selected circle
   // With backend pagination, contacts are already filtered
@@ -194,7 +152,7 @@ export default function ContactsPage({ token }: { token: string }) {
                 }}
                 onClick={() => navigate(`/contacts/${contact.ID}`)}
               >
-                <Avatar src={profilePics[contact.ID] || undefined} sx={{ width: 48, height: 48, mr: 1.5 }} />
+                <Avatar src={contact.thumbnail_url || undefined} sx={{ width: 48, height: 48, mr: 1.5 }} />
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="body1" sx={{ fontWeight: 500 }}>
                     {contact.firstname} {contact.nickname && `"${contact.nickname}"`} {contact.lastname}

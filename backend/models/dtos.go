@@ -61,3 +61,9 @@ type RelationshipInput struct {
 	Birthday         string `json:"birthday" validate:"omitempty,birthday"`
 	RelatedContactID *uint  `json:"related_contact_id"`
 }
+
+// ContactResponse represents the DTO returned from GET /contacts with thumbnail URL
+type ContactResponse struct {
+	Contact
+	ThumbnailURL string `json:"thumbnail_url"`
+}

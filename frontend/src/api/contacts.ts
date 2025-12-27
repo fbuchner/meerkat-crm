@@ -16,6 +16,7 @@ export interface Contact {
   work_information?: string;
   contact_information?: string;
   circles?: string[];
+  thumbnail_url?: string;
 }
 
 export interface ContactsResponse {

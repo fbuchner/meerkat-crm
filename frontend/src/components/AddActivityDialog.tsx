@@ -9,16 +9,10 @@ import {
   Box,
   Autocomplete,
   Chip,
+  CircularProgress,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { API_BASE_URL, apiFetch } from '../api';
-
-interface Contact {
-  ID: number;
-  firstname: string;
-  lastname: string;
-  nickname?: string;
-}
+import { Contact, getContacts } from '../api/contacts';
 
 interface AddActivityDialogProps {
   open: boolean;
@@ -47,45 +41,55 @@ export default function AddActivityDialog({
   const [location, setLocation] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
-  const [allContacts, setAllContacts] = useState<Contact[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [searchInput, setSearchInput] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const fetchContacts = useCallback(async () => {
+  const loadContacts = useCallback(async (search: string = '') => {
     setLoading(true);
     try {
-      const response = await apiFetch(`${API_BASE_URL}/contacts?page=1&limit=1000`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setAllContacts(data.contacts || []);
-        
-        // Preselect contact if provided
-        if (preselectedContactId) {
-          const preselected = data.contacts.find((c: Contact) => c.ID === preselectedContactId);
-          if (preselected) {
-            setSelectedContacts([preselected]);
-          }
-        }
-      }
+      const response = await getContacts({ limit: 100, search }, token);
+      setContacts(response.contacts || []);
     } catch (err) {
       console.error('Failed to fetch contacts:', err);
     } finally {
       setLoading(false);
     }
-  }, [token, preselectedContactId]);
+  }, [token]);
 
+  // Load preselected contact on open
   useEffect(() => {
-    if (open) {
-      fetchContacts();
+    if (open && preselectedContactId) {
+      const loadPreselected = async () => {
+        try {
+          const response = await getContacts({ limit: 100 }, token);
+          const preselected = response.contacts.find((c: Contact) => c.ID === preselectedContactId);
+          if (preselected) {
+            setSelectedContacts([preselected]);
+          }
+          setContacts(response.contacts || []);
+        } catch (err) {
+          console.error('Failed to load preselected contact:', err);
+        }
+      };
+      loadPreselected();
+    } else if (open) {
+      loadContacts('');
     }
-  }, [open, fetchContacts]);
+  }, [open, preselectedContactId, token, loadContacts]);
+
+  // Debounced search effect
+  useEffect(() => {
+    if (!open) return;
+    
+    const timeoutId = setTimeout(() => {
+      loadContacts(searchInput);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchInput, open, loadContacts]);
 
   const handleSave = async () => {
     if (!title.trim() || !date) {
@@ -116,6 +120,8 @@ export default function AddActivityDialog({
     setLocation('');
     setDate(new Date().toISOString().split('T')[0]);
     setSelectedContacts([]);
+    setSearchInput('');
+    setContacts([]);
     setError('');
     onClose();
   };
@@ -176,16 +182,29 @@ export default function AddActivityDialog({
           
           <Autocomplete
             multiple
-            options={allContacts}
+            options={contacts}
             getOptionLabel={getContactLabel}
             value={selectedContacts}
             onChange={(_, newValue) => setSelectedContacts(newValue)}
+            onInputChange={(_, value) => setSearchInput(value)}
+            inputValue={searchInput}
             loading={loading}
+            filterOptions={(x) => x}
+            isOptionEqualToValue={(option, value) => option.ID === value.ID}
             renderInput={(params) => (
               <TextField
                 {...params}
                 label={t('activityDialog.contacts')}
                 placeholder={t('activityDialog.selectContacts')}
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {loading ? <CircularProgress color="inherit" size={20} /> : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
               />
             )}
             renderTags={(value, getTagProps) =>

@@ -6,6 +6,8 @@ import (
 	"meerkat/logger"
 	"meerkat/models"
 	"net/http"
+	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -381,7 +383,41 @@ func DeleteContact(c *gin.Context) {
 		return
 	}
 
+	// Cleanup profile photos after successful database transaction
+	// This is done outside the transaction since file deletion cannot be rolled back
+	deleteContactPhotos(c, contact)
+
 	c.JSON(http.StatusOK, gin.H{"message": "Contact deleted"})
+}
+
+// deleteContactPhotos removes the profile photo and thumbnail files for a contact
+func deleteContactPhotos(c *gin.Context, contact models.Contact) {
+	uploadDir := os.Getenv("PROFILE_PHOTO_DIR")
+	if uploadDir == "" {
+		return
+	}
+
+	log := logger.FromContext(c)
+
+	// Delete main photo if it exists
+	if contact.Photo != "" {
+		photoPath := filepath.Join(uploadDir, contact.Photo)
+		if err := os.Remove(photoPath); err != nil && !os.IsNotExist(err) {
+			log.Warn().Err(err).Str("path", photoPath).Msg("Failed to delete contact photo")
+		} else if err == nil {
+			log.Debug().Str("path", photoPath).Msg("Deleted contact photo")
+		}
+	}
+
+	// Delete thumbnail if it exists
+	if contact.PhotoThumbnail != "" {
+		thumbnailPath := filepath.Join(uploadDir, contact.PhotoThumbnail)
+		if err := os.Remove(thumbnailPath); err != nil && !os.IsNotExist(err) {
+			log.Warn().Err(err).Str("path", thumbnailPath).Msg("Failed to delete contact thumbnail")
+		} else if err == nil {
+			log.Debug().Str("path", thumbnailPath).Msg("Deleted contact thumbnail")
+		}
+	}
 }
 
 // GetCircles returns all unique circles associated with contacts.

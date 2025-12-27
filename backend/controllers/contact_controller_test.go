@@ -6,6 +6,8 @@ import (
 	"meerkat/models"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
@@ -543,4 +545,97 @@ func TestGetCircles(t *testing.T) {
 	json.Unmarshal(w.Body.Bytes(), &responseBody)
 	assert.Equal(t, int(3), len(responseBody))
 	assert.ElementsMatch(t, []string{"Friends", "Family", "Work"}, responseBody)
+}
+
+func TestDeleteContactCleansUpPhotos(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+
+	router.DELETE("/contacts/:id", DeleteContact)
+
+	// Create a temporary directory for test photos
+	tempDir, err := os.MkdirTemp("", "photo_test")
+	assert.NoError(t, err)
+	defer os.RemoveAll(tempDir)
+
+	// Set the PROFILE_PHOTO_DIR environment variable
+	originalDir := os.Getenv("PROFILE_PHOTO_DIR")
+	os.Setenv("PROFILE_PHOTO_DIR", tempDir)
+	defer os.Setenv("PROFILE_PHOTO_DIR", originalDir)
+
+	// Create test photo files
+	photoName := "test_photo.jpg"
+	thumbnailName := "test_thumbnail.jpg"
+	photoPath := filepath.Join(tempDir, photoName)
+	thumbnailPath := filepath.Join(tempDir, thumbnailName)
+
+	err = os.WriteFile(photoPath, []byte("fake photo data"), 0644)
+	assert.NoError(t, err)
+	err = os.WriteFile(thumbnailPath, []byte("fake thumbnail data"), 0644)
+	assert.NoError(t, err)
+
+	// Verify files exist
+	_, err = os.Stat(photoPath)
+	assert.NoError(t, err, "Photo file should exist before deletion")
+	_, err = os.Stat(thumbnailPath)
+	assert.NoError(t, err, "Thumbnail file should exist before deletion")
+
+	// Create a contact with photo references
+	contact := models.Contact{
+		UserID:         user.ID,
+		Firstname:      "Alice",
+		Lastname:       "Johnson",
+		Photo:          photoName,
+		PhotoThumbnail: thumbnailName,
+	}
+	db.Create(&contact)
+
+	// Make the request to delete the contact
+	req, _ := http.NewRequest("DELETE", "/contacts/"+strconv.Itoa(int(contact.ID)), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var respBody map[string]string
+	json.Unmarshal(w.Body.Bytes(), &respBody)
+	assert.Equal(t, "Contact deleted", respBody["message"])
+
+	// Verify photo files are deleted
+	_, err = os.Stat(photoPath)
+	assert.True(t, os.IsNotExist(err), "Photo file should be deleted")
+	_, err = os.Stat(thumbnailPath)
+	assert.True(t, os.IsNotExist(err), "Thumbnail file should be deleted")
+}
+
+func TestDeleteContactWithNoPhotos(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+
+	router.DELETE("/contacts/:id", DeleteContact)
+
+	// Create a contact without photos
+	contact := models.Contact{
+		UserID:         user.ID,
+		Firstname:      "Bob",
+		Lastname:       "Smith",
+		Photo:          "",
+		PhotoThumbnail: "",
+	}
+	db.Create(&contact)
+
+	// Make the request to delete the contact (should not error even without photos)
+	req, _ := http.NewRequest("DELETE", "/contacts/"+strconv.Itoa(int(contact.ID)), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var respBody map[string]string
+	json.Unmarshal(w.Body.Bytes(), &respBody)
+	assert.Equal(t, "Contact deleted", respBody["message"])
 }

@@ -35,7 +35,30 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			return []byte(cfg.JWTSecretKey), nil
 		})
 
-		if err != nil || !token.Valid {
+		if err != nil {
+			if ve, ok := err.(*jwt.ValidationError); ok {
+				if ve.Errors&jwt.ValidationErrorExpired != 0 {
+					c.JSON(http.StatusUnauthorized, gin.H{"error": "Token expired"})
+					c.Abort()
+					return
+				}
+				if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+					c.JSON(http.StatusUnauthorized, gin.H{"error": "Malformed token"})
+					c.Abort()
+					return
+				}
+				if ve.Errors&jwt.ValidationErrorSignatureInvalid != 0 {
+					c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token signature"})
+					c.Abort()
+					return
+				}
+			}
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			c.Abort()
+			return
+		}
+
+		if !token.Valid {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
 			return

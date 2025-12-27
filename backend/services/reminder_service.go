@@ -207,6 +207,13 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 
 	sort.Slice(userIDs, func(i, j int) bool { return userIDs[i] < userIDs[j] })
 
+	// Short-circuit if email sending is disabled - preserve reminders for when it's enabled
+	if !config.UseResend {
+		logger.Info().Int("reminder_count", len(reminders)).Msg("Email sending disabled (UseResend=false), skipping reminder mutations to preserve them")
+		return nil
+	}
+
+	var sendErrors int
 	for _, userID := range userIDs {
 		user, exists := userByID[userID]
 		if !exists {
@@ -216,13 +223,14 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 
 		userReminders := remindersByUser[userID]
 
-		if config.UseResend {
-			if err := sendReminderEmailFn(user, userReminders, config, db); err != nil {
-				logger.Error().Err(err).Uint("user_id", user.ID).Msg("Error sending daily reminder email")
-				return err
-			}
+		// Attempt to send email - if it fails, skip mutations for this user and continue to next
+		if err := sendReminderEmailFn(user, userReminders, config, db); err != nil {
+			logger.Error().Err(err).Uint("user_id", user.ID).Msg("Error sending daily reminder email, skipping mutations for this user")
+			sendErrors++
+			continue // Don't mutate reminders if email failed - allows retry on next run
 		}
 
+		// Only mutate reminders after successful email send
 		for _, reminder := range userReminders {
 			if reminder.Recurrence == "once" {
 				// Use Unscoped to hard delete the reminder permanently
@@ -242,6 +250,10 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 				logger.Error().Err(err).Uint("reminder_id", reminder.ID).Msg("Failed to update reminder after sending")
 			}
 		}
+	}
+
+	if sendErrors > 0 {
+		logger.Warn().Int("failed_users", sendErrors).Int("total_users", len(userIDs)).Msg("Some reminder emails failed to send")
 	}
 
 	return nil

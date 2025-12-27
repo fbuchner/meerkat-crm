@@ -106,6 +106,13 @@ func AddPhotoToContact(c *gin.Context) {
 	// Check if there's an uploaded file
 	file, err := c.FormFile("photo")
 	if err == nil {
+		// Validate file size (10MB limit to prevent DoS)
+		const maxFileSize = 10 * 1024 * 1024 // 10MB
+		if file.Size > maxFileSize {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "File too large. Maximum size is 10MB"})
+			return
+		}
+
 		// Handle the file upload
 		uploadDir := os.Getenv("PROFILE_PHOTO_DIR")
 		if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {

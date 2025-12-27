@@ -194,7 +194,8 @@ func TestAPIRateLimitMiddleware(t *testing.T) {
 }
 
 func TestCleanupStaleEntries(t *testing.T) {
-	limiter := NewIPRateLimiter(rate.Every(time.Second), 10)
+	// Create limiter with very short TTL for testing
+	limiter := NewIPRateLimiterWithTTL(rate.Every(time.Second), 10, 50*time.Millisecond)
 
 	// Add some limiters
 	limiter.GetLimiter("192.168.1.1")
@@ -202,23 +203,86 @@ func TestCleanupStaleEntries(t *testing.T) {
 	limiter.GetLimiter("192.168.1.3")
 
 	// Check we have 3 entries
-	limiter.mu.RLock()
-	count := len(limiter.ips)
-	limiter.mu.RUnlock()
-
-	if count != 3 {
+	if count := limiter.EntryCount(); count != 3 {
 		t.Errorf("Expected 3 limiters, got %d", count)
 	}
 
-	// Cleanup (all should be removed as they haven't been used)
+	// Cleanup immediately - entries should still exist (not past TTL)
+	limiter.CleanupStaleEntries()
+	if count := limiter.EntryCount(); count != 3 {
+		t.Errorf("Expected 3 limiters after immediate cleanup, got %d", count)
+	}
+
+	// Wait for TTL to expire
+	time.Sleep(60 * time.Millisecond)
+
+	// Cleanup (all should be removed as they're past TTL)
 	limiter.CleanupStaleEntries()
 
 	// Check entries were cleaned up
+	if countAfter := limiter.EntryCount(); countAfter != 0 {
+		t.Errorf("Expected 0 limiters after TTL expiry, got %d", countAfter)
+	}
+}
+
+func TestCleanupStaleEntries_PartiallyUsedLimiters(t *testing.T) {
+	// This test verifies the fix for the memory leak issue:
+	// Limiters that consumed tokens but then went inactive should be cleaned up
+	limiter := NewIPRateLimiterWithTTL(rate.Every(time.Second), 10, 50*time.Millisecond)
+
+	// Get a limiter and consume some tokens
+	rateLimiter := limiter.GetLimiter("192.168.1.1")
+	rateLimiter.Allow() // Consume a token
+	rateLimiter.Allow() // Consume another token
+
+	// Verify tokens were consumed (not at full capacity)
+	if rateLimiter.Tokens() >= 10 {
+		t.Error("Expected tokens to be consumed")
+	}
+
+	// Check we have the entry
+	if count := limiter.EntryCount(); count != 1 {
+		t.Errorf("Expected 1 limiter, got %d", count)
+	}
+
+	// Wait for TTL to expire
+	time.Sleep(60 * time.Millisecond)
+
+	// Cleanup should remove the entry even though tokens aren't at max
+	limiter.CleanupStaleEntries()
+
+	if count := limiter.EntryCount(); count != 0 {
+		t.Errorf("Expected 0 limiters after TTL expiry (even with consumed tokens), got %d", count)
+	}
+}
+
+func TestCleanupStaleEntries_ActiveLimitersSurvive(t *testing.T) {
+	limiter := NewIPRateLimiterWithTTL(rate.Every(time.Second), 10, 50*time.Millisecond)
+
+	// Add two IPs
+	limiter.GetLimiter("192.168.1.1")
+	limiter.GetLimiter("192.168.1.2")
+
+	// Wait a bit, but re-access one IP
+	time.Sleep(30 * time.Millisecond)
+	limiter.GetLimiter("192.168.1.1") // Refresh access time for IP 1
+
+	// Wait a bit more so IP 2's TTL expires but IP 1's doesn't
+	time.Sleep(30 * time.Millisecond)
+
+	limiter.CleanupStaleEntries()
+
+	// Only IP 1 should remain
+	if count := limiter.EntryCount(); count != 1 {
+		t.Errorf("Expected 1 limiter (active one), got %d", count)
+	}
+
+	// Verify IP 1 still exists by getting it again
 	limiter.mu.RLock()
-	countAfter := len(limiter.ips)
+	_, exists := limiter.ips["192.168.1.1"]
 	limiter.mu.RUnlock()
 
-	if countAfter != 0 {
-		t.Errorf("Expected 0 limiters after cleanup, got %d", countAfter)
+	if !exists {
+		t.Error("Expected active IP 192.168.1.1 to still exist")
 	}
 }

@@ -79,12 +79,28 @@ export default function ContactsPage({ token }: { token: string }) {
       const picResults = await Promise.all(picPromises);
       const picMap: { [key: string]: string } = {};
       picResults.forEach(({ id, url }) => { picMap[id] = url; });
-      setProfilePics(picMap);
+      setProfilePics((prevPics) => {
+        // Revoke old blob URLs to prevent memory leaks
+        Object.values(prevPics).forEach((url) => {
+          if (url) URL.revokeObjectURL(url);
+        });
+        return picMap;
+      });
     };
     
     if (contacts.length > 0) {
       fetchProfilePics();
     }
+
+    // Cleanup blob URLs on unmount
+    return () => {
+      setProfilePics((prevPics) => {
+        Object.values(prevPics).forEach((url) => {
+          if (url) URL.revokeObjectURL(url);
+        });
+        return {};
+      });
+    };
   }, [contacts, token]);
 
   // Filter contacts by selected circle

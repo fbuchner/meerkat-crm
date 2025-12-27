@@ -63,12 +63,13 @@ func main() {
 	}
 	s := gocron.NewScheduler(time.UTC)
 	task := func() {
-		if err := services.SendReminders(db, *cfg); err != nil {
+		// Use rate-limited version to prevent duplicate emails during rapid restarts
+		if err := services.SendRemindersWithRateLimit(db, *cfg); err != nil {
 			logger.Error().Err(err).Msg("Error sending reminders")
 		}
 	}
 	s.Every(1).Day().At(cfg.ReminderTime).Do(task)
-	go task() // Run initially once on startup
+	go task() // Run initially once on startup (rate-limited to prevent duplicates)
 	go s.StartBlocking()
 
 	r := gin.Default()

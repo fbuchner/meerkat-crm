@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { getContacts } from '../api/contacts';
 import { updateNote, deleteNote, Note } from '../api/notes';
 import { updateActivity, deleteActivity, Activity } from '../api/activities';
+import { handleError, handleFetchError, ErrorNotifier } from '../utils/errorHandler';
 
 export function useTimelineEditing(
   token: string,
   contactId: number | undefined,
-  onRefresh: () => Promise<void>
+  onRefresh: () => Promise<void>,
+  notifier?: ErrorNotifier
 ) {
   const [editingTimelineItem, setEditingTimelineItem] = useState<{ type: 'note' | 'activity'; id: number } | null>(null);
   const [editTimelineValues, setEditTimelineValues] = useState<{
@@ -38,7 +40,7 @@ export function useTimelineEditing(
           const data = await getContacts({ page: 1, limit: 1000 }, token);
           setAllContacts(data.contacts || []);
         } catch (err) {
-          console.error('Failed to fetch contacts:', err);
+          handleFetchError(err, 'fetching contacts for autocomplete');
         }
       }
 
@@ -69,7 +71,7 @@ export function useTimelineEditing(
       await onRefresh();
       handleCancelEditTimelineItem();
     } catch (err) {
-      console.error('Error updating note:', err);
+      handleError(err, { operation: 'updating note' }, notifier);
     }
   };
 
@@ -87,7 +89,7 @@ export function useTimelineEditing(
       await onRefresh();
       handleCancelEditTimelineItem();
     } catch (err) {
-      console.error('Error updating activity:', err);
+      handleError(err, { operation: 'updating activity' }, notifier);
     }
   };
 
@@ -97,7 +99,7 @@ export function useTimelineEditing(
       await onRefresh();
       handleCancelEditTimelineItem();
     } catch (err) {
-      console.error('Error deleting note:', err);
+      handleError(err, { operation: 'deleting note' }, notifier);
     }
   };
 
@@ -107,7 +109,7 @@ export function useTimelineEditing(
       await onRefresh();
       handleCancelEditTimelineItem();
     } catch (err) {
-      console.error('Error deleting activity:', err);
+      handleError(err, { operation: 'deleting activity' }, notifier);
     }
   };
 

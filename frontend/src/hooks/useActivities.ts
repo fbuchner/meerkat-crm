@@ -8,6 +8,7 @@ import {
   ActivitiesResponse,
   Activity 
 } from '../api/activities';
+import { handleFetchError } from '../utils/errorHandler';
 
 interface UseActivitiesResult {
   activities: Activity[];
@@ -66,8 +67,8 @@ export function useActivities(
       if (requestRef.current !== requestId) {
         return;
       }
-      console.error('Error fetching activities:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch activities');
+      const message = handleFetchError(err, 'fetching activities');
+      setError(message);
     } finally {
       if (requestRef.current === requestId) {
         setLoading(false);

@@ -22,7 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { Relationship, RelationshipFormData, RELATIONSHIP_TYPES } from '../api/relationships';
 import { Contact, getContacts } from '../api/contacts';
 import { useSnackbar } from '../context/SnackbarContext';
-import { ApiError } from '../api/client';
+import { handleError, handleFetchError, getErrorMessage } from '../utils/errorHandler';
 
 interface AddRelationshipDialogProps {
   open: boolean;
@@ -106,7 +106,7 @@ export default function AddRelationshipDialog({
       const filteredContacts = response.contacts.filter(c => c.ID !== currentContactId);
       setContacts(filteredContacts);
     } catch (err) {
-      console.error('Error loading contacts:', err);
+      handleFetchError(err, 'loading contacts');
     } finally {
       setContactsLoading(false);
     }
@@ -194,15 +194,9 @@ export default function AddRelationshipDialog({
       await onSave(data);
       handleClose();
     } catch (err) {
-      if (err instanceof ApiError) {
-        const errorMessage = err.getDisplayMessage();
-        setError(errorMessage);
-        showError(errorMessage);
-      } else {
-        const errorMessage = t('relationships.saveFailed');
-        setError(errorMessage);
-        showError(errorMessage);
-      }
+      handleError(err, { operation: 'saving relationship' }, { showError });
+      const errorMessage = getErrorMessage(err);
+      setError(errorMessage);
     } finally {
       setSaving(false);
     }

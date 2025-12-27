@@ -7,6 +7,7 @@ import {
   ContactsResponse,
   Contact 
 } from '../api/contacts';
+import { handleFetchError } from '../utils/errorHandler';
 
 interface UseContactsResult {
   contacts: Contact[];
@@ -49,8 +50,8 @@ export function useContacts(params: GetContactsParams = {}): UseContactsResult {
       setTotal(data.total || 0);
       setPage(data.page || 1);
     } catch (err) {
-      console.error('Error fetching contacts:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch contacts');
+      const message = handleFetchError(err, 'fetching contacts');
+      setError(message);
     } finally {
       setLoading(false);
     }

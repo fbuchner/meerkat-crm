@@ -18,7 +18,7 @@ import {
 import { createContact } from '../api/contacts';
 import { createReminder } from '../api/reminders';
 import { useSnackbar } from '../context/SnackbarContext';
-import { ApiError } from '../api/client';
+import { handleError, getErrorMessage } from '../utils/errorHandler';
 
 interface AddContactDialogProps {
   open: boolean;
@@ -125,16 +125,9 @@ export default function AddContactDialog({
       showSuccess(t('contacts.add.success'));
       handleClose();
     } catch (err) {
-      console.error('Error creating contact:', err);
-      if (err instanceof ApiError) {
-        const errorMessage = err.getDisplayMessage();
-        setError(errorMessage);
-        showError(errorMessage);
-      } else {
-        const errorMessage = t('contacts.add.error');
-        setError(errorMessage);
-        showError(errorMessage);
-      }
+      handleError(err, { operation: 'creating contact' }, { showError });
+      const errorMessage = getErrorMessage(err);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

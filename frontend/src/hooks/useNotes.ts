@@ -7,6 +7,7 @@ import {
   Note,
   GetNotesParams,
 } from '../api/notes';
+import { handleFetchError } from '../utils/errorHandler';
 
 interface UseNotesResult {
   notes: Note[];
@@ -54,8 +55,8 @@ export function useNotes(
         setLimit(data.limit || params.limit || 25);
       }
     } catch (err) {
-      console.error('Error fetching notes:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch notes');
+      const message = handleFetchError(err, 'fetching notes');
+      setError(message);
     } finally {
       setLoading(false);
     }

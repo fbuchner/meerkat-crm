@@ -48,6 +48,7 @@ import { useRelationships } from './hooks/useRelationships';
 import AddRelationshipDialog from './components/AddRelationshipDialog';
 import { useSnackbar } from './context/SnackbarContext';
 import { ApiError } from './api/client';
+import { handleFetchError } from './utils/errorHandler';
 
 interface Contact {
   ID: number;
@@ -112,7 +113,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
       const activitiesData = await getContactActivities(id, token);
       setActivities(activitiesData.activities || []);
     } catch (err) {
-      console.error('Error refreshing notes and activities:', err);
+      handleFetchError(err, 'refreshing notes and activities');
     }
   };
 
@@ -124,7 +125,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     setActivityDialogOpen,
     handleSaveNote,
     handleSaveActivity
-  } = useContactDialogs(id, token, refreshNotesAndActivities);
+  } = useContactDialogs(id, token, refreshNotesAndActivities, { showError });
 
   const {
     editingTimelineItem,
@@ -137,7 +138,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     handleDeleteNote,
     handleDeleteActivity,
     setEditTimelineValues
-  } = useTimelineEditing(token, contact?.ID, refreshNotesAndActivities);
+  } = useTimelineEditing(token, contact?.ID, refreshNotesAndActivities, { showError });
 
   const {
     reminders,
@@ -151,7 +152,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     handleAddReminder,
     setReminderDialogOpen,
     setEditingReminder
-  } = useReminderManagement(id, token);
+  } = useReminderManagement(id, token, { showError });
 
   const {
     relationships,
@@ -164,7 +165,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     handleAddRelationship,
     setRelationshipDialogOpen,
     setEditingRelationship,
-  } = useRelationships(id, token);
+  } = useRelationships(id, token, { showError });
 
   // Fetch contact details, notes, and activities
   useEffect(() => {

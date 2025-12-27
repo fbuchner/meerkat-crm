@@ -23,6 +23,7 @@ import WarningIcon from '@mui/icons-material/Warning';
 import { Contact, getRandomContacts, getUpcomingBirthdays, getContactProfilePicture, getContact } from './api/contacts';
 import { Reminder, getUpcomingReminders, completeReminder } from './api/reminders';
 import { ContactListSkeleton } from './components/LoadingSkeletons';
+import { handleFetchError, handleError } from './utils/errorHandler';
 
 interface DashboardPageProps {
   token: string;
@@ -99,8 +100,8 @@ function DashboardPage({ token }: DashboardPageProps) {
       setContactsMap(newContactsMap);
       await loadProfilePictures(uniqueContacts);
     } catch (err) {
-      console.error('Error loading dashboard data:', err);
-      setError(t('dashboard.error') || 'Failed to load dashboard data');
+      const message = handleFetchError(err, 'loading dashboard data');
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -124,7 +125,7 @@ function DashboardPage({ token }: DashboardPageProps) {
       const reminders = await getUpcomingReminders(token);
       setUpcomingReminders(reminders);
     } catch (err) {
-      console.error('Error completing reminder:', err);
+      handleError(err, { operation: 'completing reminder' });
     }
   };
 

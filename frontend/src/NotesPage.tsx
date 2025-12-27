@@ -26,6 +26,7 @@ import { useDebouncedValue } from './hooks/useDebounce';
 import { createUnassignedNote, updateNote, deleteNote, Note } from './api/notes';
 import AddNoteDialog from './components/AddNoteDialog';
 import EditTimelineItemDialog from './components/EditTimelineItemDialog';
+import { handleError } from './utils/errorHandler';
 
 interface NotesPageProps {
   token: string;
@@ -82,7 +83,7 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
       setAddDialogOpen(false);
       refetch();
     } catch (err) {
-      console.error('Failed to create note:', err);
+      handleError(err, { operation: 'creating note' });
       throw err;
     }
   };
@@ -107,7 +108,7 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
       setEditValues({});
       refetch();
     } catch (err) {
-      console.error('Failed to update note:', err);
+      handleError(err, { operation: 'updating note' });
     }
   };
 
@@ -125,7 +126,7 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
       setEditValues({});
       refetch();
     } catch (err) {
-      console.error('Failed to delete note:', err);
+      handleError(err, { operation: 'deleting note' });
     }
   };
 

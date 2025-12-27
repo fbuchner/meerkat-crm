@@ -7,21 +7,29 @@ import {
   Relationship,
   RelationshipFormData
 } from '../api/relationships';
+import { handleFetchError, handleError, ErrorNotifier } from '../utils/errorHandler';
 
-export function useRelationships(contactId: string | undefined, token: string) {
+export function useRelationships(
+  contactId: string | undefined,
+  token: string,
+  notifier?: ErrorNotifier
+) {
   const [relationships, setRelationships] = useState<Relationship[]>([]);
   const [relationshipDialogOpen, setRelationshipDialogOpen] = useState(false);
   const [editingRelationship, setEditingRelationship] = useState<Relationship | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const refreshRelationships = async () => {
     if (!contactId) return;
     setLoading(true);
+    setError(null);
     try {
       const response = await getRelationships(contactId, token);
       setRelationships(response.relationships || []);
     } catch (err) {
-      console.error('Error fetching relationships:', err);
+      const message = handleFetchError(err, 'fetching relationships');
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -40,7 +48,7 @@ export function useRelationships(contactId: string | undefined, token: string) {
       setRelationshipDialogOpen(false);
       setEditingRelationship(null);
     } catch (err) {
-      console.error('Error saving relationship:', err);
+      handleError(err, { operation: 'saving relationship' }, notifier);
       throw err;
     }
   };
@@ -57,7 +65,7 @@ export function useRelationships(contactId: string | undefined, token: string) {
       await deleteRelationship(contactId, relationshipId, token);
       await refreshRelationships();
     } catch (err) {
-      console.error('Error deleting relationship:', err);
+      handleError(err, { operation: 'deleting relationship' }, notifier);
       throw err;
     }
   };
@@ -72,6 +80,7 @@ export function useRelationships(contactId: string | undefined, token: string) {
     relationshipDialogOpen,
     editingRelationship,
     loading,
+    error,
     refreshRelationships,
     handleSaveRelationship,
     handleEditRelationship,

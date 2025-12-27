@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { createNote } from '../api/notes';
 import { createActivity } from '../api/activities';
+import { handleError, ErrorNotifier, getErrorMessage } from '../utils/errorHandler';
 
 export function useContactDialogs(
   contactId: string | undefined,
   token: string,
-  onRefresh: () => Promise<void>
+  onRefresh: () => Promise<void>,
+  notifier?: ErrorNotifier
 ) {
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
@@ -21,8 +23,8 @@ export function useContactDialogs(
       }, token);
       await onRefresh();
     } catch (err) {
-      console.error('Failed to save note:', err);
-      throw new Error('Failed to save note');
+      handleError(err, { operation: 'saving note' }, notifier);
+      throw new Error(getErrorMessage(err));
     }
   };
 
@@ -43,8 +45,8 @@ export function useContactDialogs(
       }, token);
       await onRefresh();
     } catch (err) {
-      console.error('Failed to save activity:', err);
-      throw new Error('Failed to save activity');
+      handleError(err, { operation: 'saving activity' }, notifier);
+      throw new Error(getErrorMessage(err));
     }
   };
 

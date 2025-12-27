@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { handleError, getErrorMessage } from '../utils/errorHandler';
 
 interface ProfilePictureUploadDialogProps {
   open: boolean;
@@ -136,8 +137,8 @@ export default function ProfilePictureUploadDialog({
       await onUpload(croppedImage);
       handleClose();
     } catch (err) {
-      console.error('Error uploading profile picture:', err);
-      setError(t('profilePicture.uploadError'));
+      handleError(err, { operation: 'uploading profile picture' });
+      setError(getErrorMessage(err));
     } finally {
       setUploading(false);
     }

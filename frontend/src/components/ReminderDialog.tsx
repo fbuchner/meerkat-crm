@@ -14,6 +14,7 @@ import {
   Alert
 } from '@mui/material';
 import { Reminder, ReminderFormData } from '../api/reminders';
+import { getErrorMessage } from '../utils/errorHandler';
 
 interface ReminderDialogProps {
   open: boolean;
@@ -84,8 +85,7 @@ export default function ReminderDialog({
       await onSave(reminderData);
       onClose();
     } catch (err) {
-      console.error('Error saving reminder:', err);
-      setError(err instanceof Error ? err.message : t('reminders.saveFailed'));
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

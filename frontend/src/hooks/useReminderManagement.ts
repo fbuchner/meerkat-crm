@@ -8,19 +8,27 @@ import {
   Reminder,
   ReminderFormData
 } from '../api/reminders';
+import { handleFetchError, handleError, ErrorNotifier } from '../utils/errorHandler';
 
-export function useReminderManagement(contactId: string | undefined, token: string) {
+export function useReminderManagement(
+  contactId: string | undefined,
+  token: string,
+  notifier?: ErrorNotifier
+) {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const refreshReminders = async () => {
     if (!contactId) return;
+    setError(null);
     try {
       const fetchedReminders = await getRemindersForContact(parseInt(contactId), token);
       setReminders(fetchedReminders);
     } catch (err) {
-      console.error('Error fetching reminders:', err);
+      const message = handleFetchError(err, 'fetching reminders');
+      setError(message);
     }
   };
 
@@ -37,7 +45,7 @@ export function useReminderManagement(contactId: string | undefined, token: stri
       setReminderDialogOpen(false);
       setEditingReminder(null);
     } catch (err) {
-      console.error('Error saving reminder:', err);
+      handleError(err, { operation: 'saving reminder' }, notifier);
       throw err;
     }
   };
@@ -47,7 +55,7 @@ export function useReminderManagement(contactId: string | undefined, token: stri
       await completeReminder(reminderId, token);
       await refreshReminders();
     } catch (err) {
-      console.error('Error completing reminder:', err);
+      handleError(err, { operation: 'completing reminder' }, notifier);
       throw err;
     }
   };
@@ -62,7 +70,7 @@ export function useReminderManagement(contactId: string | undefined, token: stri
       await deleteReminder(reminderId, token);
       await refreshReminders();
     } catch (err) {
-      console.error('Error deleting reminder:', err);
+      handleError(err, { operation: 'deleting reminder' }, notifier);
       throw err;
     }
   };
@@ -76,6 +84,7 @@ export function useReminderManagement(contactId: string | undefined, token: stri
     reminders,
     reminderDialogOpen,
     editingReminder,
+    error,
     refreshReminders,
     handleSaveReminder,
     handleCompleteReminder,

@@ -260,10 +260,3 @@ func ValidateJSONMiddleware(template interface{}) gin.HandlerFunc {
 		c.Next()
 	}
 }
-
-// SanitizeContactInput sanitizes contact input fields
-func SanitizeContactInput(contact interface{}) {
-	// Use reflection to sanitize string fields
-	// This is a placeholder - actual implementation would use reflection
-	// to iterate over struct fields and sanitize string fields
-}

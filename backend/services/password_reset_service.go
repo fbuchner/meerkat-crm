@@ -49,7 +49,6 @@ func SendPasswordResetEmail(email, token string, cfg *config.Config) error {
 
 	if !cfg.UseResend {
 		logger.Warn().Str("email", email).Msg("Resend disabled; password reset email not sent")
-		logger.Debug().Str("reset_token", token).Msg("Password reset token generated")
 		return nil
 	}
 

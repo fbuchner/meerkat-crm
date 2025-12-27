@@ -9,13 +9,10 @@ import './i18n/config';
 import { AppThemeProvider } from './AppThemeProvider';
 import { SnackbarProvider } from './context/SnackbarContext';
 
-// Error logging function (can be replaced with Sentry, LogRocket, etc.)
 const logError = (error: Error, errorInfo: React.ErrorInfo) => {
   console.error('Application Error:', error);
   console.error('Error Info:', errorInfo);
   
-  // TODO: Send to error tracking service
-  // Example: Sentry.captureException(error, { contexts: { react: { componentStack: errorInfo.componentStack } } });
 };
 
 const root = ReactDOM.createRoot(

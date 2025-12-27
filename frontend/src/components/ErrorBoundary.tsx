@@ -88,9 +88,6 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }
-
-    // TODO: Send to error tracking service (e.g., Sentry)
-    // logErrorToService(error, errorInfo);
   }
 
   /**

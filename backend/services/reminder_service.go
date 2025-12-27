@@ -293,23 +293,58 @@ func sendReminderEmail(user models.User, reminders []models.Reminder, config con
 	return nil
 }
 
-// CalculateNextReminderTime determines the next reminder date based on recurrence settings
+// addMonths adds the specified number of months to a date, clamping to the last
+// valid day of the target month to handle edge cases like Jan 31 + 1 month -> Feb 28/29
+func addMonths(t time.Time, months int) time.Time {
+	// Get the original day of month
+	originalDay := t.Day()
+
+	// Add months using Go's AddDate (which may overflow into next month)
+	result := t.AddDate(0, months, 0)
+
+	// If the day changed unexpectedly (overflow occurred), clamp to last day of target month
+	// For example: Jan 31 + 1 month = March 3 (in non-leap year), we want Feb 28
+	if result.Day() != originalDay {
+		// Go back to the last day of the previous month (the intended target month)
+		result = result.AddDate(0, 0, -result.Day())
+	}
+
+	return result
+}
+
+// addYears adds the specified number of years to a date, handling Feb 29 edge case
+func addYears(t time.Time, years int) time.Time {
+	originalDay := t.Day()
+	result := t.AddDate(years, 0, 0)
+
+	// Handle Feb 29 -> Feb 28 transition for leap year edge case
+	if result.Day() != originalDay {
+		result = result.AddDate(0, 0, -result.Day())
+	}
+
+	return result
+}
+
+// CalculateNextReminderTime determines the next reminder date based on recurrence settings.
+// All calculations are done in UTC to ensure consistency.
 func CalculateNextReminderTime(reminder models.Reminder) time.Time {
-	// Determine the base time to use for calculation
-	now := time.Now()
+	// Normalize to UTC for consistent calculations
+	now := time.Now().UTC()
+	remindAtUTC := reminder.RemindAt.UTC()
+
 	var baseTime time.Time
 	// Default to true if not specified (nil)
 	reoccurFromCompletion := reminder.ReoccurFromCompletion == nil || *reminder.ReoccurFromCompletion
 	if reoccurFromCompletion {
-		if reminder.RemindAt.After(now) {
-			// For reminders in the future, use the original remind at time (e.g. if I already complete a monthly reminder set for next week I am remindet again next week in one month)
-			baseTime = reminder.RemindAt
+		if remindAtUTC.After(now) {
+			// For reminders in the future, use the original remind at time (e.g. if I already complete a monthly reminder set for next week I am reminded again next week in one month)
+			baseTime = remindAtUTC
 		} else {
 			// For reminders in the past use now as reference (if I complete a weekly reminder that was due last week, the next reminder is in one week from today)
-			baseTime = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+			baseTime = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 		}
 	} else {
-		baseTime = reminder.RemindAt
+		baseTime = remindAtUTC
 	}
 
 	switch reminder.Recurrence {
@@ -319,13 +354,13 @@ func CalculateNextReminderTime(reminder models.Reminder) time.Time {
 	case "weekly":
 		return baseTime.AddDate(0, 0, 7)
 	case "monthly":
-		return baseTime.AddDate(0, 1, 0)
+		return addMonths(baseTime, 1)
 	case "quarterly":
-		return baseTime.AddDate(0, 3, 0)
+		return addMonths(baseTime, 3)
 	case "six-months":
-		return baseTime.AddDate(0, 6, 0)
+		return addMonths(baseTime, 6)
 	case "yearly":
-		return baseTime.AddDate(1, 0, 0)
+		return addYears(baseTime, 1)
 	default:
 		// If the recurrence type is unrecognized, return the original RemindAt
 		logger.Warn().Str("recurrence", reminder.Recurrence).Uint("reminder_id", reminder.ID).Msg("Unrecognized recurrence type")

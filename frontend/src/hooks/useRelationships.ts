@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   getRelationships,
   createRelationship,
@@ -20,7 +20,7 @@ export function useRelationships(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refreshRelationships = async () => {
+  const refreshRelationships = useCallback(async () => {
     if (!contactId) return;
     setLoading(true);
     setError(null);
@@ -33,7 +33,7 @@ export function useRelationships(
     } finally {
       setLoading(false);
     }
-  };
+  }, [contactId, token]);
 
   const handleSaveRelationship = async (data: RelationshipFormData) => {
     if (!contactId) return;

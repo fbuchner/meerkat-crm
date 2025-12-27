@@ -201,8 +201,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
         }
       })
       .catch(err => console.error('Error fetching profile picture:', err));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, token]);
+  }, [id, token, refreshReminders, refreshRelationships]);
 
   // Combine and sort notes and activities for timeline
   const timelineItems: Array<{ type: 'note' | 'activity'; data: Note | Activity; date: string }> = [

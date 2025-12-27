@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   getRemindersForContact,
   createReminder,
@@ -20,7 +20,7 @@ export function useReminderManagement(
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const refreshReminders = async () => {
+  const refreshReminders = useCallback(async () => {
     if (!contactId) return;
     setError(null);
     try {
@@ -30,7 +30,7 @@ export function useReminderManagement(
       const message = handleFetchError(err, 'fetching reminders');
       setError(message);
     }
-  };
+  }, [contactId, token]);
 
   const handleSaveReminder = async (reminderData: ReminderFormData) => {
     if (!contactId) return;

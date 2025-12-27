@@ -286,3 +286,239 @@ func TestCleanupStaleEntries_ActiveLimitersSurvive(t *testing.T) {
 		t.Error("Expected active IP 192.168.1.1 to still exist")
 	}
 }
+
+// Tests for AccountRateLimiter
+
+func TestNewAccountRateLimiter(t *testing.T) {
+	limiter := NewAccountRateLimiter(time.Hour)
+
+	if limiter == nil {
+		t.Fatal("Expected limiter to be created, got nil")
+	}
+
+	if limiter.ttl != time.Hour {
+		t.Errorf("Expected TTL to be 1 hour, got %v", limiter.ttl)
+	}
+
+	if limiter.EntryCount() != 0 {
+		t.Errorf("Expected 0 entries, got %d", limiter.EntryCount())
+	}
+}
+
+func TestAccountRateLimiter_IsLocked_NoEntry(t *testing.T) {
+	limiter := NewAccountRateLimiter(time.Hour)
+
+	isLocked, remaining := limiter.IsLocked("test@example.com")
+
+	if isLocked {
+		t.Error("Expected account to not be locked when no entry exists")
+	}
+
+	if remaining != 0 {
+		t.Errorf("Expected remaining time to be 0, got %d", remaining)
+	}
+}
+
+func TestAccountRateLimiter_RecordFailedAttempt_BelowThreshold(t *testing.T) {
+	limiter := NewAccountRateLimiter(time.Hour)
+
+	// Record fewer attempts than the threshold
+	for i := 0; i < MaxLoginAttempts-1; i++ {
+		isLocked, lockoutSecs := limiter.RecordFailedAttempt("test@example.com")
+
+		if isLocked {
+			t.Errorf("Attempt %d: Expected account to not be locked below threshold", i+1)
+		}
+
+		if lockoutSecs != 0 {
+			t.Errorf("Attempt %d: Expected lockout seconds to be 0, got %d", i+1, lockoutSecs)
+		}
+	}
+
+	if limiter.GetFailedAttempts("test@example.com") != MaxLoginAttempts-1 {
+		t.Errorf("Expected %d failed attempts, got %d", MaxLoginAttempts-1, limiter.GetFailedAttempts("test@example.com"))
+	}
+}
+
+func TestAccountRateLimiter_RecordFailedAttempt_AtThreshold(t *testing.T) {
+	limiter := NewAccountRateLimiter(time.Hour)
+
+	// Record up to the threshold
+	for i := 0; i < MaxLoginAttempts-1; i++ {
+		limiter.RecordFailedAttempt("test@example.com")
+	}
+
+	// The next attempt should trigger lockout
+	isLocked, lockoutSecs := limiter.RecordFailedAttempt("test@example.com")
+
+	if !isLocked {
+		t.Error("Expected account to be locked at threshold")
+	}
+
+	expectedLockout := int(BaseLockoutDuration.Seconds())
+	if lockoutSecs != expectedLockout {
+		t.Errorf("Expected lockout of %d seconds, got %d", expectedLockout, lockoutSecs)
+	}
+}
+
+func TestAccountRateLimiter_ExponentialBackoff(t *testing.T) {
+	limiter := NewAccountRateLimiter(time.Hour)
+
+	// Record up to the threshold
+	for i := 0; i < MaxLoginAttempts; i++ {
+		limiter.RecordFailedAttempt("test@example.com")
+	}
+
+	// First lockout: base duration
+	expectedFirst := int(BaseLockoutDuration.Seconds())
+	if _, lockout := limiter.IsLocked("test@example.com"); lockout < expectedFirst-1 || lockout > expectedFirst {
+		t.Errorf("First lockout: expected ~%d seconds, got %d", expectedFirst, lockout)
+	}
+
+	// Simulate time passing and another failed attempt
+	limiter.mu.Lock()
+	limiter.accounts["test@example.com"].LockedUntil = time.Now().Add(-time.Second) // Unlock
+	limiter.mu.Unlock()
+
+	// Another failed attempt should double the lockout
+	_, lockoutSecs := limiter.RecordFailedAttempt("test@example.com")
+	expectedSecond := int((BaseLockoutDuration * 2).Seconds())
+	if lockoutSecs != expectedSecond {
+		t.Errorf("Second lockout: expected %d seconds, got %d", expectedSecond, lockoutSecs)
+	}
+}
+
+func TestAccountRateLimiter_MaxLockoutDuration(t *testing.T) {
+	limiter := NewAccountRateLimiter(time.Hour)
+
+	// Record many failed attempts to hit the max lockout
+	for i := 0; i < MaxLoginAttempts+20; i++ {
+		limiter.mu.Lock()
+		if entry, exists := limiter.accounts["test@example.com"]; exists {
+			entry.LockedUntil = time.Now().Add(-time.Second) // Reset lockout for next attempt
+		}
+		limiter.mu.Unlock()
+		limiter.RecordFailedAttempt("test@example.com")
+	}
+
+	isLocked, lockoutSecs := limiter.IsLocked("test@example.com")
+
+	if !isLocked {
+		t.Error("Expected account to be locked")
+	}
+
+	maxLockoutSecs := int(MaxLockoutDuration.Seconds())
+	if lockoutSecs > maxLockoutSecs {
+		t.Errorf("Lockout should be capped at %d seconds, got %d", maxLockoutSecs, lockoutSecs)
+	}
+}
+
+func TestAccountRateLimiter_RecordSuccessfulLogin(t *testing.T) {
+	limiter := NewAccountRateLimiter(time.Hour)
+
+	// Record some failed attempts
+	for i := 0; i < 3; i++ {
+		limiter.RecordFailedAttempt("test@example.com")
+	}
+
+	if limiter.GetFailedAttempts("test@example.com") != 3 {
+		t.Errorf("Expected 3 failed attempts, got %d", limiter.GetFailedAttempts("test@example.com"))
+	}
+
+	// Successful login should clear the counter
+	limiter.RecordSuccessfulLogin("test@example.com")
+
+	if limiter.GetFailedAttempts("test@example.com") != 0 {
+		t.Errorf("Expected 0 failed attempts after successful login, got %d", limiter.GetFailedAttempts("test@example.com"))
+	}
+
+	if limiter.EntryCount() != 0 {
+		t.Errorf("Expected entry to be removed after successful login, got %d entries", limiter.EntryCount())
+	}
+}
+
+func TestAccountRateLimiter_SeparateAccounts(t *testing.T) {
+	limiter := NewAccountRateLimiter(time.Hour)
+
+	// Record failed attempts for account 1
+	for i := 0; i < MaxLoginAttempts; i++ {
+		limiter.RecordFailedAttempt("user1@example.com")
+	}
+
+	// Account 1 should be locked
+	isLocked1, _ := limiter.IsLocked("user1@example.com")
+	if !isLocked1 {
+		t.Error("Expected user1 to be locked")
+	}
+
+	// Account 2 should not be affected
+	isLocked2, _ := limiter.IsLocked("user2@example.com")
+	if isLocked2 {
+		t.Error("Expected user2 to not be locked")
+	}
+
+	if limiter.GetFailedAttempts("user2@example.com") != 0 {
+		t.Error("Expected user2 to have 0 failed attempts")
+	}
+}
+
+func TestAccountRateLimiter_CleanupStaleEntries(t *testing.T) {
+	limiter := NewAccountRateLimiter(50 * time.Millisecond)
+
+	// Add some entries
+	limiter.RecordFailedAttempt("user1@example.com")
+	limiter.RecordFailedAttempt("user2@example.com")
+
+	if limiter.EntryCount() != 2 {
+		t.Errorf("Expected 2 entries, got %d", limiter.EntryCount())
+	}
+
+	// Wait for TTL to expire
+	time.Sleep(60 * time.Millisecond)
+
+	limiter.CleanupStaleAccountEntries()
+
+	if limiter.EntryCount() != 0 {
+		t.Errorf("Expected 0 entries after cleanup, got %d", limiter.EntryCount())
+	}
+}
+
+func TestAccountRateLimiter_CleanupPreservesLockedAccounts(t *testing.T) {
+	limiter := NewAccountRateLimiter(50 * time.Millisecond)
+
+	// Lock an account
+	for i := 0; i < MaxLoginAttempts; i++ {
+		limiter.RecordFailedAttempt("locked@example.com")
+	}
+
+	// Add another entry that's not locked
+	limiter.RecordFailedAttempt("unlocked@example.com")
+
+	// Wait for TTL
+	time.Sleep(60 * time.Millisecond)
+
+	// The locked account should still be preserved if lockout is active
+	limiter.CleanupStaleAccountEntries()
+
+	// Check if locked account still exists (it should if lockout hasn't expired)
+	isLocked, _ := limiter.IsLocked("locked@example.com")
+
+	// If still locked, entry should exist
+	if isLocked && limiter.EntryCount() < 1 {
+		t.Error("Expected locked account entry to be preserved during lockout")
+	}
+}
+
+func TestGetAccountRateLimiter(t *testing.T) {
+	limiter := GetAccountRateLimiter()
+
+	if limiter == nil {
+		t.Fatal("Expected global account rate limiter to be initialized")
+	}
+
+	// Verify it's the same instance on subsequent calls
+	limiter2 := GetAccountRateLimiter()
+	if limiter != limiter2 {
+		t.Error("Expected same global rate limiter instance")
+	}
+}

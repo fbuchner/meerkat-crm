@@ -9,6 +9,141 @@ import (
 	"golang.org/x/time/rate"
 )
 
+// Account lockout configuration
+const (
+	// MaxLoginAttempts before account lockout kicks in
+	MaxLoginAttempts = 5
+	// BaseLockoutDuration is the initial lockout period (doubles with each subsequent failure)
+	BaseLockoutDuration = 1 * time.Minute
+	// MaxLockoutDuration caps the exponential backoff
+	MaxLockoutDuration = 30 * time.Minute
+	// AccountLockoutTTL is how long to remember failed attempts after last failure
+	AccountLockoutTTL = 1 * time.Hour
+)
+
+// AccountLockoutEntry tracks failed login attempts per account
+type AccountLockoutEntry struct {
+	FailedAttempts int
+	LockedUntil    time.Time
+	LastAttempt    time.Time
+}
+
+// AccountRateLimiter manages per-account login rate limiting with exponential backoff
+type AccountRateLimiter struct {
+	accounts map[string]*AccountLockoutEntry
+	mu       sync.RWMutex
+	ttl      time.Duration
+}
+
+// NewAccountRateLimiter creates a new account-based rate limiter
+func NewAccountRateLimiter(ttl time.Duration) *AccountRateLimiter {
+	return &AccountRateLimiter{
+		accounts: make(map[string]*AccountLockoutEntry),
+		ttl:      ttl,
+	}
+}
+
+// IsLocked checks if an account is currently locked out
+// Returns (isLocked, remainingLockoutSeconds)
+func (a *AccountRateLimiter) IsLocked(identifier string) (bool, int) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	entry, exists := a.accounts[identifier]
+	if !exists {
+		return false, 0
+	}
+
+	now := time.Now()
+	if entry.LockedUntil.After(now) {
+		remaining := int(entry.LockedUntil.Sub(now).Seconds())
+		return true, remaining
+	}
+
+	return false, 0
+}
+
+// RecordFailedAttempt records a failed login attempt and applies exponential backoff
+// Returns (isNowLocked, lockoutDurationSeconds)
+func (a *AccountRateLimiter) RecordFailedAttempt(identifier string) (bool, int) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	now := time.Now()
+	entry, exists := a.accounts[identifier]
+
+	if !exists {
+		entry = &AccountLockoutEntry{
+			FailedAttempts: 0,
+			LastAttempt:    now,
+		}
+		a.accounts[identifier] = entry
+	}
+
+	entry.FailedAttempts++
+	entry.LastAttempt = now
+
+	// Apply lockout if we've exceeded max attempts
+	if entry.FailedAttempts >= MaxLoginAttempts {
+		// Calculate exponential backoff: base * 2^(attempts - maxAttempts)
+		exponent := entry.FailedAttempts - MaxLoginAttempts
+		lockoutDuration := BaseLockoutDuration * time.Duration(1<<exponent)
+
+		// Cap at max lockout duration
+		if lockoutDuration > MaxLockoutDuration {
+			lockoutDuration = MaxLockoutDuration
+		}
+
+		entry.LockedUntil = now.Add(lockoutDuration)
+		return true, int(lockoutDuration.Seconds())
+	}
+
+	return false, 0
+}
+
+// RecordSuccessfulLogin clears the failed attempt counter for an account
+func (a *AccountRateLimiter) RecordSuccessfulLogin(identifier string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	delete(a.accounts, identifier)
+}
+
+// GetFailedAttempts returns the current failed attempt count for an account
+func (a *AccountRateLimiter) GetFailedAttempts(identifier string) int {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	entry, exists := a.accounts[identifier]
+	if !exists {
+		return 0
+	}
+	return entry.FailedAttempts
+}
+
+// CleanupStaleAccountEntries removes entries that haven't had activity within TTL
+func (a *AccountRateLimiter) CleanupStaleAccountEntries() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	now := time.Now()
+	for identifier, entry := range a.accounts {
+		// Remove entries where:
+		// 1. Lockout has expired AND
+		// 2. Last attempt was more than TTL ago
+		if entry.LockedUntil.Before(now) && now.Sub(entry.LastAttempt) > a.ttl {
+			delete(a.accounts, identifier)
+		}
+	}
+}
+
+// EntryCount returns the number of tracked accounts (for testing/monitoring)
+func (a *AccountRateLimiter) EntryCount() int {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return len(a.accounts)
+}
+
 // Default TTL for rate limiter entries (10 minutes of inactivity)
 const defaultLimiterTTL = 10 * time.Minute
 
@@ -102,7 +237,16 @@ var (
 	// General API rate limiter
 	// 100 requests per minute with burst of 500
 	apiLimiter = NewIPRateLimiter(rate.Every(600*time.Millisecond), 500)
+
+	// Per-account rate limiter for login attempts
+	// Tracks failed attempts per username/email with exponential backoff
+	accountLimiter = NewAccountRateLimiter(AccountLockoutTTL)
 )
+
+// GetAccountRateLimiter returns the global account rate limiter for login attempts
+func GetAccountRateLimiter() *AccountRateLimiter {
+	return accountLimiter
+}
 
 // Start cleanup routine to prevent memory leaks
 func init() {
@@ -113,6 +257,7 @@ func init() {
 		for range ticker.C {
 			authLimiter.CleanupStaleEntries()
 			apiLimiter.CleanupStaleEntries()
+			accountLimiter.CleanupStaleAccountEntries()
 		}
 	}()
 }

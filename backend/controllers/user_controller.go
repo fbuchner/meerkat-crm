@@ -92,6 +92,19 @@ func LoginUser(context *gin.Context, cfg *config.Config) {
 		return
 	}
 
+	// Check per-account rate limiting before attempting authentication
+	accountLimiter := middleware.GetAccountRateLimiter()
+	if isLocked, remainingSecs := accountLimiter.IsLocked(identifier); isLocked {
+		context.JSON(http.StatusTooManyRequests, gin.H{
+			"error":          "Account temporarily locked",
+			"message":        "Too many failed login attempts. Please try again later.",
+			"retry_after":    remainingSecs,
+			"retry_after_at": time.Now().Add(time.Duration(remainingSecs) * time.Second).Format(time.RFC3339),
+		})
+		context.Abort()
+		return
+	}
+
 	db := context.MustGet("db").(*gorm.DB)
 
 	// Check if identifier contains @ to determine if it's an email or username
@@ -104,6 +117,8 @@ func LoginUser(context *gin.Context, cfg *config.Config) {
 
 	if err := query.First(&foundUser).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Record failed attempt even for non-existent users to prevent enumeration
+			accountLimiter.RecordFailedAttempt(identifier)
 			apperrors.AbortWithError(context, apperrors.ErrInvalidCredentials())
 		} else {
 			apperrors.AbortWithError(context, apperrors.ErrDatabase("Failed to query user").WithError(err))
@@ -113,9 +128,24 @@ func LoginUser(context *gin.Context, cfg *config.Config) {
 
 	// Compare the hashed password
 	if err := bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(input.Password)); err != nil {
+		// Record failed attempt for password mismatch
+		isLocked, lockoutSecs := accountLimiter.RecordFailedAttempt(identifier)
+		if isLocked {
+			context.JSON(http.StatusTooManyRequests, gin.H{
+				"error":          "Account temporarily locked",
+				"message":        "Too many failed login attempts. Please try again later.",
+				"retry_after":    lockoutSecs,
+				"retry_after_at": time.Now().Add(time.Duration(lockoutSecs) * time.Second).Format(time.RFC3339),
+			})
+			context.Abort()
+			return
+		}
 		apperrors.AbortWithError(context, apperrors.ErrInvalidCredentials())
 		return
 	}
+
+	// Successful login - clear any failed attempt tracking
+	accountLimiter.RecordSuccessfulLogin(identifier)
 
 	// Create JWT token
 	tokenString, err := services.GenerateToken(foundUser, cfg)

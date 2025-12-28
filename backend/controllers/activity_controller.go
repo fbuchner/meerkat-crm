@@ -6,7 +6,6 @@ import (
 	"meerkat/logger"
 	"meerkat/models"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -108,18 +107,7 @@ func GetActivities(c *gin.Context) {
 	}
 
 	// Get pagination parameters from query
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "25"))
-
-	if page < 1 {
-		page = 1
-	}
-	if limit < 1 {
-		limit = 25
-	}
-
-	// Calculate offset
-	offset := (page - 1) * limit
+	pagination := GetPaginationParams(c)
 
 	includeContacts := c.DefaultQuery("include", "") == "contacts"
 	search := strings.ToLower(strings.TrimSpace(c.Query("search")))
@@ -154,8 +142,8 @@ func GetActivities(c *gin.Context) {
 
 	query := baseQuery.Session(&gorm.Session{}).
 		Order("activities.date DESC, activities.id DESC").
-		Limit(limit).
-		Offset(offset)
+		Limit(pagination.Limit).
+		Offset(pagination.Offset)
 
 	if includeContacts {
 		query = query.Preload("Contacts", "contacts.user_id = ?", userID)
@@ -170,8 +158,8 @@ func GetActivities(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"activities": activities,
 		"total":      total,
-		"page":       page,
-		"limit":      limit,
+		"page":       pagination.Page,
+		"limit":      pagination.Limit,
 	})
 }
 

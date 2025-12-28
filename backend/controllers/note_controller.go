@@ -6,7 +6,6 @@ import (
 	"meerkat/logger"
 	"meerkat/models"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -152,15 +151,7 @@ func GetUnassignedNotes(c *gin.Context) {
 		return
 	}
 
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "25"))
-	if page < 1 {
-		page = 1
-	}
-	if limit < 1 {
-		limit = 25
-	}
-	offset := (page - 1) * limit
+	pagination := GetPaginationParams(c)
 	search := strings.ToLower(strings.TrimSpace(c.Query("search")))
 
 	baseQuery := db.Model(&models.Note{}).
@@ -180,8 +171,8 @@ func GetUnassignedNotes(c *gin.Context) {
 
 	if err := baseQuery.Session(&gorm.Session{}).
 		Order("notes.date DESC, notes.id DESC").
-		Limit(limit).
-		Offset(offset).
+		Limit(pagination.Limit).
+		Offset(pagination.Offset).
 		Find(&notes).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve unassigned notes").WithError(err))
 		return
@@ -190,8 +181,8 @@ func GetUnassignedNotes(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"notes": notes,
 		"total": total,
-		"page":  page,
-		"limit": limit,
+		"page":  pagination.Page,
+		"limit": pagination.Limit,
 	})
 }
 

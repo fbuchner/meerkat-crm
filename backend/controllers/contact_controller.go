@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -76,16 +75,7 @@ func GetContacts(c *gin.Context) {
 		return
 	}
 
-	// Get pagination parameters
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "25"))
-	if page < 1 {
-		page = 1
-	}
-	if limit < 1 || limit > 100 {
-		limit = 25
-	}
-	offset := (page - 1) * limit
+	pagination := GetPaginationParams(c)
 
 	// Define allowed fields and parse requested fields with validation
 	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail"}
@@ -116,7 +106,7 @@ func GetContacts(c *gin.Context) {
 	}
 
 	var contacts []models.Contact
-	query := db.Model(&models.Contact{}).Where("user_id = ?", userID).Limit(limit).Offset(offset)
+	query := db.Model(&models.Contact{}).Where("user_id = ?", userID).Limit(pagination.Limit).Offset(pagination.Offset)
 
 	if len(selectedFields) > 0 {
 		query = query.Select(selectedFields)
@@ -197,8 +187,8 @@ func GetContacts(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"contacts": contactResponses,
 		"total":    total,
-		"page":     page,
-		"limit":    limit,
+		"page":     pagination.Page,
+		"limit":    pagination.Limit,
 	})
 }
 

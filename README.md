@@ -1,5 +1,9 @@
 # Meerkat CRM - a simple CRM for the personal life
 
+<p align="center">
+  <img src="assets/meerkat-crm-logo.svg" alt="Meerkat CRM Logo" width="180" />
+</p>
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go)](https://golang.org)
 [![React Version](https://img.shields.io/badge/React-19.2-61DAFB?logo=react)](https://reactjs.org)
@@ -13,6 +17,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
 ![Material--UI](https://img.shields.io/badge/Material--UI-007FFF?logo=mui&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
+
 
 ## About the project
 Meerkat CRM is a simple self-hosted solution to keep track of all your contacts. As your digital Rolodex it reminds you of birthdays, helps you to remember dietary habits as well as names of spouses of contacts - and much more.

@@ -58,7 +58,7 @@ func GetProfilePicture(c *gin.Context) {
 	}
 
 	if photoFilename == "" {
-		filePath := "./static/placeholder-avatar.png"
+		filePath := "./static/placeholder-avatar.svg"
 		c.File(filePath)
 		return
 	}

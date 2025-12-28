@@ -1,0 +1,17 @@
+*.db
+*.sqlite
+*.sqlite3
+static/photos/*
+!static/photos/.gitkeep
+.git
+.gitignore
+*.md
+.env
+my_environment.env
+*.test.go
+*_test.go
+.DS_Store
+.idea
+.vscode
+tmp/
+vendor/

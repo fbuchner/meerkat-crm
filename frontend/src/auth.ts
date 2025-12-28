@@ -1,7 +1,7 @@
 // src/auth.ts
 // Simple JWT auth service for meerkat crm frontend
 
-const API_SERVER_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+const API_SERVER_URL = process.env.REACT_APP_API_URL || '';
 export const API_BASE_URL = `${API_SERVER_URL}/api/v1`;
 
 export async function loginUser(identifier: string, password: string): Promise<string> {

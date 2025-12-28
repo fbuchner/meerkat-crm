@@ -35,6 +35,48 @@ Meerkat CRM is a simple self-hosted solution to keep track of all your contacts.
 
 ## Installation
 
+### Docker (Recommended)
+
+The easiest way to run Meerkat CRM is with Docker Compose:
+
+1. **Clone the repository:**
+    ```sh
+    git clone https://github.com/fbuchner/meerkat-crm.git
+    cd meerkat
+    ```
+
+2. **Configure environment:**
+    ```sh
+    # Copy the Docker environment template
+    cp .env.docker.example .env.docker
+    
+    # Edit with your settings (JWT_SECRET_KEY is required)
+    nano .env.docker
+    ```
+
+3. **Start the containers:**
+    ```sh
+    docker compose up -d
+    ```
+
+4. **Access the application:**
+    Open http://localhost:3000 in your browser.
+
+**Useful Docker commands:**
+```sh
+# View logs
+docker compose logs -f
+
+# Stop containers
+docker compose down
+
+# Rebuild after code changes
+docker compose up -d --build
+
+# Reset data (removes database and photos)
+docker compose down -v
+```
+
 ## Contributing
 
 ### Development

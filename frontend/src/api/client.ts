@@ -2,7 +2,9 @@
 import { getToken } from '../auth';
 
 // API base URL with versioning
-const API_SERVER_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+// In Docker with nginx proxy, leave REACT_APP_API_URL empty to use relative URLs
+// For local dev without proxy, set to http://localhost:8080
+const API_SERVER_URL = process.env.REACT_APP_API_URL || '';
 export const API_BASE_URL = `${API_SERVER_URL}/api/v1`;
 
 // Default request timeout in milliseconds (30 seconds)

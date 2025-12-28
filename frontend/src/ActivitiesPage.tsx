@@ -254,7 +254,9 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
           {activities.map((activity, index) => (
             <TimelineItem key={activity.ID}>
               <TimelineOppositeContent color="text.secondary" sx={{ flex: 0.2 }}>
-                {formatDate(activity.date)}
+                <Typography variant="body2">
+                  {formatDate(activity.date)}
+                </Typography>
               </TimelineOppositeContent>
               <TimelineSeparator>
                 <TimelineDot color="primary">

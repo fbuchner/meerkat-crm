@@ -233,7 +233,7 @@ func GetAllReminders(c *gin.Context) {
 	})
 }
 
-// GetUpcomingReminders returns reminders for the next 7 days or at least the next 10 reminders
+// GetUpcomingReminders returns all reminders due within the next 7 days when that set exceeds five, otherwise it ensures at least five upcoming reminders overall
 func GetUpcomingReminders(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
@@ -242,38 +242,37 @@ func GetUpcomingReminders(c *gin.Context) {
 		return
 	}
 
-	now := time.Now()
-	sevenDaysFromNow := now.AddDate(0, 0, 7)
+	sevenDaysFromNow := time.Now().AddDate(0, 0, 7)
 
-	// Get reminders for the next 7 days
+	// Get reminders due (or overdue) within the next 7 days
 	var remindersNext7Days []models.Reminder
-	if err := db.Where("user_id = ? AND remind_at >= ? AND remind_at <= ? AND completed = ?", userID, now, sevenDaysFromNow, false).
+	if err := db.Where("user_id = ? AND remind_at <= ? AND completed = ?", userID, sevenDaysFromNow, false).
 		Order("remind_at ASC").
 		Find(&remindersNext7Days).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve reminders").WithError(err))
 		return
 	}
 
-	// If we have at least 10 reminders, return them
-	if len(remindersNext7Days) >= 10 {
+	// If more than five reminders are due soon, return all of them
+	if len(remindersNext7Days) > 5 {
 		c.JSON(http.StatusOK, gin.H{
 			"reminders": remindersNext7Days,
 		})
 		return
 	}
 
-	// Otherwise, get the next 10 reminders regardless of date
-	var remindersNext10 []models.Reminder
-	if err := db.Where("user_id = ? AND remind_at >= ? AND completed = ?", userID, now, false).
+	// Otherwise, ensure we return at least the next five reminders overall
+	var remindersNext5 []models.Reminder
+	if err := db.Where("user_id = ? AND completed = ?", userID, false).
 		Order("remind_at ASC").
-		Limit(10).
-		Find(&remindersNext10).Error; err != nil {
+		Limit(5).
+		Find(&remindersNext5).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve reminders").WithError(err))
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"reminders": remindersNext10,
+		"reminders": remindersNext5,
 	})
 }
 

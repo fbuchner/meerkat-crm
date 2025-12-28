@@ -208,7 +208,9 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
           {notes.map((note, index) => (
             <TimelineItem key={note.ID}>
               <TimelineOppositeContent color="text.secondary" sx={{ flex: 0.2 }}>
-                {formatDate(note.date)}
+                <Typography variant="body2">
+                  {formatDate(note.date)}
+                </Typography>
               </TimelineOppositeContent>
               <TimelineSeparator>
                 <TimelineDot color="primary">
@@ -228,7 +230,7 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
                 >
                   <Box>
                     <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-                      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', flex: 1 }}>
+                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', flex: 1 }}>
                         {note.content}
                       </Typography>
                       <Box

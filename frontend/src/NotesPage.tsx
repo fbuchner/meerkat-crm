@@ -1,4 +1,4 @@
-import { useState, useMemo, ChangeEvent } from 'react';
+import { useState, useMemo, ChangeEvent, MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Box,
@@ -8,6 +8,7 @@ import {
   Button,
   IconButton,
   Pagination,
+  Popover,
 } from '@mui/material';
 import {
   Timeline,
@@ -20,6 +21,7 @@ import {
 } from '@mui/lab';
 import NoteIcon from '@mui/icons-material/Note';
 import EditIcon from '@mui/icons-material/Edit';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { ListSkeleton } from './components/LoadingSkeletons';
 import { useNotes } from './hooks/useNotes';
 import { useDebouncedValue } from './hooks/useDebounce';
@@ -59,6 +61,9 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [editValues, setEditValues] = useState<{ noteContent?: string; noteDate?: string }>({});
+  const [infoAnchorEl, setInfoAnchorEl] = useState<HTMLElement | null>(null);
+  const infoOpen = Boolean(infoAnchorEl);
+  const infoPopoverId = infoOpen ? 'notes-info-popover' : undefined;
 
   const handleSearchChange = (value: string) => {
     setSearchInput(value);
@@ -130,6 +135,14 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
     }
   };
 
+  const handleInfoClick = (event: MouseEvent<HTMLElement>) => {
+    setInfoAnchorEl(event.currentTarget);
+  };
+
+  const handleInfoClose = () => {
+    setInfoAnchorEl(null);
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -145,11 +158,31 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 2 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h5">{t('notes.title')}</Typography>
+        <Box display="flex" alignItems="center" gap={1}>
+          <Typography variant="h5">{t('notes.title')}</Typography>
+          <IconButton
+            size="small"
+            aria-describedby={infoPopoverId}
+            onClick={handleInfoClick}
+          >
+            <InfoOutlinedIcon fontSize="small" />
+          </IconButton>
+        </Box>
         <Button variant="outlined" startIcon={<NoteIcon />} onClick={handleAddNote}>
           {t('notes.addNote')}
         </Button>
       </Box>
+      <Popover
+        id={infoPopoverId}
+        open={infoOpen}
+        anchorEl={infoAnchorEl}
+        onClose={handleInfoClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      >
+        <Box sx={{ p: 2, maxWidth: 320 }}>
+          <Typography variant="body2">{t('notes.unassignedInfo')}</Typography>
+        </Box>
+      </Popover>
 
       <Paper sx={{ p: 1.5, mb: 2 }}>
         <TextField

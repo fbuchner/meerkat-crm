@@ -1,4 +1,4 @@
-import { useState, useMemo, ChangeEvent } from 'react';
+import { useState, useMemo, ChangeEvent, MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link as RouterLink } from 'react-router-dom';
 import {
@@ -10,6 +10,7 @@ import {
   IconButton,
   Chip,
   Pagination,
+  Popover,
 } from '@mui/material';
 import {
   Timeline,
@@ -22,6 +23,7 @@ import {
 } from '@mui/lab';
 import EventIcon from '@mui/icons-material/Event';
 import EditIcon from '@mui/icons-material/Edit';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useActivities } from './hooks/useActivities';
 import { useDebouncedValue } from './hooks/useDebounce';
 import { createActivity, updateActivity, deleteActivity, Activity } from './api/activities';
@@ -78,6 +80,9 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
     activityContacts?: Contact[];
   }>({});
   const [allContacts, setAllContacts] = useState<Contact[]>([]);
+  const [infoAnchorEl, setInfoAnchorEl] = useState<HTMLElement | null>(null);
+  const infoOpen = Boolean(infoAnchorEl);
+  const infoPopoverId = infoOpen ? 'activities-info-popover' : undefined;
 
   const handleSearchChange = (value: string) => {
     setSearchInput(value);
@@ -175,6 +180,14 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
     }
   };
 
+  const handleInfoClick = (event: MouseEvent<HTMLElement>) => {
+    setInfoAnchorEl(event.currentTarget);
+  };
+
+  const handleInfoClose = () => {
+    setInfoAnchorEl(null);
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -190,11 +203,32 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 2 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h5">{t('activities.title')}</Typography>
+        <Box display="flex" alignItems="center" gap={1}>
+          <Typography variant="h5">{t('activities.title')}</Typography>
+          <IconButton
+            size="small"
+            aria-describedby={infoPopoverId}
+            onClick={handleInfoClick}
+          >
+            <InfoOutlinedIcon fontSize="small" />
+          </IconButton>
+        </Box>
         <Button variant="outlined" startIcon={<EventIcon />} onClick={handleAddActivity}>
           {t('activities.addActivity')}
         </Button>
       </Box>
+
+      <Popover
+        id={infoPopoverId}
+        open={infoOpen}
+        anchorEl={infoAnchorEl}
+        onClose={handleInfoClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      >
+        <Box sx={{ p: 2, maxWidth: 320 }}>
+          <Typography variant="body2">{t('activities.allContactsInfo')}</Typography>
+        </Box>
+      </Popover>
 
       <Paper sx={{ p: 1.5, mb: 2 }}>
         <TextField

@@ -187,7 +187,8 @@
     "noResults": "No activities match your search",
     "date": "Date",
     "deleteConfirm": "Delete Activity",
-    "deleteMessage": "Are you sure you want to delete this activity? This action cannot be undone."
+    "deleteMessage": "Are you sure you want to delete this activity? This action cannot be undone.",
+    "allContactsInfo": "This page lists every activity from every contact."
   },
   "notes": {
     "title": "Notes",
@@ -197,7 +198,8 @@
     "noResults": "No notes match your search",
     "date": "Date",
     "deleteConfirm": "Delete Note",
-    "deleteMessage": "Are you sure you want to delete this note? This action cannot be undone."
+    "deleteMessage": "Are you sure you want to delete this note? This action cannot be undone.",
+    "unassignedInfo": "This page displays only unassigned notes that are not part of a contact and can be used like a diary."
   },
   "reminders": {
     "title": "Reminders",

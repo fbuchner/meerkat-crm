@@ -186,7 +186,8 @@
     "noResults": "Keine Aktivitäten entsprechen Ihrer Suche",
     "date": "Datum",
     "deleteConfirm": "Aktivität löschen",
-    "deleteMessage": "Möchten Sie diese Aktivität wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
+    "deleteMessage": "Möchten Sie diese Aktivität wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "allContactsInfo": "Diese Seite zeigt alle Aktivitäten aus allen Kontakten."
   },
   "notes": {
     "title": "Notizen",
@@ -196,7 +197,8 @@
     "noResults": "Keine Notizen entsprechen Ihrer Suche",
     "date": "Datum",
     "deleteConfirm": "Notiz löschen",
-    "deleteMessage": "Möchten Sie diese Notiz wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
+    "deleteMessage": "Möchten Sie diese Notiz wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "unassignedInfo": "Diese Seite zeigt nur nicht zugewiesene Notizen, die keinem Kontakt zugeordnet sind und wie ein Tagebuch genutzt werden können."
   },
   "reminders": {
     "title": "Erinnerungen",

@@ -48,7 +48,7 @@ The easiest way to run Meerkat CRM is with Docker Compose:
 1. **Clone the repository:**
     ```sh
     git clone https://github.com/fbuchner/meerkat-crm.git
-    cd meerkat
+    cd meerkat-crm
     ```
 
 2. **Configure environment:**
@@ -77,7 +77,7 @@ To set up this repository for development, follow these steps:
 1. **Clone the repository:**
     ```sh
     git clone https://github.com/fbuchner/meerkat-crm.git
-    cd meerkat
+    cd meerkat-crm
     ```
 
 1. **Run the backend:**
@@ -86,7 +86,6 @@ Ensure you have [Go](https://golang.org/doc/install) installed. Then, set up you
     cd backend
     # Copy the example environment file and configure it with your settings
     cp .env.example my_environment.env
-    # Edit my_environment.env with your actual configuration values
     
     # Install dependencies and run
     go mod tidy
@@ -107,12 +106,21 @@ Ensure you have [Go](https://golang.org/doc/install) installed. Then, set up you
    make migrate-create NAME=your_migration_name
    ```
 
+   **Run Tests:**
+   ```sh
+   go test ./...
+   ```  
+
+
 1. **Run the frontend (in a second terminal):**
-    ```sh
-    cd frontend
-    yarn install
-    yarn serve
-    ```
+   ```sh
+   cd frontend
+   # Copy the example environment file and configure it with your settings
+   cp .env.example my_environment.env
+
+   yarn install
+   yarn start
+   ```
 
 ## Alternative software
 Notable other personal CRM systems are

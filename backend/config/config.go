@@ -28,7 +28,7 @@ type Config struct {
 
 func LoadConfig() *Config {
 
-	defaultJWTExpiry := 24
+	defaultJWTExpiry := 96
 	jwtExpiryHours, err := strconv.Atoi(getEnv("JWT_EXPIRY_HOURS", strconv.Itoa(defaultJWTExpiry)))
 	if err != nil {
 		log.Println("WARN: Invalid JWT expiry set. Please provide an integer value.")
@@ -48,7 +48,6 @@ func LoadConfig() *Config {
 		UseResend:       true,
 		ResendAPIKey:    getEnv("RESEND_API_KEY", ""),
 		ResendFromEmail: getEnv("RESEND_FROM_EMAIL", ""),
-		ResendToEmail:   getEnv("RESEND_TO_EMAIL", ""),
 		JWTSecretKey:    getEnv("JWT_SECRET_KEY", ""),
 		JWTExpiryHours:  jwtExpiryHours,
 		TrustedProxies:  getProxies(getEnv("TRUSTED_PROXIES", "")),

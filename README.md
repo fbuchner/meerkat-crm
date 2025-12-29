@@ -10,17 +10,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript)](https://www.typescriptlang.org)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
-**Tech Stack:**  
-![Go](https://img.shields.io/badge/Go-00ADD8?logo=go&logoColor=white)
-![Gin](https://img.shields.io/badge/Gin-00ADD8?logo=go&logoColor=white)
-![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
-![Material--UI](https://img.shields.io/badge/Material--UI-007FFF?logo=mui&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
-
-
 ## About the project
-Meerkat CRM is a simple self-hosted solution to keep track of all your contacts. As your digital Rolodex it reminds you of birthdays, helps you to remember dietary habits as well as names of spouses of contacts - and much more.
+Meerkat CRM (Contact Relationship Management) is a simple self-hosted solution to keep track of all your contacts. As your digital rolodex it reminds you of birthdays, helps you to remember dietary habits as well as names of spouses of contacts - and much more.
 
 ## Features
 - Contact management
@@ -81,6 +72,7 @@ To set up this repository for development, follow these steps:
     ```
 
 1. **Run the backend:**
+
 Ensure you have [Go](https://golang.org/doc/install) installed. Then, set up your environment configuration:
    ```sh
     cd backend
@@ -124,9 +116,9 @@ Ensure you have [Go](https://golang.org/doc/install) installed. Then, set up you
 
 ## Alternative software
 Notable other personal CRM systems are
-1. [MonicaHQ](https://www.monicahq.com/) (Open Source, development has stalled; the new version chandler is available at beta.monicahq.com)
-2. [Dex](https://getdex.com/) (paid offering with social media integration)
-3. [Clay](https://clay.earth/) (paid offering with focus on automation)
+* [MonicaHQ](https://www.monicahq.com/) (Open Source, development has stalled; the new version chandler is available at beta.monicahq.com)
+* [Dex](https://getdex.com/) (paid offering with social media integration)
+* [Clay](https://clay.earth/) (paid offering with focus on automation)
 
 Other software that can be used to build or configure something similar includes
-1. [Twenty](https://twenty.com/) (Open Source "classic" CRM system)
+* [Twenty](https://twenty.com/) (Open Source "classic" CRM system)

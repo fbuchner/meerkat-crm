@@ -110,7 +110,8 @@
       "addCircle": "Hinzufügen",
       "requiredFields": "Vorname und Nachname sind erforderlich",
       "error": "Kontakt konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
-      "success": "Kontakt erfolgreich erstellt!"
+      "success": "Kontakt erfolgreich erstellt!",
+      "createBirthdayReminder": "Geburtstagserinnerung erstellen"
     }
   },
   "contactDetail": {

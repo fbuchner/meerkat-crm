@@ -186,7 +186,7 @@ export default function ContactHeader({
                 </Box>
                 {contact.gender && (
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-                    {contact.gender}
+                    {t(`contactDetail.${contact.gender}`)}
                   </Typography>
                 )}
               </>

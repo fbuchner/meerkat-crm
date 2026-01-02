@@ -112,6 +112,68 @@
       "error": "Failed to create contact. Please try again.",
       "success": "Contact created successfully!",
       "createBirthdayReminder": "Create birthday reminder"
+    },
+    "import": {
+      "button": "Import CSV",
+      "title": "Import Contacts",
+      "upload": {
+        "title": "Upload CSV File",
+        "description": "Select a CSV file containing your contacts. The file should have headers in the first row.",
+        "dragDrop": "Drag and drop a CSV file here, or click to select",
+        "maxSize": "Maximum file size: 5MB",
+        "uploading": "Uploading..."
+      },
+      "mapping": {
+        "title": "Map Columns",
+        "description": "Match your CSV columns to contact fields. Columns marked 'Ignore' will not be imported.",
+        "csvColumn": "CSV Column",
+        "mapsTo": "Maps To",
+        "sampleData": "Sample",
+        "ignore": "-- Ignore --"
+      },
+      "steps": {
+        "upload": "Upload",
+        "mapColumns": "Map Columns",
+        "review": "Review",
+        "done": "Done"
+      },
+      "preview": {
+        "title": "Review Import",
+        "description": "Review the contacts to be imported. Resolve any duplicates before proceeding.",
+        "row": "Row",
+        "status": "Status",
+        "action": "Action",
+        "valid": "Valid",
+        "duplicate": "Duplicate found",
+        "duplicateStatus": "Duplicate",
+        "duplicateOf": "Matches: {{name}} ({{reason}})",
+        "error": "Error",
+        "actionSkip": "Skip",
+        "actionAdd": "Add as New",
+        "actionUpdate": "Update Existing",
+        "toCreate": "{{count}} to create",
+        "toUpdate": "{{count}} to update",
+        "toSkip": "{{count}} to skip",
+        "errors": "{{count}} with errors"
+      },
+      "result": {
+        "title": "Import Complete",
+        "success": "Import completed: {{created}} created, {{updated}} updated",
+        "created": "{{count}} contacts created",
+        "updated": "{{count}} contacts updated",
+        "skipped": "{{count}} rows skipped",
+        "errors": "Errors",
+        "done": "Done"
+      },
+      "errors": {
+        "invalidFile": "Please select a valid CSV file",
+        "fileTooLarge": "File is too large. Maximum size is 5MB",
+        "emptyFile": "The CSV file is empty",
+        "noMappings": "Please map at least one column",
+        "uploadFailed": "Failed to upload file. Please try again.",
+        "previewFailed": "Failed to generate preview. Please try again.",
+        "importFailed": "Import failed. Please try again."
+      }
     }
   },
   "contactDetail": {
@@ -239,7 +301,9 @@
     "cancel": "Cancel",
     "edit": "Edit",
     "delete": "Delete",
-    "close": "Close"
+    "close": "Close",
+    "back": "Back",
+    "continue": "Continue"
   },
   "profilePicture": {
     "title": "Upload Profile Picture",

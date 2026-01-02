@@ -39,10 +39,19 @@ export default function RelationshipList({
   const formatGender = (gender?: string) => {
     if (!gender) return null;
     const genderKey = gender.toLowerCase();
-    if (['male', 'female', 'other'].includes(genderKey)) {
-      return t(`contacts.${genderKey}`);
-    }
-    return gender;
+    const translationKey = `contacts.${genderKey}`;
+    const translated = t(translationKey);
+    // If translation returns the key itself, no translation exists - use original
+    return translated === translationKey ? gender : translated;
+  };
+
+
+  const formatRelationshipType = (type: string) => {
+    const typeKey = type.toLowerCase().replace(/\s+/g, '_');
+    const translationKey = `relationships.types.${typeKey}`;
+    const translated = t(translationKey);
+    // If translation returns the key itself, no translation exists - use original
+    return translated === translationKey ? type : translated;
   };
 
   if (relationships.length === 0) {
@@ -92,7 +101,7 @@ export default function RelationshipList({
                   </Typography>
                 )}
                 <Typography variant="body2" color="text.secondary">
-                  {relationship.type}
+                  {formatRelationshipType(relationship.type)}
                   {displayGender && ` · ${formatGender(displayGender)}`}
                   {displayBirthday && ` · ${t('relationships.birthday')}: ${displayBirthday}`}
                 </Typography>

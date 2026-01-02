@@ -45,6 +45,11 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 			protected.PUT("/contacts/:id", middleware.ValidateJSONMiddleware(&models.ContactInput{}), controllers.UpdateContact)
 			protected.DELETE("/contacts/:id", controllers.DeleteContact)
 
+			// Contact import routes
+			protected.POST("/contacts/import/upload", controllers.UploadCSVForImport)
+			protected.POST("/contacts/import/preview", middleware.ValidateJSONMiddleware(&models.ImportPreviewRequest{}), controllers.PreviewImport)
+			protected.POST("/contacts/import/confirm", middleware.ValidateJSONMiddleware(&models.ImportConfirmRequest{}), controllers.ConfirmImport)
+
 			// Relationship routes
 			protected.GET("/contacts/:id/relationships", controllers.GetRelationships)
 			protected.POST("/contacts/:id/relationships", middleware.ValidateJSONMiddleware(&models.RelationshipInput{}), controllers.CreateRelationship)

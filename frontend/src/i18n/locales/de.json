@@ -112,6 +112,68 @@
       "error": "Kontakt konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
       "success": "Kontakt erfolgreich erstellt!",
       "createBirthdayReminder": "Geburtstagserinnerung erstellen"
+    },
+    "import": {
+      "button": "CSV importieren",
+      "title": "Kontakte importieren",
+      "upload": {
+        "title": "CSV-Datei hochladen",
+        "description": "Wählen Sie eine CSV-Datei mit Ihren Kontakten. Die Datei sollte Überschriften in der ersten Zeile haben.",
+        "dragDrop": "CSV-Datei hierher ziehen oder klicken zum Auswählen",
+        "maxSize": "Maximale Dateigröße: 5MB",
+        "uploading": "Hochladen..."
+      },
+      "mapping": {
+        "title": "Spalten zuordnen",
+        "description": "Ordnen Sie Ihre CSV-Spalten den Kontaktfeldern zu. Als 'Ignorieren' markierte Spalten werden nicht importiert.",
+        "csvColumn": "CSV-Spalte",
+        "mapsTo": "Zuordnung",
+        "sampleData": "Beispiel",
+        "ignore": "-- Ignorieren --"
+      },
+      "steps": {
+        "upload": "Hochladen",
+        "mapColumns": "Spalten zuordnen",
+        "review": "Überprüfen",
+        "done": "Fertig"
+      },
+      "preview": {
+        "title": "Import überprüfen",
+        "description": "Überprüfen Sie die zu importierenden Kontakte. Lösen Sie eventuelle Duplikate vor dem Fortfahren.",
+        "row": "Zeile",
+        "status": "Status",
+        "action": "Aktion",
+        "valid": "Gültig",
+        "duplicate": "Duplikat gefunden",
+        "duplicateStatus": "Duplikat",
+        "duplicateOf": "Entspricht: {{name}} ({{reason}})",
+        "error": "Fehler",
+        "actionSkip": "Überspringen",
+        "actionAdd": "Neu hinzufügen",
+        "actionUpdate": "Bestehenden aktualisieren",
+        "toCreate": "{{count}} zu erstellen",
+        "toUpdate": "{{count}} zu aktualisieren",
+        "toSkip": "{{count}} zu überspringen",
+        "errors": "{{count}} mit Fehlern"
+      },
+      "result": {
+        "title": "Import abgeschlossen",
+        "success": "Import abgeschlossen: {{created}} erstellt, {{updated}} aktualisiert",
+        "created": "{{count}} Kontakte erstellt",
+        "updated": "{{count}} Kontakte aktualisiert",
+        "skipped": "{{count}} Zeilen übersprungen",
+        "errors": "Fehler",
+        "done": "Fertig"
+      },
+      "errors": {
+        "invalidFile": "Bitte wählen Sie eine gültige CSV-Datei",
+        "fileTooLarge": "Datei ist zu groß. Maximale Größe ist 5MB",
+        "emptyFile": "Die CSV-Datei ist leer",
+        "noMappings": "Bitte ordnen Sie mindestens eine Spalte zu",
+        "uploadFailed": "Datei konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut.",
+        "previewFailed": "Vorschau konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+        "importFailed": "Import fehlgeschlagen. Bitte versuchen Sie es erneut."
+      }
     }
   },
   "contactDetail": {
@@ -239,7 +301,9 @@
     "cancel": "Abbrechen",
     "edit": "Bearbeiten",
     "delete": "Löschen",
-    "close": "Schließen"
+    "close": "Schließen",
+    "back": "Zurück",
+    "continue": "Weiter"
   },
   "profilePicture": {
     "title": "Profilbild hochladen",

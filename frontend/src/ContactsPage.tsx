@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useContacts } from './hooks/useContacts';
 import { getCircles } from './api/contacts';
 import AddContactDialog from './components/AddContactDialog';
+import ImportContactsDialog from './components/ImportContactsDialog';
 import {
   Box,
   Card,
@@ -19,6 +20,7 @@ import {
   Button
 } from '@mui/material';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import FileUploadIcon from '@mui/icons-material/FileUpload';
 import { ContactListSkeleton } from './components/LoadingSkeletons';
 
 export default function ContactsPage({ token }: { token: string }) {
@@ -30,6 +32,7 @@ export default function ContactsPage({ token }: { token: string }) {
   const [circles, setCircles] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const pageSize = 10;
 
   // Memoize params to prevent infinite re-renders
@@ -98,6 +101,14 @@ export default function ContactsPage({ token }: { token: string }) {
             ))}
           </Select>
         </FormControl>
+        <Button
+          variant="outlined"
+          startIcon={<FileUploadIcon />}
+          onClick={() => setImportDialogOpen(true)}
+          sx={{ whiteSpace: 'nowrap' }}
+        >
+          {t('contacts.import.button', 'Import CSV')}
+        </Button>
         <Button
           variant="outlined"
           startIcon={<PersonAddIcon />}
@@ -193,6 +204,12 @@ export default function ContactsPage({ token }: { token: string }) {
         onContactAdded={handleContactAdded}
         token={token}
         availableCircles={circles}
+      />
+      <ImportContactsDialog
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        onImportComplete={handleContactAdded}
+        token={token}
       />
     </Box>
   );

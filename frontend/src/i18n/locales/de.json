@@ -21,7 +21,8 @@
     "noBirthdays": "Keine anstehenden Geburtstage",
     "noContacts": "Keine Kontakte verfügbar",
     "noReminders": "Keine anstehenden Erinnerungen",
-    "error": "Dashboard-Daten konnten nicht geladen werden"
+    "error": "Dashboard-Daten konnten nicht geladen werden",
+    "yearsOld": "({{age}} Jahre alt)"
   },
   "login": {
     "title": "Anmelden",

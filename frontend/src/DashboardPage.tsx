@@ -138,7 +138,17 @@ function DashboardPage({ token }: DashboardPageProps) {
     // Birthday format is DD.MM.YYYY or DD.MM.
     const parts = birthday.split('.');
     if (parts.length >= 2) {
-      return `${parts[0]}.${parts[1]}.`;
+      const dateStr = `${parts[0]}.${parts[1]}.`;
+      // Check if year is present and valid
+      if (parts.length === 3 && parts[2] && parts[2].length === 4) {
+        const birthYear = parseInt(parts[2], 10);
+        if (!isNaN(birthYear)) {
+          const currentYear = new Date().getFullYear();
+          const age = currentYear - birthYear;
+          return `${dateStr} ${t('dashboard.yearsOld', { age })}`;
+        }
+      }
+      return dateStr;
     }
     return birthday;
   };

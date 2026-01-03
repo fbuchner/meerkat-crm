@@ -21,7 +21,8 @@
     "noBirthdays": "No upcoming birthdays",
     "noContacts": "No contacts available",
     "noReminders": "No upcoming reminders",
-    "error": "Failed to load dashboard data"
+    "error": "Failed to load dashboard data",
+    "yearsOld": "({{age}} years old)"
   },
   "login": {
     "title": "Login",

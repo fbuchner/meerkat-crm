@@ -106,7 +106,7 @@ func GetContacts(c *gin.Context) {
 	}
 
 	var contacts []models.Contact
-	query := db.Model(&models.Contact{}).Where("user_id = ?", userID).Limit(pagination.Limit).Offset(pagination.Offset)
+	query := db.Model(&models.Contact{}).Where("user_id = ?", userID).Order("id DESC").Limit(pagination.Limit).Offset(pagination.Offset)
 
 	if len(selectedFields) > 0 {
 		query = query.Select(selectedFields)

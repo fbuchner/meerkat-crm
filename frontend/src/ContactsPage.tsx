@@ -59,10 +59,10 @@ export default function ContactsPage({ token }: { token: string }) {
     fetchCircles();
   }, [token]);
 
-  // Reset to page 1 when search changes
+  // Reset to page 1 when search or filter changes
   useEffect(() => {
     setPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, selectedCircle]);
 
   // Filter contacts by selected circle
   // With backend pagination, contacts are already filtered

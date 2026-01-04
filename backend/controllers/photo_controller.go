@@ -9,6 +9,7 @@ import (
 	"meerkat/logger"
 	"meerkat/models"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -215,6 +216,77 @@ func saveImage(path string, img image.Image) error {
 	return jpeg.Encode(out, img, &jpeg.Options{Quality: 85})
 }
 
+// isPrivateIP checks if an IP address is in a private/reserved range
+func isPrivateIP(ip net.IP) bool {
+	if ip == nil {
+		return true
+	}
+
+	// Check for loopback
+	if ip.IsLoopback() {
+		return true
+	}
+
+	// Check for link-local (includes cloud metadata endpoint 169.254.169.254)
+	if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+		return true
+	}
+
+	// Check for private ranges
+	if ip.IsPrivate() {
+		return true
+	}
+
+	// Check for unspecified (0.0.0.0 or ::)
+	if ip.IsUnspecified() {
+		return true
+	}
+
+	return false
+}
+
+// validateURLForSSRF checks if a URL is safe to fetch (not pointing to internal resources)
+func validateURLForSSRF(rawURL string) (*url.URL, error) {
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return nil, errors.New("invalid URL format")
+	}
+
+	// Only allow http and https schemes
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return nil, errors.New("only http and https URLs are allowed")
+	}
+
+	host := parsedURL.Hostname()
+	if host == "" {
+		return nil, errors.New("URL must have a host")
+	}
+
+	// Block common internal hostnames
+	lowerHost := strings.ToLower(host)
+	blockedHosts := []string{"localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"}
+	for _, blocked := range blockedHosts {
+		if lowerHost == blocked {
+			return nil, errors.New("access to internal hosts is not allowed")
+		}
+	}
+
+	// Resolve the hostname to IP addresses
+	ips, err := net.LookupIP(host)
+	if err != nil {
+		return nil, errors.New("failed to resolve hostname")
+	}
+
+	// Check all resolved IPs
+	for _, ip := range ips {
+		if isPrivateIP(ip) {
+			return nil, errors.New("access to internal IP addresses is not allowed")
+		}
+	}
+
+	return parsedURL, nil
+}
+
 // ProxyImage fetches an image from a URL and returns it to the client.
 // This is used to work around CORS restrictions when fetching images from external URLs.
 func ProxyImage(c *gin.Context) {
@@ -224,16 +296,27 @@ func ProxyImage(c *gin.Context) {
 		return
 	}
 
-	// Validate the URL
-	parsedURL, err := url.Parse(imageURL)
-	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid URL"})
+	// Validate the URL and check for SSRF
+	_, err := validateURLForSSRF(imageURL)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Create HTTP client with timeout
+	// Create HTTP client with timeout and disabled redirects to prevent SSRF via redirects
 	client := &http.Client{
 		Timeout: 10 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			// Validate redirect target
+			_, err := validateURLForSSRF(req.URL.String())
+			if err != nil {
+				return errors.New("redirect to disallowed location")
+			}
+			if len(via) >= 3 {
+				return errors.New("too many redirects")
+			}
+			return nil
+		},
 	}
 
 	// Fetch the image

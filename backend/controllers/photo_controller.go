@@ -57,15 +57,15 @@ func GetProfilePicture(c *gin.Context) {
 	if wantsThumbnail {
 		// Serve thumbnail from database (base64 data URL)
 		if contact.PhotoThumbnail == "" {
-			c.File("./static/placeholder-avatar.svg")
+			c.JSON(http.StatusNotFound, gin.H{"error": "No thumbnail available"})
 			return
 		}
 
 		// Parse and decode base64 data URL
 		// Format: data:image/jpeg;base64,<data>
 		if !strings.HasPrefix(contact.PhotoThumbnail, "data:") {
-			// Legacy file-based thumbnail - serve placeholder
-			c.File("./static/placeholder-avatar.svg")
+			// Legacy file-based thumbnail - no longer supported
+			c.JSON(http.StatusNotFound, gin.H{"error": "No thumbnail available"})
 			return
 		}
 
@@ -88,7 +88,7 @@ func GetProfilePicture(c *gin.Context) {
 	// Serve full photo from file
 	uploadDir := os.Getenv("PROFILE_PHOTO_DIR")
 	if contact.Photo == "" {
-		c.File("./static/placeholder-avatar.svg")
+		c.JSON(http.StatusNotFound, gin.H{"error": "No photo available"})
 		return
 	}
 

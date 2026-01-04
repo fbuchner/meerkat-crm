@@ -163,7 +163,9 @@ export default function ContactsPage({ token }: { token: string }) {
                 }}
                 onClick={() => navigate(`/contacts/${contact.ID}`)}
               >
-                <Avatar src={contact.thumbnail_url || undefined} sx={{ width: 48, height: 48, mr: 1.5 }} />
+                <Avatar src={contact.thumbnail_url || undefined} sx={{ width: 48, height: 48, mr: 1.5, bgcolor: 'primary.main' }}>
+                  {contact.firstname.charAt(0)}
+                </Avatar>
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="body1" sx={{ fontWeight: 500 }}>
                     {contact.firstname} {contact.nickname && `"${contact.nickname}"`} {contact.lastname}

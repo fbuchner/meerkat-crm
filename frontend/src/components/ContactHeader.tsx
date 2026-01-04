@@ -74,14 +74,18 @@ export default function ContactHeader({
           >
             <Avatar
               src={profilePic || undefined}
-              sx={{ 
-                width: 90, 
+              sx={{
+                width: 90,
                 height: 90,
                 cursor: 'pointer',
+                bgcolor: 'primary.main',
+                fontSize: '2rem',
                 '&:hover': { opacity: 0.8 }
               }}
               onClick={onUploadProfilePicture}
-            />
+            >
+              {contact.firstname.charAt(0)}
+            </Avatar>
             <IconButton
               className="camera-badge"
               size="small"

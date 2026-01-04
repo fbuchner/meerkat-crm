@@ -10,6 +10,7 @@ export type {
   Contact,
   ContactsResponse,
   GetContactsParams,
+  Birthday,
 } from '../api/contacts';
 
 export type {

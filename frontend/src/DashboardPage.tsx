@@ -20,7 +20,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EmailIcon from '@mui/icons-material/Email';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import WarningIcon from '@mui/icons-material/Warning';
-import { Contact, getRandomContacts, getUpcomingBirthdays, getContactProfilePicture, getContact } from './api/contacts';
+import { Contact, Birthday, getRandomContacts, getUpcomingBirthdays, getContactProfilePicture, getContact } from './api/contacts';
 import { Reminder, getUpcomingReminders, completeReminder } from './api/reminders';
 import { ContactListSkeleton } from './components/LoadingSkeletons';
 import { handleFetchError, handleError } from './utils/errorHandler';
@@ -32,7 +32,7 @@ interface DashboardPageProps {
 function DashboardPage({ token }: DashboardPageProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [birthdayContacts, setBirthdayContacts] = useState<Contact[]>([]);
+  const [birthdays, setBirthdays] = useState<Birthday[]>([]);
   const [randomContacts, setRandomContacts] = useState<Contact[]>([]);
   const [upcomingReminders, setUpcomingReminders] = useState<Reminder[]>([]);
   const [profilePics, setProfilePics] = useState<Record<number, string>>({});
@@ -62,32 +62,27 @@ function DashboardPage({ token }: DashboardPageProps) {
     try {
       setLoading(true);
       setError(null);
-      
-      const [birthdays, random, reminders] = await Promise.all([
+
+      const [birthdayData, random, reminders] = await Promise.all([
         getUpcomingBirthdays(token),
         getRandomContacts(token),
         getUpcomingReminders(token)
       ]);
-      
-      setBirthdayContacts(birthdays);
+
+      setBirthdays(birthdayData);
       setRandomContacts(random);
       setUpcomingReminders(reminders);
 
-      // Build contact map from birthdays and random contacts
-      const allContacts = [...birthdays, ...random];
-      const uniqueContacts = allContacts.filter(
-        (contact, index, self) => self.findIndex(c => c.ID === contact.ID) === index
-      );
-      
+      // Build contact map from random contacts
       const newContactsMap: Record<number, Contact> = {};
-      uniqueContacts.forEach(c => { newContactsMap[c.ID] = c; });
-      
+      random.forEach(c => { newContactsMap[c.ID] = c; });
+
       // Fetch missing contacts for reminders
       const missingContactIds = reminders
         .map(r => r.contact_id)
         .filter(id => !newContactsMap[id]);
       const uniqueMissingIds = Array.from(new Set(missingContactIds));
-      
+
       if (uniqueMissingIds.length > 0) {
         const fetchedContacts = await Promise.all(
           uniqueMissingIds.map(id => getContact(id, token).catch(() => null))
@@ -96,9 +91,9 @@ function DashboardPage({ token }: DashboardPageProps) {
           if (c) newContactsMap[c.ID] = c;
         });
       }
-      
+
       setContactsMap(newContactsMap);
-      await loadProfilePictures(uniqueContacts);
+      await loadProfilePictures(random);
     } catch (err) {
       const message = handleFetchError(err, 'loading dashboard data');
       setError(message);
@@ -158,6 +153,14 @@ function DashboardPage({ token }: DashboardPageProps) {
     return `${contact.firstname} ${contact.lastname}`;
   };
 
+  const getBirthdayThumbnailUrl = (birthday: Birthday) => {
+    // Use the thumbnail_url from the API if available
+    if (birthday.thumbnail_url) {
+      return `/api/v1/contacts/${birthday.contact_id}/photo?thumbnail=true`;
+    }
+    return undefined;
+  };
+
   if (loading) {
     return (
       <Box sx={{ maxWidth: 1400, mx: 'auto', mt: 2, p: 2 }}>
@@ -211,7 +214,7 @@ function DashboardPage({ token }: DashboardPageProps) {
             </Typography>
           </Box>
 
-          {birthdayContacts.length === 0 ? (
+          {birthdays.length === 0 ? (
             <Card>
               <CardContent sx={{ py: 2 }}>
                 <Typography variant="body2" color="text.secondary">
@@ -221,11 +224,11 @@ function DashboardPage({ token }: DashboardPageProps) {
             </Card>
           ) : (
             <Stack spacing={1.5}>
-              {birthdayContacts.map((contact) => (
+              {birthdays.map((birthday, index) => (
                 <Card
-                  key={contact.ID}
+                  key={`${birthday.type}-${birthday.contact_id}-${index}`}
                   component={Link}
-                  to={`/contacts/${contact.ID}`}
+                  to={`/contacts/${birthday.contact_id}`}
                   sx={{
                     textDecoration: 'none',
                     '&:hover': {
@@ -237,28 +240,33 @@ function DashboardPage({ token }: DashboardPageProps) {
                 >
                   <CardContent sx={{ py: 1.5 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Avatar 
-                        src={profilePics[contact.ID] || undefined}
+                      <Avatar
+                        src={getBirthdayThumbnailUrl(birthday)}
                         sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}
                       >
-                        {contact.firstname.charAt(0)}
+                        {birthday.name.charAt(0)}
                       </Avatar>
                       <Box sx={{ flexGrow: 1 }}>
                         <Typography variant="body2" fontWeight={500}>
-                          {getContactName(contact)}
+                          {birthday.name}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {formatBirthday(contact.birthday)}
+                          {formatBirthday(birthday.birthday)}
                         </Typography>
                       </Box>
-                      {contact.circles && contact.circles.length > 0 && (
-                        <Box>
+                      {birthday.type === 'relationship' && birthday.relationship_type && (
+                        <Box sx={{ textAlign: 'right' }}>
                           <Chip
-                            label={contact.circles[0]}
+                            label={birthday.relationship_type}
                             size="small"
                             variant="outlined"
                             sx={{ height: 20, fontSize: '0.7rem' }}
                           />
+                          {birthday.associated_contact_name && (
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              {birthday.associated_contact_name}
+                            </Typography>
+                          )}
                         </Box>
                       )}
                     </Box>

@@ -19,6 +19,16 @@ export interface Contact {
   thumbnail_url?: string;
 }
 
+export interface Birthday {
+  type: 'contact' | 'relationship';
+  name: string;
+  birthday: string;
+  thumbnail_url?: string;
+  contact_id: number;
+  relationship_type?: string;
+  associated_contact_name?: string;
+}
+
 export interface ContactsResponse {
   contacts: Contact[];
   total: number;
@@ -214,8 +224,8 @@ export async function getRandomContacts(token: string): Promise<Contact[]> {
   return data.contacts || [];
 }
 
-// Get upcoming birthdays (returns up to 10 contacts)
-export async function getUpcomingBirthdays(token: string): Promise<Contact[]> {
+// Get upcoming birthdays (returns up to 10 birthdays for contacts and relationships)
+export async function getUpcomingBirthdays(token: string): Promise<Birthday[]> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/birthdays`,
     { headers: getAuthHeaders(token) }
@@ -226,5 +236,5 @@ export async function getUpcomingBirthdays(token: string): Promise<Contact[]> {
   }
 
   const data = await response.json();
-  return data.contacts || [];
+  return data.birthdays || [];
 }

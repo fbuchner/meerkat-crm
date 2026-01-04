@@ -67,3 +67,14 @@ type ContactResponse struct {
 	Contact
 	ThumbnailURL string `json:"thumbnail_url"`
 }
+
+// Birthday represents a unified birthday entry for contacts and relationships
+type Birthday struct {
+	Type                  string `json:"type"`                    // "contact" or "relationship"
+	Name                  string `json:"name"`                    // Unified display name
+	Birthday              string `json:"birthday"`                // Birthday in DD.MM.YYYY or DD.MM. format
+	ThumbnailURL          string `json:"thumbnail_url,omitempty"` // Profile picture thumbnail URL
+	ContactID             uint   `json:"contact_id"`              // Contact ID (the person or parent contact for relationships)
+	RelationshipType      string `json:"relationship_type,omitempty"`      // Relationship type (empty for contacts)
+	AssociatedContactName string `json:"associated_contact_name,omitempty"` // Parent contact name (for relationships)
+}

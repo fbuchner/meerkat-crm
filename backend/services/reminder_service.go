@@ -180,24 +180,55 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 		return fmt.Errorf("failed to fetch reminders: %w", err)
 	}
 
-	if len(reminders) == 0 {
-		logger.Info().Msg("No reminders to send for today")
-		return nil
-	}
-
+	// Group reminders by user
 	remindersByUser := make(map[uint][]models.Reminder)
 	for _, reminder := range reminders {
 		remindersByUser[reminder.UserID] = append(remindersByUser[reminder.UserID], reminder)
 	}
 
-	userIDs := make([]uint, 0, len(remindersByUser))
+	// Collect user IDs from reminders
+	userIDSet := make(map[uint]bool)
 	for userID := range remindersByUser {
+		userIDSet[userID] = true
+	}
+
+	// Also include users who have birthdays today (even without reminders)
+	// Check all users and use GetUpcomingBirthdays - if first result is today, include them
+	var allUsers []models.User
+	if err := db.Find(&allUsers).Error; err != nil {
+		logger.Warn().Err(err).Msg("Failed to fetch all users for birthday check, continuing with reminders only")
+	} else {
+		now := time.Now()
+		for _, user := range allUsers {
+			if userIDSet[user.ID] {
+				continue // Already included via reminders
+			}
+			birthdays, err := GetUpcomingBirthdays(db, user.ID)
+			if err != nil {
+				logger.Warn().Err(err).Uint("user_id", user.ID).Msg("Failed to fetch birthdays for user")
+				continue
+			}
+			if len(birthdays) > 0 && DaysUntilBirthday(birthdays[0].Birthday, now) == 0 {
+				userIDSet[user.ID] = true
+			}
+		}
+	}
+
+	// Convert set to slice
+	userIDs := make([]uint, 0, len(userIDSet))
+	for userID := range userIDSet {
 		userIDs = append(userIDs, userID)
 	}
 
+	if len(userIDs) == 0 {
+		logger.Info().Msg("No reminders or birthdays to send for today")
+		return nil
+	}
+
+	// Fetch all users we need to email
 	var users []models.User
 	if err := db.Where("id IN ?", userIDs).Find(&users).Error; err != nil {
-		return fmt.Errorf("failed to fetch users for reminders: %w", err)
+		return fmt.Errorf("failed to fetch users: %w", err)
 	}
 
 	userByID := make(map[uint]models.User, len(users))
@@ -217,15 +248,15 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 	for _, userID := range userIDs {
 		user, exists := userByID[userID]
 		if !exists {
-			logger.Warn().Uint("user_id", userID).Msg("Skipping reminders for missing user")
+			logger.Warn().Uint("user_id", userID).Msg("Skipping email for missing user")
 			continue
 		}
 
-		userReminders := remindersByUser[userID]
+		userReminders := remindersByUser[userID] // May be nil/empty for birthday-only users
 
 		// Attempt to send email - if it fails, skip mutations for this user and continue to next
 		if err := sendReminderEmailFn(user, userReminders, config, db); err != nil {
-			logger.Error().Err(err).Uint("user_id", user.ID).Msg("Error sending daily reminder email, skipping mutations for this user")
+			logger.Error().Err(err).Uint("user_id", user.ID).Msg("Error sending daily email, skipping mutations for this user")
 			sendErrors++
 			continue // Don't mutate reminders if email failed - allows retry on next run
 		}
@@ -253,7 +284,7 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 	}
 
 	if sendErrors > 0 {
-		logger.Warn().Int("failed_users", sendErrors).Int("total_users", len(userIDs)).Msg("Some reminder emails failed to send")
+		logger.Warn().Int("failed_users", sendErrors).Int("total_users", len(userIDs)).Msg("Some emails failed to send")
 	}
 
 	return nil

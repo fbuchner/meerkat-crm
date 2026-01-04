@@ -40,15 +40,16 @@ function DashboardPage({ token }: DashboardPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load profile pictures (thumbnails) for contacts
-  const loadProfilePictures = useCallback(async (contacts: Contact[]) => {
+  // Load profile pictures (thumbnails) for contact IDs
+  const loadProfilePictures = useCallback(async (contactIds: number[]) => {
     const pics: Record<number, string> = {};
+    const uniqueIds = Array.from(new Set(contactIds));
     await Promise.all(
-      contacts.map(async (contact) => {
+      uniqueIds.map(async (contactId) => {
         try {
-          const blob = await getContactProfilePicture(contact.ID, token, true);
+          const blob = await getContactProfilePicture(contactId, token, true);
           if (blob) {
-            pics[contact.ID] = URL.createObjectURL(blob);
+            pics[contactId] = URL.createObjectURL(blob);
           }
         } catch {
           // Ignore errors for individual profile pictures
@@ -93,7 +94,13 @@ function DashboardPage({ token }: DashboardPageProps) {
       }
 
       setContactsMap(newContactsMap);
-      await loadProfilePictures(random);
+
+      // Load profile pictures for random contacts and birthday contacts
+      const allContactIds = [
+        ...random.map(c => c.ID),
+        ...birthdayData.map(b => b.contact_id)
+      ];
+      await loadProfilePictures(allContactIds);
     } catch (err) {
       const message = handleFetchError(err, 'loading dashboard data');
       setError(message);
@@ -153,13 +160,6 @@ function DashboardPage({ token }: DashboardPageProps) {
     return `${contact.firstname} ${contact.lastname}`;
   };
 
-  const getBirthdayThumbnailUrl = (birthday: Birthday) => {
-    // Use the thumbnail_url from the API if available
-    if (birthday.thumbnail_url) {
-      return `/api/v1/contacts/${birthday.contact_id}/photo?thumbnail=true`;
-    }
-    return undefined;
-  };
 
   if (loading) {
     return (
@@ -241,7 +241,7 @@ function DashboardPage({ token }: DashboardPageProps) {
                   <CardContent sx={{ py: 1.5 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                       <Avatar
-                        src={getBirthdayThumbnailUrl(birthday)}
+                        src={profilePics[birthday.contact_id] || undefined}
                         sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}
                       >
                         {birthday.name.charAt(0)}

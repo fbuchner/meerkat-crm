@@ -15,7 +15,7 @@ type Contact struct {
 	Phone              string         `json:"phone" validate:"omitempty,phone"`
 	Birthday           string         `json:"birthday" validate:"omitempty,birthday"`
 	Photo              string         `json:"photo"`                                               // Path to the profile photo
-	PhotoThumbnail     string         `json:"photo_thumbnail"`                                     // Path to the profile photo thumbnail
+	PhotoThumbnail     string         `json:"-"`                                                   // Base64 data URL of thumbnail (not exposed in JSON directly)
 	Relationships      []Relationship `gorm:"foreignKey:ContactID" json:"relationships"`           // Has many relationships
 	Address            string         `json:"address" validate:"max=500,safe_string"`              // Full address as a string
 	HowWeMet           string         `json:"how_we_met" validate:"max=1000,safe_string"`          // Text field

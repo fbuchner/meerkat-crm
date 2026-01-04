@@ -20,7 +20,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EmailIcon from '@mui/icons-material/Email';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import WarningIcon from '@mui/icons-material/Warning';
-import { Contact, Birthday, getRandomContacts, getUpcomingBirthdays, getContactProfilePicture, getContact } from './api/contacts';
+import { Contact, Birthday, getRandomContacts, getUpcomingBirthdays, getContact } from './api/contacts';
 import { Reminder, getUpcomingReminders, completeReminder } from './api/reminders';
 import { ContactListSkeleton } from './components/LoadingSkeletons';
 import { handleFetchError, handleError } from './utils/errorHandler';
@@ -35,29 +35,9 @@ function DashboardPage({ token }: DashboardPageProps) {
   const [birthdays, setBirthdays] = useState<Birthday[]>([]);
   const [randomContacts, setRandomContacts] = useState<Contact[]>([]);
   const [upcomingReminders, setUpcomingReminders] = useState<Reminder[]>([]);
-  const [profilePics, setProfilePics] = useState<Record<number, string>>({});
   const [contactsMap, setContactsMap] = useState<Record<number, Contact>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Load profile pictures (thumbnails) for contact IDs
-  const loadProfilePictures = useCallback(async (contactIds: number[]) => {
-    const pics: Record<number, string> = {};
-    const uniqueIds = Array.from(new Set(contactIds));
-    await Promise.all(
-      uniqueIds.map(async (contactId) => {
-        try {
-          const blob = await getContactProfilePicture(contactId, token, true);
-          if (blob) {
-            pics[contactId] = URL.createObjectURL(blob);
-          }
-        } catch {
-          // Ignore errors for individual profile pictures
-        }
-      })
-    );
-    setProfilePics(prev => ({ ...prev, ...pics }));
-  }, [token]);
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -94,31 +74,17 @@ function DashboardPage({ token }: DashboardPageProps) {
       }
 
       setContactsMap(newContactsMap);
-
-      // Load profile pictures for random contacts and birthday contacts
-      const allContactIds = [
-        ...random.map(c => c.ID),
-        ...birthdayData.map(b => b.contact_id)
-      ];
-      await loadProfilePictures(allContactIds);
     } catch (err) {
       const message = handleFetchError(err, 'loading dashboard data');
       setError(message);
     } finally {
       setLoading(false);
     }
-  }, [loadProfilePictures, t, token]);
+  }, [token]);
 
   useEffect(() => {
     loadDashboardData();
   }, [loadDashboardData]);
-
-  // Cleanup blob URLs on unmount
-  useEffect(() => {
-    return () => {
-      Object.values(profilePics).forEach(url => URL.revokeObjectURL(url));
-    };
-  }, [profilePics]);
 
   const handleCompleteReminder = async (reminderId: number) => {
     try {
@@ -167,10 +133,10 @@ function DashboardPage({ token }: DashboardPageProps) {
         <Typography variant="h5" gutterBottom>
           {t('dashboard.title')}
         </Typography>
-        <Box sx={{ 
-          display: 'grid', 
+        <Box sx={{
+          display: 'grid',
           gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-          gap: 3 
+          gap: 3
         }}>
           <Box>
             <ContactListSkeleton count={5} />
@@ -200,10 +166,10 @@ function DashboardPage({ token }: DashboardPageProps) {
         {t('dashboard.title')}
       </Typography>
 
-      <Box sx={{ 
-        display: 'grid', 
+      <Box sx={{
+        display: 'grid',
         gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-        gap: 2 
+        gap: 2
       }}>
         {/* Column 1: Upcoming Birthdays */}
         <Box>
@@ -241,7 +207,7 @@ function DashboardPage({ token }: DashboardPageProps) {
                   <CardContent sx={{ py: 1.5 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                       <Avatar
-                        src={profilePics[birthday.contact_id] || undefined}
+                        src={birthday.thumbnail_url || undefined}
                         sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}
                       >
                         {birthday.name.charAt(0)}
@@ -300,7 +266,7 @@ function DashboardPage({ token }: DashboardPageProps) {
                 const overdue = isOverdue(reminder.remind_at);
                 const reminderDate = new Date(reminder.remind_at);
                 const contact = contactsMap[reminder.contact_id];
-                
+
                 return (
                   <Card
                     key={reminder.ID}
@@ -383,7 +349,7 @@ function DashboardPage({ token }: DashboardPageProps) {
           )}
         </Box>
 
-        {/* Column 3: Random Contacts */}
+        {/* Column 3: Random Contacts (Stay in Touch) */}
         <Box>
           <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
             <ShuffleIcon color="primary" fontSize="small" />
@@ -418,8 +384,8 @@ function DashboardPage({ token }: DashboardPageProps) {
                 >
                   <CardContent sx={{ py: 1.5 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Avatar 
-                        src={profilePics[contact.ID] || undefined}
+                      <Avatar
+                        src={contact.thumbnail_url || undefined}
                         sx={{ bgcolor: 'secondary.main', width: 40, height: 40 }}
                       >
                         {contact.firstname.charAt(0)}

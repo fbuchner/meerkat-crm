@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"encoding/base64"
 	"errors"
 	apperrors "meerkat/errors"
 	"meerkat/logger"
@@ -160,26 +159,11 @@ func GetContacts(c *gin.Context) {
 	countQuery.Count(&total)
 
 	// Map contacts to ContactResponse with thumbnail URLs
-	uploadDir := os.Getenv("PROFILE_PHOTO_DIR")
 	contactResponses := make([]models.ContactResponse, len(contacts))
 	for i, contact := range contacts {
 		contactResponses[i] = models.ContactResponse{
-			Contact: contact,
-		}
-		// Add base64-encoded thumbnail if photo thumbnail exists
-		if contact.PhotoThumbnail != "" && uploadDir != "" {
-			thumbnailPath := filepath.Join(uploadDir, contact.PhotoThumbnail)
-			if fileData, err := os.ReadFile(thumbnailPath); err == nil {
-				// Detect content type from file extension
-				contentType := "image/jpeg"
-				ext := filepath.Ext(contact.PhotoThumbnail)
-				if ext == ".png" {
-					contentType = "image/png"
-				}
-				// Encode as base64 data URL
-				base64Data := base64.StdEncoding.EncodeToString(fileData)
-				contactResponses[i].ThumbnailURL = "data:" + contentType + ";base64," + base64Data
-			}
+			Contact:      contact,
+			ThumbnailURL: contact.PhotoThumbnail, // Already base64 data URL
 		}
 	}
 
@@ -200,7 +184,7 @@ func GetContactsRandom(c *gin.Context) {
 		return
 	}
 
-	var selectedFields = []string{"ID", "firstname", "lastname", "nickname", "circles"}
+	var selectedFields = []string{"ID", "firstname", "lastname", "nickname", "circles", "photo_thumbnail"}
 
 	var contacts []models.Contact
 	query := db.Model(&models.Contact{}).Where("user_id = ?", userID)
@@ -218,9 +202,18 @@ func GetContactsRandom(c *gin.Context) {
 		return
 	}
 
+	// Map to response with thumbnail_url
+	contactResponses := make([]models.ContactResponse, len(contacts))
+	for i, contact := range contacts {
+		contactResponses[i] = models.ContactResponse{
+			Contact:      contact,
+			ThumbnailURL: contact.PhotoThumbnail,
+		}
+	}
+
 	// Respond with random contacts
 	c.JSON(http.StatusOK, gin.H{
-		"contacts": contacts,
+		"contacts": contactResponses,
 	})
 }
 
@@ -383,7 +376,8 @@ func DeleteContact(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Contact deleted"})
 }
 
-// deleteContactPhotos removes the profile photo and thumbnail files for a contact
+// deleteContactPhotos removes the profile photo file for a contact
+// Note: thumbnails are stored as base64 in the database, not as files
 func deleteContactPhotos(c *gin.Context, contact models.Contact) {
 	uploadDir := os.Getenv("PROFILE_PHOTO_DIR")
 	if uploadDir == "" {
@@ -402,8 +396,8 @@ func deleteContactPhotos(c *gin.Context, contact models.Contact) {
 		}
 	}
 
-	// Delete thumbnail if it exists
-	if contact.PhotoThumbnail != "" {
+	// Delete legacy file-based thumbnail if it exists (not base64 data URL)
+	if contact.PhotoThumbnail != "" && !strings.HasPrefix(contact.PhotoThumbnail, "data:") {
 		thumbnailPath := filepath.Join(uploadDir, contact.PhotoThumbnail)
 		if err := os.Remove(thumbnailPath); err != nil && !os.IsNotExist(err) {
 			log.Warn().Err(err).Str("path", thumbnailPath).Msg("Failed to delete contact thumbnail")

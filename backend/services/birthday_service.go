@@ -47,7 +47,7 @@ func GetUpcomingBirthdays(db *gorm.DB, userID uint) ([]models.Birthday, error) {
 			Type:         "contact",
 			Name:         name,
 			Birthday:     contact.Birthday,
-			ThumbnailURL: contact.PhotoThumbnail,
+			ThumbnailURL: contact.PhotoThumbnail, // Already base64 data URL
 			ContactID:    contact.ID,
 		})
 	}
@@ -100,7 +100,7 @@ func GetUpcomingBirthdays(db *gorm.DB, userID uint) ([]models.Birthday, error) {
 			Type:                  "relationship",
 			Name:                  rel.Name,
 			Birthday:              rel.Birthday,
-			ThumbnailURL:          parentContact.PhotoThumbnail,
+			ThumbnailURL:          parentContact.PhotoThumbnail, // Already base64 data URL
 			ContactID:             rel.ContactID,
 			RelationshipType:      rel.Type,
 			AssociatedContactName: parentName,

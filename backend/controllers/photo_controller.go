@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"bytes"
+	"encoding/base64"
 	"errors"
 	"image"
 	"image/jpeg"
@@ -49,37 +51,55 @@ func GetProfilePicture(c *gin.Context) {
 		return
 	}
 
-	uploadDir := os.Getenv("PROFILE_PHOTO_DIR")
-
 	// Check if thumbnail is requested via query parameter
 	wantsThumbnail := c.Query("thumbnail") == "true"
 
-	// Determine which photo to serve
-	var photoFilename string
 	if wantsThumbnail {
-		photoFilename = contact.PhotoThumbnail
-	} else {
-		photoFilename = contact.Photo
-	}
+		// Serve thumbnail from database (base64 data URL)
+		if contact.PhotoThumbnail == "" {
+			c.File("./static/placeholder-avatar.svg")
+			return
+		}
 
-	if photoFilename == "" {
-		filePath := "./static/placeholder-avatar.svg"
-		c.File(filePath)
+		// Parse and decode base64 data URL
+		// Format: data:image/jpeg;base64,<data>
+		if !strings.HasPrefix(contact.PhotoThumbnail, "data:") {
+			// Legacy file-based thumbnail - serve placeholder
+			c.File("./static/placeholder-avatar.svg")
+			return
+		}
+
+		parts := strings.SplitN(contact.PhotoThumbnail, ",", 2)
+		if len(parts) != 2 {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid thumbnail format"})
+			return
+		}
+
+		imageData, err := base64.StdEncoding.DecodeString(parts[1])
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode thumbnail"})
+			return
+		}
+
+		c.Data(http.StatusOK, "image/jpeg", imageData)
 		return
 	}
 
-	// Construct the full path to the image
-	filePath := filepath.Join(uploadDir, photoFilename)
+	// Serve full photo from file
+	uploadDir := os.Getenv("PROFILE_PHOTO_DIR")
+	if contact.Photo == "" {
+		c.File("./static/placeholder-avatar.svg")
+		return
+	}
 
-	logger.FromContext(c).Debug().Str("file_path", filePath).Bool("thumbnail", wantsThumbnail).Msg("Serving profile picture")
+	filePath := filepath.Join(uploadDir, contact.Photo)
+	logger.FromContext(c).Debug().Str("file_path", filePath).Msg("Serving profile picture")
 
-	// Check if the file exists
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Image not found"})
 		return
 	}
 
-	// Serve the image
 	c.File(filePath)
 }
 
@@ -142,6 +162,9 @@ func AddPhotoToContact(c *gin.Context) {
 	c.JSON(http.StatusOK, contact)
 }
 
+// processAndSavePhoto processes an uploaded photo and returns:
+// - photoPath: filename of the saved full-size photo
+// - thumbnailBase64: base64 data URL of the thumbnail (stored in DB)
 func processAndSavePhoto(file *multipart.FileHeader, uploadDir string) (string, string, error) {
 	// Open the uploaded file
 	src, err := file.Open()
@@ -178,10 +201,9 @@ func processAndSavePhoto(file *multipart.FileHeader, uploadDir string) (string, 
 		return "", "", err
 	}
 
-	// Generate unique filenames
+	// Generate unique filename for full photo
 	baseFilename := uuid.New().String()
 	photoPath := baseFilename + "_photo.jpg" // Always save as JPG
-	thumbnailPath := baseFilename + "_thumbnail.jpg"
 
 	// Create the output directory
 	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
@@ -195,14 +217,15 @@ func processAndSavePhoto(file *multipart.FileHeader, uploadDir string) (string, 
 		return "", "", err
 	}
 
-	// Create and save the thumbnail
+	// Create thumbnail and encode as base64 data URL
 	thumbnail := resize.Resize(48, 48, img, resize.Lanczos3)
-	fullThumbnailPath := filepath.Join(uploadDir, thumbnailPath)
-	if err := saveImage(fullThumbnailPath, thumbnail); err != nil {
+	var thumbnailBuf bytes.Buffer
+	if err := jpeg.Encode(&thumbnailBuf, thumbnail, &jpeg.Options{Quality: 85}); err != nil {
 		return "", "", err
 	}
+	thumbnailBase64 := "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(thumbnailBuf.Bytes())
 
-	return photoPath, thumbnailPath, nil
+	return photoPath, thumbnailBase64, nil
 }
 
 func saveImage(path string, img image.Image) error {

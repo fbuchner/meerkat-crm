@@ -1,4 +1,4 @@
-import { Box, Card, CardContent, Avatar, Typography, Chip, IconButton, Stack, TextField } from '@mui/material';
+import { Box, Card, CardContent, Avatar, Typography, Chip, IconButton, Stack, TextField, MenuItem } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
@@ -26,13 +26,14 @@ interface ContactHeaderProps {
   };
   editingCircles: boolean;
   newCircleName: string;
+  availableCircles: string[];
   onStartEditProfile: () => void;
   onCancelEditProfile: () => void;
   onSaveProfile: () => void;
   onDeleteContact: () => void;
   onProfileValueChange: (values: any) => void;
   onToggleEditCircles: () => void;
-  onAddCircle: () => void;
+  onAddCircle: (circleName?: string) => void;
   onDeleteCircle: (circle: string) => void;
   onNewCircleNameChange: (name: string) => void;
   onUploadProfilePicture: () => void;
@@ -45,6 +46,7 @@ export default function ContactHeader({
   profileValues,
   editingCircles,
   newCircleName,
+  availableCircles,
   onStartEditProfile,
   onCancelEditProfile,
   onSaveProfile,
@@ -239,7 +241,29 @@ export default function ContactHeader({
                       </Typography>
                     )}
                   </Stack>
-                  <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                  <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                    <TextField
+                      select
+                      label={t('contacts.selectCircle')}
+                      size="small"
+                      value=""
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value) {
+                          onAddCircle(value);
+                        }
+                      }}
+                      sx={{ minWidth: 150 }}
+                    >
+                      <MenuItem value="">{t('contacts.selectCircle')}</MenuItem>
+                      {availableCircles
+                        .filter(c => !contact.circles?.includes(c))
+                        .map(circle => (
+                          <MenuItem key={circle} value={circle}>
+                            {circle}
+                          </MenuItem>
+                        ))}
+                    </TextField>
                     <TextField
                       size="small"
                       placeholder={t('contactDetail.newCircle')}
@@ -255,12 +279,12 @@ export default function ContactHeader({
                     <IconButton
                       size="small"
                       color="primary"
-                      onClick={onAddCircle}
+                      onClick={() => onAddCircle()}
                       disabled={!newCircleName.trim()}
                     >
                       <AddIcon />
                     </IconButton>
-                  </Box>
+                  </Stack>
                 </Box>
               ) : (
                 // View Mode

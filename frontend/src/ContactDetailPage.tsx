@@ -6,7 +6,8 @@ import {
   updateContact,
   getContactProfilePicture,
   deleteContact,
-  uploadProfilePicture
+  uploadProfilePicture,
+  getCircles
 } from './api/contacts';
 import { 
   getContactNotes, 
@@ -93,6 +94,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
   // Circle editing state
   const [editingCircles, setEditingCircles] = useState(false);
   const [newCircleName, setNewCircleName] = useState('');
+  const [availableCircles, setAvailableCircles] = useState<string[]>([]);
 
   // Tab state
   const [activeTab, setActiveTab] = useState(0);
@@ -165,6 +167,16 @@ export default function ContactDetailPage({ token }: { token: string }) {
     setEditingRelationship,
   } = useRelationships(id, token, { showError });
 
+  // Fetch available circles
+  const fetchCircles = async () => {
+    try {
+      const data = await getCircles(token);
+      setAvailableCircles(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error fetching circles:', err);
+    }
+  };
+
   // Fetch contact details, notes, and activities
   useEffect(() => {
     if (!id) return;
@@ -182,6 +194,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
 
         await refreshReminders();
         await refreshRelationships();
+        await fetchCircles();
 
         setLoading(false);
       } catch (err) {
@@ -262,12 +275,13 @@ export default function ContactDetailPage({ token }: { token: string }) {
     }
   };
 
-  const handleAddCircle = async () => {
-    if (!contact || !newCircleName.trim()) return;
+  const handleAddCircle = async (circleName?: string) => {
+    const circleToAdd = circleName || newCircleName;
+    if (!contact || !circleToAdd.trim()) return;
 
-    const trimmedCircleName = newCircleName.trim();
+    const trimmedCircleName = circleToAdd.trim();
     const existingCircles = contact.circles || [];
-    
+
     // Check if the circle already exists (case-insensitive)
     if (existingCircles.some(circle => circle.toLowerCase() === trimmedCircleName.toLowerCase())) {
       return; // Don't add duplicate circles
@@ -282,6 +296,8 @@ export default function ContactDetailPage({ token }: { token: string }) {
       }, token);
       setContact(updatedContact);
       setNewCircleName('');
+      // Refresh available circles in case a new one was added
+      await fetchCircles();
     } catch (err) {
       console.error('Error adding circle:', err);
       if (err instanceof ApiError) {
@@ -421,6 +437,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
         profileValues={profileValues}
         editingCircles={editingCircles}
         newCircleName={newCircleName}
+        availableCircles={availableCircles}
         onStartEditProfile={handleStartEditProfile}
         onCancelEditProfile={handleCancelEditProfile}
         onSaveProfile={handleSaveProfile}

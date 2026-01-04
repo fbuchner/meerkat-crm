@@ -20,7 +20,6 @@ import {
   Box,
   Card,
   CardContent,
-  IconButton,
   Divider,
   Button,
   Tabs,
@@ -28,7 +27,6 @@ import {
   Typography
 } from '@mui/material';
 import { ContactDetailHeaderSkeleton, TimelineSkeleton } from './components/LoadingSkeletons';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import NoteIcon from '@mui/icons-material/Note';
 import EventIcon from '@mui/icons-material/Event';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
@@ -414,10 +412,6 @@ export default function ContactDetailPage({ token }: { token: string }) {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 1, px: 2, pb: 2 }}>
-      {/* Header with back button */}
-      <IconButton onClick={() => navigate('/contacts')} size="small" sx={{ mb: 0.5, ml: -1 }}>
-        <ArrowBackIcon fontSize="small" />
-      </IconButton>
 
       {/* Contact Header Card */}
       <ContactHeader

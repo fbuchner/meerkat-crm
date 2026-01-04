@@ -60,6 +60,9 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 			protected.POST("/contacts/:id/profile_picture", controllers.AddPhotoToContact)
 			protected.GET("/contacts/:id/profile_picture", controllers.GetProfilePicture)
 
+			// Image proxy route (for fetching images from external URLs)
+			protected.GET("/proxy/image", controllers.ProxyImage)
+
 			// Note routes
 			protected.GET("/contacts/:id/notes", controllers.GetNotesForContact)
 			protected.POST("/contacts/:id/notes", middleware.ValidateJSONMiddleware(&models.NoteInput{}), controllers.CreateNote)

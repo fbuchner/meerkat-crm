@@ -315,7 +315,11 @@
     "uploading": "Uploading...",
     "uploadError": "Failed to upload profile picture",
     "invalidFileType": "Please select an image file",
-    "fileTooLarge": "File is too large. Maximum size is 10MB."
+    "fileTooLarge": "File is too large. Maximum size is 10MB.",
+    "or": "or",
+    "urlPlaceholder": "Paste image URL...",
+    "fetch": "Fetch",
+    "urlFetchError": "Failed to fetch image from URL"
   },
   "settings": {
     "title": "Settings",

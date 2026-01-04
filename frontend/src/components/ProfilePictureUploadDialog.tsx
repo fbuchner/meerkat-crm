@@ -11,11 +11,16 @@ import {
   Slider,
   Typography,
   CircularProgress,
-  Alert
+  Alert,
+  TextField,
+  Divider
 } from '@mui/material';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import LinkIcon from '@mui/icons-material/Link';
 import { handleError, getErrorMessage } from '../utils/errorHandler';
+import { API_BASE_URL, apiFetch } from '../api/client';
+import { getToken } from '../auth';
 
 interface ProfilePictureUploadDialogProps {
   open: boolean;
@@ -92,6 +97,8 @@ export default function ProfilePictureUploadDialog({
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState('');
+  const [fetchingUrl, setFetchingUrl] = useState(false);
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -126,6 +133,54 @@ export default function ProfilePictureUploadDialog({
     reader.readAsDataURL(file);
   };
 
+  const handleFetchFromUrl = async () => {
+    if (!imageUrl.trim()) return;
+
+    setError(null);
+    setFetchingUrl(true);
+
+    try {
+      const token = getToken();
+      const proxyUrl = `${API_BASE_URL}/proxy/image?url=${encodeURIComponent(imageUrl.trim())}`;
+
+      const response = await apiFetch(proxyUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || t('profilePicture.urlFetchError'));
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.startsWith('image/')) {
+        throw new Error(t('profilePicture.invalidFileType'));
+      }
+
+      const blob = await response.blob();
+
+      if (blob.size > MAX_FILE_SIZE) {
+        throw new Error(t('profilePicture.fileTooLarge'));
+      }
+
+      const reader = new FileReader();
+      reader.addEventListener('load', () => {
+        setImageSrc(reader.result as string);
+        setCrop({ x: 0, y: 0 });
+        setZoom(1);
+        setImageUrl('');
+      });
+      reader.readAsDataURL(blob);
+    } catch (err) {
+      handleError(err, { operation: 'fetching image from URL' });
+      setError(getErrorMessage(err));
+    } finally {
+      setFetchingUrl(false);
+    }
+  };
+
   const handleUpload = async () => {
     if (!imageSrc || !croppedAreaPixels) return;
 
@@ -150,6 +205,8 @@ export default function ProfilePictureUploadDialog({
     setZoom(1);
     setCroppedAreaPixels(null);
     setError(null);
+    setImageUrl('');
+    setFetchingUrl(false);
     onClose();
   };
 
@@ -165,38 +222,74 @@ export default function ProfilePictureUploadDialog({
 
         {!imageSrc ? (
           // File selection view
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: 300,
-              border: '2px dashed',
-              borderColor: 'divider',
-              borderRadius: 2,
-              p: 4,
-              cursor: 'pointer',
-              '&:hover': {
-                borderColor: 'primary.main',
-                bgcolor: 'action.hover'
-              }
-            }}
-            component="label"
-          >
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileSelect}
-              style={{ display: 'none' }}
-            />
-            <CloudUploadIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary">
-              {t('profilePicture.selectImage')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {t('profilePicture.dragOrClick')}
-            </Typography>
+          <Box>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: 200,
+                border: '2px dashed',
+                borderColor: 'divider',
+                borderRadius: 2,
+                p: 4,
+                cursor: 'pointer',
+                '&:hover': {
+                  borderColor: 'primary.main',
+                  bgcolor: 'action.hover'
+                }
+              }}
+              component="label"
+            >
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                style={{ display: 'none' }}
+              />
+              <CloudUploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
+              <Typography variant="h6" color="text.secondary">
+                {t('profilePicture.selectImage')}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {t('profilePicture.dragOrClick')}
+              </Typography>
+            </Box>
+
+            <Divider sx={{ my: 3 }}>
+              <Typography variant="body2" color="text.secondary">
+                {t('profilePicture.or')}
+              </Typography>
+            </Divider>
+
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+              <TextField
+                fullWidth
+                size="small"
+                placeholder={t('profilePicture.urlPlaceholder')}
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                disabled={fetchingUrl}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleFetchFromUrl();
+                  }
+                }}
+                InputProps={{
+                  startAdornment: <LinkIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                }}
+              />
+              <Button
+                variant="outlined"
+                onClick={handleFetchFromUrl}
+                disabled={!imageUrl.trim() || fetchingUrl}
+                sx={{ minWidth: 100 }}
+              >
+                {fetchingUrl ? <CircularProgress size={20} /> : t('profilePicture.fetch')}
+              </Button>
+            </Box>
           </Box>
         ) : (
           // Cropping view

@@ -315,7 +315,11 @@
     "uploading": "Hochladen...",
     "uploadError": "Profilbild konnte nicht hochgeladen werden",
     "invalidFileType": "Bitte wählen Sie eine Bilddatei",
-    "fileTooLarge": "Datei ist zu groß. Maximale Größe ist 10MB."
+    "fileTooLarge": "Datei ist zu groß. Maximale Größe ist 10MB.",
+    "or": "oder",
+    "urlPlaceholder": "Bild-URL einfügen...",
+    "fetch": "Abrufen",
+    "urlFetchError": "Bild konnte nicht von URL abgerufen werden"
   },
   "settings": {
     "title": "Einstellungen",

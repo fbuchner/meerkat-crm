@@ -5,13 +5,17 @@ import (
 	"image"
 	"image/jpeg"
 	"image/png"
+	"io"
 	"meerkat/logger"
 	"meerkat/models"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -209,4 +213,73 @@ func saveImage(path string, img image.Image) error {
 
 	// Always encode as JPEG
 	return jpeg.Encode(out, img, &jpeg.Options{Quality: 85})
+}
+
+// ProxyImage fetches an image from a URL and returns it to the client.
+// This is used to work around CORS restrictions when fetching images from external URLs.
+func ProxyImage(c *gin.Context) {
+	imageURL := c.Query("url")
+	if imageURL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "URL parameter is required"})
+		return
+	}
+
+	// Validate the URL
+	parsedURL, err := url.Parse(imageURL)
+	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid URL"})
+		return
+	}
+
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	// Fetch the image
+	req, err := http.NewRequest("GET", imageURL, nil)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to create request"})
+		return
+	}
+
+	// Set a user agent to avoid being blocked by some servers
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; MeerkatCRM/1.0)")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		logger.FromContext(c).Warn().Err(err).Str("url", imageURL).Msg("Failed to fetch image from URL")
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to fetch image from URL"})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to fetch image: remote server returned " + resp.Status})
+		return
+	}
+
+	// Check content type
+	contentType := resp.Header.Get("Content-Type")
+	if !strings.HasPrefix(contentType, "image/") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "URL does not point to an image"})
+		return
+	}
+
+	// Limit response size (10MB)
+	const maxSize = 10 * 1024 * 1024
+	limitedReader := io.LimitReader(resp.Body, maxSize+1)
+	body, err := io.ReadAll(limitedReader)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to read image data"})
+		return
+	}
+
+	if len(body) > maxSize {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Image is too large. Maximum size is 10MB"})
+		return
+	}
+
+	// Return the image with appropriate content type
+	c.Data(http.StatusOK, contentType, body)
 }

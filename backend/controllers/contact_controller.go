@@ -6,12 +6,12 @@ import (
 	apperrors "meerkat/errors"
 	"meerkat/logger"
 	"meerkat/models"
+	"meerkat/services"
 	"net/http"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -232,159 +232,10 @@ func GetUpcomingBirthdays(c *gin.Context) {
 		return
 	}
 
-	// Get current date
-	now := time.Now()
-	currentDay := now.Format("02")
-	currentMonth := now.Format("01")
-	nextMonth := now.AddDate(0, 1, 0).Format("01")
-
-	var birthdays []models.Birthday
-
-	// Query upcoming contact birthdays
-	var contacts []models.Contact
-	contactQuery := db.Model(&models.Contact{}).
-		Where("user_id = ?", userID).
-		Where("birthday IS NOT NULL AND birthday != ''").
-		Where(
-			db.Where("SUBSTR(birthday, 4, 2) = ? AND SUBSTR(birthday, 1, 2) >= ?", currentMonth, currentDay).
-				Or("SUBSTR(birthday, 4, 2) = ?", nextMonth),
-		)
-
-	if err := contactQuery.Find(&contacts).Error; err != nil {
+	birthdays, err := services.GetUpcomingBirthdays(db, userID)
+	if err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve upcoming birthdays").WithError(err))
 		return
-	}
-
-	// Convert contacts to Birthday DTOs
-	for _, contact := range contacts {
-		name := contact.Firstname
-		if contact.Nickname != "" {
-			name = contact.Nickname
-		}
-		if contact.Lastname != "" {
-			name += " " + contact.Lastname
-		}
-
-		birthdays = append(birthdays, models.Birthday{
-			Type:         "contact",
-			Name:         name,
-			Birthday:     contact.Birthday,
-			ThumbnailURL: contact.PhotoThumbnail,
-			ContactID:    contact.ID,
-		})
-	}
-
-	// Query upcoming relationship birthdays (only those without their own contact)
-	var relationships []models.Relationship
-	relationshipQuery := db.Model(&models.Relationship{}).
-		Preload("RelatedContact").
-		Where("user_id = ?", userID).
-		Where("related_contact_id IS NULL"). // Only relationships without their own contact
-		Where("birthday IS NOT NULL AND birthday != ''").
-		Where(
-			db.Where("SUBSTR(birthday, 4, 2) = ? AND SUBSTR(birthday, 1, 2) >= ?", currentMonth, currentDay).
-				Or("SUBSTR(birthday, 4, 2) = ?", nextMonth),
-		)
-
-	if err := relationshipQuery.Find(&relationships).Error; err != nil {
-		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve relationship birthdays").WithError(err))
-		return
-	}
-
-	// Get parent contacts for relationships to get their names and thumbnails
-	contactIDs := make([]uint, 0, len(relationships))
-	for _, rel := range relationships {
-		contactIDs = append(contactIDs, rel.ContactID)
-	}
-
-	parentContacts := make(map[uint]models.Contact)
-	if len(contactIDs) > 0 {
-		var parentContactList []models.Contact
-		if err := db.Where("id IN ?", contactIDs).Find(&parentContactList).Error; err != nil {
-			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve parent contacts").WithError(err))
-			return
-		}
-		for _, pc := range parentContactList {
-			parentContacts[pc.ID] = pc
-		}
-	}
-
-	// Convert relationships to Birthday DTOs
-	for _, rel := range relationships {
-		parentContact := parentContacts[rel.ContactID]
-		parentName := parentContact.Firstname
-		if parentContact.Nickname != "" {
-			parentName = parentContact.Nickname
-		}
-		if parentContact.Lastname != "" {
-			parentName += " " + parentContact.Lastname
-		}
-
-		birthdays = append(birthdays, models.Birthday{
-			Type:                  "relationship",
-			Name:                  rel.Name,
-			Birthday:              rel.Birthday,
-			ThumbnailURL:          parentContact.PhotoThumbnail, // Use parent contact's thumbnail
-			ContactID:             rel.ContactID,
-			RelationshipType:      rel.Type,
-			AssociatedContactName: parentName,
-		})
-	}
-
-	// Helper function to calculate days until birthday from today
-	daysUntilBirthday := func(birthday string) int {
-		if len(birthday) < 5 {
-			return 999 // Invalid format, put at end
-		}
-		day := birthday[0:2]
-		month := birthday[3:5]
-
-		// Parse day and month
-		d, err1 := time.Parse("02", day)
-		m, err2 := time.Parse("01", month)
-		if err1 != nil || err2 != nil {
-			return 999
-		}
-
-		// Create birthday date for this year
-		birthdayThisYear := time.Date(now.Year(), m.Month(), d.Day(), 0, 0, 0, 0, now.Location())
-		today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-
-		// If birthday has passed this year, use next year
-		if birthdayThisYear.Before(today) {
-			birthdayThisYear = birthdayThisYear.AddDate(1, 0, 0)
-		}
-
-		return int(birthdayThisYear.Sub(today).Hours() / 24)
-	}
-
-	// Sort by days until birthday
-	slices.SortFunc(birthdays, func(a, b models.Birthday) int {
-		daysA := daysUntilBirthday(a.Birthday)
-		daysB := daysUntilBirthday(b.Birthday)
-		return daysA - daysB
-	})
-
-	// Apply limit: max 5, but include all birthdays within 2 weeks
-	const maxResults = 5
-	const twoWeeksDays = 14
-
-	resultCount := 0
-	for i, b := range birthdays {
-		days := daysUntilBirthday(b.Birthday)
-		if days <= twoWeeksDays {
-			// Always include birthdays within 2 weeks
-			resultCount = i + 1
-		} else if resultCount < maxResults {
-			// Include up to maxResults total
-			resultCount = i + 1
-		} else {
-			break
-		}
-	}
-
-	if resultCount < len(birthdays) {
-		birthdays = birthdays[:resultCount]
 	}
 
 	c.JSON(http.StatusOK, gin.H{

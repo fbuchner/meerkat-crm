@@ -259,14 +259,14 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 	return nil
 }
 
-// Send email using Resend with daily reminders
+// Send email using Resend with daily reminders and upcoming birthdays
 func sendReminderEmail(user models.User, reminders []models.Reminder, config config.Config, db *gorm.DB) error {
 	if user.Email == "" {
 		logger.Warn().Uint("user_id", user.ID).Msg("Skipping reminder email because user email is missing")
 		return nil
 	}
 
-	// Build the HTML content
+	// Build the HTML content for reminders
 	htmlContent := "<h1>Your Reminders for Today:</h1><ul>"
 	for _, reminder := range reminders {
 		contactName := "Unknown" // Default value for contact's name
@@ -280,7 +280,36 @@ func sendReminderEmail(user models.User, reminders []models.Reminder, config con
 	}
 	htmlContent += "</ul>"
 
-	logger.Debug().Str("html_content", htmlContent).Int("reminder_count", len(reminders)).Uint("user_id", user.ID).Msg("Sending reminder email")
+	// Add upcoming birthdays section
+	birthdays, err := GetUpcomingBirthdays(db, user.ID)
+	if err != nil {
+		logger.Warn().Err(err).Uint("user_id", user.ID).Msg("Failed to fetch birthdays for email, continuing without them")
+	} else if len(birthdays) > 0 {
+		now := time.Now()
+		htmlContent += "<h1>Upcoming Birthdays:</h1><ul>"
+		for _, birthday := range birthdays {
+			days := DaysUntilBirthday(birthday.Birthday, now)
+			var daysText string
+			if days == 0 {
+				daysText = "Today!"
+			} else if days == 1 {
+				daysText = "Tomorrow"
+			} else {
+				daysText = fmt.Sprintf("In %d days", days)
+			}
+
+			if birthday.Type == "relationship" {
+				htmlContent += fmt.Sprintf("<li>%s (%s) - %s's %s - %s</li>",
+					birthday.Birthday, daysText, birthday.AssociatedContactName, birthday.RelationshipType, birthday.Name)
+			} else {
+				htmlContent += fmt.Sprintf("<li>%s (%s) - %s</li>",
+					birthday.Birthday, daysText, birthday.Name)
+			}
+		}
+		htmlContent += "</ul>"
+	}
+
+	logger.Debug().Str("html_content", htmlContent).Int("reminder_count", len(reminders)).Int("birthday_count", len(birthdays)).Uint("user_id", user.ID).Msg("Sending reminder email")
 
 	// Initialize Resend client
 	client := resend.NewClient(config.ResendAPIKey)

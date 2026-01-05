@@ -9,6 +9,7 @@
     "contacts": "Contacts",
     "activities": "Activities",
     "notes": "Notes",
+    "network": "Network",
     "reminders": "Reminders",
     "settings": "Settings"
   },
@@ -368,6 +369,20 @@
     "notes": "Notes Page",
     "activities": "Activities Page",
     "reminders": "Reminders Page"
+  },
+  "network": {
+    "title": "Contact Network",
+    "filterByCircle": "Filter by Circle",
+    "allCircles": "All Circles",
+    "showRelationships": "Relationships",
+    "showActivities": "Activities",
+    "noData": "No contacts to display. Add some contacts first.",
+    "legend": {
+      "relationships": "Relationship",
+      "activities": "Shared Activity",
+      "contact": "Contact",
+      "activity": "Activity"
+    }
   },
   "relationships": {
     "title": "Relationships",

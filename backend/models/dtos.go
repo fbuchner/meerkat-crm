@@ -70,11 +70,35 @@ type ContactResponse struct {
 
 // Birthday represents a unified birthday entry for contacts and relationships
 type Birthday struct {
-	Type                  string `json:"type"`                    // "contact" or "relationship"
-	Name                  string `json:"name"`                    // Unified display name
-	Birthday              string `json:"birthday"`                // Birthday in DD.MM.YYYY or DD.MM. format
-	ThumbnailURL          string `json:"thumbnail_url,omitempty"` // Profile picture thumbnail URL
-	ContactID             uint   `json:"contact_id"`              // Contact ID (the person or parent contact for relationships)
-	RelationshipType      string `json:"relationship_type,omitempty"`      // Relationship type (empty for contacts)
+	Type                  string `json:"type"`                              // "contact" or "relationship"
+	Name                  string `json:"name"`                              // Unified display name
+	Birthday              string `json:"birthday"`                          // Birthday in DD.MM.YYYY or DD.MM. format
+	ThumbnailURL          string `json:"thumbnail_url,omitempty"`           // Profile picture thumbnail URL
+	ContactID             uint   `json:"contact_id"`                        // Contact ID (the person or parent contact for relationships)
+	RelationshipType      string `json:"relationship_type,omitempty"`       // Relationship type (empty for contacts)
 	AssociatedContactName string `json:"associated_contact_name,omitempty"` // Parent contact name (for relationships)
+}
+
+// GraphNode represents a node in the network visualization (contact or activity)
+type GraphNode struct {
+	ID           string   `json:"id"`                      // "c-{contactID}" or "a-{activityID}"
+	Type         string   `json:"type"`                    // "contact" or "activity"
+	Label        string   `json:"label"`                   // Display name or activity title
+	ThumbnailURL string   `json:"thumbnail_url,omitempty"` // Profile picture for contacts
+	Circles      []string `json:"circles,omitempty"`       // Circles for contacts
+}
+
+// GraphEdge represents an edge in the network visualization
+type GraphEdge struct {
+	ID     string `json:"id"`     // Unique edge ID
+	Source string `json:"source"` // Source node ID
+	Target string `json:"target"` // Target node ID
+	Type   string `json:"type"`   // "relationship" or "activity"
+	Label  string `json:"label"`  // Relationship type or activity title
+}
+
+// GraphResponse is the API response for the network graph
+type GraphResponse struct {
+	Nodes []GraphNode `json:"nodes"`
+	Edges []GraphEdge `json:"edges"`
 }

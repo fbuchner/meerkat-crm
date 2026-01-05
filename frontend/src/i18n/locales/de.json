@@ -9,6 +9,7 @@
     "contacts": "Kontakte",
     "activities": "Aktivitäten",
     "notes": "Notizen",
+    "network": "Netzwerk",
     "reminders": "Erinnerungen",
     "settings": "Einstellungen"
   },
@@ -368,6 +369,20 @@
     "notes": "Notizen Seite",
     "activities": "Aktivitäten Seite",
     "reminders": "Erinnerungen Seite"
+  },
+  "network": {
+    "title": "Kontakt-Netzwerk",
+    "filterByCircle": "Nach Kreis filtern",
+    "allCircles": "Alle Kreise",
+    "showRelationships": "Beziehungen",
+    "showActivities": "Aktivitäten",
+    "noData": "Keine Kontakte vorhanden. Fügen Sie zuerst einige Kontakte hinzu.",
+    "legend": {
+      "relationships": "Beziehung",
+      "activities": "Gemeinsame Aktivität",
+      "contact": "Kontakt",
+      "activity": "Aktivität"
+    }
   },
   "relationships": {
     "title": "Beziehungen",

@@ -5,6 +5,7 @@ import ActivitiesPage from './ActivitiesPage';
 import NotesPage from './NotesPage';
 import DashboardPage from './DashboardPage';
 import SettingsPage from './SettingsPage';
+import NetworkPage from './NetworkPage';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
 import { getToken, logoutUser } from './auth';
@@ -38,6 +39,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import ContactsIcon from '@mui/icons-material/Contacts';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import NoteIcon from '@mui/icons-material/Note';
+import HubIcon from '@mui/icons-material/Hub';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
 import './App.css';
@@ -93,6 +95,7 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
     { text: t('nav.contacts'), icon: <ContactsIcon />, path: '/contacts' },
     { text: t('nav.activities'), icon: <EventNoteIcon />, path: '/activities' },
     { text: t('nav.notes'), icon: <NoteIcon />, path: '/notes' },
+    { text: t('nav.network'), icon: <HubIcon />, path: '/network' },
     { text: t('nav.settings'), icon: <SettingsIcon />, path: '/settings' }
   ];
 
@@ -334,6 +337,7 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
           <Route path="/notes" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><NotesPage token={token} /></Suspense>} />
           <Route path="/activities" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ActivitiesPage token={token} /></Suspense>} />
           <Route path="/settings" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><SettingsPage /></Suspense>} />
+          <Route path="/network" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><NetworkPage /></Suspense>} />
           <Route path="/reminders" element={<div>{t('pages.reminders')}</div>} />
           <Route path="/" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><DashboardPage token={token} /></Suspense>} />
         </Routes>

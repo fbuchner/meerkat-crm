@@ -92,6 +92,9 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 
 			// Export routes
 			protected.GET("/export", controllers.ExportData)
+
+			// Graph/Network visualization route
+			protected.GET("/graph", controllers.GetGraph)
 		}
 	}
 }

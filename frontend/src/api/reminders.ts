@@ -9,6 +9,7 @@ export interface Reminder {
   recurrence: 'once' | 'weekly' | 'monthly' | 'quarterly' | 'six-months' | 'yearly';
   reoccur_from_completion: boolean;
   completed: boolean;
+  email_sent: boolean;
   last_sent?: string; // ISO date string
   contact_id: number;
   CreatedAt?: string;

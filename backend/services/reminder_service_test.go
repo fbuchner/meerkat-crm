@@ -293,9 +293,12 @@ func TestSendReminders(t *testing.T) {
 		assert.Equal(t, reminder.ID, calledReminders[0].ID)
 	}
 
+	// After sending email, reminder should still exist but marked as email_sent=true
 	var updatedReminder models.Reminder
-	result := db.Unscoped().First(&updatedReminder, reminder.ID)
-	assert.ErrorIs(t, result.Error, gorm.ErrRecordNotFound)
+	result := db.First(&updatedReminder, reminder.ID)
+	assert.NoError(t, result.Error)
+	assert.True(t, updatedReminder.EmailSent, "EmailSent should be true after email is sent")
+	assert.NotNil(t, updatedReminder.LastSent, "LastSent should be set after email is sent")
 }
 
 func TestSendRemindersWithRateLimit_FirstRun(t *testing.T) {

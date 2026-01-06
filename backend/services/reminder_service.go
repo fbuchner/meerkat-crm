@@ -173,9 +173,9 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 	// - Set to be sent by email
 	// - Due today or before
 	// - Not completed
-	// - Either never sent, or last sent was before today
-	err := db.Where("by_mail = ? AND remind_at <= ? AND completed = ? AND (last_sent IS NULL OR last_sent <= ?)",
-		true, endOfDay, false, endOfDay).Find(&reminders).Error
+	// - Email not yet sent for this occurrence
+	err := db.Where("by_mail = ? AND remind_at <= ? AND completed = ? AND email_sent = ?",
+		true, endOfDay, false, false).Find(&reminders).Error
 	if err != nil {
 		return fmt.Errorf("failed to fetch reminders: %w", err)
 	}
@@ -262,23 +262,17 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 		}
 
 		// Only mutate reminders after successful email send
+		// Mark all reminders as email_sent=true so they stay visible in dashboard
+		// until manually acknowledged, but won't be included in future emails
 		for _, reminder := range userReminders {
-			if reminder.Recurrence == "once" {
-				// Use Unscoped to hard delete the reminder permanently
-				if err := db.Unscoped().Delete(&reminder).Error; err != nil {
-					logger.Error().Err(err).Uint("reminder_id", reminder.ID).Msg("Failed to delete 'once' reminder after sending")
-				} else {
-					logger.Info().Uint("reminder_id", reminder.ID).Msg("Deleted 'once' reminder after sending")
-				}
-				continue
-			}
-
+			reminder.EmailSent = true
 			reminder.LastSent = new(time.Time)
 			*reminder.LastSent = time.Now()
-			reminder.RemindAt = CalculateNextReminderTime(reminder)
-			logger.Debug().Time("next_remind_at", reminder.RemindAt).Uint("reminder_id", reminder.ID).Msg("Updated reminder time")
+
 			if err := db.Save(&reminder).Error; err != nil {
-				logger.Error().Err(err).Uint("reminder_id", reminder.ID).Msg("Failed to update reminder after sending")
+				logger.Error().Err(err).Uint("reminder_id", reminder.ID).Msg("Failed to update reminder after sending email")
+			} else {
+				logger.Info().Uint("reminder_id", reminder.ID).Msg("Marked reminder as email_sent")
 			}
 		}
 	}

@@ -15,6 +15,7 @@ type Reminder struct {
 	Recurrence            string     `gorm:"not null" json:"recurrence" validate:"required,oneof=once weekly monthly quarterly six-months yearly"`
 	ReoccurFromCompletion *bool      `gorm:"default:true" json:"reoccur_from_completion"`
 	Completed             bool       `gorm:"default:false" json:"completed"`
+	EmailSent             bool       `gorm:"default:false" json:"email_sent"`
 	LastSent              *time.Time `gorm:"default:null" json:"last_sent"`
 	ContactID             *uint      `gorm:"not null" json:"contact_id" validate:"required"`
 	Contact               Contact    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"contact,omitempty" validate:"-"`

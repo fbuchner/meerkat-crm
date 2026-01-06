@@ -205,13 +205,23 @@ export default function ContactDetailPage({ token }: { token: string }) {
 
     fetchData();
 
+    let currentBlobUrl: string | null = null;
     getContactProfilePicture(id, token)
       .then(blob => {
         if (blob) {
-          setProfilePic(URL.createObjectURL(blob));
+          currentBlobUrl = URL.createObjectURL(blob);
+          setProfilePic(currentBlobUrl);
+        } else {
+          setProfilePic('');
         }
       })
       .catch(err => console.error('Error fetching profile picture:', err));
+
+    return () => {
+      if (currentBlobUrl) {
+        URL.revokeObjectURL(currentBlobUrl);
+      }
+    };
   }, [id, token, refreshReminders, refreshRelationships]);
 
   // Combine and sort notes and activities for timeline

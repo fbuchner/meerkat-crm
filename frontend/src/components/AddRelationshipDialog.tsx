@@ -58,6 +58,20 @@ export default function AddRelationshipDialog({
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const loadContacts = useCallback(async (search: string = '') => {
+    setContactsLoading(true);
+    try {
+      const response = await getContacts({ limit: 100, search }, token);
+      // Filter out the current contact
+      const filteredContacts = response.contacts.filter(c => c.ID !== currentContactId);
+      setContacts(filteredContacts);
+    } catch (err) {
+      handleFetchError(err, 'loading contacts');
+    } finally {
+      setContactsLoading(false);
+    }
+  }, [token, currentContactId]);
+
   // Load contacts for linking
   useEffect(() => {
     if (open && entryMode === 'linked') {
@@ -97,20 +111,6 @@ export default function AddRelationshipDialog({
       resetForm();
     }
   }, [relationship, open]);
-
-  const loadContacts = useCallback(async (search: string = '') => {
-    setContactsLoading(true);
-    try {
-      const response = await getContacts({ limit: 100, search }, token);
-      // Filter out the current contact
-      const filteredContacts = response.contacts.filter(c => c.ID !== currentContactId);
-      setContacts(filteredContacts);
-    } catch (err) {
-      handleFetchError(err, 'loading contacts');
-    } finally {
-      setContactsLoading(false);
-    }
-  }, [token, currentContactId]);
 
   // Debounced search effect
   useEffect(() => {

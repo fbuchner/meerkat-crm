@@ -63,7 +63,7 @@ export default function AddRelationshipDialog({
     if (open && entryMode === 'linked') {
       loadContacts();
     }
-  }, [open, entryMode, token]);
+  }, [open, entryMode, loadContacts]);
 
   // Populate form when editing
   useEffect(() => {

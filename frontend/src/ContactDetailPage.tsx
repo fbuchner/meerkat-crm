@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -169,14 +169,14 @@ export default function ContactDetailPage({ token }: { token: string }) {
   } = useRelationships(id, token, { showError });
 
   // Fetch available circles
-  const fetchCircles = async () => {
+  const fetchCircles = useCallback(async () => {
     try {
       const data = await getCircles(token);
       setAvailableCircles(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching circles:', err);
     }
-  };
+  }, [token]);
 
   // Fetch contact details, notes, and activities
   useEffect(() => {
@@ -223,7 +223,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
         URL.revokeObjectURL(currentBlobUrl);
       }
     };
-  }, [id, token, refreshReminders, refreshRelationships]);
+  }, [id, token, refreshReminders, refreshRelationships, fetchCircles]);
 
   // Combine and sort notes and activities for timeline
   const timelineItems: Array<{ type: 'note' | 'activity'; data: Note | Activity; date: string }> = [

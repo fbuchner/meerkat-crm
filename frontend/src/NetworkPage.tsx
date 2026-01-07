@@ -92,6 +92,8 @@ export default function NetworkPage() {
           flexWrap: 'wrap',
           alignItems: 'center',
           flexDirection: isMobile ? 'column' : 'row',
+          flexShrink: 0,
+          overflow: 'visible',
         }}
       >
         <Typography variant="h6" sx={{ flexGrow: isMobile ? 0 : 1 }}>

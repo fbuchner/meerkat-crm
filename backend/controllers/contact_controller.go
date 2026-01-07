@@ -104,8 +104,20 @@ func GetContacts(c *gin.Context) {
 		}
 	}
 
+	// Parse and validate sort parameters
+	sortField := c.DefaultQuery("sort", "id")
+	sortOrder := c.DefaultQuery("order", "desc")
+
+	allowedSortFields := map[string]bool{"firstname": true, "lastname": true, "id": true}
+	if !allowedSortFields[sortField] {
+		sortField = "id"
+	}
+	if sortOrder != "asc" && sortOrder != "desc" {
+		sortOrder = "desc"
+	}
+
 	var contacts []models.Contact
-	query := db.Model(&models.Contact{}).Where("user_id = ?", userID).Order("id DESC").Limit(pagination.Limit).Offset(pagination.Offset)
+	query := db.Model(&models.Contact{}).Where("user_id = ?", userID).Order(sortField + " " + sortOrder).Limit(pagination.Limit).Offset(pagination.Offset)
 
 	if len(selectedFields) > 0 {
 		query = query.Select(selectedFields)

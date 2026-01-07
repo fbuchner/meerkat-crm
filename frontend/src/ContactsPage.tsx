@@ -31,17 +31,23 @@ export default function ContactsPage({ token }: { token: string }) {
   const [selectedCircle, setSelectedCircle] = useState('');
   const [circles, setCircles] = useState<string[]>([]);
   const [page, setPage] = useState(1);
+  const [sortOption, setSortOption] = useState('id-desc');
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const pageSize = 10;
+
+  // Parse sort option into field and order
+  const [sortField, sortOrder] = sortOption.split('-');
 
   // Memoize params to prevent infinite re-renders
   const contactParams = useMemo(() => ({
     page,
     limit: pageSize,
     search: searchQuery,
-    circle: selectedCircle
-  }), [page, searchQuery, selectedCircle]);
+    circle: selectedCircle,
+    sort: sortField,
+    order: sortOrder,
+  }), [page, searchQuery, selectedCircle, sortField, sortOrder]);
 
   // Use custom hook for fetching contacts
   const { contacts, total: totalContacts, loading, refetch } = useContacts(contactParams);
@@ -99,6 +105,20 @@ export default function ContactsPage({ token }: { token: string }) {
             {circles.map(circle => (
               <MenuItem key={circle} value={circle}>{circle}</MenuItem>
             ))}
+          </Select>
+        </FormControl>
+        <FormControl sx={{ minWidth: 150 }} size="small">
+          <InputLabel id="sort-select-label">{t('contacts.sortBy')}</InputLabel>
+          <Select
+            labelId="sort-select-label"
+            value={sortOption}
+            label={t('contacts.sortBy')}
+            onChange={e => setSortOption(e.target.value)}
+          >
+            <MenuItem value="id-desc">{t('contacts.sort.recentlyAdded')}</MenuItem>
+            <MenuItem value="id-asc">{t('contacts.sort.oldestFirst')}</MenuItem>
+            <MenuItem value="firstname-asc">{t('contacts.sort.nameAZ')}</MenuItem>
+            <MenuItem value="firstname-desc">{t('contacts.sort.nameZA')}</MenuItem>
           </Select>
         </FormControl>
         <Button

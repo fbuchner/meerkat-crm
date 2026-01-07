@@ -21,7 +21,7 @@ interface UseContactsResult {
 export function useContacts(params: GetContactsParams = {}): UseContactsResult {
   // Destructure params to use primitive values as dependencies
   // This prevents re-fetches when callers pass new object references with identical values
-  const { page: paramPage, limit, search, circle } = params;
+  const { page: paramPage, limit, search, circle, sort, order } = params;
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [total, setTotal] = useState(0);
@@ -44,6 +44,8 @@ export function useContacts(params: GetContactsParams = {}): UseContactsResult {
         limit,
         search,
         circle,
+        sort,
+        order,
       };
       const data: ContactsResponse = await getContacts(fetchParams, token);
       setContacts(data.contacts || []);
@@ -55,7 +57,7 @@ export function useContacts(params: GetContactsParams = {}): UseContactsResult {
     } finally {
       setLoading(false);
     }
-  }, [paramPage, limit, search, circle]);
+  }, [paramPage, limit, search, circle, sort, order]);
 
   useEffect(() => {
     fetchContacts();

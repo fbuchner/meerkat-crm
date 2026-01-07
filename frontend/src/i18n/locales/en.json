@@ -115,6 +115,13 @@
       "success": "Contact created successfully!",
       "createBirthdayReminder": "Create birthday reminder"
     },
+    "sortBy": "Sort by",
+    "sort": {
+      "recentlyAdded": "Recently Added",
+      "oldestFirst": "Oldest First",
+      "nameAZ": "Name A-Z",
+      "nameZA": "Name Z-A"
+    },
     "import": {
       "button": "Import CSV",
       "title": "Import Contacts",

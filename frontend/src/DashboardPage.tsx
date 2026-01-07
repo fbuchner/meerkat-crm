@@ -11,7 +11,8 @@ import {
   Chip,
   Alert,
   IconButton,
-  Tooltip
+  Tooltip,
+  Popover
 } from '@mui/material';
 import CakeIcon from '@mui/icons-material/Cake';
 import ShuffleIcon from '@mui/icons-material/Shuffle';
@@ -20,6 +21,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EmailIcon from '@mui/icons-material/Email';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import WarningIcon from '@mui/icons-material/Warning';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { Contact, Birthday, getRandomContacts, getUpcomingBirthdays, getContact } from './api/contacts';
 import { Reminder, getUpcomingReminders, completeReminder } from './api/reminders';
 import { ContactListSkeleton } from './components/LoadingSkeletons';
@@ -38,6 +40,9 @@ function DashboardPage({ token }: DashboardPageProps) {
   const [contactsMap, setContactsMap] = useState<Record<number, Contact>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [birthdaysInfoAnchor, setBirthdaysInfoAnchor] = useState<HTMLElement | null>(null);
+  const [remindersInfoAnchor, setRemindersInfoAnchor] = useState<HTMLElement | null>(null);
+  const [stayInTouchInfoAnchor, setStayInTouchInfoAnchor] = useState<HTMLElement | null>(null);
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -178,7 +183,23 @@ function DashboardPage({ token }: DashboardPageProps) {
             <Typography variant="subtitle1" fontWeight={500}>
               {t('dashboard.upcomingBirthdays')}
             </Typography>
+            <IconButton
+              size="small"
+              onClick={(e) => setBirthdaysInfoAnchor(e.currentTarget)}
+            >
+              <InfoOutlinedIcon fontSize="small" />
+            </IconButton>
           </Box>
+          <Popover
+            open={Boolean(birthdaysInfoAnchor)}
+            anchorEl={birthdaysInfoAnchor}
+            onClose={() => setBirthdaysInfoAnchor(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+          >
+            <Box sx={{ p: 2, maxWidth: 320 }}>
+              <Typography variant="body2">{t('dashboard.birthdaysInfo')}</Typography>
+            </Box>
+          </Popover>
 
           {birthdays.length === 0 ? (
             <Card>
@@ -250,7 +271,23 @@ function DashboardPage({ token }: DashboardPageProps) {
             <Typography variant="subtitle1" fontWeight={500}>
               {t('dashboard.upcomingReminders')}
             </Typography>
+            <IconButton
+              size="small"
+              onClick={(e) => setRemindersInfoAnchor(e.currentTarget)}
+            >
+              <InfoOutlinedIcon fontSize="small" />
+            </IconButton>
           </Box>
+          <Popover
+            open={Boolean(remindersInfoAnchor)}
+            anchorEl={remindersInfoAnchor}
+            onClose={() => setRemindersInfoAnchor(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+          >
+            <Box sx={{ p: 2, maxWidth: 320 }}>
+              <Typography variant="body2">{t('dashboard.remindersInfo')}</Typography>
+            </Box>
+          </Popover>
 
           {upcomingReminders.length === 0 ? (
             <Card>
@@ -356,7 +393,23 @@ function DashboardPage({ token }: DashboardPageProps) {
             <Typography variant="subtitle1" fontWeight={500}>
               {t('dashboard.randomContacts')}
             </Typography>
+            <IconButton
+              size="small"
+              onClick={(e) => setStayInTouchInfoAnchor(e.currentTarget)}
+            >
+              <InfoOutlinedIcon fontSize="small" />
+            </IconButton>
           </Box>
+          <Popover
+            open={Boolean(stayInTouchInfoAnchor)}
+            anchorEl={stayInTouchInfoAnchor}
+            onClose={() => setStayInTouchInfoAnchor(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+          >
+            <Box sx={{ p: 2, maxWidth: 320 }}>
+              <Typography variant="body2">{t('dashboard.stayInTouchInfo')}</Typography>
+            </Box>
+          </Popover>
 
           {randomContacts.length === 0 ? (
             <Card>

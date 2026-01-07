@@ -23,7 +23,10 @@
     "noContacts": "Keine Kontakte verfügbar",
     "noReminders": "Keine anstehenden Erinnerungen",
     "error": "Dashboard-Daten konnten nicht geladen werden",
-    "yearsOld": "({{age}} Jahre alt)"
+    "yearsOld": "({{age}} Jahre alt)",
+    "birthdaysInfo": "Zeigt Geburtstage für mindestens die nächsten zwei Wochen, einschließlich der Geburtstage von Beziehungen Ihrer Kontakte.",
+    "remindersInfo": "Zeigt mindestens alle Erinnerungen, die bis einschließlich heute fällig sind. Erinnerungen bleiben sichtbar, bis sie als erledigt markiert werden.",
+    "stayInTouchInfo": "Zeigt fünf zufällige Kontakte, um in Verbindung zu bleiben. Die Liste wird bei jedem Neuladen der Seite aktualisiert."
   },
   "login": {
     "title": "Anmelden",

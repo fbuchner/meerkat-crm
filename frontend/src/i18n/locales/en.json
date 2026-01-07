@@ -23,7 +23,10 @@
     "noContacts": "No contacts available",
     "noReminders": "No upcoming reminders",
     "error": "Failed to load dashboard data",
-    "yearsOld": "({{age}} years old)"
+    "yearsOld": "({{age}} years old)",
+    "birthdaysInfo": "Shows birthdays for at least the next two weeks, including birthdays of relationships linked to your contacts.",
+    "remindersInfo": "Shows at least all reminders due up to and including today. Reminders will stay visible until they are marked as completed.",
+    "stayInTouchInfo": "Shows five random contacts to help you stay connected. The list is refreshed on every page reload."
   },
   "login": {
     "title": "Login",

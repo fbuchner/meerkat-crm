@@ -230,7 +230,7 @@ function DashboardPage({ token }: DashboardPageProps) {
                           />
                           {birthday.associated_contact_name && (
                             <Typography variant="caption" color="text.secondary" display="block">
-                              {birthday.associated_contact_name}
+                              {t('relationships.ofContact')} {birthday.associated_contact_name}
                             </Typography>
                           )}
                         </Box>

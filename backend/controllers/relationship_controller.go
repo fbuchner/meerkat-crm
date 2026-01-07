@@ -46,6 +46,39 @@ func GetRelationships(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"relationships": relationships})
 }
 
+// GetIncomingRelationships retrieves all relationships pointing to a given contact
+func GetIncomingRelationships(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	contactID := c.Param("id")
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	var contact models.Contact
+	if err := db.Where("user_id = ?", userID).First(&contact, contactID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", contactID))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve contact").WithError(err))
+		}
+		return
+	}
+
+	var incomingRelationships []models.Relationship
+
+	// Query relationships where this contact is the target (RelatedContactID)
+	if err := db.Preload("SourceContact", func(db *gorm.DB) *gorm.DB {
+		return db.Select("ID", "Firstname", "Lastname").Where("user_id = ?", userID)
+	}).Where("user_id = ? AND related_contact_id = ?", userID, contactID).Find(&incomingRelationships).Error; err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve incoming relationships").WithError(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"incoming_relationships": incomingRelationships})
+}
+
 // CreateRelationship creates a new relationship for a given contact
 func CreateRelationship(c *gin.Context) {
 	// Retrieve the database instance from context

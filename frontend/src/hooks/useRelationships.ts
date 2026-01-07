@@ -1,10 +1,12 @@
 import { useState, useCallback } from 'react';
 import {
   getRelationships,
+  getIncomingRelationships,
   createRelationship,
   updateRelationship,
   deleteRelationship,
   Relationship,
+  IncomingRelationship,
   RelationshipFormData
 } from '../api/relationships';
 import { handleFetchError, handleError, ErrorNotifier } from '../utils/errorHandler';
@@ -15,6 +17,7 @@ export function useRelationships(
   notifier?: ErrorNotifier
 ) {
   const [relationships, setRelationships] = useState<Relationship[]>([]);
+  const [incomingRelationships, setIncomingRelationships] = useState<IncomingRelationship[]>([]);
   const [relationshipDialogOpen, setRelationshipDialogOpen] = useState(false);
   const [editingRelationship, setEditingRelationship] = useState<Relationship | null>(null);
   const [loading, setLoading] = useState(false);
@@ -25,8 +28,12 @@ export function useRelationships(
     setLoading(true);
     setError(null);
     try {
-      const response = await getRelationships(contactId, token);
-      setRelationships(response.relationships || []);
+      const [relationshipsResponse, incomingResponse] = await Promise.all([
+        getRelationships(contactId, token),
+        getIncomingRelationships(contactId, token)
+      ]);
+      setRelationships(relationshipsResponse.relationships || []);
+      setIncomingRelationships(incomingResponse.incoming_relationships || []);
     } catch (err) {
       const message = handleFetchError(err, 'fetching relationships');
       setError(message);
@@ -77,6 +84,7 @@ export function useRelationships(
 
   return {
     relationships,
+    incomingRelationships,
     relationshipDialogOpen,
     editingRelationship,
     loading,

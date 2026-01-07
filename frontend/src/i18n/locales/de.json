@@ -408,6 +408,8 @@
     "saveFailed": "Beziehung konnte nicht gespeichert werden",
     "deleteConfirm": "Beziehung löschen",
     "deleteMessage": "Möchten Sie diese Beziehung wirklich löschen?",
+    "incomingRelationships": "Eingehende Beziehungen",
+    "ofContact": "von",
     "types": {
       "child": "Kind",
       "parent": "Elternteil",

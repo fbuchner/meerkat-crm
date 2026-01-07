@@ -5,21 +5,24 @@ import {
   Stack,
   Paper,
   Link,
+  Divider,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Relationship } from '../api/relationships';
+import { Relationship, IncomingRelationship } from '../api/relationships';
 
 interface RelationshipListProps {
   relationships: Relationship[];
+  incomingRelationships?: IncomingRelationship[];
   onEdit: (relationship: Relationship) => void;
   onDelete: (relationshipId: number) => void;
 }
 
 export default function RelationshipList({
   relationships,
+  incomingRelationships = [],
   onEdit,
   onDelete,
 }: RelationshipListProps) {
@@ -54,7 +57,9 @@ export default function RelationshipList({
     return translated === translationKey ? type : translated;
   };
 
-  if (relationships.length === 0) {
+  const hasNoRelationships = relationships.length === 0 && incomingRelationships.length === 0;
+
+  if (hasNoRelationships) {
     return (
       <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
         {t('relationships.noRelationships')}
@@ -67,8 +72,8 @@ export default function RelationshipList({
       {relationships.map((relationship) => {
         // For linked contacts, use their data; otherwise use the stored relationship data
         const linkedContact = relationship.related_contact;
-        const displayName = linkedContact 
-          ? `${linkedContact.firstname} ${linkedContact.lastname}` 
+        const displayName = linkedContact
+          ? `${linkedContact.firstname} ${linkedContact.lastname}`
           : relationship.name;
         const displayGender = linkedContact?.gender || relationship.gender;
         const displayBirthday = linkedContact?.birthday || relationship.birthday;
@@ -135,6 +140,42 @@ export default function RelationshipList({
           </Paper>
         );
       })}
+
+      {/* Incoming Relationships Section */}
+      {incomingRelationships.length > 0 && (
+        <>
+          {relationships.length > 0 && <Divider sx={{ my: 2 }} />}
+          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+            {t('relationships.incomingRelationships')}
+          </Typography>
+          {incomingRelationships.map((incoming) => {
+            const sourceContact = incoming.source_contact;
+            const sourceName = `${sourceContact.firstname} ${sourceContact.lastname}`;
+
+            return (
+              <Paper
+                key={`incoming-${incoming.ID}`}
+                variant="outlined"
+                sx={{ p: 2, bgcolor: 'action.hover' }}
+              >
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {formatRelationshipType(incoming.type)} {t('relationships.ofContact')}
+                  </Typography>
+                  <Link
+                    component="button"
+                    variant="subtitle1"
+                    onClick={() => handleLinkedContactClick(sourceContact.ID)}
+                    sx={{ fontWeight: 500, textAlign: 'left', p: 0 }}
+                  >
+                    {sourceName}
+                  </Link>
+                </Box>
+              </Paper>
+            );
+          })}
+        </>
+      )}
     </Stack>
   );
 }

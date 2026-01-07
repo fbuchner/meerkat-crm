@@ -27,6 +27,22 @@ export interface RelationshipsResponse {
   relationships: Relationship[];
 }
 
+export interface IncomingRelationship {
+  ID: number;
+  CreatedAt: string;
+  UpdatedAt: string;
+  name: string;
+  type: string;
+  gender?: string;
+  birthday?: string;
+  contact_id: number;
+  source_contact: Pick<Contact, 'ID' | 'firstname' | 'lastname'>;
+}
+
+export interface IncomingRelationshipsResponse {
+  incoming_relationships: IncomingRelationship[];
+}
+
 // Get all relationships for a contact
 export async function getRelationships(
   contactId: number | string,
@@ -39,6 +55,23 @@ export async function getRelationships(
 
   if (!response.ok) {
     throw new Error('Failed to fetch relationships');
+  }
+
+  return response.json();
+}
+
+// Get all incoming relationships for a contact (relationships pointing to this contact)
+export async function getIncomingRelationships(
+  contactId: number | string,
+  token: string
+): Promise<IncomingRelationshipsResponse> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/contacts/${contactId}/incoming-relationships`,
+    { headers: getAuthHeaders(token) }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch incoming relationships');
   }
 
   return response.json();

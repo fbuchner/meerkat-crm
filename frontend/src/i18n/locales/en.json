@@ -408,6 +408,8 @@
     "saveFailed": "Failed to save relationship",
     "deleteConfirm": "Delete Relationship",
     "deleteMessage": "Are you sure you want to delete this relationship?",
+    "incomingRelationships": "Incoming Relationships",
+    "ofContact": "of",
     "types": {
       "child": "Child",
       "parent": "Parent",

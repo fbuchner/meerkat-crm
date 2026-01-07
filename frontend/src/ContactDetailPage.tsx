@@ -156,6 +156,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
 
   const {
     relationships,
+    incomingRelationships,
     relationshipDialogOpen,
     editingRelationship,
     refreshRelationships,
@@ -480,6 +481,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
             setValidationError('');
           }}
           relationships={relationships}
+          incomingRelationships={incomingRelationships}
           onAddRelationship={handleAddRelationship}
           onEditRelationship={handleEditRelationship}
           onDeleteRelationship={handleDeleteRelationship}

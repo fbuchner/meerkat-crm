@@ -11,7 +11,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { useTranslation } from 'react-i18next';
 import EditableField from './EditableField';
 import RelationshipList from './RelationshipList';
-import { Relationship } from '../api/relationships';
+import { Relationship, IncomingRelationship } from '../api/relationships';
 
 interface ContactInformationProps {
   contact: {
@@ -33,6 +33,7 @@ interface ContactInformationProps {
   onEditValueChange: (value: string) => void;
   // Relationship props
   relationships?: Relationship[];
+  incomingRelationships?: IncomingRelationship[];
   onAddRelationship?: () => void;
   onEditRelationship?: (relationship: Relationship) => void;
   onDeleteRelationship?: (relationshipId: number) => void;
@@ -48,6 +49,7 @@ export default function ContactInformation({
   onEditSave,
   onEditValueChange,
   relationships = [],
+  incomingRelationships = [],
   onAddRelationship,
   onEditRelationship,
   onDeleteRelationship,
@@ -205,6 +207,7 @@ export default function ContactInformation({
           <Divider sx={{ mb: 1.5 }} />
           <RelationshipList
             relationships={relationships}
+            incomingRelationships={incomingRelationships}
             onEdit={onEditRelationship || (() => {})}
             onDelete={onDeleteRelationship || (() => {})}
           />

@@ -14,4 +14,5 @@ type Relationship struct {
 	ContactID        uint     `json:"contact_id" validate:"required"`                                        // Contact this relationship belongs to
 	RelatedContactID *uint    `json:"related_contact_id"`                                                    // Optional link to an existing Contact
 	RelatedContact   *Contact `gorm:"foreignKey:RelatedContactID" json:"related_contact,omitempty"`          // Linked Contact if exists
+	SourceContact    *Contact `gorm:"foreignKey:ContactID" json:"source_contact,omitempty"`                  // Source Contact for incoming relationships
 }

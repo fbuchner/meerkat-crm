@@ -46,6 +46,17 @@ import './App.css';
 
 const drawerWidth = 180;
 
+// Scroll to top on route change
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
 // Inner component that can use useLocation (must be inside Router)
 function AppContent({ token, setToken }: { token: string | null; setToken: (token: string | null) => void }) {
   const { t } = useTranslation();
@@ -357,6 +368,7 @@ function App() {
 
   return (
     <Router>
+      <ScrollToTop />
       <Box sx={{ display: 'flex' }}>
         <AppContent token={token} setToken={setToken} />
       </Box>

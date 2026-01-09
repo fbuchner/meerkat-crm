@@ -16,7 +16,7 @@
     "react-easy-crop": "^5.5.5",
     "react-force-graph-2d": "^1.29.0",
     "react-i18next": "^16.2.1",
-    "react-router-dom": "^7.9.4",
+    "react-router-dom": "^7.12.0",
     "react-scripts": "5.0.1",
     "web-vitals": "^5.1.0"
   },

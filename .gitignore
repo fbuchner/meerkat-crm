@@ -88,3 +88,4 @@ coverage/
 .github/copilot-instructions.md
 CLAUDE.md
 BACKLOG.md
+.env.docker

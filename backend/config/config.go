@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -203,6 +204,25 @@ func (c *Config) Validate() []ValidationError {
 		errors = append(errors, ValidationError{
 			Field:   "HTTP_IDLE_TIMEOUT",
 			Message: fmt.Sprintf("Invalid idle timeout '%d'. Must be between 1 and 300 seconds.", c.IdleTimeout),
+		})
+	}
+
+	// Validate Trusted Proxies format (IP addresses or CIDR notation)
+	for _, proxy := range c.TrustedProxies {
+		if proxy == "" {
+			continue
+		}
+		// Check if it's a valid IP address
+		if ip := net.ParseIP(proxy); ip != nil {
+			continue
+		}
+		// Check if it's a valid CIDR
+		if _, _, err := net.ParseCIDR(proxy); err == nil {
+			continue
+		}
+		errors = append(errors, ValidationError{
+			Field:   "TRUSTED_PROXIES",
+			Message: fmt.Sprintf("Invalid proxy '%s'. Must be a valid IP address or CIDR notation.", proxy),
 		})
 	}
 

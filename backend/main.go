@@ -110,7 +110,9 @@ func main() {
 	// Add error handling middleware
 	r.Use(apperrors.ErrorHandlerMiddleware())
 
-	r.SetTrustedProxies(cfg.TrustedProxies)
+	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
+		logger.Fatal().Err(err).Strs("proxies", cfg.TrustedProxies).Msg("Failed to set trusted proxies")
+	}
 
 	// Inject db into context
 	r.Use(func(c *gin.Context) {

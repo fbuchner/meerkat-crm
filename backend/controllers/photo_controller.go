@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"errors"
 	"image"
@@ -318,18 +319,59 @@ func ProxyImage(c *gin.Context) {
 		return
 	}
 
-	// Validate the URL and check for SSRF
-	_, err := validateURLForSSRF(imageURL)
+	// Validate the URL format and scheme (basic validation before making any requests)
+	parsedURL, err := validateURLForSSRF(imageURL)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Create HTTP client with timeout and disabled redirects to prevent SSRF via redirects
+	// Create a custom dialer that validates IP addresses at connection time
+	// This prevents DNS rebinding/TOCTOU attacks
+	safeDialer := &net.Dialer{
+		Timeout:   10 * time.Second,
+		KeepAlive: 10 * time.Second,
+	}
+
+	safeDialContext := func(ctx context.Context, network, addr string) (net.Conn, error) {
+		// Extract host from addr (format is host:port)
+		host, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, err
+		}
+
+		// Resolve the hostname to IP addresses
+		ips, err := net.LookupIP(host)
+		if err != nil {
+			return nil, errors.New("failed to resolve hostname")
+		}
+
+		// Find a safe IP to connect to
+		var safeIP net.IP
+		for _, ip := range ips {
+			if !isPrivateIP(ip) {
+				safeIP = ip
+				break
+			}
+		}
+
+		if safeIP == nil {
+			return nil, errors.New("access to internal IP addresses is not allowed")
+		}
+
+		// Connect using the validated IP address directly
+		safeAddr := net.JoinHostPort(safeIP.String(), port)
+		return safeDialer.DialContext(ctx, network, safeAddr)
+	}
+
+	// Create HTTP client with custom transport that validates IPs at connection time
 	client := &http.Client{
 		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			DialContext: safeDialContext,
+		},
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			// Validate redirect target
+			// Validate redirect target URL format
 			_, err := validateURLForSSRF(req.URL.String())
 			if err != nil {
 				return errors.New("redirect to disallowed location")
@@ -337,12 +379,13 @@ func ProxyImage(c *gin.Context) {
 			if len(via) >= 3 {
 				return errors.New("too many redirects")
 			}
+			// The actual IP validation will happen in safeDialContext when connecting
 			return nil
 		},
 	}
 
-	// Fetch the image
-	req, err := http.NewRequest("GET", imageURL, nil)
+	// Fetch the image using the validated URL
+	req, err := http.NewRequest("GET", parsedURL.String(), nil)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to create request"})
 		return

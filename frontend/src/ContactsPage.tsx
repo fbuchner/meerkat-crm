@@ -76,7 +76,11 @@ export default function ContactsPage({ token }: { token: string }) {
 
   const isFiltered = selectedCircle !== '' || searchQuery !== '';
 
-  const handleContactAdded = async () => {
+  const handleContactAdded = (contactId: number) => {
+    navigate(`/contacts/${contactId}`);
+  };
+
+  const handleImportComplete = async () => {
     await refetch();
     // Also refresh circles
     try {
@@ -230,7 +234,7 @@ export default function ContactsPage({ token }: { token: string }) {
       <ImportContactsDialog
         open={importDialogOpen}
         onClose={() => setImportDialogOpen(false)}
-        onImportComplete={handleContactAdded}
+        onImportComplete={handleImportComplete}
         token={token}
       />
     </Box>

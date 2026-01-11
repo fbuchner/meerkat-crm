@@ -23,7 +23,7 @@ import { handleError, getErrorMessage } from '../utils/errorHandler';
 interface AddContactDialogProps {
   open: boolean;
   onClose: () => void;
-  onContactAdded: () => void;
+  onContactAdded: (contactId: number) => void;
   token: string;
   availableCircles: string[];
 }
@@ -121,7 +121,7 @@ export default function AddContactDialog({
         }
       }
 
-      onContactAdded();
+      onContactAdded(newContact.ID);
       showSuccess(t('contacts.add.success'));
       handleClose();
     } catch (err) {

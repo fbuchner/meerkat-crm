@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useContacts } from './hooks/useContacts';
@@ -26,11 +26,11 @@ import { ContactListSkeleton } from './components/LoadingSkeletons';
 export default function ContactsPage({ token }: { token: string }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get('search') || '';
+  const page = parseInt(searchParams.get('page') || '1', 10);
   const [selectedCircle, setSelectedCircle] = useState('');
   const [circles, setCircles] = useState<string[]>([]);
-  const [page, setPage] = useState(1);
   const [sortOption, setSortOption] = useState('id-desc');
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -38,6 +38,19 @@ export default function ContactsPage({ token }: { token: string }) {
 
   // Parse sort option into field and order
   const [sortField, sortOrder] = sortOption.split('-');
+
+  // Helper to update page in URL
+  const setPage = useCallback((newPage: number) => {
+    setSearchParams(prev => {
+      const params = new URLSearchParams(prev);
+      if (newPage === 1) {
+        params.delete('page');
+      } else {
+        params.set('page', String(newPage));
+      }
+      return params;
+    });
+  }, [setSearchParams]);
 
   // Memoize params to prevent infinite re-renders
   const contactParams = useMemo(() => ({
@@ -65,10 +78,15 @@ export default function ContactsPage({ token }: { token: string }) {
     fetchCircles();
   }, [token]);
 
-  // Reset to page 1 when search or filter changes
+  // Reset to page 1 when search or filter changes (but not on initial mount)
+  const prevFiltersRef = useRef({ searchQuery, selectedCircle });
   useEffect(() => {
-    setPage(1);
-  }, [searchQuery, selectedCircle]);
+    const prev = prevFiltersRef.current;
+    if (prev.searchQuery !== searchQuery || prev.selectedCircle !== selectedCircle) {
+      setPage(1);
+      prevFiltersRef.current = { searchQuery, selectedCircle };
+    }
+  }, [searchQuery, selectedCircle, setPage]);
 
   // Filter contacts by selected circle
   // With backend pagination, contacts are already filtered

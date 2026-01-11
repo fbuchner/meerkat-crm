@@ -5,13 +5,13 @@
 </p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go)](https://golang.org)
+[![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go)](https://golang.org)
 [![React Version](https://img.shields.io/badge/React-19.2-61DAFB?logo=react)](https://reactjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript)](https://www.typescriptlang.org)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
+
 
 ## About the project
-Meerkat CRM (Contact Relationship Management) is a simple self-hosted solution to keep track of all your contacts. As your digital rolodex it reminds you of birthdays, helps you to remember dietary habits as well as names of spouses of contacts - and much more.
+Meerkat CRM (Contact Relationship Management) is a  self-hosted solution to keep track of your important contacts. As your digital rolodex it reminds you of birthdays, helps you to keep in mind dietary habits as well as names of spouses of contacts - and much more.
 
 <p align="center">
   <img src="assets/screengrab.gif" alt="Meerkat CRM Demo" />
@@ -66,6 +66,11 @@ The easiest way to run Meerkat CRM is with Docker Compose:
 
 ## Contributing
 
+### Bugs and feature requests
+This application is under development. You can [open an issue](https://github.com/fbuchner/meerkat-crm/issues/new/choose) to report a bug or request a new feature.
+
+You can also participate and open up a pull request.
+
 ### Development
 To set up this repository for development, follow these steps:
 
@@ -76,51 +81,34 @@ To set up this repository for development, follow these steps:
     ```
 
 1. **Run the backend:**
-
 Ensure you have [Go](https://golang.org/doc/install) installed. Then, set up your environment configuration:
    ```sh
     cd backend
     # Copy the example environment file and configure it with your settings
-    cp .env.example my_environment.env
+    cp .env.example .env
     
     # Install dependencies and run
     go mod tidy
-    source my_environment.env
+    source .env
     go run main.go
    ```
    The project uses an SQLite database for storage. Database migrations run automatically on startup.
-   
-   **Database Migrations:**
-   ```sh
-   # View migration commands
-   make help
-   
-   # Check current migration status
-   make migrate-status
-   
-   # Create a new migration
-   make migrate-create NAME=your_migration_name
-   ```
-
-   **Run Tests:**
-   ```sh
-   go test ./...
-   ```  
 
 
 1. **Run the frontend (in a second terminal):**
    ```sh
+   cd .. 
    cd frontend
-   # Copy the example environment file and configure it with your settings
-   cp .env.example my_environment.env
 
    yarn install
    yarn start
    ```
 
+You can find a more comprehensive overview for developers in the [developer README](README-developer.md)
+
 ## Alternative software
 Notable other personal CRM systems are
-* [MonicaHQ](https://www.monicahq.com/) (Open Source, development has stalled; the new version chandler is available at beta.monicahq.com)
+* [MonicaHQ](https://www.monicahq.com/) (Open Source, development seems to have stalled; the new version chandler is available at beta.monicahq.com)
 * [Dex](https://getdex.com/) (paid offering with social media integration)
 * [Clay](https://clay.earth/) (paid offering with focus on automation)
 

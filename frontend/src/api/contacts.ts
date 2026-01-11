@@ -68,7 +68,7 @@ export async function getContacts(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to fetch contacts');
+    throw await parseErrorResponse(response);
   }
 
   return response.json();
@@ -85,7 +85,7 @@ export async function getContact(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to fetch contact');
+    throw await parseErrorResponse(response);
   }
 
   return response.json();
@@ -149,7 +149,7 @@ export async function deleteContact(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to delete contact');
+    throw await parseErrorResponse(response);
   }
 }
 
@@ -193,7 +193,7 @@ export async function uploadProfilePicture(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to upload profile picture');
+    throw await parseErrorResponse(response);
   }
 }
 
@@ -205,7 +205,7 @@ export async function getCircles(token: string): Promise<string[]> {
   );
 
   if (!response.ok) {
-    throw new Error('Failed to fetch circles');
+    throw await parseErrorResponse(response);
   }
 
   const data = await response.json();
@@ -221,7 +221,7 @@ export async function getRandomContacts(token: string): Promise<Contact[]> {
   );
 
   if (!response.ok) {
-    throw new Error('Failed to fetch random contacts');
+    throw await parseErrorResponse(response);
   }
 
   const data = await response.json();
@@ -236,7 +236,7 @@ export async function getUpcomingBirthdays(token: string): Promise<Birthday[]> {
   );
 
   if (!response.ok) {
-    throw new Error('Failed to fetch upcoming birthdays');
+    throw await parseErrorResponse(response);
   }
 
   const data = await response.json();

@@ -54,7 +54,7 @@ export async function getRelationships(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to fetch relationships');
+    throw await parseErrorResponse(response);
   }
 
   return response.json();
@@ -71,7 +71,7 @@ export async function getIncomingRelationships(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to fetch incoming relationships');
+    throw await parseErrorResponse(response);
   }
 
   return response.json();
@@ -139,7 +139,7 @@ export async function deleteRelationship(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to delete relationship');
+    throw await parseErrorResponse(response);
   }
 }
 

@@ -1,5 +1,5 @@
 // Reminder-related API calls
-import { apiFetch, API_BASE_URL, getAuthHeaders } from './client';
+import { apiFetch, API_BASE_URL, getAuthHeaders, parseErrorResponse } from './client';
 
 export interface Reminder {
   ID: number;
@@ -38,7 +38,7 @@ export async function getAllReminders(token: string): Promise<Reminder[]> {
   );
 
   if (!response.ok) {
-    throw new Error('Failed to fetch reminders');
+    throw await parseErrorResponse(response);
   }
 
   const data: RemindersResponse = await response.json();
@@ -53,7 +53,7 @@ export async function getUpcomingReminders(token: string): Promise<Reminder[]> {
   );
 
   if (!response.ok) {
-    throw new Error('Failed to fetch upcoming reminders');
+    throw await parseErrorResponse(response);
   }
 
   const data: RemindersResponse = await response.json();
@@ -68,7 +68,7 @@ export async function getRemindersForContact(contactId: number, token: string): 
   );
 
   if (!response.ok) {
-    throw new Error('Failed to fetch reminders for contact');
+    throw await parseErrorResponse(response);
   }
 
   const data: RemindersResponse = await response.json();
@@ -83,7 +83,7 @@ export async function getReminder(reminderId: number, token: string): Promise<Re
   );
 
   if (!response.ok) {
-    throw new Error('Failed to fetch reminder');
+    throw await parseErrorResponse(response);
   }
 
   return response.json();
@@ -105,8 +105,7 @@ export async function createReminder(
   );
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || 'Failed to create reminder');
+    throw await parseErrorResponse(response);
   }
 
   const data = await response.json();
@@ -129,8 +128,7 @@ export async function updateReminder(
   );
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || 'Failed to update reminder');
+    throw await parseErrorResponse(response);
   }
 
   const data = await response.json();
@@ -151,8 +149,7 @@ export async function completeReminder(
   );
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || 'Failed to complete reminder');
+    throw await parseErrorResponse(response);
   }
 
   return response.json();
@@ -169,7 +166,6 @@ export async function deleteReminder(reminderId: number, token: string): Promise
   );
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || 'Failed to delete reminder');
+    throw await parseErrorResponse(response);
   }
 }

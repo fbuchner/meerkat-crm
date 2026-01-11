@@ -1,5 +1,5 @@
 // Activities-related API calls
-import { apiFetch, API_BASE_URL, getAuthHeaders } from './client';
+import { apiFetch, API_BASE_URL, getAuthHeaders, parseErrorResponse } from './client';
 
 export interface ActivityContact {
   ID: number;
@@ -60,7 +60,7 @@ export async function getActivities(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to fetch activities');
+    throw await parseErrorResponse(response);
   }
 
   return response.json();
@@ -77,7 +77,7 @@ export async function getContactActivities(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to fetch activities');
+    throw await parseErrorResponse(response);
   }
 
   return response.json();
@@ -94,7 +94,7 @@ export async function getActivity(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to fetch activity');
+    throw await parseErrorResponse(response);
   }
 
   return response.json();
@@ -121,7 +121,7 @@ export async function createActivity(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to create activity');
+    throw await parseErrorResponse(response);
   }
 
   return response.json();
@@ -149,7 +149,7 @@ export async function updateActivity(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to update activity');
+    throw await parseErrorResponse(response);
   }
 
   return response.json();
@@ -169,6 +169,6 @@ export async function deleteActivity(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to delete activity');
+    throw await parseErrorResponse(response);
   }
 }

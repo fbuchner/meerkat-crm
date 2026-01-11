@@ -1,5 +1,5 @@
 // Notes-related API calls
-import { apiFetch, API_BASE_URL, getAuthHeaders } from './client';
+import { apiFetch, API_BASE_URL, getAuthHeaders, parseErrorResponse } from './client';
 
 export interface Note {
   ID: number;
@@ -34,7 +34,7 @@ export async function getContactNotes(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to fetch notes');
+    throw await parseErrorResponse(response);
   }
 
   return response.json();
@@ -63,7 +63,7 @@ export async function getUnassignedNotes(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to fetch notes');
+    throw await parseErrorResponse(response);
   }
 
   return response.json();
@@ -80,7 +80,7 @@ export async function getNote(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to fetch note');
+    throw await parseErrorResponse(response);
   }
 
   return response.json();
@@ -102,7 +102,7 @@ export async function createNote(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to create note');
+    throw await parseErrorResponse(response);
   }
 
   return response.json();
@@ -123,7 +123,7 @@ export async function createUnassignedNote(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to create note');
+    throw await parseErrorResponse(response);
   }
 
   return response.json();
@@ -145,7 +145,7 @@ export async function updateNote(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to update note');
+    throw await parseErrorResponse(response);
   }
 
   return response.json();
@@ -165,6 +165,6 @@ export async function deleteNote(
   );
 
   if (!response.ok) {
-    throw new Error('Failed to delete note');
+    throw await parseErrorResponse(response);
   }
 }

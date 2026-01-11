@@ -59,3 +59,10 @@
 	1. `cd frontend && yarn install --check-files` to sync lockfiles and ensure native binaries rebuild.
 	2. For minor bumps run `yarn upgrade` (or `yarn up <pkg>@latest` for a specific lib); keep `yarn.lock` in the PR.
 	3. After upgrades, run `yarn build` for production bundles
+
+**Releases (only relevant for maintainers)**
+- Ensure all changes are committed and pushed to `main`
+- Create a tag using semantic versioning: `git tag v1.5.3`
+- Push the tag to GitHub: `git push origin v1.5.3`
+- This triggers a GitHub Actions workflow that automatically builds and publishes Docker images to GHCR
+- Users can then deploy the new version by setting `IMAGE_TAG=v1.5.3` (or by just using `:latest`) in their `.env.docker` and running `docker compose up -d`

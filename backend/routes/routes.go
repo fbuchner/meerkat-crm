@@ -58,8 +58,12 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 			protected.DELETE("/contacts/:id/relationships/:rid", controllers.DeleteRelationship)
 
 			// Profile picture routes
-			protected.POST("/contacts/:id/profile_picture", controllers.AddPhotoToContact)
-			protected.GET("/contacts/:id/profile_picture", controllers.GetProfilePicture)
+			protected.POST("/contacts/:id/profile_picture", func(c *gin.Context) {
+				controllers.AddPhotoToContact(c, cfg)
+			})
+			protected.GET("/contacts/:id/profile_picture", func(c *gin.Context) {
+				controllers.GetProfilePicture(c, cfg)
+			})
 
 			// Image proxy route (for fetching images from external URLs)
 			protected.GET("/proxy/image", controllers.ProxyImage)

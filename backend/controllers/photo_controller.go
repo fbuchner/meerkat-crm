@@ -8,6 +8,7 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
+	"meerkat/config"
 	"meerkat/logger"
 	"meerkat/models"
 	"mime/multipart"
@@ -26,7 +27,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func GetProfilePicture(c *gin.Context) {
+func GetProfilePicture(c *gin.Context, cfg *config.Config) {
 	idParam := c.Param("id")
 	contactID, err := strconv.Atoi(idParam)
 	if err != nil {
@@ -85,14 +86,13 @@ func GetProfilePicture(c *gin.Context) {
 		return
 	}
 
-	// Serve full photo from file
-	uploadDir := os.Getenv("PROFILE_PHOTO_DIR")
+	// Serve full photo from file using validated config path
 	if contact.Photo == "" {
 		c.JSON(http.StatusNotFound, gin.H{"error": "No photo available"})
 		return
 	}
 
-	filePath := filepath.Join(uploadDir, contact.Photo)
+	filePath := filepath.Join(cfg.ProfilePhotoDir, contact.Photo)
 	logger.FromContext(c).Debug().Str("file_path", filePath).Msg("Serving profile picture")
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
@@ -103,7 +103,7 @@ func GetProfilePicture(c *gin.Context) {
 	c.File(filePath)
 }
 
-func AddPhotoToContact(c *gin.Context) {
+func AddPhotoToContact(c *gin.Context, cfg *config.Config) {
 	idParam := c.Param("id")
 	contactID, err := strconv.Atoi(idParam)
 	if err != nil {
@@ -138,13 +138,12 @@ func AddPhotoToContact(c *gin.Context) {
 			return
 		}
 
-		// Handle the file upload
-		uploadDir := os.Getenv("PROFILE_PHOTO_DIR")
-		if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+		// Use validated upload directory from config
+		if err := os.MkdirAll(cfg.ProfilePhotoDir, os.ModePerm); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
 			return
 		}
-		photoPath, thumbnailPath, err := processAndSavePhoto(file, uploadDir)
+		photoPath, thumbnailPath, err := processAndSavePhoto(file, cfg.ProfilePhotoDir)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process photo"})
 			return

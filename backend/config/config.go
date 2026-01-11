@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -21,9 +22,10 @@ type Config struct {
 	ResendToEmail   string
 	JWTSecretKey    string
 	JWTExpiryHours  int
-	ReadTimeout     int // HTTP server read timeout in seconds
-	WriteTimeout    int // HTTP server write timeout in seconds
-	IdleTimeout     int // HTTP server idle timeout in seconds
+	ReadTimeout     int    // HTTP server read timeout in seconds
+	WriteTimeout    int    // HTTP server write timeout in seconds
+	IdleTimeout     int    // HTTP server idle timeout in seconds
+	ProfilePhotoDir string // Directory for storing profile photos (must be absolute path)
 }
 
 func LoadConfig() *Config {
@@ -54,6 +56,7 @@ func LoadConfig() *Config {
 		ReadTimeout:     readTimeout,
 		WriteTimeout:    writeTimeout,
 		IdleTimeout:     idleTimeout,
+		ProfilePhotoDir: getEnv("PROFILE_PHOTO_DIR", ""),
 	}
 
 	if cfg.ResendAPIKey == "" || cfg.ResendFromEmail == "" {
@@ -126,6 +129,19 @@ func (c *Config) Validate() []ValidationError {
 		errors = append(errors, ValidationError{
 			Field:   "SQLITE_DB_PATH",
 			Message: "Database path cannot be empty. Set SQLITE_DB_PATH environment variable.",
+		})
+	}
+
+	// Validate Profile Photo Directory - must be set and absolute path for security
+	if c.ProfilePhotoDir == "" {
+		errors = append(errors, ValidationError{
+			Field:   "PROFILE_PHOTO_DIR",
+			Message: "Profile photo directory is required. Set PROFILE_PHOTO_DIR environment variable to an absolute path.",
+		})
+	} else if !filepath.IsAbs(c.ProfilePhotoDir) {
+		errors = append(errors, ValidationError{
+			Field:   "PROFILE_PHOTO_DIR",
+			Message: fmt.Sprintf("Profile photo directory '%s' must be an absolute path for security.", c.ProfilePhotoDir),
 		})
 	}
 

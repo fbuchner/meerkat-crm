@@ -5,9 +5,8 @@
 </p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go)](https://golang.org)
-[![React Version](https://img.shields.io/badge/React-19.2-61DAFB?logo=react)](https://reactjs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript)](https://www.typescriptlang.org)
+[![Backend: Go](https://img.shields.io/badge/Backend-Go-00ADD8?logo=go)](https://golang.org)
+[![Frontend: React](https://img.shields.io/badge/Frontend-React-61DAFB?logo=react)](https://reactjs.org)
 
 
 ## About the project
@@ -97,14 +96,13 @@ Ensure you have [Go](https://golang.org/doc/install) installed. Then, set up you
 
 1. **Run the frontend (in a second terminal):**
    ```sh
-   cd .. 
    cd frontend
 
    yarn install
    yarn start
    ```
 
-You can find a more comprehensive overview for developers in the [developer README](README-developer.md)
+You can find a more comprehensive overview for developers in the [developer README](README-developer.md).
 
 ## Alternative software
 Notable other personal CRM systems are

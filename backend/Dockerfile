@@ -35,9 +35,6 @@ ENV PROFILE_PHOTO_DIR=/app/static/photos
 # Copy the binary from builder
 COPY --from=builder /app/meerkat .
 
-# Copy migrations
-COPY --from=builder /app/migrations ./migrations
-
 # Copy static assets if any
 COPY --from=builder /app/static/styles.css ./static/
 

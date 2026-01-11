@@ -130,7 +130,7 @@ func GetContacts(c *gin.Context) {
 	}
 
 	if circle := c.Query("circle"); circle != "" {
-		query = query.Where("circles LIKE ?", "%"+circle+"%") // Using parameterization
+		query = query.Where("EXISTS (SELECT 1 FROM json_each(contacts.circles) WHERE json_each.value = ?)", circle)
 	}
 
 	// Preload requested relationships
@@ -165,7 +165,7 @@ func GetContacts(c *gin.Context) {
 	}
 
 	if circle := c.Query("circle"); circle != "" {
-		countQuery = countQuery.Where("circles LIKE ?", "%"+circle+"%")
+		countQuery = countQuery.Where("EXISTS (SELECT 1 FROM json_each(contacts.circles) WHERE json_each.value = ?)", circle)
 	}
 
 	countQuery.Count(&total)

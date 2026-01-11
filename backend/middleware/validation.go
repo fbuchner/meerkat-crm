@@ -221,6 +221,20 @@ func ValidateEmail(email string) bool {
 	return emailRegex.MatchString(email)
 }
 
+// GetValidated retrieves and type-asserts the validated struct from context.
+// This provides type-safe access to data set by ValidateJSONMiddleware.
+func GetValidated[T any](c *gin.Context) (*T, *apperrors.AppError) {
+	validated, exists := c.Get("validated")
+	if !exists {
+		return nil, apperrors.ErrInvalidInput("request", "validation data not found")
+	}
+	result, ok := validated.(*T)
+	if !ok {
+		return nil, apperrors.ErrInvalidInput("request", "invalid validation data type")
+	}
+	return result, nil
+}
+
 // ValidateJSONMiddleware validates JSON request body against a struct
 // Usage: router.POST("/endpoint", ValidateJSONMiddleware(&MyStruct{}), handler)
 func ValidateJSONMiddleware(template interface{}) gin.HandlerFunc {

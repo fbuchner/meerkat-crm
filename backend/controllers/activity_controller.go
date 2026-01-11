@@ -4,6 +4,7 @@ import (
 	"errors"
 	apperrors "meerkat/errors"
 	"meerkat/logger"
+	"meerkat/middleware"
 	"meerkat/models"
 	"net/http"
 	"strings"
@@ -14,15 +15,9 @@ import (
 
 func CreateActivity(c *gin.Context) {
 	// Get validated input from validation middleware
-	validated, exists := c.Get("validated")
-	if !exists {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("activity", "validation data not found"))
-		return
-	}
-
-	activityInput, ok := validated.(*models.ActivityInput)
-	if !ok {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("activity", "invalid validation data type"))
+	activityInput, err := middleware.GetValidated[models.ActivityInput](c)
+	if err != nil {
+		apperrors.AbortWithError(c, err)
 		return
 	}
 
@@ -183,15 +178,9 @@ func UpdateActivity(c *gin.Context) {
 	}
 
 	// Get validated input from validation middleware
-	validated, exists := c.Get("validated")
-	if !exists {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("activity", "validation data not found"))
-		return
-	}
-
-	activityInput, ok := validated.(*models.ActivityInput)
-	if !ok {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("activity", "invalid validation data type"))
+	activityInput, err := middleware.GetValidated[models.ActivityInput](c)
+	if err != nil {
+		apperrors.AbortWithError(c, err)
 		return
 	}
 

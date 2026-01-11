@@ -4,6 +4,7 @@ import (
 	"errors"
 	apperrors "meerkat/errors"
 	"meerkat/logger"
+	"meerkat/middleware"
 	"meerkat/models"
 	"meerkat/services"
 	"net/http"
@@ -35,16 +36,9 @@ func CreateReminder(c *gin.Context) {
 	}
 
 	// Get the validated reminder from context (already bound by ValidateJSONMiddleware)
-	validated, exists := c.Get("validated")
-	if !exists {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("reminder", "validation data not found"))
-		return
-	}
-
-	// Type assert to Reminder
-	reminder, ok := validated.(*models.Reminder)
-	if !ok {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("reminder", "invalid data type"))
+	reminder, err := middleware.GetValidated[models.Reminder](c)
+	if err != nil {
+		apperrors.AbortWithError(c, err)
 		return
 	}
 
@@ -112,16 +106,9 @@ func UpdateReminder(c *gin.Context) {
 	}
 
 	// Get the validated reminder from context (already bound by ValidateJSONMiddleware)
-	validated, exists := c.Get("validated")
-	if !exists {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("reminder", "validation data not found"))
-		return
-	}
-
-	// Type assert to Reminder
-	updatedReminder, ok := validated.(*models.Reminder)
-	if !ok {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("reminder", "invalid data type"))
+	updatedReminder, err := middleware.GetValidated[models.Reminder](c)
+	if err != nil {
+		apperrors.AbortWithError(c, err)
 		return
 	}
 

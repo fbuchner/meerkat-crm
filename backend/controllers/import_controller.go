@@ -235,15 +235,9 @@ func PreviewImport(c *gin.Context) {
 	}
 
 	// Get validated input
-	validated, exists := c.Get("validated")
-	if !exists {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("request", "validation data not found"))
-		return
-	}
-
-	request, ok := validated.(*models.ImportPreviewRequest)
-	if !ok {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("request", "invalid request type"))
+	request, err := middleware.GetValidated[models.ImportPreviewRequest](c)
+	if err != nil {
+		apperrors.AbortWithError(c, err)
 		return
 	}
 
@@ -553,15 +547,9 @@ func ConfirmImport(c *gin.Context) {
 	}
 
 	// Get validated input
-	validated, exists := c.Get("validated")
-	if !exists {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("request", "validation data not found"))
-		return
-	}
-
-	request, ok := validated.(*models.ImportConfirmRequest)
-	if !ok {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("request", "invalid request type"))
+	request, validationErr := middleware.GetValidated[models.ImportConfirmRequest](c)
+	if validationErr != nil {
+		apperrors.AbortWithError(c, validationErr)
 		return
 	}
 

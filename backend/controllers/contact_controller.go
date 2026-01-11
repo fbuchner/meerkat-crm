@@ -4,6 +4,7 @@ import (
 	"errors"
 	apperrors "meerkat/errors"
 	"meerkat/logger"
+	"meerkat/middleware"
 	"meerkat/models"
 	"meerkat/services"
 	"net/http"
@@ -26,15 +27,9 @@ func CreateContact(c *gin.Context) {
 	}
 
 	// Get validated input from validation middleware
-	validated, exists := c.Get("validated")
-	if !exists {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("contact", "validation data not found"))
-		return
-	}
-
-	contactInput, ok := validated.(*models.ContactInput)
-	if !ok {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("contact", "invalid validation data type"))
+	contactInput, err := middleware.GetValidated[models.ContactInput](c)
+	if err != nil {
+		apperrors.AbortWithError(c, err)
 		return
 	}
 
@@ -294,15 +289,9 @@ func UpdateContact(c *gin.Context) {
 	}
 
 	// Get validated input from validation middleware
-	validated, exists := c.Get("validated")
-	if !exists {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("contact", "validation data not found"))
-		return
-	}
-
-	contactInput, ok := validated.(*models.ContactInput)
-	if !ok {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("contact", "invalid validation data type"))
+	contactInput, err := middleware.GetValidated[models.ContactInput](c)
+	if err != nil {
+		apperrors.AbortWithError(c, err)
 		return
 	}
 

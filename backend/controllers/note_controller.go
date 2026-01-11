@@ -4,6 +4,7 @@ import (
 	"errors"
 	apperrors "meerkat/errors"
 	"meerkat/logger"
+	"meerkat/middleware"
 	"meerkat/models"
 	"net/http"
 	"strings"
@@ -36,15 +37,9 @@ func CreateNote(c *gin.Context) {
 	}
 
 	// Get validated input from validation middleware
-	validated, exists := c.Get("validated")
-	if !exists {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("note", "validation data not found"))
-		return
-	}
-
-	noteInput, ok := validated.(*models.NoteInput)
-	if !ok {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("note", "invalid validation data type"))
+	noteInput, err := middleware.GetValidated[models.NoteInput](c)
+	if err != nil {
+		apperrors.AbortWithError(c, err)
 		return
 	}
 
@@ -77,15 +72,9 @@ func CreateUnassignedNote(c *gin.Context) {
 	}
 
 	// Get validated input from validation middleware
-	validated, exists := c.Get("validated")
-	if !exists {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("note", "validation data not found"))
-		return
-	}
-
-	noteInput, ok := validated.(*models.NoteInput)
-	if !ok {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("note", "invalid validation data type"))
+	noteInput, err := middleware.GetValidated[models.NoteInput](c)
+	if err != nil {
+		apperrors.AbortWithError(c, err)
 		return
 	}
 
@@ -208,15 +197,9 @@ func UpdateNote(c *gin.Context) {
 	}
 
 	// Get validated input from validation middleware
-	validated, exists := c.Get("validated")
-	if !exists {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("note", "validation data not found"))
-		return
-	}
-
-	updatedNote, ok := validated.(*models.NoteInput)
-	if !ok {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("note", "invalid validation data type"))
+	updatedNote, err := middleware.GetValidated[models.NoteInput](c)
+	if err != nil {
+		apperrors.AbortWithError(c, err)
 		return
 	}
 

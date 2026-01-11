@@ -3,6 +3,7 @@ package controllers
 import (
 	"errors"
 	apperrors "meerkat/errors"
+	"meerkat/middleware"
 	"meerkat/models"
 	"net/http"
 	"strconv"
@@ -98,15 +99,9 @@ func CreateRelationship(c *gin.Context) {
 	}
 
 	// Get validated input from validation middleware
-	validated, exists := c.Get("validated")
-	if !exists {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("relationship", "validation data not found"))
-		return
-	}
-
-	input, ok := validated.(*models.RelationshipInput)
-	if !ok {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("relationship", "invalid validation data type"))
+	input, validationErr := middleware.GetValidated[models.RelationshipInput](c)
+	if validationErr != nil {
+		apperrors.AbortWithError(c, validationErr)
 		return
 	}
 
@@ -172,15 +167,9 @@ func UpdateRelationship(c *gin.Context) {
 	}
 
 	// Get validated input from validation middleware
-	validated, exists := c.Get("validated")
-	if !exists {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("relationship", "validation data not found"))
-		return
-	}
-
-	input, ok := validated.(*models.RelationshipInput)
-	if !ok {
-		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("relationship", "invalid validation data type"))
+	input, err := middleware.GetValidated[models.RelationshipInput](c)
+	if err != nil {
+		apperrors.AbortWithError(c, err)
 		return
 	}
 

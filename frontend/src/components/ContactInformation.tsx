@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, Divider, Stack, Box, Tabs, Tab, Button } from '@mui/material';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
@@ -12,6 +12,36 @@ import { useTranslation } from 'react-i18next';
 import EditableField from './EditableField';
 import RelationshipList from './RelationshipList';
 import { Relationship, IncomingRelationship } from '../api/relationships';
+
+function calculateCurrentAge(birthday: string): number | null {
+  // Birthday format is DD.MM.YYYY or DD.MM.
+  const parts = birthday.split('.');
+  if (parts.length < 3 || !parts[2] || parts[2].length !== 4) {
+    return null; // No year provided
+  }
+
+  const day = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  const birthYear = parseInt(parts[2], 10);
+
+  if (isNaN(day) || isNaN(month) || isNaN(birthYear)) {
+    return null;
+  }
+
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth() + 1; // getMonth() is 0-indexed
+  const currentDay = today.getDate();
+
+  let age = currentYear - birthYear;
+
+  // Check if birthday hasn't occurred yet this year
+  if (month > currentMonth || (month === currentMonth && day > currentDay)) {
+    age--;
+  }
+
+  return age >= 0 ? age : null;
+}
 
 interface ContactInformationProps {
   contact: {
@@ -56,6 +86,13 @@ export default function ContactInformation({
 }: ContactInformationProps) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState(0);
+
+  const birthdayAgeSuffix = useMemo(() => {
+    if (!contact.birthday) return undefined;
+    const age = calculateCurrentAge(contact.birthday);
+    if (age === null) return undefined;
+    return t('dashboard.yearsOld', { age });
+  }, [contact.birthday, t]);
 
   return (
     <Card sx={{ flex: 1 }}>
@@ -104,6 +141,7 @@ export default function ContactInformation({
             field="birthday"
             value={contact.birthday || ''}
             placeholder="DD.MM. or DD.MM.YYYY"
+            displaySuffix={birthdayAgeSuffix}
             isEditing={editingField === 'birthday'}
             editValue={editValue}
             validationError={validationError}

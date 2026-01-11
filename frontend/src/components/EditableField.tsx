@@ -10,6 +10,7 @@ interface EditableFieldProps {
   value: string;
   multiline?: boolean;
   placeholder?: string;
+  displaySuffix?: string;
   isEditing: boolean;
   editValue: string;
   validationError: string;
@@ -26,6 +27,7 @@ export default function EditableField({
   value,
   multiline = false,
   placeholder = '',
+  displaySuffix,
   isEditing,
   editValue,
   validationError,
@@ -34,7 +36,7 @@ export default function EditableField({
   onEditSave,
   onEditValueChange
 }: EditableFieldProps) {
-  const displayValue = value || '-';
+  const displayValue = value ? (displaySuffix ? `${value} ${displaySuffix}` : value) : '-';
   const showError = isEditing && validationError;
 
   return (

@@ -2,16 +2,20 @@ package database
 
 import (
 	"database/sql"
+	"embed"
 	"fmt"
 	"meerkat/logger"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/mattn/go-sqlite3"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
+
+//go:embed migrations/*.sql
+var migrationsFS embed.FS
 
 // InitDB initializes the database connection and runs migrations
 func InitDB(dbPath string) (*gorm.DB, error) {
@@ -42,11 +46,12 @@ func RunMigrations(db *sql.DB) error {
 		return fmt.Errorf("failed to create migration driver: %w", err)
 	}
 
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://migrations",
-		"sqlite3",
-		driver,
-	)
+	sourceDriver, err := iofs.New(migrationsFS, "migrations")
+	if err != nil {
+		return fmt.Errorf("failed to create migration source: %w", err)
+	}
+
+	m, err := migrate.NewWithInstance("iofs", sourceDriver, "sqlite3", driver)
 	if err != nil {
 		return fmt.Errorf("failed to create migration instance: %w", err)
 	}
@@ -97,11 +102,12 @@ func MigrateDown(dbPath string) error {
 		return fmt.Errorf("failed to create migration driver: %w", err)
 	}
 
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://migrations",
-		"sqlite3",
-		driver,
-	)
+	sourceDriver, err := iofs.New(migrationsFS, "migrations")
+	if err != nil {
+		return fmt.Errorf("failed to create migration source: %w", err)
+	}
+
+	m, err := migrate.NewWithInstance("iofs", sourceDriver, "sqlite3", driver)
 	if err != nil {
 		return fmt.Errorf("failed to create migration instance: %w", err)
 	}

@@ -2,7 +2,7 @@
 
 # Database path
 DB_PATH ?= meerkat.db
-MIGRATIONS_DIR = ./migrations
+MIGRATIONS_DIR = ./database/migrations
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'

@@ -19,7 +19,7 @@ func main() {
 
 	command := os.Args[1]
 	dbPath := "meerkat.db"
-	migrationsPath := "file://migrations"
+	migrationsPath := "file://database/migrations"
 
 	// Open database connection
 	db, err := sql.Open("sqlite3", dbPath)

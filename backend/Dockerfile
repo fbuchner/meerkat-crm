@@ -27,6 +27,11 @@ WORKDIR /app
 # Create directories for data persistence
 RUN mkdir -p /app/static/photos /app/data
 
+# Set default environment
+ENV PORT=8080
+ENV SQLITE_DB_PATH=/app/data/meerkat.db
+ENV PROFILE_PHOTO_DIR=/app/static/photos
+
 # Copy the binary from builder
 COPY --from=builder /app/meerkat .
 

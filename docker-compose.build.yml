@@ -1,23 +1,23 @@
-# Meerkat CRM Docker Compose - Production
+# Meerkat CRM Docker Compose - Local Build
 #
-# Pulls pre-built images from GitHub Container Registry.
+# Builds images locally from source.
 #
 # USAGE:
-#   docker compose up -d
-#
-# To build locally instead, use docker-compose.build.yml:
 #   docker compose -f docker-compose.build.yml up -d --build
+#
+# To push built images to registry:
+#   docker compose -f docker-compose.build.yml push
 
 services:
   backend:
     image: ghcr.io/fbuchner/meerkat-crm-backend:${IMAGE_TAG:-latest}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: meerkat-backend
     restart: unless-stopped
     env_file:
       - .env.docker
-    volumes:
-      - ${DATA_PATH:-./data}:/app/data
-      - ${PHOTOS_PATH:-./photos}:/app/static/photos
     expose:
       - "8080"
     healthcheck:
@@ -29,6 +29,11 @@ services:
 
   frontend:
     image: ghcr.io/fbuchner/meerkat-crm-frontend:${IMAGE_TAG:-latest}
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=${REACT_APP_API_URL:-}
     container_name: meerkat-frontend
     restart: unless-stopped
     ports:

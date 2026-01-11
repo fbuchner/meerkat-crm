@@ -30,7 +30,7 @@ func LoggingMiddleware() gin.HandlerFunc {
 
 		// Get user ID if available
 		var userID uint
-		if uid, exists := c.Get("user_id"); exists {
+		if uid, exists := c.Get("userID"); exists {
 			if id, ok := uid.(uint); ok {
 				userID = id
 			}

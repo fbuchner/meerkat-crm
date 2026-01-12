@@ -61,7 +61,7 @@ async function handleResponse(response: Response, fallback: string): Promise<Rec
   let message = fallback;
 
   if (data && typeof data === 'object') {
-    const errorDetail = (data as { error?: Record<string, unknown> }).error;
+    const errorDetail = (data as { error?: Record<string, unknown> | string }).error;
     if (errorDetail && typeof errorDetail === 'object') {
       const details = (errorDetail as { details?: ErrorDetails }).details;
       const specificMessage = extractDetailMessage(details);
@@ -73,6 +73,9 @@ async function handleResponse(response: Response, fallback: string): Promise<Rec
           message = detailMessage.trim();
         }
       }
+    } else if (typeof errorDetail === 'string' && errorDetail.trim().length > 0) {
+      // Handle simple string error format: {"error": "message"}
+      message = errorDetail.trim();
     } else if (typeof data.message === 'string' && data.message.trim().length > 0) {
       message = data.message.trim();
     }

@@ -177,7 +177,7 @@ func CheckPasswordStrength(context *gin.Context) {
 func RequestPasswordReset(context *gin.Context, cfg *config.Config) {
 	// Check if demo mode is enabled - password changes are disabled in demo
 	if os.Getenv("DEMO_MODE") == "true" {
-		context.JSON(http.StatusForbidden, gin.H{"error": "Password changes are disabled in demo mode"})
+		apperrors.AbortWithError(context, apperrors.ErrForbidden("Password changes are disabled in demo mode"))
 		return
 	}
 
@@ -243,7 +243,7 @@ func RequestPasswordReset(context *gin.Context, cfg *config.Config) {
 func ConfirmPasswordReset(context *gin.Context) {
 	// Check if demo mode is enabled - password changes are disabled in demo
 	if os.Getenv("DEMO_MODE") == "true" {
-		context.JSON(http.StatusForbidden, gin.H{"error": "Password changes are disabled in demo mode"})
+		apperrors.AbortWithError(context, apperrors.ErrForbidden("Password changes are disabled in demo mode"))
 		return
 	}
 
@@ -314,7 +314,7 @@ func ConfirmPasswordReset(context *gin.Context) {
 func ChangePassword(context *gin.Context) {
 	// Check if demo mode is enabled - password changes are disabled in demo
 	if os.Getenv("DEMO_MODE") == "true" {
-		context.JSON(http.StatusForbidden, gin.H{"error": "Password changes are disabled in demo mode"})
+		apperrors.AbortWithError(context, apperrors.ErrForbidden("Password changes are disabled in demo mode"))
 		return
 	}
 

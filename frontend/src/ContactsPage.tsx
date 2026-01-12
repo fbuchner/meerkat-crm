@@ -141,6 +141,7 @@ export default function ContactsPage({ token }: { token: string }) {
             <MenuItem value="id-asc">{t('contacts.sort.oldestFirst')}</MenuItem>
             <MenuItem value="firstname-asc">{t('contacts.sort.nameAZ')}</MenuItem>
             <MenuItem value="firstname-desc">{t('contacts.sort.nameZA')}</MenuItem>
+            <MenuItem value="random-asc">{t('contacts.sort.random')}</MenuItem>
           </Select>
         </FormControl>
         <Button

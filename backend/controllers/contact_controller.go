@@ -103,7 +103,7 @@ func GetContacts(c *gin.Context) {
 	sortField := c.DefaultQuery("sort", "id")
 	sortOrder := c.DefaultQuery("order", "desc")
 
-	allowedSortFields := map[string]bool{"firstname": true, "lastname": true, "id": true}
+	allowedSortFields := map[string]bool{"firstname": true, "lastname": true, "id": true, "random": true}
 	if !allowedSortFields[sortField] {
 		sortField = "id"
 	}
@@ -112,7 +112,14 @@ func GetContacts(c *gin.Context) {
 	}
 
 	var contacts []models.Contact
-	query := db.Model(&models.Contact{}).Where("user_id = ?", userID).Order(sortField + " " + sortOrder).Limit(pagination.Limit).Offset(pagination.Offset)
+	query := db.Model(&models.Contact{}).Where("user_id = ?", userID).Limit(pagination.Limit).Offset(pagination.Offset)
+
+	// Apply ordering - random uses RANDOM() function, others use column name
+	if sortField == "random" {
+		query = query.Order("RANDOM()")
+	} else {
+		query = query.Order(sortField + " " + sortOrder)
+	}
 
 	if len(selectedFields) > 0 {
 		query = query.Select(selectedFields)

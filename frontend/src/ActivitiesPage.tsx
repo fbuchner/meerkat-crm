@@ -289,6 +289,11 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
                         <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: activity.title ? 0.5 : 0 }}>
                           {activity.description}
                         </Typography>
+                        {activity.location && (
+                          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                            📍 {activity.location}
+                          </Typography>
+                        )}
                       </Box>
                       <Box
                         className="edit-actions"

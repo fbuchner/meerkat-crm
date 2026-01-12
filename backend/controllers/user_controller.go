@@ -3,6 +3,7 @@ package controllers
 import (
 	"errors"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -174,6 +175,12 @@ func CheckPasswordStrength(context *gin.Context) {
 
 // RequestPasswordReset generates a reset token and sends instructions to the user.
 func RequestPasswordReset(context *gin.Context, cfg *config.Config) {
+	// Check if demo mode is enabled - password changes are disabled in demo
+	if os.Getenv("DEMO_MODE") == "true" {
+		context.JSON(http.StatusForbidden, gin.H{"error": "Password changes are disabled in demo mode"})
+		return
+	}
+
 	log := logger.FromContext(context)
 
 	validated, exists := context.Get("validated")
@@ -234,6 +241,12 @@ func RequestPasswordReset(context *gin.Context, cfg *config.Config) {
 
 // ConfirmPasswordReset validates the token and updates the password.
 func ConfirmPasswordReset(context *gin.Context) {
+	// Check if demo mode is enabled - password changes are disabled in demo
+	if os.Getenv("DEMO_MODE") == "true" {
+		context.JSON(http.StatusForbidden, gin.H{"error": "Password changes are disabled in demo mode"})
+		return
+	}
+
 	log := logger.FromContext(context)
 
 	validated, exists := context.Get("validated")
@@ -299,6 +312,12 @@ func ConfirmPasswordReset(context *gin.Context) {
 
 // ChangePassword lets authenticated users rotate their password.
 func ChangePassword(context *gin.Context) {
+	// Check if demo mode is enabled - password changes are disabled in demo
+	if os.Getenv("DEMO_MODE") == "true" {
+		context.JSON(http.StatusForbidden, gin.H{"error": "Password changes are disabled in demo mode"})
+		return
+	}
+
 	log := logger.FromContext(context)
 
 	validated, exists := context.Get("validated")

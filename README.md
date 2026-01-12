@@ -14,7 +14,9 @@ Meerkat CRM (Contact Relationship Management) is a  self-hosted solution to keep
 
 > [!TIP]
 >**[Click here to try the Demo!](https://meerkat-crm-demo.fly.dev/)**
+>
 >User: test
+>
 >Password: test_12345
 
 <p align="center">

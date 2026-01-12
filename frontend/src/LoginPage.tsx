@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { loginUser, saveToken } from './auth';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Box,
@@ -19,8 +19,9 @@ type LoginPageProps = {
 
 export default function LoginPage({ setToken }: LoginPageProps) {
   const { t } = useTranslation();
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
+  const [searchParams] = useSearchParams();
+  const [identifier, setIdentifier] = useState(searchParams.get('username') || '');
+  const [password, setPassword] = useState(searchParams.get('password') || '');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);

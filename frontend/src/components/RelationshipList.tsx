@@ -12,6 +12,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Relationship, IncomingRelationship } from '../api/relationships';
+import { useDateFormat } from '../DateFormatProvider';
 
 interface RelationshipListProps {
   relationships: Relationship[];
@@ -28,6 +29,7 @@ export default function RelationshipList({
 }: RelationshipListProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { formatBirthday } = useDateFormat();
 
   const handleDeleteClick = (relationshipId: number) => {
     if (window.confirm(t('relationships.deleteMessage'))) {
@@ -108,7 +110,7 @@ export default function RelationshipList({
                 <Typography variant="body2" color="text.secondary">
                   {formatRelationshipType(relationship.type)}
                   {displayGender && ` · ${formatGender(displayGender)}`}
-                  {displayBirthday && ` · ${t('relationships.birthday')}: ${displayBirthday}`}
+                  {displayBirthday && ` · ${t('relationships.birthday')}: ${formatBirthday(displayBirthday)}`}
                 </Typography>
               </Box>
               <Box

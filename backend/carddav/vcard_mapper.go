@@ -65,11 +65,11 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 		})
 	}
 
-	// TEL (phone)
+	// TEL (phone) - default to CELL (mobile) as most contacts have mobile numbers
 	if contact.Phone != "" {
 		card.Set(vcard.FieldTelephone, &vcard.Field{
 			Value:  contact.Phone,
-			Params: vcard.Params{vcard.ParamType: {"VOICE"}},
+			Params: vcard.Params{vcard.ParamType: {"CELL"}},
 		})
 	}
 

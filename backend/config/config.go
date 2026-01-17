@@ -27,6 +27,7 @@ type Config struct {
 	WriteTimeout    int    // HTTP server write timeout in seconds
 	IdleTimeout     int    // HTTP server idle timeout in seconds
 	ProfilePhotoDir string // Directory for storing profile photos (must be absolute path)
+	CardDAVEnabled  bool   // Enable CardDAV server for contact sync
 }
 
 func LoadConfig() *Config {
@@ -58,6 +59,7 @@ func LoadConfig() *Config {
 		WriteTimeout:    writeTimeout,
 		IdleTimeout:     idleTimeout,
 		ProfilePhotoDir: getEnv("PROFILE_PHOTO_DIR", ""),
+		CardDAVEnabled:  getBoolEnv("CARDDAV_ENABLED", false),
 	}
 
 	if cfg.ResendAPIKey == "" || cfg.ResendFromEmail == "" {
@@ -82,6 +84,18 @@ func getIntEnv(key string, fallback int) int {
 			return fallback
 		}
 		return intValue
+	}
+	return fallback
+}
+
+func getBoolEnv(key string, fallback bool) bool {
+	if value, exists := os.LookupEnv(key); exists {
+		boolValue, err := strconv.ParseBool(value)
+		if err != nil {
+			log.Printf("WARN: Invalid boolean value for %s: %s. Using default: %v", key, value, fallback)
+			return fallback
+		}
+		return boolValue
 	}
 	return fallback
 }

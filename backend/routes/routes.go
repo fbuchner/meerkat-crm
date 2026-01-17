@@ -1,15 +1,17 @@
 package routes
 
 import (
+	"meerkat/carddav"
 	"meerkat/config"
 	"meerkat/controllers"
 	"meerkat/middleware"
 	"meerkat/models"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
+func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB) {
 
 	// Health check endpoint (no versioning, standard practice)
 	router.GET("/health", controllers.HealthCheck)
@@ -101,5 +103,33 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 			// Graph/Network visualization route
 			protected.GET("/graph", controllers.GetGraph)
 		}
+	}
+
+	// CardDAV routes (optional, enabled via CARDDAV_ENABLED)
+	if cfg.CardDAVEnabled {
+		registerCardDAVRoutes(router, cfg, db)
+	}
+}
+
+// registerCardDAVRoutes sets up CardDAV endpoints for contact synchronization
+func registerCardDAVRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB) {
+	// Well-known discovery endpoint (no auth required for discovery)
+	router.GET("/.well-known/carddav", carddav.WellKnownRedirect)
+
+	// Create CardDAV handler
+	handler := carddav.NewHandler(db, cfg.ProfilePhotoDir)
+
+	// CardDAV routes with Basic Auth and rate limiting
+	cardDAVGroup := router.Group("/carddav")
+	cardDAVGroup.Use(func(c *gin.Context) {
+		// Inject db into context for BasicAuthMiddleware
+		c.Set("db", db)
+		c.Next()
+	})
+	cardDAVGroup.Use(middleware.AuthRateLimitMiddleware())
+	cardDAVGroup.Use(carddav.BasicAuthMiddleware())
+	{
+		// Handle all CardDAV methods on all paths
+		cardDAVGroup.Any("/*path", handler.GinHandler())
 	}
 }

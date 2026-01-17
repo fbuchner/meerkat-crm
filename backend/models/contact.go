@@ -1,6 +1,8 @@
 package models
 
 import (
+	"fmt"
+
 	"gorm.io/gorm"
 )
 
@@ -26,4 +28,27 @@ type Contact struct {
 	Activities         []Activity     `gorm:"many2many:activity_contacts;foreignKey:ID;joinForeignKey:ContactID;References:ID;joinReferences:ActivityID" json:"activities,omitempty"`
 	Notes              []Note         `json:"notes,omitempty"`     // One-to-many relationship with notes
 	Reminders          []Reminder     `json:"reminders,omitempty"` // One-to-many relationship with reminders
+
+	// CardDAV fields
+	VCardUID   string `gorm:"column:vcard_uid" json:"-"`   // Permanent RFC 6350 UID
+	VCardExtra string `gorm:"column:vcard_extra" json:"-"` // JSON for unmapped vCard properties
+	ETag       string `gorm:"column:etag" json:"-"`        // Sync conflict detection
+}
+
+// BeforeSave generates ETag before saving contact
+func (c *Contact) BeforeSave(tx *gorm.DB) error {
+	// ETag format: e-{id}-{updated_at_unix}
+	// For new records, ID is 0 and will be set after create
+	// We regenerate ETag in AfterSave for new records
+	if c.ID != 0 {
+		c.ETag = fmt.Sprintf("e-%d-%d", c.ID, c.UpdatedAt.Unix())
+	}
+	return nil
+}
+
+// AfterCreate sets ETag after creating a new contact
+func (c *Contact) AfterCreate(tx *gorm.DB) error {
+	// Now we have the ID, generate proper ETag
+	c.ETag = fmt.Sprintf("e-%d-%d", c.ID, c.UpdatedAt.Unix())
+	return tx.Model(c).UpdateColumn("etag", c.ETag).Error
 }

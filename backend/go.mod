@@ -27,6 +27,8 @@ require (
 	github.com/bytedance/sonic/loader v0.4.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/emersion/go-vcard v0.0.0-20241024213814-c9703dde27ff
+	github.com/emersion/go-webdav v0.7.0
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect

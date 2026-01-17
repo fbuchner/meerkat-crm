@@ -79,9 +79,9 @@ func main() {
 
 	// For production, set FRONTEND_URL to specific origin(s) like "https://yourdomain.com"
 	corsConfig := cors.Config{
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PROPFIND", "REPORT", "MKCOL", "COPY", "MOVE"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Depth", "If-Match", "If-None-Match"},
+		ExposeHeaders:    []string{"Content-Length", "ETag"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour, // Cache preflight for 12 hours
 	}
@@ -121,7 +121,7 @@ func main() {
 	})
 
 	// Register all routes from routes.go
-	routes.RegisterRoutes(r, cfg)
+	routes.RegisterRoutes(r, cfg, db)
 
 	// Create HTTP server with timeout configuration
 	// ReadTimeout: Maximum duration for reading the entire request (including body)

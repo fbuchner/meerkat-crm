@@ -11,6 +11,7 @@ interface EditableFieldProps {
   multiline?: boolean;
   placeholder?: string;
   displaySuffix?: string;
+  formattedDisplayValue?: string; // Optional formatted value for display (raw value used for editing)
   isEditing: boolean;
   editValue: string;
   validationError: string;
@@ -28,6 +29,7 @@ export default function EditableField({
   multiline = false,
   placeholder = '',
   displaySuffix,
+  formattedDisplayValue,
   isEditing,
   editValue,
   validationError,
@@ -36,7 +38,8 @@ export default function EditableField({
   onEditSave,
   onEditValueChange
 }: EditableFieldProps) {
-  const displayValue = value ? (displaySuffix ? `${value} ${displaySuffix}` : value) : '-';
+  const baseDisplayValue = formattedDisplayValue || value;
+  const displayValue = baseDisplayValue ? (displaySuffix ? `${baseDisplayValue} ${displaySuffix}` : baseDisplayValue) : '-';
   const showError = isEditing && validationError;
 
   return (

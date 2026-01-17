@@ -241,8 +241,10 @@ export default function ContactDetailPage({ token }: { token: string }) {
 
   const validateBirthday = (value: string): boolean => {
     if (!value || value.trim() === '') return true;
-    const regex = /^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])(\.|(\.\d{4}))$/;
-    return regex.test(value.trim());
+    // Validate YYYY-MM-DD or --MM-DD format (ISO 8601)
+    const fullDateRegex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
+    const yearlessRegex = /^--(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
+    return fullDateRegex.test(value.trim()) || yearlessRegex.test(value.trim());
   };
 
   const handleEditStart = (field: string, currentValue: string) => {

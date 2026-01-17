@@ -48,6 +48,32 @@ function calculateCurrentAge(birthday: string): number | null {
   return age >= 0 ? age : null;
 }
 
+function formatBirthdayForDisplay(birthday: string): string {
+  if (!birthday) return '';
+  
+  // Birthday format is YYYY-MM-DD or --MM-DD (ISO 8601)
+  // Display as DD.MM.YYYY or DD.MM.
+  
+  // Check if it's a year-less birthday (starts with --)
+  if (birthday.startsWith('--')) {
+    // --MM-DD -> display as DD.MM.
+    const month = birthday.substring(2, 4);
+    const day = birthday.substring(5, 7);
+    return `${day}.${month}.`;
+  }
+
+  // YYYY-MM-DD format
+  const parts = birthday.split('-');
+  if (parts.length === 3) {
+    const year = parts[0];
+    const month = parts[1];
+    const day = parts[2];
+    return `${day}.${month}.${year}`;
+  }
+
+  return birthday; // Return as-is if format doesn't match
+}
+
 interface ContactInformationProps {
   contact: {
     email?: string;
@@ -145,6 +171,7 @@ export default function ContactInformation({
             label={t('contactDetail.birthday')}
             field="birthday"
             value={contact.birthday || ''}
+            formattedDisplayValue={contact.birthday ? formatBirthdayForDisplay(contact.birthday) : undefined}
             placeholder="YYYY-MM-DD or --MM-DD"
             displaySuffix={birthdayAgeSuffix}
             isEditing={editingField === 'birthday'}

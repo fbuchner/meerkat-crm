@@ -75,7 +75,9 @@ The easiest way to run Meerkat CRM is with Docker Compose:
 ### Bugs and feature requests
 This application is under development. You can [open an issue](https://github.com/fbuchner/meerkat-crm/issues/new/choose) to report a bug or request a new feature.
 
-You can also participate and open up a pull request.
+You can also participate and open up a pull request. 
+
+While AI-assistants can be used to support coding, please note that you are ultimately responsible for code quality. Do not open pull requests for hands-off "vibe-coding" developments, rather stick to feature requests in these cases.
 
 ### Development
 To set up this repository for development, follow these steps:

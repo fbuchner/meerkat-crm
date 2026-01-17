@@ -1,5 +1,6 @@
 import { useRef, useCallback, useMemo, useEffect, useState } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
+import { forceX, forceY } from 'd3-force';
 import { useTheme, Box, Typography, useMediaQuery } from '@mui/material';
 import { GraphData, GraphNode, GraphEdge } from '../types/graph';
 
@@ -173,6 +174,21 @@ export default function NetworkGraph({
       onNodeClick(node);
     }
   }, [onNodeClick]);
+
+  // Configure forces to prevent isolated nodes from drifting too far
+  useEffect(() => {
+    if (graphRef.current) {
+      const fg = graphRef.current;
+      
+      // Add position forces that gently pull all nodes toward center
+      // This particularly helps isolated nodes that have no link forces
+      fg.d3Force('x', forceX(0).strength(0.05));
+      fg.d3Force('y', forceY(0).strength(0.05));
+      
+      // Reduce charge strength to prevent excessive repulsion
+      fg.d3Force('charge')?.strength(-100);
+    }
+  }, []);
 
   // Zoom to fit on initial load
   useEffect(() => {

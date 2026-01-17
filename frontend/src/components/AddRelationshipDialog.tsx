@@ -341,7 +341,7 @@ export default function AddRelationshipDialog({
               label={t('contacts.birthday')}
               value={birthday}
               onChange={(e) => setBirthday(e.target.value)}
-              placeholder="DD.MM. or DD.MM.YYYY"
+              placeholder="YYYY-MM-DD or --MM-DD"
               fullWidth
               helperText={t('contacts.birthdayFormat')}
             />

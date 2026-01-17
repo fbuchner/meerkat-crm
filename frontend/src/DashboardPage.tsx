@@ -108,13 +108,27 @@ function DashboardPage({ token }: DashboardPageProps) {
 
   const formatBirthday = (birthday: string | undefined) => {
     if (!birthday) return '';
-    // Birthday format is DD.MM.YYYY or DD.MM.
-    const parts = birthday.split('.');
-    if (parts.length >= 2) {
-      const dateStr = `${parts[0]}.${parts[1]}.`;
+    // Birthday format is YYYY-MM-DD or --MM-DD (ISO 8601)
+
+    // Check if it's a year-less birthday (starts with --)
+    if (birthday.startsWith('--')) {
+      // --MM-DD -> display as MM-DD
+      const month = birthday.substring(2, 4);
+      const day = birthday.substring(5, 7);
+      return `${day}.${month}.`;
+    }
+
+    // YYYY-MM-DD format
+    const parts = birthday.split('-');
+    if (parts.length === 3) {
+      const year = parts[0];
+      const month = parts[1];
+      const day = parts[2];
+      const dateStr = `${day}.${month}.`;
+
       // Check if year is present and valid
-      if (parts.length === 3 && parts[2] && parts[2].length === 4) {
-        const birthYear = parseInt(parts[2], 10);
+      if (year && year.length === 4) {
+        const birthYear = parseInt(year, 10);
         if (!isNaN(birthYear)) {
           const currentYear = new Date().getFullYear();
           const age = currentYear - birthYear;

@@ -162,18 +162,18 @@ func TestValidateStruct_Birthday(t *testing.T) {
 		isValid bool
 	}{
 		{
-			name:    "valid date - DD.MM.YYYY",
-			date:    "15.01.1990",
+			name:    "valid date - YYYY-MM-DD",
+			date:    "1990-01-15",
 			isValid: true,
 		},
 		{
-			name:    "valid date without year - DD.MM.",
-			date:    "15.01.",
-			isValid: true, // Matches DD.MM. (year optional)
+			name:    "valid date without year - --MM-DD",
+			date:    "--01-15",
+			isValid: true, // Matches --MM-DD (year optional)
 		},
 		{
 			name:    "valid leap year date",
-			date:    "29.02.2000",
+			date:    "2000-02-29",
 			isValid: true,
 		},
 		{
@@ -182,8 +182,8 @@ func TestValidateStruct_Birthday(t *testing.T) {
 			isValid: false,
 		},
 		{
-			name:    "invalid format - ISO style",
-			date:    "1990-01-15",
+			name:    "invalid format - European style",
+			date:    "15.01.1990",
 			isValid: false,
 		},
 		{

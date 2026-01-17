@@ -20,13 +20,15 @@ func GetUpcomingBirthdays(db *gorm.DB, userID uint) ([]models.Birthday, error) {
 	var birthdays []models.Birthday
 
 	// Query upcoming contact birthdays
+	// Birthday format is now YYYY-MM-DD or --MM-DD (ISO 8601)
+	// Month is at position LENGTH-4 (2 chars), Day is at position LENGTH-1 (2 chars)
 	var contacts []models.Contact
 	contactQuery := db.Model(&models.Contact{}).
 		Where("user_id = ?", userID).
 		Where("birthday IS NOT NULL AND birthday != ''").
 		Where(
-			db.Where("SUBSTR(birthday, 4, 2) = ? AND SUBSTR(birthday, 1, 2) >= ?", currentMonth, currentDay).
-				Or("SUBSTR(birthday, 4, 2) = ?", nextMonth),
+			db.Where("SUBSTR(birthday, LENGTH(birthday) - 4, 2) = ? AND SUBSTR(birthday, LENGTH(birthday) - 1, 2) >= ?", currentMonth, currentDay).
+				Or("SUBSTR(birthday, LENGTH(birthday) - 4, 2) = ?", nextMonth),
 		)
 
 	if err := contactQuery.Find(&contacts).Error; err != nil {
@@ -53,6 +55,7 @@ func GetUpcomingBirthdays(db *gorm.DB, userID uint) ([]models.Birthday, error) {
 	}
 
 	// Query upcoming relationship birthdays (only those without their own contact)
+	// Birthday format is now YYYY-MM-DD or --MM-DD (ISO 8601)
 	var relationships []models.Relationship
 	relationshipQuery := db.Model(&models.Relationship{}).
 		Preload("RelatedContact").
@@ -60,8 +63,8 @@ func GetUpcomingBirthdays(db *gorm.DB, userID uint) ([]models.Birthday, error) {
 		Where("related_contact_id IS NULL").
 		Where("birthday IS NOT NULL AND birthday != ''").
 		Where(
-			db.Where("SUBSTR(birthday, 4, 2) = ? AND SUBSTR(birthday, 1, 2) >= ?", currentMonth, currentDay).
-				Or("SUBSTR(birthday, 4, 2) = ?", nextMonth),
+			db.Where("SUBSTR(birthday, LENGTH(birthday) - 4, 2) = ? AND SUBSTR(birthday, LENGTH(birthday) - 1, 2) >= ?", currentMonth, currentDay).
+				Or("SUBSTR(birthday, LENGTH(birthday) - 4, 2) = ?", nextMonth),
 		)
 
 	if err := relationshipQuery.Find(&relationships).Error; err != nil {
@@ -138,12 +141,17 @@ func GetUpcomingBirthdays(db *gorm.DB, userID uint) ([]models.Birthday, error) {
 }
 
 // DaysUntilBirthday calculates the number of days until a birthday from a given date
+// Birthday format is YYYY-MM-DD or --MM-DD (ISO 8601)
 func DaysUntilBirthday(birthday string, now time.Time) int {
-	if len(birthday) < 5 {
+	if len(birthday) < 7 {
 		return 999
 	}
-	day := birthday[0:2]
-	month := birthday[3:5]
+
+	// Extract month and day from end of string (works for both YYYY-MM-DD and --MM-DD)
+	// Month is at position len-5 to len-3, Day is at position len-2 to len
+	length := len(birthday)
+	month := birthday[length-5 : length-3]
+	day := birthday[length-2 : length]
 
 	d, err1 := time.Parse("02", day)
 	m, err2 := time.Parse("01", month)

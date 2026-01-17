@@ -46,7 +46,7 @@ func TestValidateJSONMiddleware_ValidInput(t *testing.T) {
 		"email":    "test@example.com",
 		"username": "testuser",
 		"phone":    "1234567890",
-		"birthday": "15.06.1990",
+		"birthday": "1990-06-15",
 		"password": "StrongP@ssw0rd123!",
 	}
 	body, _ := json.Marshal(payload)
@@ -196,7 +196,7 @@ func TestValidateJSONMiddleware_InvalidBirthday(t *testing.T) {
 		"email":    "test@example.com",
 		"username": "testuser",
 		"phone":    "1234567890",
-		"birthday": "1990-06-15", // Wrong format, should be DD.MM.YYYY
+		"birthday": "15.06.1990", // Wrong format, should be YYYY-MM-DD or --MM-DD
 		"password": "StrongP@ssw0rd123!",
 	}
 	body, _ := json.Marshal(payload)

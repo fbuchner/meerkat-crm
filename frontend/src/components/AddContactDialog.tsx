@@ -92,32 +92,43 @@ export default function AddContactDialog({
       const newContact = await createContact(contactData, token);
 
       if (createBirthdayReminder && formData.birthday) {
-        const parts = formData.birthday.split('.');
-        if (parts.length >= 2) {
-          const day = parseInt(parts[0], 10);
-          const month = parseInt(parts[1], 10) - 1;
-          
-          if (!isNaN(day) && !isNaN(month)) {
-            const today = new Date();
-            let nextBirthday = new Date(today.getFullYear(), month, day);
-            
-            // If birthday has passed this year, set for next year
-            if (nextBirthday < today) {
-              nextBirthday.setFullYear(today.getFullYear() + 1);
-            }
+        // Birthday format is YYYY-MM-DD or --MM-DD (ISO 8601)
+        let day: number | undefined;
+        let month: number | undefined;
 
-            // Set reminder for 9 AM
-            nextBirthday.setHours(9, 0, 0, 0);
-
-            await createReminder(newContact.ID, {
-              message: t('reminders.birthdayMessage', { name: `${newContact.firstname} ${newContact.lastname}` }),
-              by_mail: true,
-              remind_at: nextBirthday.toISOString(),
-              recurrence: 'yearly',
-              reoccur_from_completion: false,
-              contact_id: newContact.ID
-            }, token);
+        if (formData.birthday.startsWith('--')) {
+          // --MM-DD format
+          month = parseInt(formData.birthday.substring(2, 4), 10) - 1;
+          day = parseInt(formData.birthday.substring(5, 7), 10);
+        } else {
+          // YYYY-MM-DD format
+          const parts = formData.birthday.split('-');
+          if (parts.length === 3) {
+            month = parseInt(parts[1], 10) - 1;
+            day = parseInt(parts[2], 10);
           }
+        }
+
+        if (day !== undefined && month !== undefined && !isNaN(day) && !isNaN(month)) {
+          const today = new Date();
+          let nextBirthday = new Date(today.getFullYear(), month, day);
+
+          // If birthday has passed this year, set for next year
+          if (nextBirthday < today) {
+            nextBirthday.setFullYear(today.getFullYear() + 1);
+          }
+
+          // Set reminder for 9 AM
+          nextBirthday.setHours(9, 0, 0, 0);
+
+          await createReminder(newContact.ID, {
+            message: t('reminders.birthdayMessage', { name: `${newContact.firstname} ${newContact.lastname}` }),
+            by_mail: true,
+            remind_at: nextBirthday.toISOString(),
+            recurrence: 'yearly',
+            reoccur_from_completion: false,
+            contact_id: newContact.ID
+          }, token);
         }
       }
 
@@ -219,7 +230,7 @@ export default function AddContactDialog({
             fullWidth
             value={formData.birthday}
             onChange={handleChange('birthday')}
-            placeholder="DD.MM.YYYY"
+            placeholder="YYYY-MM-DD"
             helperText={t('contacts.birthdayFormat')}
           />
           {formData.birthday && (

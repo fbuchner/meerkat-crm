@@ -384,11 +384,11 @@ func validateImportRow(row map[string]interface{}) []string {
 		}
 	}
 
-	// Birthday format validation (DD.MM.YYYY or DD.MM.) - normalize first
+	// Birthday format validation (YYYY-MM-DD or --MM-DD) - normalize first
 	if birthday := getStringField(row, "birthday"); birthday != "" {
 		normalized := normalizeBirthday(birthday)
 		if !isValidBirthdayFormat(normalized) {
-			errors = append(errors, "Invalid birthday format (expected DD.MM.YYYY, DD.MM., YYYY-MM-DD, or --MM-DD)")
+			errors = append(errors, "Invalid birthday format (expected YYYY-MM-DD or --MM-DD)")
 		}
 	}
 
@@ -410,42 +410,50 @@ func validateImportRow(row map[string]interface{}) []string {
 	return errors
 }
 
-// isValidBirthdayFormat checks birthday format (after normalization)
+// isValidBirthdayFormat checks birthday format (YYYY-MM-DD or --MM-DD)
 func isValidBirthdayFormat(birthday string) bool {
-	match, _ := regexp.MatchString(`^\d{2}\.\d{2}\.(\d{4})?$`, birthday)
+	match, _ := regexp.MatchString(`^(--|\d{4}-)\d{2}-\d{2}$`, birthday)
 	return match
 }
 
-// normalizeBirthday converts various birthday formats to the app's format (DD.MM.YYYY or DD.MM.)
+// normalizeBirthday converts various birthday formats to the app's ISO format (YYYY-MM-DD or --MM-DD)
 // Supported input formats:
-// - YYYY-MM-DD (Google Contacts with year, e.g., "1958-06-29")
-// - --MM-DD (Google Contacts without year, e.g., "--04-20")
-// - DD.MM.YYYY (app format with year)
-// - DD.MM. (app format without year)
+// - YYYY-MM-DD (ISO format with year, e.g., "1958-06-29") - native format
+// - --MM-DD (ISO format without year, e.g., "--04-20") - native format
+// - DD.MM.YYYY (legacy format with year, e.g., "29.06.1958")
+// - DD.MM. (legacy format without year, e.g., "29.06.")
 func normalizeBirthday(input string) string {
 	input = strings.TrimSpace(input)
 	if input == "" {
 		return ""
 	}
 
-	// Google format without year: --MM-DD
-	if match, _ := regexp.MatchString(`^--\d{2}-\d{2}$`, input); match {
-		// Extract month and day
-		month := input[2:4]
-		day := input[5:7]
-		return day + "." + month + "."
-	}
-
-	// Google format with year: YYYY-MM-DD
+	// Already in ISO format with year: YYYY-MM-DD - return as-is
 	if match, _ := regexp.MatchString(`^\d{4}-\d{2}-\d{2}$`, input); match {
-		// Extract year, month, day
-		year := input[0:4]
-		month := input[5:7]
-		day := input[8:10]
-		return day + "." + month + "." + year
+		return input
 	}
 
-	// Already in app format or other format - return as-is
+	// Already in ISO format without year: --MM-DD - return as-is
+	if match, _ := regexp.MatchString(`^--\d{2}-\d{2}$`, input); match {
+		return input
+	}
+
+	// Legacy format with year: DD.MM.YYYY -> YYYY-MM-DD
+	if match, _ := regexp.MatchString(`^\d{2}\.\d{2}\.\d{4}$`, input); match {
+		day := input[0:2]
+		month := input[3:5]
+		year := input[6:10]
+		return year + "-" + month + "-" + day
+	}
+
+	// Legacy format without year: DD.MM. -> --MM-DD
+	if match, _ := regexp.MatchString(`^\d{2}\.\d{2}\.$`, input); match {
+		day := input[0:2]
+		month := input[3:5]
+		return "--" + month + "-" + day
+	}
+
+	// Unknown format - return as-is (will fail validation)
 	return input
 }
 

@@ -66,7 +66,7 @@ func formatValidationError(err validator.FieldError) string {
 	case "phone":
 		return field + " must be a valid phone number"
 	case "birthday":
-		return field + " must be in DD.MM.YYYY format (YYYY optional)"
+		return field + " must be in YYYY-MM-DD format (use --MM-DD if year unknown)"
 	case "safe_string":
 		return field + " contains invalid characters"
 	case "strong_password":
@@ -130,15 +130,15 @@ func validatePhone(fl validator.FieldLevel) bool {
 	return true
 }
 
-// validateBirthday validates date format (DD.MM.YYYY or DD.MM.)
+// validateBirthday validates date format (YYYY-MM-DD or --MM-DD)
 func validateBirthday(fl validator.FieldLevel) bool {
 	birthday := fl.Field().String()
 	if birthday == "" {
 		return true // Allow empty (use 'required' tag if needed)
 	}
 
-	// Check format DD.MM.YYYY or DD.MM. (YYYY optional)
-	match, _ := regexp.MatchString(`^\d{2}\.\d{2}\.(\d{4})?$`, birthday)
+	// Check format YYYY-MM-DD or --MM-DD (ISO 8601 format, year optional)
+	match, _ := regexp.MatchString(`^(--|\d{4}-)\d{2}-\d{2}$`, birthday)
 	if !match {
 		return false
 	}

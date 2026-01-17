@@ -14,15 +14,20 @@ import RelationshipList from './RelationshipList';
 import { Relationship, IncomingRelationship } from '../api/relationships';
 
 function calculateCurrentAge(birthday: string): number | null {
-  // Birthday format is DD.MM.YYYY or DD.MM.
-  const parts = birthday.split('.');
-  if (parts.length < 3 || !parts[2] || parts[2].length !== 4) {
-    return null; // No year provided
+  // Birthday format is YYYY-MM-DD or --MM-DD (ISO 8601)
+  // If starts with '--', no year provided
+  if (birthday.startsWith('--')) {
+    return null;
   }
 
-  const day = parseInt(parts[0], 10);
+  const parts = birthday.split('-');
+  if (parts.length !== 3 || parts[0].length !== 4) {
+    return null; // Invalid format or no year
+  }
+
+  const birthYear = parseInt(parts[0], 10);
   const month = parseInt(parts[1], 10);
-  const birthYear = parseInt(parts[2], 10);
+  const day = parseInt(parts[2], 10);
 
   if (isNaN(day) || isNaN(month) || isNaN(birthYear)) {
     return null;
@@ -140,7 +145,7 @@ export default function ContactInformation({
             label={t('contactDetail.birthday')}
             field="birthday"
             value={contact.birthday || ''}
-            placeholder="DD.MM. or DD.MM.YYYY"
+            placeholder="YYYY-MM-DD or --MM-DD"
             displaySuffix={birthdayAgeSuffix}
             isEditing={editingField === 'birthday'}
             editValue={editValue}

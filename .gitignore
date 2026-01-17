@@ -89,3 +89,4 @@ coverage/
 CLAUDE.md
 BACKLOG.md
 .env.docker
+fly.demo.toml

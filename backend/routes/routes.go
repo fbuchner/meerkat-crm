@@ -130,6 +130,14 @@ func registerCardDAVRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB) 
 	cardDAVGroup.Use(carddav.BasicAuthMiddleware())
 	{
 		// Handle all CardDAV methods on all paths
-		cardDAVGroup.Any("/*path", handler.GinHandler())
+		// Note: Gin's Any() doesn't include WebDAV methods, so we add them explicitly
+		ginHandler := handler.GinHandler()
+		cardDAVGroup.Any("/*path", ginHandler)
+		// WebDAV methods required for CardDAV
+		cardDAVGroup.Handle("PROPFIND", "/*path", ginHandler)
+		cardDAVGroup.Handle("REPORT", "/*path", ginHandler)
+		cardDAVGroup.Handle("MKCOL", "/*path", ginHandler)
+		cardDAVGroup.Handle("COPY", "/*path", ginHandler)
+		cardDAVGroup.Handle("MOVE", "/*path", ginHandler)
 	}
 }

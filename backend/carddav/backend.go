@@ -357,10 +357,19 @@ func extractUIDFromPath(urlPath string) string {
 	// Remove .vcf extension if present
 	base = strings.TrimSuffix(base, ".vcf")
 
-	// If it looks like a valid UID, return it
-	if base != "" && base != "." && base != "contacts" {
-		return base
+	// Reserved path components that are not UIDs
+	reserved := map[string]bool{
+		"":             true,
+		".":            true,
+		"carddav":      true,
+		"addressbooks": true,
+		"principals":   true,
+		"contacts":     true,
 	}
 
-	return ""
+	if reserved[base] {
+		return ""
+	}
+
+	return base
 }

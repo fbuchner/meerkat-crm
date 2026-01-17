@@ -81,9 +81,14 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 		})
 	}
 
-	// BDAY (birthday) - already in YYYY-MM-DD or --MM-DD format
+	// BDAY (birthday) - convert to vCard 4.0 format
 	if contact.Birthday != "" {
-		card.SetValue(vcard.FieldBirthday, contact.Birthday)
+		bday := contact.Birthday
+		// Convert --MM-DD to --MMDD for vCard 4.0 compatibility
+		if len(bday) == 7 && bday[0] == '-' && bday[1] == '-' && bday[4] == '-' {
+			bday = bday[:4] + bday[5:] // --06-12 -> --0612
+		}
+		card.SetValue(vcard.FieldBirthday, bday)
 	}
 
 	// GENDER
@@ -197,7 +202,7 @@ func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact,
 		contact.Address = strings.Join(parts, ", ")
 	}
 
-	// BDAY - already in compatible format
+	// BDAY
 	if bday := card.Value(vcard.FieldBirthday); bday != "" {
 		contact.Birthday = normalizeBirthday(bday)
 	}
@@ -417,24 +422,25 @@ func mapGenderFromVCard(gender string) string {
 	}
 }
 
-// normalizeBirthday ensures birthday is in YYYY-MM-DD or --MM-DD format
+// normalizeBirthday ensures birthday is in YYYY-MM-DD or --MM-DD format for storage
 func normalizeBirthday(bday string) string {
-	// Already in correct format
+	// Already in correct format (YYYY-MM-DD)
 	if len(bday) == 10 && bday[4] == '-' && bday[7] == '-' {
 		return bday
 	}
+	// Already in correct format (--MM-DD)
 	if len(bday) == 7 && bday[0] == '-' && bday[1] == '-' && bday[4] == '-' {
 		return bday
 	}
 
 	// Handle YYYYMMDD format (vCard 3.0)
-	if len(bday) == 8 {
+	if len(bday) == 8 && bday[0] != '-' {
 		return bday[:4] + "-" + bday[4:6] + "-" + bday[6:]
 	}
 
-	// Handle --MMDD format (vCard 3.0 without year)
+	// Handle --MMDD format (vCard 4.0 without year) -> convert to --MM-DD
 	if len(bday) == 6 && bday[0] == '-' && bday[1] == '-' {
-		return bday[:4] + "-" + bday[4:]
+		return bday[:4] + "-" + bday[4:] // --0612 -> --06-12
 	}
 
 	return bday

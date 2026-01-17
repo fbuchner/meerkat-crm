@@ -2,7 +2,9 @@ package carddav
 
 import (
 	"net/http"
+	"strings"
 
+	"github.com/emersion/go-webdav"
 	"github.com/emersion/go-webdav/carddav"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -43,8 +45,36 @@ func (h *Handler) GinHandler() gin.HandlerFunc {
 		ctx := ContextWithUser(c.Request.Context(), userID.(uint), username.(string), h.db, h.photoDir)
 		c.Request = c.Request.WithContext(ctx)
 
+		// Handle principals endpoint specially for proper discovery
+		if strings.HasPrefix(c.Request.URL.Path, "/carddav/principals/") {
+			h.servePrincipal(c.Writer, c.Request, username.(string))
+			return
+		}
+
+		// Handle root CardDAV path for discovery
+		if c.Request.URL.Path == "/carddav/" || c.Request.URL.Path == "/carddav" {
+			h.servePrincipal(c.Writer, c.Request, username.(string))
+			return
+		}
+
 		h.handler.ServeHTTP(c.Writer, c.Request)
 	}
+}
+
+// servePrincipal handles PROPFIND requests for principal discovery
+func (h *Handler) servePrincipal(w http.ResponseWriter, r *http.Request, username string) {
+	principalPath := "/carddav/principals/" + username + "/"
+	homeSetPath := "/carddav/addressbooks/" + username + "/"
+
+	webdav.ServePrincipal(w, r, &webdav.ServePrincipalOptions{
+		CurrentUserPrincipalPath: principalPath,
+		HomeSets: []webdav.BackendSuppliedHomeSet{
+			carddav.NewAddressBookHomeSet(homeSetPath),
+		},
+		Capabilities: []webdav.Capability{
+			carddav.CapabilityAddressBook,
+		},
+	})
 }
 
 // WellKnownRedirect handles the /.well-known/carddav discovery redirect

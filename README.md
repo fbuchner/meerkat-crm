@@ -13,11 +13,9 @@
 Meerkat CRM (Contact Relationship Management) is a  self-hosted solution to keep track of your important contacts. As your digital rolodex it reminds you of birthdays, helps you to keep in mind dietary habits as well as names of spouses of contacts - and much more.
 
 > [!TIP]
->**[Click here to try the Demo!](https://meerkat-crm-demo.fly.dev/login?username=test&password=test_12345)**
+>**[Click here to try the Demo!](https://meerkat-crm-demo.fly.dev/login?username=test&password=test_12345)** (user: test, password: test_12345)
 >
->User: test
->
->Password: test_12345
+> Demo instance will be started on demand, expect some seconds delay. Demo data is reset periodically. Photo upload is disabled.
 
 <p align="center">
   <img src="assets/screengrab.gif" alt="Meerkat CRM Demo" />
@@ -28,6 +26,7 @@ Meerkat CRM (Contact Relationship Management) is a  self-hosted solution to keep
     - add and search contacts
     - group contacts by circles (e.g. friends, family, work)
     - store relationships of contacts (e.g. spouses, children)
+    - CardDav server for two-way synchronization with your phone's contact list
 - Notes and activities
     - social network style timeline for contacts
     - notes assigned to individual contacts

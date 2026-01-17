@@ -34,6 +34,10 @@ func RegisterUser(context *gin.Context) {
 	}
 	user := *userPtr
 
+	// Normalize email and username to lowercase for case-insensitive matching
+	user.Email = strings.ToLower(user.Email)
+	user.Username = strings.ToLower(user.Username)
+
 	if user.Email == "" {
 		apperrors.AbortWithError(context, apperrors.ErrMissingField("email"))
 		return
@@ -87,6 +91,9 @@ func LoginUser(context *gin.Context, cfg *config.Config) {
 		apperrors.AbortWithError(context, apperrors.ErrMissingField("identifier"))
 		return
 	}
+
+	// Normalize to lowercase for case-insensitive matching
+	identifier = strings.ToLower(identifier)
 
 	if input.Password == "" {
 		apperrors.AbortWithError(context, apperrors.ErrMissingField("password"))
@@ -196,10 +203,13 @@ func RequestPasswordReset(context *gin.Context, cfg *config.Config) {
 	}
 	input := *inputPtr
 
+	// Normalize email to lowercase for case-insensitive matching
+	email := strings.ToLower(input.Email)
+
 	db := context.MustGet("db").(*gorm.DB)
 
 	var user models.User
-	if err := db.Where("email = ?", input.Email).First(&user).Error; err != nil {
+	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			context.JSON(http.StatusOK, gin.H{"message": "If an account exists, password reset instructions were sent"})
 			return

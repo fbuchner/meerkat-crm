@@ -99,7 +99,7 @@
     "email": "Email",
     "phone": "Phone",
     "birthday": "Birthday",
-    "birthdayFormat": "Format: YYYY-MM-DD (year optional, e.g., 1990-04-30 or --04-30)",
+    "birthdayFormat": "Year is optional. Check Settings for date format.",
     "address": "Address",
     "howWeMet": "How We Met",
     "foodPreference": "Food Preferences",
@@ -195,7 +195,7 @@
     "email": "Email",
     "phone": "Phone",
     "birthday": "Birthday",
-    "birthdayError": "Invalid format. Use YYYY-MM-DD or --MM-DD",
+    "birthdayError": "Invalid date format. Check your date format setting.",
     "address": "Address",
     "workInfo": "Work Information",
     "foodPreferences": "Food Preferences",
@@ -339,6 +339,15 @@
       "title": "Language",
       "label": "Language",
       "description": "Choose your preferred language for the application interface."
+    },
+    "dateFormat": {
+      "title": "Date Format",
+      "label": "Date Format",
+      "description": "Choose how dates are displayed throughout the application.",
+      "options": {
+        "eu": "European (DD.MM.YYYY)",
+        "us": "US (MM/DD/YYYY)"
+      }
     },
     "theme": {
       "title": "Appearance",

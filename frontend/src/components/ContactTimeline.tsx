@@ -22,6 +22,7 @@ import EventIcon from '@mui/icons-material/Event';
 import EditIcon from '@mui/icons-material/Edit';
 import { Note } from '../api/notes';
 import { Activity } from '../api/activities';
+import { useDateFormat } from '../DateFormatProvider';
 
 interface ContactTimelineProps {
   timelineItems: Array<{ type: 'note' | 'activity'; data: Note | Activity; date: string }>;
@@ -31,6 +32,7 @@ interface ContactTimelineProps {
 export default function ContactTimeline({ timelineItems, onEditItem }: ContactTimelineProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { formatDate } = useDateFormat();
 
   if (timelineItems.length === 0) {
     return (
@@ -50,7 +52,7 @@ export default function ContactTimeline({ timelineItems, onEditItem }: ContactTi
           <TimelineItem key={`${item.type}-${item.data.ID}`}>
             <TimelineOppositeContent color="text.secondary" sx={{ flex: 0.3 }}>
               <Typography variant="caption">
-                {isValidDate ? itemDate.toLocaleDateString() : (item.date || 'N/A')}
+                {isValidDate ? formatDate(item.date) : (item.date || 'N/A')}
               </Typography>
             </TimelineOppositeContent>
             <TimelineSeparator>

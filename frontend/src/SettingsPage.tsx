@@ -20,6 +20,7 @@ import { SelectChangeEvent } from '@mui/material/Select';
 import LanguageIcon from '@mui/icons-material/Language';
 import LockResetIcon from '@mui/icons-material/LockReset';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import DownloadIcon from '@mui/icons-material/Download';
 import InfoIcon from '@mui/icons-material/Info';
 import GitHubIcon from '@mui/icons-material/GitHub';
@@ -27,10 +28,12 @@ import Link from '@mui/material/Link';
 import { changePassword } from './api/auth';
 import { exportDataAsCsv } from './api/export';
 import { ThemePreference, useThemePreference } from './AppThemeProvider';
+import { DateFormat, useDateFormat } from './DateFormatProvider';
 
 export default function SettingsPage() {
   const { t, i18n } = useTranslation();
   const { preference: themePreference, setPreference: setThemePreference } = useThemePreference();
+  const { dateFormat, setDateFormat } = useDateFormat();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -47,6 +50,10 @@ export default function SettingsPage() {
 
   const handleThemeChange = (event: SelectChangeEvent<ThemePreference>) => {
     setThemePreference(event.target.value as ThemePreference);
+  };
+
+  const handleDateFormatChange = (event: SelectChangeEvent<DateFormat>) => {
+    setDateFormat(event.target.value as DateFormat);
   };
 
   const handleExportData = async () => {
@@ -163,6 +170,37 @@ export default function SettingsPage() {
           
           <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
             {t('settings.language.description')}
+          </Typography>
+        </CardContent>
+      </Card>
+
+      <Card sx={{ mb: 2 }}>
+        <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <CalendarMonthIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+              {t('settings.dateFormat.title')}
+            </Typography>
+          </Box>
+          <Divider sx={{ mb: 1.5 }} />
+
+          <FormControl fullWidth size="small">
+            <InputLabel id="date-format-select-label">
+              {t('settings.dateFormat.label')}
+            </InputLabel>
+            <Select
+              labelId="date-format-select-label"
+              value={dateFormat}
+              label={t('settings.dateFormat.label')}
+              onChange={handleDateFormatChange}
+            >
+              <MenuItem value="eu">{t('settings.dateFormat.options.eu')}</MenuItem>
+              <MenuItem value="us">{t('settings.dateFormat.options.us')}</MenuItem>
+            </Select>
+          </FormControl>
+
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+            {t('settings.dateFormat.description')}
           </Typography>
         </CardContent>
       </Card>

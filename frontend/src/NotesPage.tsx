@@ -29,6 +29,7 @@ import { createUnassignedNote, updateNote, deleteNote, Note } from './api/notes'
 import AddNoteDialog from './components/AddNoteDialog';
 import EditTimelineItemDialog from './components/EditTimelineItemDialog';
 import { handleError } from './utils/errorHandler';
+import { useDateFormat } from './DateFormatProvider';
 
 interface NotesPageProps {
   token: string;
@@ -36,6 +37,7 @@ interface NotesPageProps {
 
 const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
   const { t } = useTranslation();
+  const { formatDate } = useDateFormat();
   const [searchInput, setSearchInput] = useState('');
   const debouncedSearch = useDebouncedValue(searchInput, 400);
   const [page, setPage] = useState(1);
@@ -141,15 +143,6 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
 
   const handleInfoClose = () => {
     setInfoAnchorEl(null);
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
   };
 
   const isInitialLoading = loading && notes.length === 0;

@@ -48,6 +48,7 @@ import AddRelationshipDialog from './components/AddRelationshipDialog';
 import { useSnackbar } from './context/SnackbarContext';
 import { ApiError } from './api/client';
 import { handleFetchError } from './utils/errorHandler';
+import { useDateFormat } from './DateFormatProvider';
 
 interface Contact {
   ID: number;
@@ -73,6 +74,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showError } = useSnackbar();
+  const { formatBirthdayForInput, parseBirthdayInput } = useDateFormat();
   const [contact, setContact] = useState<Contact | null>(null);
   const [profilePic, setProfilePic] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -241,15 +243,19 @@ export default function ContactDetailPage({ token }: { token: string }) {
 
   const validateBirthday = (value: string): boolean => {
     if (!value || value.trim() === '') return true;
-    // Validate YYYY-MM-DD or --MM-DD format (ISO 8601)
-    const fullDateRegex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
-    const yearlessRegex = /^--(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
-    return fullDateRegex.test(value.trim()) || yearlessRegex.test(value.trim());
+    // Try to parse the birthday input - if it returns null, it's invalid
+    const parsed = parseBirthdayInput(value);
+    return parsed !== null;
   };
 
   const handleEditStart = (field: string, currentValue: string) => {
     setEditingField(field);
-    setEditValue(currentValue || '');
+    // For birthday field, convert from ISO to display format
+    if (field === 'birthday' && currentValue) {
+      setEditValue(formatBirthdayForInput(currentValue));
+    } else {
+      setEditValue(currentValue || '');
+    }
     setValidationError('');
   };
 
@@ -262,15 +268,22 @@ export default function ContactDetailPage({ token }: { token: string }) {
   const handleEditSave = async (field: string) => {
     if (!contact) return;
 
-    if (field === 'birthday' && !validateBirthday(editValue)) {
-      setValidationError(t('contactDetail.birthdayError'));
-      return;
+    let valueToSave = editValue;
+    
+    if (field === 'birthday') {
+      if (!validateBirthday(editValue)) {
+        setValidationError(t('contactDetail.birthdayError'));
+        return;
+      }
+      // Convert from display format to ISO format for storage
+      const parsed = parseBirthdayInput(editValue);
+      valueToSave = parsed || '';
     }
 
     try {
       const updatedContact = await updateContact(id!, {
         ...contact,
-        [field]: editValue
+        [field]: valueToSave
       }, token);
       setContact(updatedContact);
       setEditingField(null);

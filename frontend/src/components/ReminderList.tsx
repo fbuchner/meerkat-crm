@@ -23,6 +23,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EmailIcon from '@mui/icons-material/Email';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import { Reminder } from '../api/reminders';
+import { useDateFormat } from '../DateFormatProvider';
 
 interface ReminderListProps {
   reminders: Reminder[];
@@ -38,6 +39,7 @@ export default function ReminderList({
   onDelete
 }: ReminderListProps) {
   const { t } = useTranslation();
+  const { formatDate } = useDateFormat();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [reminderToDelete, setReminderToDelete] = useState<number | null>(null);
   const [loading, setLoading] = useState<number | null>(null);
@@ -67,15 +69,6 @@ export default function ReminderList({
         setLoading(null);
       }
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
   };
 
   const getRecurrenceLabel = (recurrence: Reminder['recurrence']) => {

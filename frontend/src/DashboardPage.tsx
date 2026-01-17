@@ -26,6 +26,7 @@ import { Contact, Birthday, getRandomContacts, getUpcomingBirthdays, getContact 
 import { Reminder, getUpcomingReminders, completeReminder } from './api/reminders';
 import { ContactListSkeleton } from './components/LoadingSkeletons';
 import { handleFetchError, handleError } from './utils/errorHandler';
+import { useDateFormat } from './DateFormatProvider';
 
 interface DashboardPageProps {
   token: string;
@@ -34,6 +35,7 @@ interface DashboardPageProps {
 function DashboardPage({ token }: DashboardPageProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { formatBirthday: formatBirthdayDate, formatDate } = useDateFormat();
   const [birthdays, setBirthdays] = useState<Birthday[]>([]);
   const [randomContacts, setRandomContacts] = useState<Contact[]>([]);
   const [upcomingReminders, setUpcomingReminders] = useState<Reminder[]>([]);
@@ -108,36 +110,26 @@ function DashboardPage({ token }: DashboardPageProps) {
 
   const formatBirthday = (birthday: string | undefined) => {
     if (!birthday) return '';
-    // Birthday format is YYYY-MM-DD or --MM-DD (ISO 8601)
-
-    // Check if it's a year-less birthday (starts with --)
-    if (birthday.startsWith('--')) {
-      // --MM-DD -> display as MM-DD
-      const month = birthday.substring(2, 4);
-      const day = birthday.substring(5, 7);
-      return `${day}.${month}.`;
-    }
-
-    // YYYY-MM-DD format
-    const parts = birthday.split('-');
-    if (parts.length === 3) {
-      const year = parts[0];
-      const month = parts[1];
-      const day = parts[2];
-      const dateStr = `${day}.${month}.`;
-
-      // Check if year is present and valid
-      if (year && year.length === 4) {
-        const birthYear = parseInt(year, 10);
+    
+    // Use the date format provider's birthday formatter
+    const formattedDate = formatBirthdayDate(birthday);
+    
+    // Check if year is present to calculate age
+    if (!birthday.startsWith('--')) {
+      const parts = birthday.split('-');
+      if (parts.length === 3 && parts[0].length === 4) {
+        const birthYear = parseInt(parts[0], 10);
         if (!isNaN(birthYear)) {
           const currentYear = new Date().getFullYear();
           const age = currentYear - birthYear;
-          return `${dateStr} ${t('dashboard.yearsOld', { age })}`;
+          // Remove the year from the formatted date for dashboard display (just show DD.MM. or MM/DD)
+          const dateWithoutYear = formatBirthdayDate(`--${parts[1]}-${parts[2]}`);
+          return `${dateWithoutYear} ${t('dashboard.yearsOld', { age })}`;
         }
       }
-      return dateStr;
     }
-    return birthday;
+    
+    return formattedDate;
   };
 
   const getContactName = (contact: Contact) => {
@@ -315,7 +307,6 @@ function DashboardPage({ token }: DashboardPageProps) {
             <Stack spacing={1.5}>
               {upcomingReminders.map((reminder) => {
                 const overdue = isOverdue(reminder.remind_at);
-                const reminderDate = new Date(reminder.remind_at);
                 const contact = contactsMap[reminder.contact_id];
 
                 return (
@@ -347,7 +338,7 @@ function DashboardPage({ token }: DashboardPageProps) {
                           <Box sx={{ mt: 0.75, display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
                             <Chip
                               icon={overdue ? <WarningIcon fontSize="small" /> : undefined}
-                              label={reminderDate.toLocaleDateString()}
+                              label={formatDate(reminder.remind_at)}
                               size="small"
                               color={overdue ? 'warning' : 'default'}
                               sx={{ height: 20, fontSize: '0.7rem' }}

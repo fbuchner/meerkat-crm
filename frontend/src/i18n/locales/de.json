@@ -99,7 +99,7 @@
     "email": "E-Mail",
     "phone": "Telefon",
     "birthday": "Geburtstag",
-    "birthdayFormat": "Format: JJJJ-MM-TT (Jahr optional, z.B. 1990-04-30 oder --04-30)",
+    "birthdayFormat": "Jahr ist optional. Datumsformat siehe Einstellungen.",
     "address": "Adresse",
     "howWeMet": "Wie wir uns kennengelernt haben",
     "foodPreference": "Essensvorlieben",
@@ -195,7 +195,7 @@
     "email": "E-Mail",
     "phone": "Telefon",
     "birthday": "Geburtstag",
-    "birthdayError": "Ungültiges Format. Verwenden Sie JJJJ-MM-TT oder --MM-TT",
+    "birthdayError": "Ungültiges Datumsformat. Überprüfen Sie Ihre Datumsformat-Einstellung.",
     "address": "Adresse",
     "workInfo": "Arbeitsinformationen",
     "foodPreferences": "Essensvorlieben",
@@ -339,6 +339,15 @@
       "title": "Sprache",
       "label": "Sprache",
       "description": "Wählen Sie Ihre bevorzugte Sprache für die Anwendungsoberfläche."
+    },
+    "dateFormat": {
+      "title": "Datumsformat",
+      "label": "Datumsformat",
+      "description": "Wählen Sie, wie Daten in der Anwendung angezeigt werden.",
+      "options": {
+        "eu": "Europäisch (TT.MM.JJJJ)",
+        "us": "US (MM/TT/JJJJ)"
+      }
     },
     "theme": {
       "title": "Darstellung",

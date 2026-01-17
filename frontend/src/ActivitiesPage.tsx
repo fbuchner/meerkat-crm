@@ -31,6 +31,7 @@ import { getContacts } from './api/contacts';
 import AddActivityDialog from './components/AddActivityDialog';
 import EditTimelineItemDialog from './components/EditTimelineItemDialog';
 import { ListSkeleton } from './components/LoadingSkeletons';
+import { useDateFormat } from './DateFormatProvider';
 
 interface Contact {
   ID: number;
@@ -45,6 +46,7 @@ interface ActivitiesPageProps {
 
 const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
   const { t } = useTranslation();
+  const { formatDate } = useDateFormat();
 
   const [searchInput, setSearchInput] = useState('');
   const debouncedSearch = useDebouncedValue(searchInput, 400);
@@ -188,14 +190,6 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
     setInfoAnchorEl(null);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
 
   const isInitialLoading = loading && activities.length === 0;
   const hasSearchQuery = searchInput.trim().length > 0;

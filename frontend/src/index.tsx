@@ -7,6 +7,7 @@ import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 import reportWebVitals from './reportWebVitals';
 import './i18n/config';
 import { AppThemeProvider } from './AppThemeProvider';
+import { DateFormatProvider } from './DateFormatProvider';
 import { SnackbarProvider } from './context/SnackbarContext';
 
 const logError = (error: Error, errorInfo: React.ErrorInfo) => {
@@ -22,15 +23,17 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <AppThemeProvider>
-      <SnackbarProvider>
-        <ErrorBoundary
-          name="Application"
-          onError={logError}
-          showDetails={process.env.NODE_ENV === 'development'}
-        >
-          <App />
-        </ErrorBoundary>
-      </SnackbarProvider>
+      <DateFormatProvider>
+        <SnackbarProvider>
+          <ErrorBoundary
+            name="Application"
+            onError={logError}
+            showDetails={process.env.NODE_ENV === 'development'}
+          >
+            <App />
+          </ErrorBoundary>
+        </SnackbarProvider>
+      </DateFormatProvider>
     </AppThemeProvider>
   </React.StrictMode>
 );

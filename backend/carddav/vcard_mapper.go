@@ -110,13 +110,22 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 	}
 
 	// PHOTO - read from disk, fall back to thumbnail
-	// Note: In vCard 4.0, base64 encoding is implicit, so ENCODING parameter is not used
+	// Include both vCard 3.0 and 4.0 parameters for maximum compatibility:
+	// - ENCODING=b and TYPE=JPEG for vCard 3.0 (required by iOS)
+	// - MEDIATYPE=image/jpeg for vCard 4.0
 	photoData, mediaType := readContactPhoto(contact, photoDir)
 	if photoData != "" {
+		// Extract just the image type (e.g., "JPEG" from "image/jpeg")
+		imageType := "JPEG"
+		if strings.Contains(mediaType, "png") {
+			imageType = "PNG"
+		}
 		card.Set(vcard.FieldPhoto, &vcard.Field{
 			Value: photoData,
 			Params: vcard.Params{
-				"MEDIATYPE": {mediaType},
+				"ENCODING":  {"b"},       // vCard 3.0: base64 encoding
+				"TYPE":      {imageType}, // vCard 3.0: image type
+				"MEDIATYPE": {mediaType}, // vCard 4.0: full media type
 			},
 		})
 	}

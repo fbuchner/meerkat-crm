@@ -299,8 +299,13 @@ func SaveContactPhoto(photoData []byte, mediaType string, photoDir string) (stri
 		return "", "", err
 	}
 
-	// Save resized photo (125x125 to match existing behavior)
-	resizedPhoto := resize.Resize(125, 125, img, resize.Lanczos3)
+	// Save photo (max 400x400, only downscale - smaller images keep their size)
+	const maxPhotoSize = 400
+	bounds := img.Bounds()
+	photoImg := img
+	if bounds.Dx() > maxPhotoSize || bounds.Dy() > maxPhotoSize {
+		photoImg = resize.Resize(maxPhotoSize, maxPhotoSize, img, resize.Lanczos3)
+	}
 	fullPhotoPath := filepath.Join(photoDir, photoPath)
 	outFile, err := os.Create(fullPhotoPath)
 	if err != nil {
@@ -308,11 +313,11 @@ func SaveContactPhoto(photoData []byte, mediaType string, photoDir string) (stri
 	}
 	defer outFile.Close()
 
-	if err := jpeg.Encode(outFile, resizedPhoto, &jpeg.Options{Quality: 85}); err != nil {
+	if err := jpeg.Encode(outFile, photoImg, &jpeg.Options{Quality: 85}); err != nil {
 		return "", "", err
 	}
 
-	// Create thumbnail and encode as base64 data URL (48x48 to match existing behavior)
+	// Create thumbnail and encode as base64 data URL (48x48)
 	thumbnail := resize.Resize(48, 48, img, resize.Lanczos3)
 	var thumbnailBuf bytes.Buffer
 	if err := jpeg.Encode(&thumbnailBuf, thumbnail, &jpeg.Options{Quality: 85}); err != nil {

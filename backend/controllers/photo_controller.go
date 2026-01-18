@@ -216,10 +216,15 @@ func processAndSavePhoto(file *multipart.FileHeader, uploadDir string) (string, 
 		return "", "", err
 	}
 
-	// Save the original photo as JPG
-	fullPhoto := resize.Resize(125, 125, img, resize.Lanczos3)
+	// Save the photo as JPG (max 400x400, only downscale)
+	const maxPhotoSize = 400
+	bounds := img.Bounds()
+	photoImg := img
+	if bounds.Dx() > maxPhotoSize || bounds.Dy() > maxPhotoSize {
+		photoImg = resize.Resize(maxPhotoSize, maxPhotoSize, img, resize.Lanczos3)
+	}
 	fullPhotoPath := filepath.Join(uploadDir, photoPath)
-	if err := saveImage(fullPhotoPath, fullPhoto); err != nil {
+	if err := saveImage(fullPhotoPath, photoImg); err != nil {
 		return "", "", err
 	}
 

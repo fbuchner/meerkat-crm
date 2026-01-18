@@ -2,26 +2,22 @@ package controllers
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
 	"errors"
 	"image"
 	"image/jpeg"
 	"image/png"
-	"io"
 	"meerkat/config"
 	apperrors "meerkat/errors"
+	"meerkat/httputil"
 	"meerkat/logger"
 	"meerkat/models"
 	"mime/multipart"
-	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -208,6 +204,9 @@ func processAndSavePhoto(file *multipart.FileHeader, uploadDir string) (string, 
 		return "", "", err
 	}
 
+	// Crop to centered square if rectangular
+	img = cropToSquare(img)
+
 	// Generate unique filename for full photo
 	baseFilename := uuid.New().String()
 	photoPath := baseFilename + "_photo.jpg" // Always save as JPG
@@ -235,6 +234,41 @@ func processAndSavePhoto(file *multipart.FileHeader, uploadDir string) (string, 
 	return photoPath, thumbnailBase64, nil
 }
 
+// cropToSquare crops an image to a centered square
+// If the image is already square, it returns the original image unchanged
+func cropToSquare(img image.Image) image.Image {
+	bounds := img.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+
+	// Already square, return as-is
+	if width == height {
+		return img
+	}
+
+	// Calculate the size of the square (use the smaller dimension)
+	size := width
+	if height < width {
+		size = height
+	}
+
+	// Calculate crop offset to center the square
+	offsetX := (width - size) / 2
+	offsetY := (height - size) / 2
+
+	// Create a new RGBA image for the cropped result
+	cropped := image.NewRGBA(image.Rect(0, 0, size, size))
+
+	// Copy the centered square region
+	for y := 0; y < size; y++ {
+		for x := 0; x < size; x++ {
+			cropped.Set(x, y, img.At(bounds.Min.X+offsetX+x, bounds.Min.Y+offsetY+y))
+		}
+	}
+
+	return cropped
+}
+
 func saveImage(path string, img image.Image) error {
 	out, err := os.Create(path)
 	if err != nil {
@@ -246,77 +280,6 @@ func saveImage(path string, img image.Image) error {
 	return jpeg.Encode(out, img, &jpeg.Options{Quality: 85})
 }
 
-// isPrivateIP checks if an IP address is in a private/reserved range
-func isPrivateIP(ip net.IP) bool {
-	if ip == nil {
-		return true
-	}
-
-	// Check for loopback
-	if ip.IsLoopback() {
-		return true
-	}
-
-	// Check for link-local (includes cloud metadata endpoint 169.254.169.254)
-	if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
-		return true
-	}
-
-	// Check for private ranges
-	if ip.IsPrivate() {
-		return true
-	}
-
-	// Check for unspecified (0.0.0.0 or ::)
-	if ip.IsUnspecified() {
-		return true
-	}
-
-	return false
-}
-
-// validateURLForSSRF checks if a URL is safe to fetch (not pointing to internal resources)
-func validateURLForSSRF(rawURL string) (*url.URL, error) {
-	parsedURL, err := url.Parse(rawURL)
-	if err != nil {
-		return nil, errors.New("invalid URL format")
-	}
-
-	// Only allow http and https schemes
-	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
-		return nil, errors.New("only http and https URLs are allowed")
-	}
-
-	host := parsedURL.Hostname()
-	if host == "" {
-		return nil, errors.New("URL must have a host")
-	}
-
-	// Block common internal hostnames
-	lowerHost := strings.ToLower(host)
-	blockedHosts := []string{"localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"}
-	for _, blocked := range blockedHosts {
-		if lowerHost == blocked {
-			return nil, errors.New("access to internal hosts is not allowed")
-		}
-	}
-
-	// Resolve the hostname to IP addresses
-	ips, err := net.LookupIP(host)
-	if err != nil {
-		return nil, errors.New("failed to resolve hostname")
-	}
-
-	// Check all resolved IPs
-	for _, ip := range ips {
-		if isPrivateIP(ip) {
-			return nil, errors.New("access to internal IP addresses is not allowed")
-		}
-	}
-
-	return parsedURL, nil
-}
-
 // ProxyImage fetches an image from a URL and returns it to the client.
 // This is used to work around CORS restrictions when fetching images from external URLs.
 func ProxyImage(c *gin.Context) {
@@ -326,112 +289,11 @@ func ProxyImage(c *gin.Context) {
 		return
 	}
 
-	// Validate the URL format and scheme (basic validation before making any requests)
-	parsedURL, err := validateURLForSSRF(imageURL)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Create a custom dialer that validates IP addresses at connection time
-	// This prevents DNS rebinding/TOCTOU attacks
-	safeDialer := &net.Dialer{
-		Timeout:   10 * time.Second,
-		KeepAlive: 10 * time.Second,
-	}
-
-	safeDialContext := func(ctx context.Context, network, addr string) (net.Conn, error) {
-		// Extract host from addr (format is host:port)
-		host, port, err := net.SplitHostPort(addr)
-		if err != nil {
-			return nil, err
-		}
-
-		// Resolve the hostname to IP addresses
-		ips, err := net.LookupIP(host)
-		if err != nil {
-			return nil, errors.New("failed to resolve hostname")
-		}
-
-		// Find a safe IP to connect to
-		var safeIP net.IP
-		for _, ip := range ips {
-			if !isPrivateIP(ip) {
-				safeIP = ip
-				break
-			}
-		}
-
-		if safeIP == nil {
-			return nil, errors.New("access to internal IP addresses is not allowed")
-		}
-
-		// Connect using the validated IP address directly
-		safeAddr := net.JoinHostPort(safeIP.String(), port)
-		return safeDialer.DialContext(ctx, network, safeAddr)
-	}
-
-	// Create HTTP client with custom transport that validates IPs at connection time
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-		Transport: &http.Transport{
-			DialContext: safeDialContext,
-		},
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			// Validate redirect target URL format
-			_, err := validateURLForSSRF(req.URL.String())
-			if err != nil {
-				return errors.New("redirect to disallowed location")
-			}
-			if len(via) >= 3 {
-				return errors.New("too many redirects")
-			}
-			// The actual IP validation will happen in safeDialContext when connecting
-			return nil
-		},
-	}
-
-	// Fetch the image using the validated URL
-	req, err := http.NewRequest("GET", parsedURL.String(), nil)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to create request"})
-		return
-	}
-
-	// Set a user agent to avoid being blocked by some servers
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; MeerkatCRM/1.0)")
-
-	resp, err := client.Do(req)
+	// Use the shared SSRF-protected fetch function
+	body, contentType, err := httputil.FetchImageFromURL(imageURL)
 	if err != nil {
 		logger.FromContext(c).Warn().Err(err).Str("url", imageURL).Msg("Failed to fetch image from URL")
-		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to fetch image from URL"})
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to fetch image: remote server returned " + resp.Status})
-		return
-	}
-
-	// Check content type
-	contentType := resp.Header.Get("Content-Type")
-	if !strings.HasPrefix(contentType, "image/") {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "URL does not point to an image"})
-		return
-	}
-
-	// Limit response size (10MB)
-	const maxSize = 10 * 1024 * 1024
-	limitedReader := io.LimitReader(resp.Body, maxSize+1)
-	body, err := io.ReadAll(limitedReader)
-	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to read image data"})
-		return
-	}
-
-	if len(body) > maxSize {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Image is too large. Maximum size is 10MB"})
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
 	}
 

@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/jpeg"
 	"image/png"
+	"meerkat/httputil"
 	"meerkat/models"
 	"net/http"
 	"os"
@@ -146,8 +147,8 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 }
 
 // VCardToContact converts a vCard to a Contact, updating existing fields
-// Returns the updated contact and photo data if present (for separate processing)
-func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact, []byte, string) {
+// Returns the updated contact, photo data if embedded, media type, and photo URL if remote
+func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact, []byte, string, string) {
 	contact := existing
 	if contact == nil {
 		contact = &models.Contact{}
@@ -237,8 +238,9 @@ func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact,
 	// Extract photo data for separate processing
 	var photoData []byte
 	var photoMediaType string
+	var photoURL string
 	if photoField := card.Get(vcard.FieldPhoto); photoField != nil {
-		photoData, photoMediaType = extractPhotoData(photoField)
+		photoData, photoMediaType, photoURL = extractPhotoData(photoField)
 	}
 
 	// Store unmapped properties in VCardExtra
@@ -248,7 +250,7 @@ func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact,
 		contact.VCardExtra = string(extraJSON)
 	}
 
-	return contact, photoData, photoMediaType
+	return contact, photoData, photoMediaType, photoURL
 }
 
 // SaveContactPhoto saves photo data to disk and generates thumbnail
@@ -285,6 +287,9 @@ func SaveContactPhoto(photoData []byte, mediaType string, photoDir string) (stri
 		return "", "", err
 	}
 
+	// Crop to centered square if rectangular
+	img = cropToSquare(img)
+
 	// Generate unique filename
 	baseFilename := uuid.New().String()
 	photoPath := baseFilename + "_photo.jpg"
@@ -318,6 +323,47 @@ func SaveContactPhoto(photoData []byte, mediaType string, photoDir string) (stri
 	return photoPath, thumbnailBase64, nil
 }
 
+// cropToSquare crops an image to a centered square
+// If the image is already square, it returns the original image unchanged
+func cropToSquare(img image.Image) image.Image {
+	bounds := img.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+
+	// Already square, return as-is
+	if width == height {
+		return img
+	}
+
+	// Calculate the size of the square (use the smaller dimension)
+	size := width
+	if height < width {
+		size = height
+	}
+
+	// Calculate crop offset to center the square
+	offsetX := (width - size) / 2
+	offsetY := (height - size) / 2
+
+	// Create a new RGBA image for the cropped result
+	cropped := image.NewRGBA(image.Rect(0, 0, size, size))
+
+	// Copy the centered square region
+	for y := 0; y < size; y++ {
+		for x := 0; x < size; x++ {
+			cropped.Set(x, y, img.At(bounds.Min.X+offsetX+x, bounds.Min.Y+offsetY+y))
+		}
+	}
+
+	return cropped
+}
+
+// FetchPhotoFromURL fetches a photo from a URL with SSRF protection
+// Returns the photo data, media type, and any error
+func FetchPhotoFromURL(photoURL string) ([]byte, string, error) {
+	return httputil.FetchImageFromURL(photoURL)
+}
+
 // readContactPhoto reads photo from disk or falls back to thumbnail
 func readContactPhoto(contact *models.Contact, photoDir string) (string, string) {
 	// Try to read full photo from disk
@@ -348,9 +394,10 @@ func readContactPhoto(contact *models.Contact, photoDir string) (string, string)
 }
 
 // extractPhotoData extracts binary photo data from a vCard PHOTO field
-func extractPhotoData(field *vcard.Field) ([]byte, string) {
+// Returns: photoData (bytes), mediaType (string), photoURL (string if URL-based photo)
+func extractPhotoData(field *vcard.Field) ([]byte, string, string) {
 	if field == nil || field.Value == "" {
-		return nil, ""
+		return nil, "", ""
 	}
 
 	value := field.Value
@@ -361,6 +408,17 @@ func extractPhotoData(field *vcard.Field) ([]byte, string) {
 		mediaType = mt
 	} else if t := field.Params.Get("TYPE"); t != "" {
 		mediaType = "image/" + strings.ToLower(t)
+	}
+
+	// Check if it's a URL (http/https)
+	// Google VCF format may have spaces in URLs that need to be removed
+	cleanValue := strings.ReplaceAll(value, " ", "")
+	cleanValue = strings.ReplaceAll(cleanValue, "\n", "")
+	cleanValue = strings.ReplaceAll(cleanValue, "\r", "")
+
+	if strings.HasPrefix(cleanValue, "http://") || strings.HasPrefix(cleanValue, "https://") {
+		// It's a URL-based photo, return the URL for later fetching
+		return nil, mediaType, cleanValue
 	}
 
 	// Check if it's a data URI
@@ -387,11 +445,11 @@ func extractPhotoData(field *vcard.Field) ([]byte, string) {
 		// Try URL-safe base64
 		data, err = base64.URLEncoding.DecodeString(value)
 		if err != nil {
-			return nil, ""
+			return nil, "", ""
 		}
 	}
 
-	return data, mediaType
+	return data, mediaType, ""
 }
 
 // generateUID creates a UID for a contact

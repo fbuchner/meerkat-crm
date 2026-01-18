@@ -482,6 +482,7 @@ func ConfirmVCFImport(c *gin.Context, cfg *config.Config) {
 		contactID      uint
 		photoData      []byte
 		photoMediaType string
+		photoURL       string // URL to fetch photo from (if not embedded)
 	}
 	var photoTasks []photoTask
 
@@ -508,11 +509,13 @@ func ConfirmVCFImport(c *gin.Context, cfg *config.Config) {
 					result.Skipped++
 				} else {
 					result.Created++
-					if len(vcfData.PhotoData) > 0 {
+					// Queue photo processing (either embedded data or URL)
+					if len(vcfData.PhotoData) > 0 || vcfData.PhotoURL != "" {
 						photoTasks = append(photoTasks, photoTask{
 							contactID:      contact.ID,
 							photoData:      vcfData.PhotoData,
 							photoMediaType: vcfData.PhotoMediaType,
+							photoURL:       vcfData.PhotoURL,
 						})
 					}
 				}
@@ -542,11 +545,13 @@ func ConfirmVCFImport(c *gin.Context, cfg *config.Config) {
 					result.Skipped++
 				} else {
 					result.Updated++
-					if len(vcfData.PhotoData) > 0 && existing.Photo == "" {
+					// Queue photo processing only if contact doesn't already have a photo
+					if existing.Photo == "" && (len(vcfData.PhotoData) > 0 || vcfData.PhotoURL != "") {
 						photoTasks = append(photoTasks, photoTask{
 							contactID:      existing.ID,
 							photoData:      vcfData.PhotoData,
 							photoMediaType: vcfData.PhotoMediaType,
+							photoURL:       vcfData.PhotoURL,
 						})
 					}
 				}
@@ -562,9 +567,30 @@ func ConfirmVCFImport(c *gin.Context, cfg *config.Config) {
 		return
 	}
 
-	// Process photos outside transaction (file I/O)
+	// Process photos outside transaction (file I/O and network requests)
 	for _, task := range photoTasks {
-		photoPath, thumbnailData, err := carddav.SaveContactPhoto(task.photoData, task.photoMediaType, cfg.ProfilePhotoDir)
+		var photoData []byte
+		var mediaType string
+
+		if len(task.photoData) > 0 {
+			// Use embedded photo data
+			photoData = task.photoData
+			mediaType = task.photoMediaType
+		} else if task.photoURL != "" {
+			// Fetch photo from URL
+			var err error
+			photoData, mediaType, err = carddav.FetchPhotoFromURL(task.photoURL)
+			if err != nil {
+				log.Warn().Err(err).Uint("contact_id", task.contactID).Str("photo_url", task.photoURL).Msg("Failed to fetch photo from URL")
+				continue
+			}
+		}
+
+		if len(photoData) == 0 {
+			continue
+		}
+
+		photoPath, thumbnailData, err := carddav.SaveContactPhoto(photoData, mediaType, cfg.ProfilePhotoDir)
 		if err != nil {
 			log.Warn().Err(err).Uint("contact_id", task.contactID).Msg("Failed to save imported photo")
 			continue

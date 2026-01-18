@@ -251,7 +251,7 @@ func (b *Backend) PutAddressObject(ctx context.Context, urlPath string, card vca
 	}
 
 	// Convert vCard to contact
-	updatedContact, photoData, photoMediaType := VCardToContact(card, &contact)
+	updatedContact, photoData, photoMediaType, photoURL := VCardToContact(card, &contact)
 	updatedContact.UserID = userID
 
 	// Ensure VCardUID is set (RFC 6352 requires every contact to have a UID)
@@ -266,7 +266,7 @@ func (b *Backend) PutAddressObject(ctx context.Context, urlPath string, card vca
 		}
 	}
 
-	// Handle photo if provided
+	// Handle photo if provided (embedded base64)
 	if len(photoData) > 0 {
 		photoPath, thumbnailBase64, err := SaveContactPhoto(photoData, photoMediaType, b.getPhotoDir(ctx))
 		if err != nil {
@@ -279,6 +279,28 @@ func (b *Backend) PutAddressObject(ctx context.Context, urlPath string, card vca
 		} else {
 			updatedContact.Photo = photoPath
 			updatedContact.PhotoThumbnail = thumbnailBase64
+		}
+	} else if photoURL != "" {
+		// Handle URL-based photo - fetch and save
+		fetchedData, fetchedMediaType, err := FetchPhotoFromURL(photoURL)
+		if err != nil {
+			logger.Warn().
+				Err(err).
+				Str("vcard_uid", updatedContact.VCardUID).
+				Str("photo_url", photoURL).
+				Msg("CardDAV: failed to fetch photo from URL")
+		} else if len(fetchedData) > 0 {
+			photoPath, thumbnailBase64, err := SaveContactPhoto(fetchedData, fetchedMediaType, b.getPhotoDir(ctx))
+			if err != nil {
+				logger.Warn().
+					Err(err).
+					Str("vcard_uid", updatedContact.VCardUID).
+					Str("photo_url", photoURL).
+					Msg("CardDAV: failed to save fetched photo")
+			} else {
+				updatedContact.Photo = photoPath
+				updatedContact.PhotoThumbnail = thumbnailBase64
+			}
 		}
 	}
 

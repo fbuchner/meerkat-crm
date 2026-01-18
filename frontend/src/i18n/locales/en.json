@@ -127,7 +127,7 @@
       "random": "Random"
     },
     "import": {
-      "button": "Import CSV",
+      "button": "Import",
       "title": "Import Contacts",
       "upload": {
         "title": "Upload CSV File",

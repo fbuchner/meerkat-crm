@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/emersion/go-vcard"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -89,6 +90,11 @@ func ParseVCF(reader io.Reader, db *gorm.DB, userID uint) (contacts []VCFContact
 
 		// Convert vCard to Contact using existing carddav mapper
 		contact, photoData, photoMediaType := carddav.VCardToContact(card, nil)
+
+		// Generate UUID for contacts without one to avoid unique constraint violation
+		if contact.VCardUID == "" {
+			contact.VCardUID = uuid.New().String()
+		}
 
 		contacts = append(contacts, VCFContactData{
 			Contact:        contact,

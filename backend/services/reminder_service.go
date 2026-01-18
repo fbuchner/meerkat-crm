@@ -3,10 +3,12 @@ package services
 import (
 	"fmt"
 	"meerkat/config"
+	"meerkat/i18n"
 	"meerkat/logger"
 	"meerkat/models"
 	"os"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/resend/resend-go/v2"
@@ -291,10 +293,16 @@ func sendReminderEmail(user models.User, reminders []models.Reminder, config con
 		return nil
 	}
 
+	// Get user's language preference (default to "en" if not set)
+	lang := user.Language
+	if lang == "" {
+		lang = i18n.DefaultLanguage
+	}
+
 	// Build the HTML content for reminders
-	htmlContent := "<h1>Your Reminders for Today:</h1><ul>"
+	htmlContent := fmt.Sprintf("<h1>%s</h1><ul>", i18n.T(lang, "email.reminder.remindersTitle"))
 	for _, reminder := range reminders {
-		contactName := "Unknown" // Default value for contact's name
+		contactName := i18n.T(lang, "email.reminder.unknownContact")
 		if reminder.ContactID != nil {
 			var contact models.Contact
 			if err := db.Where("user_id = ?", reminder.UserID).First(&contact, *reminder.ContactID).Error; err == nil {
@@ -311,16 +319,16 @@ func sendReminderEmail(user models.User, reminders []models.Reminder, config con
 		logger.Warn().Err(err).Uint("user_id", user.ID).Msg("Failed to fetch birthdays for email, continuing without them")
 	} else if len(birthdays) > 0 {
 		now := time.Now()
-		htmlContent += "<h1>Upcoming Birthdays:</h1><ul>"
+		htmlContent += fmt.Sprintf("<h1>%s</h1><ul>", i18n.T(lang, "email.reminder.birthdaysTitle"))
 		for _, birthday := range birthdays {
 			days := DaysUntilBirthday(birthday.Birthday, now)
 			var daysText string
 			if days == 0 {
-				daysText = "Today!"
+				daysText = i18n.T(lang, "email.reminder.today")
 			} else if days == 1 {
-				daysText = "Tomorrow"
+				daysText = i18n.T(lang, "email.reminder.tomorrow")
 			} else {
-				daysText = fmt.Sprintf("In %d days", days)
+				daysText = i18n.T(lang, "email.reminder.inDays", map[string]string{"days": strconv.Itoa(days)})
 			}
 
 			if birthday.Type == "relationship" {
@@ -334,7 +342,7 @@ func sendReminderEmail(user models.User, reminders []models.Reminder, config con
 		htmlContent += "</ul>"
 	}
 
-	logger.Debug().Str("html_content", htmlContent).Int("reminder_count", len(reminders)).Int("birthday_count", len(birthdays)).Uint("user_id", user.ID).Msg("Sending reminder email")
+	logger.Debug().Str("html_content", htmlContent).Int("reminder_count", len(reminders)).Int("birthday_count", len(birthdays)).Uint("user_id", user.ID).Str("language", lang).Msg("Sending reminder email")
 
 	// Initialize Resend client
 	client := resend.NewClient(config.ResendAPIKey)
@@ -343,7 +351,7 @@ func sendReminderEmail(user models.User, reminders []models.Reminder, config con
 	params := &resend.SendEmailRequest{
 		From:    config.ResendFromEmail,
 		To:      []string{user.Email},
-		Subject: "Your Daily Reminders",
+		Subject: i18n.T(lang, "email.reminder.subject"),
 		Html:    htmlContent,
 	}
 

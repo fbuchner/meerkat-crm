@@ -125,3 +125,14 @@ export async function changePassword(currentPassword: string, newPassword: strin
   const data = await handleResponse(response, 'Unable to change password.');
   return data?.message || 'Password updated successfully.';
 }
+
+export async function updateLanguage(language: string, token?: string | null): Promise<string> {
+  const response = await apiFetch(`${API_BASE_URL}/users/language`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(token || undefined),
+    body: JSON.stringify({ language }),
+  });
+
+  const data = await handleResponse(response, 'Unable to update language.');
+  return data?.message || 'Language updated successfully.';
+}

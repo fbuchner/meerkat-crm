@@ -25,7 +25,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import InfoIcon from '@mui/icons-material/Info';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import Link from '@mui/material/Link';
-import { changePassword } from './api/auth';
+import { changePassword, updateLanguage } from './api/auth';
 import { exportDataAsCsv } from './api/export';
 import { ThemePreference, useThemePreference } from './AppThemeProvider';
 import { DateFormat, useDateFormat } from './DateFormatProvider';
@@ -44,8 +44,19 @@ export default function SettingsPage() {
   const [exportError, setExportError] = useState('');
   const [exportSuccess, setExportSuccess] = useState('');
 
-  const handleLanguageChange = (event: any) => {
-    i18n.changeLanguage(event.target.value);
+  const handleLanguageChange = async (event: any) => {
+    const newLang = event.target.value;
+    // Update frontend i18n immediately for responsive UI
+    i18n.changeLanguage(newLang);
+    
+    // Sync to backend for email language preferences (fire and forget)
+    try {
+      await updateLanguage(newLang);
+    } catch (error) {
+      // Silently fail - the frontend language is still updated
+      // Backend sync failure doesn't affect UI language
+      console.error('Failed to sync language to backend:', error);
+    }
   };
 
   const handleThemeChange = (event: SelectChangeEvent<ThemePreference>) => {

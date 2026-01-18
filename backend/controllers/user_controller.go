@@ -240,7 +240,7 @@ func RequestPasswordReset(context *gin.Context, cfg *config.Config) {
 		return
 	}
 
-	if err := services.SendPasswordResetEmail(user.Email, token, cfg); err != nil {
+	if err := services.SendPasswordResetEmail(user.Email, token, user.Language, cfg); err != nil {
 		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to send password reset email")
 		apperrors.AbortWithError(context, apperrors.ErrExternal("email", "Failed to send password reset email").WithError(err))
 		return
@@ -321,6 +321,63 @@ func ConfirmPasswordReset(context *gin.Context) {
 }
 
 // ChangePassword lets authenticated users rotate their password.
+// UpdateLanguageInput represents the request body for updating user language
+type UpdateLanguageInput struct {
+	Language string `json:"language" validate:"required,oneof=en de"`
+}
+
+// UpdateLanguage updates the authenticated user's language preference
+func UpdateLanguage(context *gin.Context) {
+	log := logger.FromContext(context)
+
+	var input UpdateLanguageInput
+	if err := context.ShouldBindJSON(&input); err != nil {
+		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("language", "Invalid language value"))
+		return
+	}
+
+	// Validate language is supported
+	if input.Language != "en" && input.Language != "de" {
+		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("language", "Unsupported language. Supported: en, de"))
+		return
+	}
+
+	usernameValue, exists := context.Get("username")
+	if !exists {
+		apperrors.AbortWithError(context, apperrors.ErrUnauthorized("Authentication required"))
+		return
+	}
+
+	username, ok := usernameValue.(string)
+	if !ok || username == "" {
+		apperrors.AbortWithError(context, apperrors.ErrUnauthorized("Authentication required"))
+		return
+	}
+
+	db := context.MustGet("db").(*gorm.DB)
+
+	var user models.User
+	if err := db.Where("username = ?", username).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(context, apperrors.ErrUnauthorized("Authentication required"))
+			return
+		}
+
+		log.Error().Err(err).Msg("Failed to lookup user for language update")
+		apperrors.AbortWithError(context, apperrors.ErrDatabase("query user").WithError(err))
+		return
+	}
+
+	user.Language = input.Language
+	if err := db.Save(&user).Error; err != nil {
+		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to update user language")
+		apperrors.AbortWithError(context, apperrors.ErrDatabase("update user").WithError(err))
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Language updated successfully", "language": user.Language})
+}
+
 func ChangePassword(context *gin.Context) {
 	// Check if demo mode is enabled - password changes are disabled in demo
 	if os.Getenv("DEMO_MODE") == "true" {

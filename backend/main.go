@@ -6,6 +6,7 @@ import (
 	"meerkat/config"
 	"meerkat/database"
 	apperrors "meerkat/errors"
+	"meerkat/i18n"
 	"meerkat/logger"
 	"meerkat/middleware"
 	"meerkat/routes"
@@ -54,6 +55,11 @@ func main() {
 	db, err := database.InitDB(cfg.DBPath)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to initialize database")
+	}
+
+	logger.Info().Msg("Initializing i18n translations...")
+	if err := i18n.Init(); err != nil {
+		logger.Fatal().Err(err).Msg("Failed to initialize i18n")
 	}
 
 	logger.Info().Msg("Running scheduler...")

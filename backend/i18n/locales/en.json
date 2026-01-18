@@ -1,0 +1,19 @@
+{
+  "email": {
+    "reminder": {
+      "subject": "Your Daily Reminders",
+      "remindersTitle": "Your Reminders for Today:",
+      "birthdaysTitle": "Upcoming Birthdays:",
+      "today": "Today!",
+      "tomorrow": "Tomorrow",
+      "inDays": "In {{days}} days",
+      "unknownContact": "Unknown"
+    },
+    "passwordReset": {
+      "subject": "Reset your Meerkat CRM password",
+      "intro": "We received a request to reset your Meerkat CRM password.",
+      "instruction": "Use this token to complete the reset within 60 minutes:",
+      "ignore": "If you did not request this reset, you can ignore this email."
+    }
+  }
+}

@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"meerkat/config"
+	"meerkat/i18n"
 	"meerkat/logger"
 	"time"
 
@@ -42,7 +43,8 @@ func PasswordResetExpiry() time.Time {
 }
 
 // SendPasswordResetEmail dispatches a reset email when Resend is configured.
-func SendPasswordResetEmail(email, token string, cfg *config.Config) error {
+// The lang parameter specifies the user's preferred language for the email content.
+func SendPasswordResetEmail(email, token, lang string, cfg *config.Config) error {
 	if cfg == nil {
 		return fmt.Errorf("config is required")
 	}
@@ -52,13 +54,23 @@ func SendPasswordResetEmail(email, token string, cfg *config.Config) error {
 		return nil
 	}
 
+	// Default to English if language not set
+	if lang == "" {
+		lang = i18n.DefaultLanguage
+	}
+
 	client := resend.NewClient(cfg.ResendAPIKey)
-	htmlBody := fmt.Sprintf(`<p>We received a request to reset your Meerkat CRM password.</p><p>Use this token to complete the reset within 60 minutes:</p><p><strong>%s</strong></p><p>If you did not request this reset, you can ignore this email.</p>`, token)
+	htmlBody := fmt.Sprintf(`<p>%s</p><p>%s</p><p><strong>%s</strong></p><p>%s</p>`,
+		i18n.T(lang, "email.passwordReset.intro"),
+		i18n.T(lang, "email.passwordReset.instruction"),
+		token,
+		i18n.T(lang, "email.passwordReset.ignore"),
+	)
 
 	params := &resend.SendEmailRequest{
 		From:    cfg.ResendFromEmail,
 		To:      []string{email},
-		Subject: "Reset your Meerkat CRM password",
+		Subject: i18n.T(lang, "email.passwordReset.subject"),
 		Html:    htmlBody,
 	}
 
@@ -67,6 +79,6 @@ func SendPasswordResetEmail(email, token string, cfg *config.Config) error {
 		return err
 	}
 
-	logger.Info().Str("email_id", sent.Id).Str("email", email).Msg("Password reset email sent")
+	logger.Info().Str("email_id", sent.Id).Str("email", email).Str("language", lang).Msg("Password reset email sent")
 	return nil
 }

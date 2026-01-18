@@ -23,6 +23,7 @@ import { Relationship, RelationshipFormData, RELATIONSHIP_TYPES } from '../api/r
 import { Contact, getContacts } from '../api/contacts';
 import { useSnackbar } from '../context/SnackbarContext';
 import { handleError, handleFetchError, getErrorMessage } from '../utils/errorHandler';
+import { useDateFormat } from '../DateFormatProvider';
 
 interface AddRelationshipDialogProps {
   open: boolean;
@@ -45,6 +46,7 @@ export default function AddRelationshipDialog({
 }: AddRelationshipDialogProps) {
   const { t } = useTranslation();
   const { showError } = useSnackbar();
+  const { parseBirthdayInput, getBirthdayPlaceholder } = useDateFormat();
   const [entryMode, setEntryMode] = useState<EntryMode>('manual');
   const [name, setName] = useState('');
   const [type, setType] = useState('');
@@ -178,6 +180,17 @@ export default function AddRelationshipDialog({
       return;
     }
 
+    // Parse birthday from user's preferred format to ISO format
+    let birthdayISO: string | undefined = undefined;
+    if (entryMode === 'manual' && birthday.trim()) {
+      const parsed = parseBirthdayInput(birthday);
+      if (parsed === null) {
+        setError(t('contactDetail.birthdayError'));
+        return;
+      }
+      birthdayISO = parsed || undefined;
+    }
+
     setSaving(true);
     try {
       // For linked mode, derive name from contact but don't store gender/birthday
@@ -188,7 +201,7 @@ export default function AddRelationshipDialog({
         type: effectiveType,
         // Only include gender/birthday for manual mode
         gender: entryMode === 'manual' ? (gender || undefined) : undefined,
-        birthday: entryMode === 'manual' ? (birthday || undefined) : undefined,
+        birthday: birthdayISO,
         related_contact_id: entryMode === 'linked' && selectedContact ? selectedContact.ID : null,
       };
       await onSave(data);
@@ -341,7 +354,7 @@ export default function AddRelationshipDialog({
               label={t('contacts.birthday')}
               value={birthday}
               onChange={(e) => setBirthday(e.target.value)}
-              placeholder="YYYY-MM-DD or --MM-DD"
+              placeholder={getBirthdayPlaceholder()}
               fullWidth
               helperText={t('contacts.birthdayFormat')}
             />

@@ -19,6 +19,7 @@ import { createContact } from '../api/contacts';
 import { createReminder } from '../api/reminders';
 import { useSnackbar } from '../context/SnackbarContext';
 import { handleError, getErrorMessage } from '../utils/errorHandler';
+import { useDateFormat } from '../DateFormatProvider';
 
 interface AddContactDialogProps {
   open: boolean;
@@ -37,6 +38,7 @@ export default function AddContactDialog({
 }: AddContactDialogProps) {
   const { t } = useTranslation();
   const { showError, showSuccess } = useSnackbar();
+  const { parseBirthdayInput, getBirthdayPlaceholder } = useDateFormat();
   const [formData, setFormData] = useState({
     firstname: '',
     lastname: '',
@@ -80,29 +82,41 @@ export default function AddContactDialog({
       return;
     }
 
+    // Parse birthday from user's preferred format to ISO format
+    let birthdayISO = '';
+    if (formData.birthday.trim()) {
+      const parsed = parseBirthdayInput(formData.birthday);
+      if (parsed === null) {
+        setError(t('contactDetail.birthdayError'));
+        return;
+      }
+      birthdayISO = parsed;
+    }
+
     setLoading(true);
     setError('');
 
     try {
       const contactData = {
         ...formData,
+        birthday: birthdayISO,
         circles: selectedCircles.length > 0 ? selectedCircles : undefined
       };
 
       const newContact = await createContact(contactData, token);
 
-      if (createBirthdayReminder && formData.birthday) {
-        // Birthday format is YYYY-MM-DD or --MM-DD (ISO 8601)
+      if (createBirthdayReminder && birthdayISO) {
+        // Birthday format is now YYYY-MM-DD or --MM-DD (ISO 8601)
         let day: number | undefined;
         let month: number | undefined;
 
-        if (formData.birthday.startsWith('--')) {
+        if (birthdayISO.startsWith('--')) {
           // --MM-DD format
-          month = parseInt(formData.birthday.substring(2, 4), 10) - 1;
-          day = parseInt(formData.birthday.substring(5, 7), 10);
+          month = parseInt(birthdayISO.substring(2, 4), 10) - 1;
+          day = parseInt(birthdayISO.substring(5, 7), 10);
         } else {
           // YYYY-MM-DD format
-          const parts = formData.birthday.split('-');
+          const parts = birthdayISO.split('-');
           if (parts.length === 3) {
             month = parseInt(parts[1], 10) - 1;
             day = parseInt(parts[2], 10);
@@ -230,7 +244,7 @@ export default function AddContactDialog({
             fullWidth
             value={formData.birthday}
             onChange={handleChange('birthday')}
-            placeholder="YYYY-MM-DD"
+            placeholder={getBirthdayPlaceholder()}
             helperText={t('contacts.birthdayFormat')}
           />
           {formData.birthday && (

@@ -130,8 +130,8 @@
       "button": "Import",
       "title": "Import Contacts",
       "upload": {
-        "title": "Upload CSV File",
-        "description": "Select a CSV file containing your contacts. The file should have headers in the first row.",
+        "title": "Upload Contacts File",
+        "description": "Select a CSV or VCF file containing your contacts. A CSV file should have headers in the first row.",
         "dragDrop": "Drag and drop a CSV file here, or click to select",
         "maxSize": "Maximum file size: 5MB",
         "uploading": "Uploading..."

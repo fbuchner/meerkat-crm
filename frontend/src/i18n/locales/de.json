@@ -127,12 +127,12 @@
       "random": "Zufällig"
     },
     "import": {
-      "button": "CSV importieren",
+      "button": "Importieren",
       "title": "Kontakte importieren",
       "upload": {
-        "title": "CSV-Datei hochladen",
-        "description": "Wählen Sie eine CSV-Datei mit Ihren Kontakten. Die Datei sollte Überschriften in der ersten Zeile haben.",
-        "dragDrop": "CSV-Datei hierher ziehen oder klicken zum Auswählen",
+        "title": "Kontaktedatei hochladen",
+        "description": "Wählen Sie eine Datei (CSV oder VCF) mit Ihren Kontakten. Eine CSV-Datei sollte Überschriften in der ersten Zeile haben.",
+        "dragDrop": "Datei (CSV oder VCF) hierher ziehen oder klicken zum Auswählen",
         "maxSize": "Maximale Dateigröße: 5MB",
         "uploading": "Hochladen..."
       },

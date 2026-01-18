@@ -123,7 +123,7 @@ func ParseVCF(reader io.Reader, db *gorm.DB, userID uint) (contacts []VCFContact
 			stats.ValidCount++
 
 			// Detect duplicates
-			duplicate := DetectDuplicate(db, userID, contact.Firstname, contact.Lastname, contact.Email)
+			duplicate := DetectDuplicate(db, userID, contact.Firstname, contact.Lastname, contact.Email, contact.Phone)
 			if duplicate != nil {
 				preview.DuplicateMatch = duplicate
 				preview.SuggestedAction = "update"
@@ -234,6 +234,7 @@ func GenerateCSVPreview(db *gorm.DB, userID uint, rows [][]string, headers []str
 		firstname := GetStringField(preview.ParsedContact, "firstname")
 		lastname := GetStringField(preview.ParsedContact, "lastname")
 		email := GetStringField(preview.ParsedContact, "email")
+		phone := GetStringField(preview.ParsedContact, "phone")
 
 		// Validate row
 		validationErrors := ValidateImportRow(preview.ParsedContact)
@@ -246,7 +247,7 @@ func GenerateCSVPreview(db *gorm.DB, userID uint, rows [][]string, headers []str
 			stats.ValidCount++
 
 			// Detect duplicates
-			duplicate := DetectDuplicate(db, userID, firstname, lastname, email)
+			duplicate := DetectDuplicate(db, userID, firstname, lastname, email, phone)
 			if duplicate != nil {
 				preview.DuplicateMatch = duplicate
 				preview.SuggestedAction = "update"
@@ -446,8 +447,19 @@ func NormalizeGender(input string) string {
 	}
 }
 
+// normalizePhoneForComparison removes all non-digit characters from a phone number for comparison
+func normalizePhoneForComparison(phone string) string {
+	var normalized strings.Builder
+	for _, r := range phone {
+		if r >= '0' && r <= '9' {
+			normalized.WriteRune(r)
+		}
+	}
+	return normalized.String()
+}
+
 // DetectDuplicate checks for existing contacts matching the given fields
-func DetectDuplicate(db *gorm.DB, userID uint, firstname, lastname, email string) *models.DuplicateMatch {
+func DetectDuplicate(db *gorm.DB, userID uint, firstname, lastname, email, phone string) *models.DuplicateMatch {
 	var existing models.Contact
 
 	// Priority 1: Email match (if email provided)
@@ -458,6 +470,7 @@ func DetectDuplicate(db *gorm.DB, userID uint, firstname, lastname, email string
 				ExistingFirstname: existing.Firstname,
 				ExistingLastname:  existing.Lastname,
 				ExistingEmail:     existing.Email,
+				ExistingPhone:     existing.Phone,
 				MatchReason:       "email",
 			}
 		}
@@ -472,7 +485,31 @@ func DetectDuplicate(db *gorm.DB, userID uint, firstname, lastname, email string
 				ExistingFirstname: existing.Firstname,
 				ExistingLastname:  existing.Lastname,
 				ExistingEmail:     existing.Email,
+				ExistingPhone:     existing.Phone,
 				MatchReason:       "name",
+			}
+		}
+	}
+
+	// Priority 3: Phone match (if phone provided)
+	// Normalize phone numbers for comparison (strip non-digits)
+	if phone != "" {
+		normalizedPhone := normalizePhoneForComparison(phone)
+		if len(normalizedPhone) >= 5 { // Only match if we have enough digits
+			var contacts []models.Contact
+			if err := db.Where("user_id = ? AND phone != ''", userID).Find(&contacts).Error; err == nil {
+				for _, c := range contacts {
+					if normalizePhoneForComparison(c.Phone) == normalizedPhone {
+						return &models.DuplicateMatch{
+							ExistingContactID: c.ID,
+							ExistingFirstname: c.Firstname,
+							ExistingLastname:  c.Lastname,
+							ExistingEmail:     c.Email,
+							ExistingPhone:     c.Phone,
+							MatchReason:       "phone",
+						}
+					}
+				}
 			}
 		}
 	}

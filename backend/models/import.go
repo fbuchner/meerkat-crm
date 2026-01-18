@@ -36,7 +36,8 @@ type DuplicateMatch struct {
 	ExistingFirstname string `json:"existing_firstname"`
 	ExistingLastname  string `json:"existing_lastname"`
 	ExistingEmail     string `json:"existing_email"`
-	MatchReason       string `json:"match_reason"` // "name" or "email"
+	ExistingPhone     string `json:"existing_phone"`
+	MatchReason       string `json:"match_reason"` // "email", "name", or "phone"
 }
 
 // ImportRowPreview represents one row in the import preview

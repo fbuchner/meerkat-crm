@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -33,6 +34,15 @@ type Contact struct {
 	VCardUID   string `gorm:"column:vcard_uid" json:"-"`   // Permanent RFC 6350 UID
 	VCardExtra string `gorm:"column:vcard_extra" json:"-"` // JSON for unmapped vCard properties
 	ETag       string `gorm:"column:etag" json:"-"`        // Sync conflict detection
+}
+
+// BeforeCreate generates VCardUID for new contacts
+func (c *Contact) BeforeCreate(tx *gorm.DB) error {
+	// Generate VCardUID if not set (required for unique constraint)
+	if c.VCardUID == "" {
+		c.VCardUID = uuid.New().String()
+	}
+	return nil
 }
 
 // BeforeSave generates ETag before saving contact

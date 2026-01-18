@@ -4,7 +4,12 @@
 const API_SERVER_URL = process.env.REACT_APP_API_URL || '';
 export const API_BASE_URL = `${API_SERVER_URL}/api/v1`;
 
-export async function loginUser(identifier: string, password: string): Promise<string> {
+export interface LoginResponse {
+  token: string;
+  language?: string;
+}
+
+export async function loginUser(identifier: string, password: string): Promise<LoginResponse> {
   const response = await fetch(`${API_BASE_URL}/login`, {
     method: 'POST',
     headers: {
@@ -16,7 +21,10 @@ export async function loginUser(identifier: string, password: string): Promise<s
     throw new Error('Login failed');
   }
   const data = await response.json();
-  return data.token;
+  return {
+    token: data.token,
+    language: data.language,
+  };
 }
 
 export function saveToken(token: string) {

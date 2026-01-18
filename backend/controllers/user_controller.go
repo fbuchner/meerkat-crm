@@ -162,7 +162,11 @@ func LoginUser(context *gin.Context, cfg *config.Config) {
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{"token": tokenString})
+	// Return token and user preferences
+	context.JSON(http.StatusOK, gin.H{
+		"token":    tokenString,
+		"language": foundUser.Language,
+	})
 }
 
 // CheckPasswordStrength evaluates password strength without registration

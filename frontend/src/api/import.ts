@@ -140,13 +140,61 @@ export async function getImportPreview(
   return response.json();
 }
 
-// Confirm and execute the import
+// Confirm and execute the import (CSV)
 export async function confirmImport(
   sessionId: string,
   actions: RowImportAction[],
   token: string
 ): Promise<ImportResult> {
   const response = await apiFetch(`${API_BASE_URL}/contacts/import/confirm`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      session_id: sessionId,
+      actions,
+    }),
+  });
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  return response.json();
+}
+
+// Upload a VCF file for import (returns preview directly, no mapping needed)
+export async function uploadVCFForImport(
+  file: File,
+  token: string
+): Promise<ImportPreviewResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await apiFetch(`${API_BASE_URL}/contacts/import/vcf/upload`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  return response.json();
+}
+
+// Confirm and execute VCF import (with photo processing)
+export async function confirmVCFImport(
+  sessionId: string,
+  actions: RowImportAction[],
+  token: string
+): Promise<ImportResult> {
+  const response = await apiFetch(`${API_BASE_URL}/contacts/import/vcf/confirm`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,

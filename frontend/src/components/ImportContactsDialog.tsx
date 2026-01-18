@@ -36,8 +36,10 @@ import { useSnackbar } from '../context/SnackbarContext';
 import { getErrorMessage } from '../utils/errorHandler';
 import {
   uploadCSVForImport,
+  uploadVCFForImport,
   getImportPreview,
   confirmImport,
+  confirmVCFImport,
   ColumnMapping,
   ImportUploadResponse,
   ImportPreviewResponse,
@@ -55,8 +57,10 @@ interface ImportContactsDialogProps {
 }
 
 type ImportStep = 'upload' | 'mapping' | 'preview' | 'result';
+type ImportType = 'csv' | 'vcf';
 
-const STEP_KEYS = ['upload', 'mapColumns', 'review', 'done'] as const;
+const CSV_STEP_KEYS = ['upload', 'mapColumns', 'review', 'done'] as const;
+const VCF_STEP_KEYS = ['upload', 'review', 'done'] as const;
 
 export default function ImportContactsDialog({
   open,
@@ -70,6 +74,7 @@ export default function ImportContactsDialog({
   // Step state
   const [activeStep, setActiveStep] = useState(0);
   const [step, setStep] = useState<ImportStep>('upload');
+  const [importType, setImportType] = useState<ImportType>('csv');
 
   // Upload state
   const [uploadResponse, setUploadResponse] = useState<ImportUploadResponse | null>(null);
@@ -91,6 +96,7 @@ export default function ImportContactsDialog({
   const resetDialog = useCallback(() => {
     setActiveStep(0);
     setStep('upload');
+    setImportType('csv');
     setUploadResponse(null);
     setMappings([]);
     setPreviewResponse(null);
@@ -109,13 +115,20 @@ export default function ImportContactsDialog({
 
   // Handle file upload
   const handleFileUpload = async (file: File) => {
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      setError(t('contacts.import.errors.invalidFile', 'Please select a valid CSV file'));
+    const fileName = file.name.toLowerCase();
+    const isCSV = fileName.endsWith('.csv');
+    const isVCF = fileName.endsWith('.vcf');
+
+    if (!isCSV && !isVCF) {
+      setError(t('contacts.import.errors.invalidFile', 'Please select a valid CSV or VCF file'));
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError(t('contacts.import.errors.fileTooLarge', 'File is too large. Maximum size is 5MB'));
+    const maxSize = isVCF ? 10 * 1024 * 1024 : 5 * 1024 * 1024; // 10MB for VCF, 5MB for CSV
+    if (file.size > maxSize) {
+      setError(t('contacts.import.errors.fileTooLarge', 'File is too large. Maximum size is {{size}}MB', {
+        size: maxSize / (1024 * 1024),
+      }));
       return;
     }
 
@@ -123,11 +136,30 @@ export default function ImportContactsDialog({
     setError(null);
 
     try {
-      const response = await uploadCSVForImport(file, token);
-      setUploadResponse(response);
-      setMappings(response.suggested_mappings);
-      setStep('mapping');
-      setActiveStep(1);
+      if (isVCF) {
+        // VCF import - goes directly to preview (no mapping needed)
+        setImportType('vcf');
+        const response = await uploadVCFForImport(file, token);
+        setPreviewResponse(response);
+
+        // Initialize row actions based on suggested actions
+        const initialActions = new Map<number, string>();
+        response.rows.forEach((row) => {
+          initialActions.set(row.row_index, row.suggested_action);
+        });
+        setRowActions(initialActions);
+
+        setStep('preview');
+        setActiveStep(1); // VCF skips mapping, so preview is step 1
+      } else {
+        // CSV import - needs column mapping
+        setImportType('csv');
+        const response = await uploadCSVForImport(file, token);
+        setUploadResponse(response);
+        setMappings(response.suggested_mappings);
+        setStep('mapping');
+        setActiveStep(1);
+      }
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -141,6 +173,8 @@ export default function ImportContactsDialog({
     if (file) {
       handleFileUpload(file);
     }
+    // Reset input value to allow re-selecting the same file
+    event.target.value = '';
   };
 
   // Handle drag and drop
@@ -223,10 +257,14 @@ export default function ImportContactsDialog({
         actions.push({ row_index: rowIndex, action: action as 'skip' | 'add' | 'update' });
       });
 
-      const result = await confirmImport(previewResponse.session_id, actions, token);
+      // Use appropriate confirm endpoint based on import type
+      const result = importType === 'vcf'
+        ? await confirmVCFImport(previewResponse.session_id, actions, token)
+        : await confirmImport(previewResponse.session_id, actions, token);
+
       setImportResult(result);
       setStep('result');
-      setActiveStep(3);
+      setActiveStep(importType === 'vcf' ? 2 : 3); // VCF has fewer steps
 
       if (result.created > 0 || result.updated > 0) {
         showSuccess(
@@ -276,21 +314,24 @@ export default function ImportContactsDialog({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onClick={() => document.getElementById('csv-file-input')?.click()}
+        onClick={() => document.getElementById('import-file-input')?.click()}
       >
         <input
-          id="csv-file-input"
+          id="import-file-input"
           type="file"
-          accept=".csv"
+          accept=".csv,.vcf"
           style={{ display: 'none' }}
           onChange={handleFileInputChange}
         />
         <CloudUploadIcon sx={{ fontSize: 48, color: 'grey.500', mb: 2 }} />
         <Typography variant="h6" gutterBottom>
-          {t('contacts.import.upload.dragDrop', 'Drag and drop a CSV file here, or click to select')}
+          {t('contacts.import.upload.dragDrop', 'Drag and drop a CSV or VCF file here, or click to select')}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {t('contacts.import.upload.maxSize', 'Maximum file size: 5MB')}
+          {t('contacts.import.upload.supportedFormats', 'Supported formats: CSV (spreadsheet), VCF (vCard)')}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          {t('contacts.import.upload.maxSize', 'Maximum file size: 10MB')}
         </Typography>
       </Box>
     </Box>
@@ -545,7 +586,19 @@ export default function ImportContactsDialog({
       case 'preview':
         return (
           <>
-            <Button onClick={() => { setStep('mapping'); setActiveStep(1); }}>
+            <Button onClick={() => {
+              if (importType === 'vcf') {
+                // VCF goes back to upload (no mapping step)
+                setStep('upload');
+                setActiveStep(0);
+                setPreviewResponse(null);
+                setRowActions(new Map());
+              } else {
+                // CSV goes back to mapping
+                setStep('mapping');
+                setActiveStep(1);
+              }
+            }}>
               {t('common.back', 'Back')}
             </Button>
             <Button onClick={handleClose}>{t('common.cancel', 'Cancel')}</Button>
@@ -577,9 +630,9 @@ export default function ImportContactsDialog({
       </DialogTitle>
 
       <DialogContent dividers>
-        {/* Stepper */}
+        {/* Stepper - different steps for CSV vs VCF */}
         <Stepper activeStep={activeStep} sx={{ mb: 3 }}>
-          {STEP_KEYS.map((key) => (
+          {(importType === 'vcf' ? VCF_STEP_KEYS : CSV_STEP_KEYS).map((key) => (
             <Step key={key}>
               <StepLabel>{t(`contacts.import.steps.${key}`)}</StepLabel>
             </Step>

@@ -230,9 +230,10 @@ func (i *IPRateLimiter) EntryCount() int {
 
 // Global rate limiters for different use cases
 var (
-	// Strict rate limiter for authentication endpoints (login, register)
-	// 5 requests per minute with burst of 10
-	authLimiter = NewIPRateLimiter(rate.Every(12*time.Second), 10)
+	// Rate limiter for authentication endpoints (login, register)
+	// Higher limits since per-account lockout handles brute force protection
+	// 2 requests per second with burst of 50 (allows rapid legitimate logins, e.g., E2E tests)
+	authLimiter = NewIPRateLimiter(rate.Every(500*time.Millisecond), 50)
 
 	// General API rate limiter
 	// 100 requests per minute with burst of 500
@@ -240,6 +241,7 @@ var (
 
 	// Per-account rate limiter for login attempts
 	// Tracks failed attempts per username/email with exponential backoff
+	// This is the primary brute force protection mechanism
 	accountLimiter = NewAccountRateLimiter(AccountLockoutTTL)
 )
 

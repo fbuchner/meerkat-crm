@@ -39,7 +39,14 @@
 - Backend Go tests (`go test ./...` or `make test`) spin up in-memory SQLite in helpers like [backend/controllers/activity_controller_test.go](backend/controllers/activity_controller_test.go); mirror that pattern for new suites.
 - Validation and middleware behavior has dedicated coverage in [backend/middleware/validation_test.go](backend/middleware/validation_test.go) and related files—extend these before touching shared validators.
 - Reminder scheduling is covered in [backend/services/reminder_service_test.go](backend/services/reminder_service_test.go) with clock control helpers; keep cron changes tested there.
-- Frontend tests run with `yarn test` and rely on React Testing Library setup in [frontend/src/setupTests.ts](frontend/src/setupTests.ts), which already registers jest-dom.
+- Frontend unit tests run with `yarn test` and rely on React Testing Library setup in [frontend/src/setupTests.ts](frontend/src/setupTests.ts), which already registers jest-dom.
+
+**E2E Testing (Playwright)**
+- End-to-end tests use Playwright against a real backend running in Docker; test files live in [frontend/e2e](frontend/e2e).
+- Start the test stack: `docker compose -f docker-compose.test.yml up -d --build`
+- Run tests: `cd frontend && npm run test:e2e` (or `test:e2e:ui` for interactive mode)
+- Stop and clean up: `docker compose -f docker-compose.test.yml down -v`
+- Tests run automatically in CI on push/PR to main via [.github/workflows/e2e-tests.yml](.github/workflows/e2e-tests.yml).
 
 **Data & Integrations**
 - SQLite lives at `SQLITE_DB_PATH` (default meerkat.db); migrations in [backend/database/migrations](backend/database/migrations) are embedded into the binary and auto-run on startup.

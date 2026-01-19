@@ -1,0 +1,50 @@
+# Meerkat CRM Docker Compose - E2E Testing
+#
+# Builds and runs the stack for end-to-end testing with Playwright.
+# Uses a fresh database for each test run.
+#
+# USAGE:
+#   docker compose -f docker-compose.test.yml up -d --build --wait
+#   npx playwright test
+#   docker compose -f docker-compose.test.yml down -v
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: meerkat-backend-test
+    environment:
+      - SQLITE_DB_PATH=/app/data/test.db
+      - JWT_SECRET_KEY=test-secret-key-for-e2e-testing-minimum-32-chars
+      - PROFILE_PHOTO_DIR=/app/static/photos
+      - FRONTEND_URL=http://localhost:3000
+      - PORT=8080
+    volumes:
+      - test-data:/app/data
+      - test-photos:/app/static/photos
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=http://localhost:8080
+    container_name: meerkat-frontend-test
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  test-data:
+  test-photos:

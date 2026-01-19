@@ -66,6 +66,9 @@ logs/
 # Testing
 coverage/
 *.cover
+frontend/playwright-report/
+frontend/test-results/
+frontend/playwright/.auth/
 
 # Temporary files
 *.tmp

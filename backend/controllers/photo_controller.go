@@ -22,6 +22,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/nfnt/resize"
+	"github.com/gen2brain/heic"
 	"gorm.io/gorm"
 )
 
@@ -184,21 +185,35 @@ func processAndSavePhoto(file *multipart.FileHeader, uploadDir string) (string, 
 	}
 	contentType := http.DetectContentType(buf)
 
+	// Check for HEIC/HEIF format (http.DetectContentType doesn't recognize it)
+	// HEIC files have "ftyp" followed by "heic", "heix", "hevc", "hevx", or "mif1" at byte 4
+	if contentType == "application/octet-stream" && len(buf) >= 12 {
+		if string(buf[4:8]) == "ftyp" {
+			brand := string(buf[8:12])
+			if brand == "heic" || brand == "heix" || brand == "hevc" || brand == "hevx" || brand == "mif1" {
+				contentType = "image/heic"
+			}
+		}
+	}
+
 	// Validate supported content types
-	if contentType != "image/jpeg" && contentType != "image/png" {
+	if contentType != "image/jpeg" && contentType != "image/png" &&
+		contentType != "image/heic" && contentType != "image/heif" {
 		return "", "", errors.New("unsupported file format")
 	}
 
 	// Rewind the file reader
 	src.Seek(0, 0)
 
-	// Decode the image (handle both JPEG and PNG)
+	// Decode the image (handle JPEG, PNG, and HEIC)
 	var img image.Image
 	switch contentType {
 	case "image/jpeg":
 		img, err = jpeg.Decode(src)
 	case "image/png":
 		img, err = png.Decode(src)
+	case "image/heic", "image/heif":
+		img, err = heic.Decode(src)
 	}
 	if err != nil {
 		return "", "", err

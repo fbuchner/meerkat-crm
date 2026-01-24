@@ -323,6 +323,8 @@ func UpdateContact(c *gin.Context) {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update contact").WithError(err))
 		return
 	}
+
+	c.JSON(http.StatusOK, contact)
 }
 
 func DeleteContact(c *gin.Context) {

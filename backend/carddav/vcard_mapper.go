@@ -17,6 +17,7 @@ import (
 	"github.com/emersion/go-vcard"
 	"github.com/google/uuid"
 	"github.com/nfnt/resize"
+	"github.com/gen2brain/heic"
 )
 
 // VCardExtra stores unmapped vCard properties
@@ -275,12 +276,28 @@ func SaveContactPhoto(photoData []byte, mediaType string, photoDir string) (stri
 		img, err = jpeg.Decode(reader)
 	case strings.Contains(mediaType, "png"):
 		img, err = png.Decode(reader)
+	case strings.Contains(mediaType, "heic") || strings.Contains(mediaType, "heif"):
+		img, err = heic.Decode(reader)
 	default:
-		// Try to decode as JPEG first, then PNG
-		img, err = jpeg.Decode(reader)
-		if err != nil {
-			reader.Seek(0, 0)
-			img, err = png.Decode(reader)
+		// Check for HEIC magic bytes if media type is unknown
+		// HEIC files have "ftyp" followed by "heic", "heix", "hevc", "hevx", or "mif1" at byte 4
+		if len(photoData) >= 12 && string(photoData[4:8]) == "ftyp" {
+			brand := string(photoData[8:12])
+			if brand == "heic" || brand == "heix" || brand == "hevc" || brand == "hevx" || brand == "mif1" {
+				img, err = heic.Decode(reader)
+			}
+		}
+		// Try to decode as JPEG first, then PNG, then HEIC
+		if img == nil {
+			img, err = jpeg.Decode(reader)
+			if err != nil {
+				reader.Seek(0, 0)
+				img, err = png.Decode(reader)
+				if err != nil {
+					reader.Seek(0, 0)
+					img, err = heic.Decode(reader)
+				}
+			}
 		}
 	}
 	if err != nil {

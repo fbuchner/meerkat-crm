@@ -3,6 +3,7 @@ module meerkat
 go 1.25.3
 
 require (
+	github.com/gen2brain/heic v0.4.9
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-co-op/gocron v1.37.0
@@ -19,6 +20,11 @@ require (
 	golang.org/x/time v0.14.0
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.1
+)
+
+require (
+	github.com/ebitengine/purego v0.9.1 // indirect
+	github.com/tetratelabs/wazero v1.9.0 // indirect
 )
 
 require (

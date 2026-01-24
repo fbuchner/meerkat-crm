@@ -335,7 +335,7 @@ func TestCreateContact(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusCreated, w.Code)
 
 	var responseBody map[string]any
 	json.Unmarshal(w.Body.Bytes(), &responseBody)
@@ -372,7 +372,7 @@ func TestCreateContactWithAllFields(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusCreated, w.Code)
 
 	var responseBody map[string]any
 	json.Unmarshal(w.Body.Bytes(), &responseBody)
@@ -444,7 +444,7 @@ func TestCreateContactWithBirthdayVariations(t *testing.T) {
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, req)
 
-			assert.Equal(t, http.StatusOK, w.Code, "Failed for: %s", tt.desc)
+			assert.Equal(t, http.StatusCreated, w.Code, "Failed for: %s", tt.desc)
 
 			var responseBody map[string]any
 			json.Unmarshal(w.Body.Bytes(), &responseBody)

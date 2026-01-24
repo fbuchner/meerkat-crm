@@ -156,6 +156,12 @@ export default function ContactDetailPage({ token }: { token: string }) {
     setEditingReminder
   } = useReminderManagement(id, token, { showError });
 
+  // State for pre-filled reminder values (used by Stay in Touch)
+  const [reminderInitialValues, setReminderInitialValues] = useState<{
+    message?: string;
+    recurrence?: 'once' | 'weekly' | 'monthly' | 'quarterly' | 'six-months' | 'yearly';
+  } | undefined>(undefined);
+
   const {
     relationships,
     incomingRelationships,
@@ -417,6 +423,17 @@ export default function ContactDetailPage({ token }: { token: string }) {
     }
   };
 
+  const handleStayInTouch = () => {
+    if (!contact) return;
+    const contactName = `${contact.firstname}${contact.lastname ? ' ' + contact.lastname : ''}`;
+    setReminderInitialValues({
+      message: t('contactDetail.catchUpWith', { name: contactName }),
+      recurrence: 'quarterly'
+    });
+    setEditingReminder(null);
+    setReminderDialogOpen(true);
+  };
+
   const handleUploadProfilePicture = async (croppedImageBlob: Blob) => {
     if (!id) return;
 
@@ -474,6 +491,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
         onDeleteCircle={handleDeleteCircle}
         onNewCircleNameChange={setNewCircleName}
         onUploadProfilePicture={() => setProfilePictureDialogOpen(true)}
+        onStayInTouch={handleStayInTouch}
       />
 
       {/* General Information and Timeline - Two Column Layout */}
@@ -586,10 +604,12 @@ export default function ContactDetailPage({ token }: { token: string }) {
         onClose={() => {
           setReminderDialogOpen(false);
           setEditingReminder(null);
+          setReminderInitialValues(undefined);
         }}
         onSave={handleSaveReminder}
         reminder={editingReminder}
         contactId={contact?.ID || 0}
+        initialValues={reminderInitialValues}
       />
 
       {editingTimelineItem && (

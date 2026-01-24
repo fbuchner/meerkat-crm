@@ -229,7 +229,9 @@
     "deleteContact": "Delete Contact",
     "confirmDeleteContact": "Are you sure you want to delete {{name}}? This action cannot be undone and will also delete all notes, activities, and reminders associated with this contact.",
     "deleteContactError": "Failed to delete contact. Please try again.",
-    "updateError": "Failed to update contact. Please check your input and try again."
+    "updateError": "Failed to update contact. Please check your input and try again.",
+    "stayInTouch": "Stay in Touch",
+    "catchUpWith": "Catch-up with {{name}}"
   },
   "noteDialog": {
     "title": "Add Note",

@@ -1,10 +1,11 @@
-import { Box, Card, CardContent, Avatar, Typography, Chip, IconButton, Stack, TextField, MenuItem } from '@mui/material';
+import { Box, Card, CardContent, Avatar, Typography, Chip, IconButton, Stack, TextField, MenuItem, Button } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
+import AutoModeIcon from '@mui/icons-material/AutoMode';
 import { useTranslation } from 'react-i18next';
 
 interface ContactHeaderProps {
@@ -37,6 +38,7 @@ interface ContactHeaderProps {
   onDeleteCircle: (circle: string) => void;
   onNewCircleNameChange: (name: string) => void;
   onUploadProfilePicture: () => void;
+  onStayInTouch?: () => void;
 }
 
 export default function ContactHeader({
@@ -56,7 +58,8 @@ export default function ContactHeader({
   onAddCircle,
   onDeleteCircle,
   onNewCircleNameChange,
-  onUploadProfilePicture
+  onUploadProfilePicture,
+  onStayInTouch
 }: ContactHeaderProps) {
   const { t } = useTranslation();
 
@@ -169,26 +172,40 @@ export default function ContactHeader({
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
+                    justifyContent: 'space-between',
                     '&:hover .edit-icon': {
                       opacity: 1
                     }
                   }}
                 >
-                  <Typography variant="h5" sx={{ fontWeight: 500, lineHeight: 1.2 }}>
-                    {contact.firstname} {contact.nickname && `"${contact.nickname}"`} {contact.lastname}
-                  </Typography>
-                  <IconButton
-                    className="edit-icon"
-                    size="small"
-                    onClick={onStartEditProfile}
-                    sx={{
-                      ml: 1,
-                      opacity: 0,
-                      transition: 'opacity 0.2s'
-                    }}
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="h5" sx={{ fontWeight: 500, lineHeight: 1.2 }}>
+                      {contact.firstname} {contact.nickname && `"${contact.nickname}"`} {contact.lastname}
+                    </Typography>
+                    <IconButton
+                      className="edit-icon"
+                      size="small"
+                      onClick={onStartEditProfile}
+                      sx={{
+                        ml: 1,
+                        opacity: 0,
+                        transition: 'opacity 0.2s'
+                      }}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                  {onStayInTouch && (
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<AutoModeIcon />}
+                      onClick={onStayInTouch}
+                      sx={{ ml: 2, flexShrink: 0 }}
+                    >
+                      {t('contactDetail.stayInTouch')}
+                    </Button>
+                  )}
                 </Box>
                 {contact.gender && (
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>

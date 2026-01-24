@@ -16,12 +16,18 @@ import {
 import { Reminder, ReminderFormData } from '../api/reminders';
 import { getErrorMessage } from '../utils/errorHandler';
 
+interface InitialReminderValues {
+  message?: string;
+  recurrence?: ReminderFormData['recurrence'];
+}
+
 interface ReminderDialogProps {
   open: boolean;
   onClose: () => void;
   onSave: (reminderData: ReminderFormData) => Promise<void>;
   reminder?: Reminder | null;
   contactId: number;
+  initialValues?: InitialReminderValues;
 }
 
 export default function ReminderDialog({
@@ -29,7 +35,8 @@ export default function ReminderDialog({
   onClose,
   onSave,
   reminder,
-  contactId
+  contactId,
+  initialValues
 }: ReminderDialogProps) {
   const { t } = useTranslation();
   const [message, setMessage] = useState('');
@@ -48,15 +55,15 @@ export default function ReminderDialog({
       setRecurrence(reminder.recurrence);
       setReoccurFromCompletion(reminder.reoccur_from_completion);
     } else {
-      // Reset form for new reminder
-      setMessage('');
+      // Reset form for new reminder, using initialValues if provided
+      setMessage(initialValues?.message || '');
       setByMail(true);
       setRemindAt(new Date().toISOString().split('T')[0]);
-      setRecurrence('once');
+      setRecurrence(initialValues?.recurrence || 'once');
       setReoccurFromCompletion(true);
     }
     setError(null);
-  }, [reminder, open]);
+  }, [reminder, open, initialValues]);
 
   const handleSave = async () => {
     // Validation

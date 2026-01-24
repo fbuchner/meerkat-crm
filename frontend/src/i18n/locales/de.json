@@ -229,7 +229,9 @@
     "deleteContact": "Kontakt löschen",
     "confirmDeleteContact": "Möchten Sie {{name}} wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden und löscht auch alle Notizen, Aktivitäten und Erinnerungen, die mit diesem Kontakt verbunden sind.",
     "deleteContactError": "Kontakt konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
-    "updateError": "Kontakt konnte nicht aktualisiert werden. Bitte überprüfen Sie Ihre Eingabe und versuchen Sie es erneut."
+    "updateError": "Kontakt konnte nicht aktualisiert werden. Bitte überprüfen Sie Ihre Eingabe und versuchen Sie es erneut.",
+    "stayInTouch": "In Kontakt bleiben",
+    "catchUpWith": "Treffen mit {{name}}"
   },
   "noteDialog": {
     "title": "Notiz hinzufügen",

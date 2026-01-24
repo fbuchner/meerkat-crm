@@ -6,7 +6,7 @@ import CakeIcon from '@mui/icons-material/Cake';
 import HomeIcon from '@mui/icons-material/Home';
 import WorkIcon from '@mui/icons-material/Work';
 import NotesIcon from '@mui/icons-material/Notes';
-import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
+import ClearAllIcon from '@mui/icons-material/ClearAll';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import PeopleIcon from '@mui/icons-material/People';
 import AddIcon from '@mui/icons-material/Add';
@@ -209,7 +209,7 @@ export default function ContactInformation({
           {customFieldNames.map((fieldName) => (
             <EditableField
               key={`custom_field_${fieldName}`}
-              icon={<RadioButtonUncheckedIcon sx={{ mr: 1, mt: 0.5,color: 'text.secondary', fontSize: '1.2rem' }} />}
+              icon={<ClearAllIcon sx={{ mr: 1, mt: 0.5,color: 'text.secondary', fontSize: '1.2rem' }} />}
               label={fieldName}
               field={`custom_field_${fieldName}`}
               value={contact.custom_fields?.[fieldName] || ''}

@@ -14,7 +14,6 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -42,21 +41,20 @@ export default function CustomFieldsSettings() {
   const [originalFieldNames, setOriginalFieldNames] = useState<string[]>([]);
 
   useEffect(() => {
+    const loadCustomFieldNames = async () => {
+      try {
+        setLoading(true);
+        const names = await getCustomFieldNames();
+        setFieldNames(names);
+        setOriginalFieldNames(names);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : t('settings.customFields.loadError'));
+      } finally {
+        setLoading(false);
+      }
+    };
     loadCustomFieldNames();
-  }, []);
-
-  const loadCustomFieldNames = async () => {
-    try {
-      setLoading(true);
-      const names = await getCustomFieldNames();
-      setFieldNames(names);
-      setOriginalFieldNames(names);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('settings.customFields.loadError'));
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [t]);
 
   const handleAddField = () => {
     const trimmedName = newFieldName.trim();
@@ -129,7 +127,7 @@ export default function CustomFieldsSettings() {
     setSuccess('');
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleAddField();
@@ -165,34 +163,39 @@ export default function CustomFieldsSettings() {
                 {fieldNames.length > 0 ? (
                   <List dense sx={{ py: 0 }}>
                     {fieldNames.map((name, index) => (
-                      <ListItem key={index} sx={{ px: 0 }}>
+                      <ListItem
+                        key={index}
+                        sx={{ px: 0 }}
+                        secondaryAction={
+                          <>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleMoveUp(index)}
+                              disabled={index === 0}
+                              aria-label={t('settings.customFields.moveUp')}
+                            >
+                              <ArrowUpwardIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleMoveDown(index)}
+                              disabled={index === fieldNames.length - 1}
+                              aria-label={t('settings.customFields.moveDown')}
+                            >
+                              <ArrowDownwardIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleDeleteClick(index)}
+                              aria-label={t('settings.customFields.delete')}
+                              color="error"
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </>
+                        }
+                      >
                         <ListItemText primary={name} />
-                        <ListItemSecondaryAction>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleMoveUp(index)}
-                            disabled={index === 0}
-                            aria-label={t('settings.customFields.moveUp')}
-                          >
-                            <ArrowUpwardIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleMoveDown(index)}
-                            disabled={index === fieldNames.length - 1}
-                            aria-label={t('settings.customFields.moveDown')}
-                          >
-                            <ArrowDownwardIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDeleteClick(index)}
-                            aria-label={t('settings.customFields.delete')}
-                            color="error"
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </ListItemSecondaryAction>
                       </ListItem>
                     ))}
                   </List>
@@ -208,9 +211,9 @@ export default function CustomFieldsSettings() {
                     placeholder={t('settings.customFields.newFieldPlaceholder')}
                     value={newFieldName}
                     onChange={(e) => setNewFieldName(e.target.value)}
-                    onKeyPress={handleKeyPress}
+                    onKeyDown={handleKeyDown}
                     sx={{ flexGrow: 1 }}
-                    inputProps={{ maxLength: 100 }}
+                    slotProps={{ htmlInput: { maxLength: 100 } }}
                   />
                   <Button
                     variant="outlined"

@@ -113,7 +113,7 @@ export default function AddRelationshipDialog({
     } else {
       resetForm();
     }
-  }, [relationship, open]);
+  }, [relationship, open, formatBirthdayForInput]);
 
   // Debounced search effect
   useEffect(() => {

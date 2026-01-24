@@ -36,7 +36,10 @@
     "extends": [
       "react-app",
       "react-app/jest"
-    ]
+    ],
+    "rules": {
+      "react/no-deprecated": "warn"
+    }
   },
   "browserslist": {
     "production": [

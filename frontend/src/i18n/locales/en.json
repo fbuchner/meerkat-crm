@@ -85,6 +85,7 @@
     "filteredMessage": "{{count}} out of {{total}} contacts in '{{circle}}'",
     "filteredBySearch": "{{count}} contacts matching '{{search}}'",
     "filteredBySearchAndCircle": "{{count}} contacts matching '{{search}}' in '{{circle}}'",
+    "totalContacts": "{{count}} contacts",
     "resetFilter": "Reset Filter",
     "noContacts": "No contacts found",
     "addContact": "Add Contact",

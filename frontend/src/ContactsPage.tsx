@@ -92,8 +92,6 @@ export default function ContactsPage({ token }: { token: string }) {
   // With backend pagination, contacts are already filtered
   const filteredContacts = contacts;
 
-  const isFiltered = selectedCircle !== '' || searchQuery !== '';
-
   const handleContactAdded = (contactId: number) => {
     navigate(`/contacts/${contactId}`);
   };
@@ -161,14 +159,16 @@ export default function ContactsPage({ token }: { token: string }) {
           {t('contacts.add.button')}
         </Button>
       </Stack>
-      {isFiltered && (
+      {totalContacts > 0 && (
         <Box sx={{ mb: 2, p: 1.5, bgcolor: 'action.hover', borderRadius: 1, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           <Typography variant="body2" sx={{ flexGrow: 1 }}>
             {searchQuery && selectedCircle 
               ? t('contacts.filteredBySearchAndCircle', { search: searchQuery, circle: selectedCircle, count: totalContacts })
               : searchQuery 
                 ? t('contacts.filteredBySearch', { search: searchQuery, count: totalContacts })
-                : t('contacts.filteredMessage', { count: filteredContacts.length, total: totalContacts, circle: selectedCircle })
+                : selectedCircle
+                  ? t('contacts.filteredMessage', { count: filteredContacts.length, total: totalContacts, circle: selectedCircle })
+                  : t('contacts.totalContacts', { count: totalContacts })
             }
           </Typography>
           {searchQuery && (

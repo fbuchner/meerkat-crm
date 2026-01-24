@@ -192,7 +192,7 @@ func UpdateRelationship(c *gin.Context) {
 		}
 	}
 
-	db.Updates(&relationship)
+	db.Save(&relationship)
 
 	c.JSON(http.StatusOK, relationship)
 }

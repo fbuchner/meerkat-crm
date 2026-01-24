@@ -29,7 +29,7 @@ export default function RelationshipList({
 }: RelationshipListProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { formatBirthday } = useDateFormat();
+  const { formatBirthday, calculateAge } = useDateFormat();
 
   const handleDeleteClick = (relationshipId: number) => {
     if (window.confirm(t('relationships.deleteMessage'))) {
@@ -111,6 +111,7 @@ export default function RelationshipList({
                   {formatRelationshipType(relationship.type)}
                   {displayGender && ` · ${formatGender(displayGender)}`}
                   {displayBirthday && ` · ${t('relationships.birthday')}: ${formatBirthday(displayBirthday)}`}
+                  {displayBirthday && calculateAge(displayBirthday) !== null && ` ${t('dashboard.yearsOld', { age: calculateAge(displayBirthday) })}`}
                 </Typography>
               </Box>
               <Box

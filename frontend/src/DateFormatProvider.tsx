@@ -11,6 +11,7 @@ interface DateFormatContextValue {
   parseBirthdayInput: (input: string) => string | null;
   getBirthdayPlaceholder: () => string;
   getBirthdayFormatHint: () => string;
+  calculateAge: (birthday: string) => number | null;
 }
 
 const DateFormatContext = createContext<DateFormatContextValue | undefined>(undefined);
@@ -29,6 +30,43 @@ const getStoredFormat = (): DateFormat => {
 
   return "eu";
 };
+
+/**
+ * Calculate age from a birthday string (YYYY-MM-DD or --MM-DD)
+ * Returns null if no year is provided or if the format is invalid
+ */
+function calculateAgeFromBirthday(birthday: string): number | null {
+  if (!birthday || birthday.startsWith('--')) {
+    return null;
+  }
+
+  const parts = birthday.split('-');
+  if (parts.length !== 3 || parts[0].length !== 4) {
+    return null;
+  }
+
+  const birthYear = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  const day = parseInt(parts[2], 10);
+
+  if (isNaN(day) || isNaN(month) || isNaN(birthYear)) {
+    return null;
+  }
+
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth() + 1;
+  const currentDay = today.getDate();
+
+  let age = currentYear - birthYear;
+
+  // Adjust if birthday hasn't occurred yet this year
+  if (month > currentMonth || (month === currentMonth && day > currentDay)) {
+    age--;
+  }
+
+  return age >= 0 ? age : null;
+}
 
 /**
  * Format a standard date (ISO format) to the user's preferred display format
@@ -276,6 +314,11 @@ export function DateFormatProvider({ children }: { children: ReactNode }) {
     [dateFormat]
   );
 
+  const calculateAge = useCallback(
+    (birthday: string) => calculateAgeFromBirthday(birthday),
+    []
+  );
+
   const contextValue = useMemo(
     () => ({
       dateFormat,
@@ -286,8 +329,9 @@ export function DateFormatProvider({ children }: { children: ReactNode }) {
       parseBirthdayInput,
       getBirthdayPlaceholder,
       getBirthdayFormatHint,
+      calculateAge,
     }),
-    [dateFormat, formatDate, formatBirthday, formatBirthdayForInput, parseBirthdayInput, getBirthdayPlaceholder, getBirthdayFormatHint]
+    [dateFormat, formatDate, formatBirthday, formatBirthdayForInput, parseBirthdayInput, getBirthdayPlaceholder, getBirthdayFormatHint, calculateAge]
   );
 
   return (

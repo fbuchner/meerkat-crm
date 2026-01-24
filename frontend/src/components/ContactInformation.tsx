@@ -14,41 +14,6 @@ import RelationshipList from './RelationshipList';
 import { Relationship, IncomingRelationship } from '../api/relationships';
 import { useDateFormat } from '../DateFormatProvider';
 
-function calculateCurrentAge(birthday: string): number | null {
-  // Birthday format is YYYY-MM-DD or --MM-DD (ISO 8601)
-  // If starts with '--', no year provided
-  if (birthday.startsWith('--')) {
-    return null;
-  }
-
-  const parts = birthday.split('-');
-  if (parts.length !== 3 || parts[0].length !== 4) {
-    return null; // Invalid format or no year
-  }
-
-  const birthYear = parseInt(parts[0], 10);
-  const month = parseInt(parts[1], 10);
-  const day = parseInt(parts[2], 10);
-
-  if (isNaN(day) || isNaN(month) || isNaN(birthYear)) {
-    return null;
-  }
-
-  const today = new Date();
-  const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth() + 1; // getMonth() is 0-indexed
-  const currentDay = today.getDate();
-
-  let age = currentYear - birthYear;
-
-  // Check if birthday hasn't occurred yet this year
-  if (month > currentMonth || (month === currentMonth && day > currentDay)) {
-    age--;
-  }
-
-  return age >= 0 ? age : null;
-}
-
 
 interface ContactInformationProps {
   contact: {
@@ -92,15 +57,15 @@ export default function ContactInformation({
   onDeleteRelationship,
 }: ContactInformationProps) {
   const { t } = useTranslation();
-  const { formatBirthday, getBirthdayPlaceholder } = useDateFormat();
+  const { formatBirthday, getBirthdayPlaceholder, calculateAge } = useDateFormat();
   const [activeTab, setActiveTab] = useState(0);
 
   const birthdayAgeSuffix = useMemo(() => {
     if (!contact.birthday) return undefined;
-    const age = calculateCurrentAge(contact.birthday);
+    const age = calculateAge(contact.birthday);
     if (age === null) return undefined;
     return t('dashboard.yearsOld', { age });
-  }, [contact.birthday, t]);
+  }, [contact.birthday, t, calculateAge]);
 
   return (
     <Card sx={{ flex: 1 }}>

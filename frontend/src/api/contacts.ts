@@ -17,6 +17,7 @@ export interface Contact {
   contact_information?: string;
   circles?: string[];
   thumbnail_url?: string;
+  custom_fields?: Record<string, string>;
 }
 
 export interface Birthday {

@@ -25,10 +25,12 @@ import DownloadIcon from '@mui/icons-material/Download';
 import InfoIcon from '@mui/icons-material/Info';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import Link from '@mui/material/Link';
-import { changePassword, updateLanguage } from './api/auth';
+import { changePassword } from './api/auth';
+import { updateLanguage } from './api/users';
 import { exportDataAsCsv, exportContactsAsVcf } from './api/export';
 import { ThemePreference, useThemePreference } from './AppThemeProvider';
 import { DateFormat, useDateFormat } from './DateFormatProvider';
+import CustomFieldsSettings from './components/CustomFieldsSettings';
 
 export default function SettingsPage() {
   const { t, i18n } = useTranslation();
@@ -266,6 +268,8 @@ export default function SettingsPage() {
           </Typography>
         </CardContent>
       </Card>
+
+      <CustomFieldsSettings />
 
       <Card sx={{ mb: 2 }}>
         <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>

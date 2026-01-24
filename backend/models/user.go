@@ -15,4 +15,5 @@ type User struct {
 	PasswordResetTokenHash   *string    `gorm:"column:password_reset_token_hash"`
 	PasswordResetExpiresAt   *time.Time `gorm:"column:password_reset_expires_at"`
 	PasswordResetRequestedAt *time.Time `gorm:"column:password_reset_requested_at"`
+	CustomFieldNames         []string   `gorm:"type:text;serializer:json" json:"custom_field_names"`
 }

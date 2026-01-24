@@ -394,6 +394,30 @@
       "title": "About Meerkat CRM",
       "description": "Meerkat CRM is an open source personal CRM application designed to help you manage your contacts and relationships.",
       "contribute": "Contributors are welcome! You can report issues, suggest features, or contribute code on GitHub."
+    },
+    "customFields": {
+      "title": "Custom Fields",
+      "description": "Define custom fields that appear on all your contacts. Fields are displayed in the order shown below.",
+      "loading": "Loading custom fields...",
+      "noFields": "No custom fields defined yet.",
+      "newFieldPlaceholder": "New field name...",
+      "add": "Add",
+      "save": "Save Changes",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "delete": "Delete",
+      "loadError": "Failed to load custom fields.",
+      "saveError": "Failed to save custom fields.",
+      "saveSuccess": "Custom fields saved successfully.",
+      "duplicateError": "A field with this name already exists.",
+      "deleteDialog": {
+        "title": "Delete Custom Field",
+        "message": "Are you sure you want to delete the field \"{{fieldName}}\"? This will remove the field from all contacts.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      }
     }
   },
   "pages": {

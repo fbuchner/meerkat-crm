@@ -8,6 +8,7 @@ import WorkIcon from '@mui/icons-material/Work';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import PeopleIcon from '@mui/icons-material/People';
 import AddIcon from '@mui/icons-material/Add';
+import TuneIcon from '@mui/icons-material/Tune';
 import { useTranslation } from 'react-i18next';
 import EditableField from './EditableField';
 import RelationshipList from './RelationshipList';
@@ -25,6 +26,7 @@ interface ContactInformationProps {
     food_preference?: string;
     how_we_met?: string;
     contact_information?: string;
+    custom_fields?: Record<string, string>;
   };
   editingField: string | null;
   editValue: string;
@@ -39,6 +41,8 @@ interface ContactInformationProps {
   onAddRelationship?: () => void;
   onEditRelationship?: (relationship: Relationship) => void;
   onDeleteRelationship?: (relationshipId: number) => void;
+  // Custom fields
+  customFieldNames?: string[];
 }
 
 export default function ContactInformation({
@@ -55,6 +59,7 @@ export default function ContactInformation({
   onAddRelationship,
   onEditRelationship,
   onDeleteRelationship,
+  customFieldNames = [],
 }: ContactInformationProps) {
   const { t } = useTranslation();
   const { formatBirthday, getBirthdayPlaceholder, calculateAge } = useDateFormat();
@@ -199,6 +204,25 @@ export default function ContactInformation({
             onEditSave={onEditSave}
             onEditValueChange={onEditValueChange}
           />
+
+          {/* Custom Fields */}
+          {customFieldNames.map((fieldName) => (
+            <EditableField
+              key={`custom_field_${fieldName}`}
+              icon={<TuneIcon sx={{ mr: 1, color: 'text.secondary', fontSize: '1.2rem' }} />}
+              label={fieldName}
+              field={`custom_field_${fieldName}`}
+              value={contact.custom_fields?.[fieldName] || ''}
+              multiline
+              isEditing={editingField === `custom_field_${fieldName}`}
+              editValue={editValue}
+              validationError={validationError}
+              onEditStart={onEditStart}
+              onEditCancel={onEditCancel}
+              onEditSave={onEditSave}
+              onEditValueChange={onEditValueChange}
+            />
+          ))}
         </Stack>
       </CardContent>
       )}

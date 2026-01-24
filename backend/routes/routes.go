@@ -37,6 +37,8 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB) {
 		{
 			protected.POST("/users/change-password", middleware.ValidateJSONMiddleware(&models.ChangePasswordInput{}), controllers.ChangePassword)
 			protected.PATCH("/users/language", controllers.UpdateLanguage)
+			protected.GET("/users/custom-fields", controllers.GetCustomFieldNames)
+			protected.PATCH("/users/custom-fields", middleware.ValidateJSONMiddleware(&models.CustomFieldNamesInput{}), controllers.UpdateCustomFieldNames)
 
 			// Contact routes
 			protected.GET("/contacts", controllers.GetContacts)

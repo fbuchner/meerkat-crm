@@ -382,6 +382,73 @@ func UpdateLanguage(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"message": "Language updated successfully", "language": user.Language})
 }
 
+// UpdateCustomFieldNames updates the authenticated user's custom field definitions
+func UpdateCustomFieldNames(c *gin.Context) {
+	log := logger.FromContext(c)
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	// Get validated input
+	input, err := middleware.GetValidated[models.CustomFieldNamesInput](c)
+	if err != nil {
+		apperrors.AbortWithError(c, err)
+		return
+	}
+
+	db := c.MustGet("db").(*gorm.DB)
+
+	var user models.User
+	if err := db.First(&user, userID).Error; err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to lookup user for custom field names update")
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("query user").WithError(err))
+		return
+	}
+
+	user.CustomFieldNames = input.Names
+	if err := db.Save(&user).Error; err != nil {
+		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to update user custom field names")
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("update user").WithError(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":            "Custom field names updated successfully",
+		"custom_field_names": user.CustomFieldNames,
+	})
+}
+
+// GetCustomFieldNames returns the authenticated user's custom field definitions
+func GetCustomFieldNames(c *gin.Context) {
+	log := logger.FromContext(c)
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	db := c.MustGet("db").(*gorm.DB)
+
+	var user models.User
+	if err := db.First(&user, userID).Error; err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to lookup user for custom field names")
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("query user").WithError(err))
+		return
+	}
+
+	// Return empty array instead of null if not set
+	names := user.CustomFieldNames
+	if names == nil {
+		names = []string{}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"custom_field_names": names,
+	})
+}
+
 func ChangePassword(context *gin.Context) {
 	// Check if demo mode is enabled - password changes are disabled in demo
 	if os.Getenv("DEMO_MODE") == "true" {

@@ -85,7 +85,7 @@ func main() {
 
 	// For production, set FRONTEND_URL to specific origin(s) like "https://yourdomain.com"
 	corsConfig := cors.Config{
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PROPFIND", "REPORT", "MKCOL", "COPY", "MOVE"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "PROPFIND", "REPORT", "MKCOL", "COPY", "MOVE"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Depth", "If-Match", "If-None-Match"},
 		ExposeHeaders:    []string{"Content-Length", "ETag"},
 		AllowCredentials: true,

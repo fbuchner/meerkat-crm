@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useContacts } from './hooks/useContacts';
 import { getCircles } from './api/contacts';
+import { getCustomFieldNames } from './api/users';
 import AddContactDialog from './components/AddContactDialog';
 import ImportContactsDialog from './components/ImportContactsDialog';
 import {
@@ -34,6 +35,7 @@ export default function ContactsPage({ token }: { token: string }) {
   const [sortOption, setSortOption] = useState('id-desc');
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [customFieldNames, setCustomFieldNames] = useState<string[]>([]);
   const pageSize = 10;
 
   // Parse sort option into field and order
@@ -65,17 +67,21 @@ export default function ContactsPage({ token }: { token: string }) {
   // Use custom hook for fetching contacts
   const { contacts, total: totalContacts, loading, refetch } = useContacts(contactParams);
 
-  // Fetch circles for filter
+  // Fetch circles for filter and custom field names
   useEffect(() => {
-    const fetchCircles = async () => {
+    const fetchData = async () => {
       try {
-        const data = await getCircles(token);
-        setCircles(Array.isArray(data) ? data : []);
+        const [circlesData, fieldNames] = await Promise.all([
+          getCircles(token),
+          getCustomFieldNames(token)
+        ]);
+        setCircles(Array.isArray(circlesData) ? circlesData : []);
+        setCustomFieldNames(fieldNames);
       } catch (err) {
-        console.error('Error fetching circles:', err);
+        console.error('Error fetching circles or custom field names:', err);
       }
     };
-    fetchCircles();
+    fetchData();
   }, [token]);
 
   // Reset to page 1 when search or filter changes (but not on initial mount)
@@ -249,6 +255,7 @@ export default function ContactsPage({ token }: { token: string }) {
         onContactAdded={handleContactAdded}
         token={token}
         availableCircles={circles}
+        customFieldNames={customFieldNames}
       />
       <ImportContactsDialog
         open={importDialogOpen}

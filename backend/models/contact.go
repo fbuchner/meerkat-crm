@@ -34,6 +34,9 @@ type Contact struct {
 	VCardUID   string `gorm:"column:vcard_uid" json:"-"`   // Permanent RFC 6350 UID
 	VCardExtra string `gorm:"column:vcard_extra" json:"-"` // JSON for unmapped vCard properties
 	ETag       string `gorm:"column:etag" json:"-"`        // Sync conflict detection
+
+	// Custom fields (user-defined string fields)
+	CustomFields map[string]string `gorm:"type:text;serializer:json" json:"custom_fields"`
 }
 
 // BeforeCreate generates VCardUID for new contacts

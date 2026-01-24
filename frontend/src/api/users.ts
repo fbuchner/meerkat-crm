@@ -1,3 +1,4 @@
+// User settings and preferences API calls
 import { apiFetch, API_BASE_URL, getAuthHeaders } from './client';
 
 type ErrorDetails = Record<string, unknown> | undefined | null;
@@ -86,43 +87,34 @@ async function handleResponse(response: Response, fallback: string): Promise<Rec
   throw new Error(message);
 }
 
-export async function requestPasswordReset(email: string): Promise<string> {
-  const response = await apiFetch(`${API_BASE_URL}/password-reset/request`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email }),
-  });
-
-  const data = await handleResponse(response, 'Unable to request password reset.');
-  return data?.message || 'If an account exists, password reset instructions were sent.';
-}
-
-export async function confirmPasswordReset(token: string, password: string): Promise<string> {
-  const response = await apiFetch(`${API_BASE_URL}/password-reset/confirm`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ token, password }),
-  });
-
-  const data = await handleResponse(response, 'Unable to reset password.');
-  return data?.message || 'Password reset successful.';
-}
-
-export async function changePassword(currentPassword: string, newPassword: string, token?: string | null): Promise<string> {
-  const response = await apiFetch(`${API_BASE_URL}/users/change-password`, {
-    method: 'POST',
+export async function updateLanguage(language: string, token?: string | null): Promise<string> {
+  const response = await apiFetch(`${API_BASE_URL}/users/language`, {
+    method: 'PATCH',
     headers: getAuthHeaders(token || undefined),
-    body: JSON.stringify({
-      current_password: currentPassword,
-      new_password: newPassword,
-    }),
+    body: JSON.stringify({ language }),
   });
 
-  const data = await handleResponse(response, 'Unable to change password.');
-  return data?.message || 'Password updated successfully.';
+  const data = await handleResponse(response, 'Unable to update language.');
+  return data?.message || 'Language updated successfully.';
 }
 
+export async function getCustomFieldNames(token?: string | null): Promise<string[]> {
+  const response = await apiFetch(`${API_BASE_URL}/users/custom-fields`, {
+    method: 'GET',
+    headers: getAuthHeaders(token || undefined),
+  });
+
+  const data = await handleResponse(response, 'Unable to get custom field names.');
+  return data?.custom_field_names || [];
+}
+
+export async function updateCustomFieldNames(names: string[], token?: string | null): Promise<string[]> {
+  const response = await apiFetch(`${API_BASE_URL}/users/custom-fields`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(token || undefined),
+    body: JSON.stringify({ names }),
+  });
+
+  const data = await handleResponse(response, 'Unable to update custom field names.');
+  return data?.custom_field_names || names;
+}

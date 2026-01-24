@@ -9,6 +9,7 @@ import {
   uploadProfilePicture,
   getCircles
 } from './api/contacts';
+import { getCustomFieldNames } from './api/users';
 import { 
   getContactNotes, 
   Note 
@@ -67,6 +68,7 @@ interface Contact {
   circles?: string[];
   notes?: Note[];
   activities?: Activity[];
+  custom_fields?: Record<string, string>;
 }
 
 export default function ContactDetailPage({ token }: { token: string }) {
@@ -103,6 +105,9 @@ export default function ContactDetailPage({ token }: { token: string }) {
 
   // Profile picture upload state
   const [profilePictureDialogOpen, setProfilePictureDialogOpen] = useState(false);
+
+  // Custom field names
+  const [customFieldNames, setCustomFieldNames] = useState<string[]>([]);
 
   // Unified refresh function for notes and activities
   const refreshNotesAndActivities = async () => {
@@ -205,6 +210,14 @@ export default function ContactDetailPage({ token }: { token: string }) {
         await refreshRelationships();
         await fetchCircles();
 
+        // Fetch custom field names
+        try {
+          const fieldNames = await getCustomFieldNames(token);
+          setCustomFieldNames(fieldNames);
+        } catch (err) {
+          console.error('Error fetching custom field names:', err);
+        }
+
         setLoading(false);
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -284,6 +297,36 @@ export default function ContactDetailPage({ token }: { token: string }) {
       // Convert from display format to ISO format for storage
       const parsed = parseBirthdayInput(editValue);
       valueToSave = parsed || '';
+    }
+
+    // Handle custom fields
+    if (field.startsWith('custom_field_')) {
+      const customFieldName = field.replace('custom_field_', '');
+      const updatedCustomFields = {
+        ...(contact.custom_fields || {}),
+        [customFieldName]: valueToSave
+      };
+
+      try {
+        const updatedContact = await updateContact(id!, {
+          ...contact,
+          custom_fields: updatedCustomFields
+        }, token);
+        setContact(updatedContact);
+        setEditingField(null);
+        setEditValue('');
+        setValidationError('');
+      } catch (err) {
+        console.error('Error updating contact custom field:', err);
+        if (err instanceof ApiError) {
+          const errorMessage = err.getDisplayMessage();
+          setValidationError(errorMessage);
+          showError(errorMessage);
+        } else {
+          showError(t('contactDetail.updateError'));
+        }
+      }
+      return;
     }
 
     try {
@@ -518,6 +561,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
           onAddRelationship={handleAddRelationship}
           onEditRelationship={handleEditRelationship}
           onDeleteRelationship={handleDeleteRelationship}
+          customFieldNames={customFieldNames}
         />
 
         {/* Timeline and Reminders Tabs */}

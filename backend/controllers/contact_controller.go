@@ -49,6 +49,7 @@ func CreateContact(c *gin.Context) {
 		WorkInformation:    contactInput.WorkInformation,
 		ContactInformation: contactInput.ContactInformation,
 		Circles:            contactInput.Circles,
+		CustomFields:       contactInput.CustomFields,
 	}
 
 	// Save the new contact to the database
@@ -72,7 +73,7 @@ func GetContacts(c *gin.Context) {
 	pagination := GetPaginationParams(c)
 
 	// Define allowed fields and parse requested fields with validation
-	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail"}
+	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail", "custom_fields"}
 	var selectedFields []string
 	fields := c.Query("fields")
 	if fields != "" {
@@ -316,6 +317,7 @@ func UpdateContact(c *gin.Context) {
 	contact.WorkInformation = contactInput.WorkInformation
 	contact.ContactInformation = contactInput.ContactInformation
 	contact.Circles = contactInput.Circles
+	contact.CustomFields = contactInput.CustomFields
 
 	db.Save(&contact)
 

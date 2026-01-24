@@ -27,6 +27,18 @@ func ExportData(c *gin.Context) {
 		return
 	}
 
+	// Fetch user to get custom field names
+	var user models.User
+	if err := db.First(&user, userID).Error; err != nil {
+		log.Error().Err(err).Msg("Failed to fetch user for export")
+		apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to fetch user"))
+		return
+	}
+	customFieldNames := user.CustomFieldNames
+	if customFieldNames == nil {
+		customFieldNames = []string{}
+	}
+
 	// Fetch all user data
 	var contacts []models.Contact
 	if err := db.Where("user_id = ?", userID).
@@ -81,6 +93,8 @@ func ExportData(c *gin.Context) {
 		"Birthday", "Address", "How We Met", "Food Preference", "Work Information",
 		"Contact Information", "Circles", "Created At", "Updated At",
 	}
+	// Add custom field names as additional headers
+	contactHeaders = append(contactHeaders, customFieldNames...)
 	if err := writer.Write(contactHeaders); err != nil {
 		log.Error().Err(err).Msg("Failed to write contact headers")
 		apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to generate export"))
@@ -105,6 +119,14 @@ func ExportData(c *gin.Context) {
 			strings.Join(contact.Circles, "; "),
 			contact.CreatedAt.Format(time.RFC3339),
 			contact.UpdatedAt.Format(time.RFC3339),
+		}
+		// Add custom field values
+		for _, fieldName := range customFieldNames {
+			value := ""
+			if contact.CustomFields != nil {
+				value = contact.CustomFields[fieldName]
+			}
+			record = append(record, value)
 		}
 		if err := writer.Write(record); err != nil {
 			log.Error().Err(err).Msg("Failed to write contact record")

@@ -394,6 +394,30 @@
       "title": "Über Meerkat CRM",
       "description": "Meerkat CRM ist eine Open-Source-Anwendung zur persönlichen Kontaktverwaltung, die Ihnen hilft, Ihre Kontakte und Beziehungen zu pflegen.",
       "contribute": "Mitwirkende sind willkommen! Sie können Probleme melden, Funktionen vorschlagen oder Code auf GitHub beitragen."
+    },
+    "customFields": {
+      "title": "Benutzerdefinierte Felder",
+      "description": "Definieren Sie eigene Felder, die bei allen Ihren Kontakten angezeigt werden. Die Felder werden in der unten gezeigten Reihenfolge angezeigt.",
+      "loading": "Lade benutzerdefinierte Felder...",
+      "noFields": "Noch keine benutzerdefinierten Felder definiert.",
+      "newFieldPlaceholder": "Neuer Feldname...",
+      "add": "Hinzufügen",
+      "save": "Änderungen speichern",
+      "saving": "Speichern...",
+      "cancel": "Abbrechen",
+      "moveUp": "Nach oben",
+      "moveDown": "Nach unten",
+      "delete": "Löschen",
+      "loadError": "Benutzerdefinierte Felder konnten nicht geladen werden.",
+      "saveError": "Benutzerdefinierte Felder konnten nicht gespeichert werden.",
+      "saveSuccess": "Benutzerdefinierte Felder erfolgreich gespeichert.",
+      "duplicateError": "Ein Feld mit diesem Namen existiert bereits.",
+      "deleteDialog": {
+        "title": "Benutzerdefiniertes Feld löschen",
+        "message": "Möchten Sie das Feld \"{{fieldName}}\" wirklich löschen? Dies entfernt das Feld von allen Kontakten.",
+        "cancel": "Abbrechen",
+        "confirm": "Löschen"
+      }
     }
   },
   "pages": {

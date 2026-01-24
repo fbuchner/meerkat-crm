@@ -27,6 +27,7 @@ interface AddContactDialogProps {
   onContactAdded: (contactId: number) => void;
   token: string;
   availableCircles: string[];
+  customFieldNames?: string[];
 }
 
 export default function AddContactDialog({
@@ -34,7 +35,8 @@ export default function AddContactDialog({
   onClose,
   onContactAdded,
   token,
-  availableCircles
+  availableCircles,
+  customFieldNames = []
 }: AddContactDialogProps) {
   const { t } = useTranslation();
   const { showError, showSuccess } = useSnackbar();
@@ -53,6 +55,7 @@ export default function AddContactDialog({
     work_information: '',
     contact_information: ''
   });
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [selectedCircles, setSelectedCircles] = useState<string[]>([]);
   const [newCircle, setNewCircle] = useState('');
   const [createBirthdayReminder, setCreateBirthdayReminder] = useState(false);
@@ -61,6 +64,10 @@ export default function AddContactDialog({
 
   const handleChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [field]: event.target.value });
+  };
+
+  const handleCustomFieldChange = (fieldName: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    setCustomFieldValues({ ...customFieldValues, [fieldName]: event.target.value });
   };
 
   const handleAddCircle = () => {
@@ -97,10 +104,19 @@ export default function AddContactDialog({
     setError('');
 
     try {
+      // Filter out empty custom field values
+      const filteredCustomFields: Record<string, string> = {};
+      for (const [key, value] of Object.entries(customFieldValues)) {
+        if (value.trim()) {
+          filteredCustomFields[key] = value;
+        }
+      }
+
       const contactData = {
         ...formData,
         birthday: birthdayISO,
-        circles: selectedCircles.length > 0 ? selectedCircles : undefined
+        circles: selectedCircles.length > 0 ? selectedCircles : undefined,
+        custom_fields: Object.keys(filteredCustomFields).length > 0 ? filteredCustomFields : undefined
       };
 
       const newContact = await createContact(contactData, token);
@@ -173,6 +189,7 @@ export default function AddContactDialog({
       work_information: '',
       contact_information: ''
     });
+    setCustomFieldValues({});
     setSelectedCircles([]);
     setNewCircle('');
     setError('');
@@ -296,6 +313,18 @@ export default function AddContactDialog({
             value={formData.contact_information}
             onChange={handleChange('contact_information')}
           />
+          {/* Custom Fields */}
+          {customFieldNames.map((fieldName) => (
+            <TextField
+              key={fieldName}
+              label={fieldName}
+              fullWidth
+              multiline
+              rows={2}
+              value={customFieldValues[fieldName] || ''}
+              onChange={handleCustomFieldChange(fieldName)}
+            />
+          ))}
           <Box>
             <Typography variant="subtitle2" gutterBottom>
               {t('contacts.circles')}

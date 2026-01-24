@@ -26,7 +26,7 @@ import InfoIcon from '@mui/icons-material/Info';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import Link from '@mui/material/Link';
 import { changePassword, updateLanguage } from './api/auth';
-import { exportDataAsCsv } from './api/export';
+import { exportDataAsCsv, exportContactsAsVcf } from './api/export';
 import { ThemePreference, useThemePreference } from './AppThemeProvider';
 import { DateFormat, useDateFormat } from './DateFormatProvider';
 
@@ -43,6 +43,9 @@ export default function SettingsPage() {
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');
   const [exportSuccess, setExportSuccess] = useState('');
+  const [exportingVcf, setExportingVcf] = useState(false);
+  const [exportVcfError, setExportVcfError] = useState('');
+  const [exportVcfSuccess, setExportVcfSuccess] = useState('');
 
   const handleLanguageChange = async (event: any) => {
     const newLang = event.target.value;
@@ -80,6 +83,22 @@ export default function SettingsPage() {
       setExportError(errorMessage);
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleExportVcf = async () => {
+    setExportVcfError('');
+    setExportVcfSuccess('');
+    setExportingVcf(true);
+
+    try {
+      await exportContactsAsVcf();
+      setExportVcfSuccess(t('settings.exportVcf.success'));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : t('settings.exportVcf.error');
+      setExportVcfError(errorMessage);
+    } finally {
+      setExportingVcf(false);
     }
   };
 
@@ -324,6 +343,35 @@ export default function SettingsPage() {
               disabled={exporting}
             >
               {exporting ? t('settings.export.exporting') : t('settings.export.downloadButton')}
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
+
+      <Card sx={{ mb: 2 }}>
+        <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <DownloadIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+              {t('settings.exportVcf.title')}
+            </Typography>
+          </Box>
+          <Divider sx={{ mb: 1.5 }} />
+
+          <Stack spacing={1.5}>
+            <Typography variant="body2" color="text.secondary">
+              {t('settings.exportVcf.description')}
+            </Typography>
+            {exportVcfError && <Alert severity="error" sx={{ py: 0 }}>{exportVcfError}</Alert>}
+            {exportVcfSuccess && <Alert severity="success" sx={{ py: 0 }}>{exportVcfSuccess}</Alert>}
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={exportingVcf ? <CircularProgress size={16} color="inherit" /> : <DownloadIcon />}
+              onClick={handleExportVcf}
+              disabled={exportingVcf}
+            >
+              {exportingVcf ? t('settings.exportVcf.exporting') : t('settings.exportVcf.downloadButton')}
             </Button>
           </Stack>
         </CardContent>

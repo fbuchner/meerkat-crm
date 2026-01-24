@@ -382,6 +382,14 @@
       "success": "Your data has been exported successfully.",
       "error": "Failed to export data. Please try again."
     },
+    "exportVcf": {
+      "title": "Export Contacts as VCF",
+      "description": "Download all your contacts as a VCF (vCard) file. This format is compatible with most contact apps and includes profile photos.",
+      "downloadButton": "Download VCF",
+      "exporting": "Exporting...",
+      "success": "Your contacts have been exported successfully.",
+      "error": "Failed to export contacts. Please try again."
+    },
     "about": {
       "title": "About Meerkat CRM",
       "description": "Meerkat CRM is an open source personal CRM application designed to help you manage your contacts and relationships.",

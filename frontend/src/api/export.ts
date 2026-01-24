@@ -3,27 +3,12 @@ import { API_BASE_URL, apiFetch, parseErrorResponse } from './client';
 import { getToken } from '../auth';
 
 /**
- * Export all user data as CSV
- * Downloads a CSV file containing all contacts, activities, notes, relationships, and reminders
+ * Helper function to download a file from an API response
  */
-export async function exportDataAsCsv(): Promise<void> {
-  const token = getToken();
-  
-  const response = await apiFetch(`${API_BASE_URL}/export`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await parseErrorResponse(response);
-    throw error;
-  }
-
+async function downloadFileFromResponse(response: Response, defaultFilename: string): Promise<void> {
   // Get the filename from Content-Disposition header or use default
   const contentDisposition = response.headers.get('Content-Disposition');
-  let filename = 'meerkat-export.csv';
+  let filename = defaultFilename;
   if (contentDisposition) {
     const filenameMatch = contentDisposition.match(/filename=([^;]+)/);
     if (filenameMatch) {
@@ -43,4 +28,48 @@ export async function exportDataAsCsv(): Promise<void> {
   link.click();
   document.body.removeChild(link);
   window.URL.revokeObjectURL(url);
+}
+
+/**
+ * Export all user data as CSV
+ * Downloads a CSV file containing all contacts, activities, notes, relationships, and reminders
+ */
+export async function exportDataAsCsv(): Promise<void> {
+  const token = getToken();
+  
+  const response = await apiFetch(`${API_BASE_URL}/export`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await parseErrorResponse(response);
+    throw error;
+  }
+
+  await downloadFileFromResponse(response, 'meerkat-export.csv');
+}
+
+/**
+ * Export all contacts as VCF (vCard)
+ * Downloads a VCF file containing all contacts with their photos
+ */
+export async function exportContactsAsVcf(): Promise<void> {
+  const token = getToken();
+  
+  const response = await apiFetch(`${API_BASE_URL}/export/vcf`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await parseErrorResponse(response);
+    throw error;
+  }
+
+  await downloadFileFromResponse(response, 'meerkat-contacts.vcf');
 }

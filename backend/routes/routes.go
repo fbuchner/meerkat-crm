@@ -108,6 +108,9 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB) {
 
 			// Export routes
 			protected.GET("/export", controllers.ExportData)
+			protected.GET("/export/vcf", func(c *gin.Context) {
+				controllers.ExportContactsAsVCF(c, cfg.ProfilePhotoDir)
+			})
 
 			// Graph/Network visualization route
 			protected.GET("/graph", controllers.GetGraph)

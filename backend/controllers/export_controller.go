@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
+	"meerkat/carddav"
 	apperrors "meerkat/errors"
 	"meerkat/logger"
 	"meerkat/models"
@@ -11,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/emersion/go-vcard"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -311,4 +313,53 @@ func ExportData(c *gin.Context) {
 		Int("notes", len(notes)).
 		Int("reminders", len(reminders)).
 		Msg("Data export completed successfully")
+}
+
+// ExportContactsAsVCF exports all user contacts as a VCF (vCard) file
+func ExportContactsAsVCF(c *gin.Context, photoDir string) {
+	db := c.MustGet("db").(*gorm.DB)
+	log := logger.FromContext(c)
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	// Fetch all user contacts
+	var contacts []models.Contact
+	if err := db.Where("user_id = ?", userID).
+		Order("firstname ASC, lastname ASC").
+		Find(&contacts).Error; err != nil {
+		log.Error().Err(err).Msg("Failed to fetch contacts for VCF export")
+		apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to fetch contacts"))
+		return
+	}
+
+	// Generate VCF content
+	var buf bytes.Buffer
+	encoder := vcard.NewEncoder(&buf)
+
+	for _, contact := range contacts {
+		card := carddav.ContactToVCard(&contact, photoDir)
+		if err := encoder.Encode(card); err != nil {
+			log.Error().Err(err).Uint("contact_id", contact.ID).Msg("Failed to encode contact as vCard")
+			// Continue with other contacts instead of failing completely
+			continue
+		}
+	}
+
+	// Generate filename with timestamp
+	filename := fmt.Sprintf("meerkat-contacts-%s.vcf", time.Now().Format("2006-01-02"))
+
+	// Set headers for file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+	c.Header("Content-Type", "text/vcard; charset=utf-8")
+	c.Header("Content-Length", fmt.Sprintf("%d", buf.Len()))
+
+	c.Data(http.StatusOK, "text/vcard; charset=utf-8", buf.Bytes())
+
+	log.Info().
+		Int("contacts", len(contacts)).
+		Msg("VCF export completed successfully")
 }

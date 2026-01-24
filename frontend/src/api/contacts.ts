@@ -10,6 +10,7 @@ export interface Contact {
   email?: string;
   phone?: string;
   birthday?: string;
+  photo?: string;
   address?: string;
   how_we_met?: string;
   food_preference?: string;

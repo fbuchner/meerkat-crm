@@ -60,6 +60,7 @@ interface Contact {
   email?: string;
   phone?: string;
   birthday?: string;
+  photo?: string;
   address?: string;
   how_we_met?: string;
   food_preference?: string;
@@ -195,6 +196,8 @@ export default function ContactDetailPage({ token }: { token: string }) {
   useEffect(() => {
     if (!id) return;
 
+    let currentBlobUrl: string | null = null;
+
     const fetchData = async () => {
       try {
         const contactData = await getContact(id, token);
@@ -218,6 +221,23 @@ export default function ContactDetailPage({ token }: { token: string }) {
           console.error('Error fetching custom field names:', err);
         }
 
+        // Only fetch profile picture if contact has one (avoid unnecessary 404)
+        if (contactData.photo) {
+          try {
+            const blob = await getContactProfilePicture(id, token);
+            if (blob) {
+              currentBlobUrl = URL.createObjectURL(blob);
+              setProfilePic(currentBlobUrl);
+            } else {
+              setProfilePic('');
+            }
+          } catch (err) {
+            console.error('Error fetching profile picture:', err);
+          }
+        } else {
+          setProfilePic('');
+        }
+
         setLoading(false);
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -226,18 +246,6 @@ export default function ContactDetailPage({ token }: { token: string }) {
     };
 
     fetchData();
-
-    let currentBlobUrl: string | null = null;
-    getContactProfilePicture(id, token)
-      .then(blob => {
-        if (blob) {
-          currentBlobUrl = URL.createObjectURL(blob);
-          setProfilePic(currentBlobUrl);
-        } else {
-          setProfilePic('');
-        }
-      })
-      .catch(err => console.error('Error fetching profile picture:', err));
 
     return () => {
       if (currentBlobUrl) {

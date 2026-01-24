@@ -274,7 +274,7 @@
     "date": "Date",
     "deleteConfirm": "Delete Note",
     "deleteMessage": "Are you sure you want to delete this note? This action cannot be undone.",
-    "unassignedInfo": "This page displays only unassigned notes that are not part of a contact and can be used like a diary."
+    "unassignedInfo": "This page displays only unassigned notes that are not part of a contact and can be used like a journal."
   },
   "reminders": {
     "title": "Reminders",

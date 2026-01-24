@@ -46,7 +46,7 @@ export default function AddRelationshipDialog({
 }: AddRelationshipDialogProps) {
   const { t } = useTranslation();
   const { showError } = useSnackbar();
-  const { parseBirthdayInput, getBirthdayPlaceholder } = useDateFormat();
+  const { parseBirthdayInput, getBirthdayPlaceholder, formatBirthdayForInput } = useDateFormat();
   const [entryMode, setEntryMode] = useState<EntryMode>('manual');
   const [name, setName] = useState('');
   const [type, setType] = useState('');
@@ -94,7 +94,8 @@ export default function AddRelationshipDialog({
         setCustomType(relationship.type || '');
       }
       setGender(relationship.gender || '');
-      setBirthday(relationship.birthday || '');
+      // Format birthday from ISO to display format based on user's date preferences
+      setBirthday(relationship.birthday ? formatBirthdayForInput(relationship.birthday) : '');
       if (relationship.related_contact_id) {
         setEntryMode('linked');
         // We'll need to find the contact

@@ -5,10 +5,11 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import CakeIcon from '@mui/icons-material/Cake';
 import HomeIcon from '@mui/icons-material/Home';
 import WorkIcon from '@mui/icons-material/Work';
+import NotesIcon from '@mui/icons-material/Notes';
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import PeopleIcon from '@mui/icons-material/People';
 import AddIcon from '@mui/icons-material/Add';
-import TuneIcon from '@mui/icons-material/Tune';
 import { useTranslation } from 'react-i18next';
 import EditableField from './EditableField';
 import RelationshipList from './RelationshipList';
@@ -191,8 +192,7 @@ export default function ContactInformation({
           />
 
           <EditableField
-            icon={null}
-            label={t('contactDetail.additionalInfo')}
+            icon={<NotesIcon sx={{ mr: 1, mt: 0.5, color: 'text.secondary', fontSize: '1.2rem' }} />}            label={t('contactDetail.additionalInfo')}
             field="contact_information"
             value={contact.contact_information || ''}
             multiline
@@ -209,7 +209,7 @@ export default function ContactInformation({
           {customFieldNames.map((fieldName) => (
             <EditableField
               key={`custom_field_${fieldName}`}
-              icon={<TuneIcon sx={{ mr: 1, color: 'text.secondary', fontSize: '1.2rem' }} />}
+              icon={<RadioButtonUncheckedIcon sx={{ mr: 1, mt: 0.5,color: 'text.secondary', fontSize: '1.2rem' }} />}
               label={fieldName}
               field={`custom_field_${fieldName}`}
               value={contact.custom_fields?.[fieldName] || ''}

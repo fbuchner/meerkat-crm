@@ -243,6 +243,11 @@ var (
 	// Tracks failed attempts per username/email with exponential backoff
 	// This is the primary brute force protection mechanism
 	accountLimiter = NewAccountRateLimiter(AccountLockoutTTL)
+
+	// cleanupDone is used to signal the cleanup goroutine to stop
+	cleanupDone chan struct{}
+	// cleanupMu protects cleanupDone from concurrent access
+	cleanupMu sync.Mutex
 )
 
 // GetAccountRateLimiter returns the global account rate limiter for login attempts
@@ -250,18 +255,49 @@ func GetAccountRateLimiter() *AccountRateLimiter {
 	return accountLimiter
 }
 
-// Start cleanup routine to prevent memory leaks
-func init() {
-	// Clean up stale entries every 5 minutes
+// StartCleanupRoutine starts the background cleanup goroutine.
+// It is safe to call multiple times; only one routine will run at a time.
+func StartCleanupRoutine() {
+	cleanupMu.Lock()
+	defer cleanupMu.Unlock()
+
+	// Already running
+	if cleanupDone != nil {
+		return
+	}
+
+	cleanupDone = make(chan struct{})
 	go func() {
 		ticker := time.NewTicker(5 * time.Minute)
 		defer ticker.Stop()
-		for range ticker.C {
-			authLimiter.CleanupStaleEntries()
-			apiLimiter.CleanupStaleEntries()
-			accountLimiter.CleanupStaleAccountEntries()
+		for {
+			select {
+			case <-ticker.C:
+				authLimiter.CleanupStaleEntries()
+				apiLimiter.CleanupStaleEntries()
+				accountLimiter.CleanupStaleAccountEntries()
+			case <-cleanupDone:
+				return
+			}
 		}
 	}()
+}
+
+// StopCleanupRoutine stops the background cleanup goroutine.
+// It is safe to call multiple times or when the routine is not running.
+func StopCleanupRoutine() {
+	cleanupMu.Lock()
+	defer cleanupMu.Unlock()
+
+	if cleanupDone != nil {
+		close(cleanupDone)
+		cleanupDone = nil
+	}
+}
+
+// Start cleanup routine automatically on package init
+func init() {
+	StartCleanupRoutine()
 }
 
 // RateLimitMiddleware creates a rate limiting middleware

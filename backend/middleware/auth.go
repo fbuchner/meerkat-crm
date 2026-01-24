@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"fmt"
 	"meerkat/config"
 	"net/http"
@@ -36,22 +37,20 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 		})
 
 		if err != nil {
-			if ve, ok := err.(*jwt.ValidationError); ok {
-				if ve.Errors&jwt.ValidationErrorExpired != 0 {
-					c.JSON(http.StatusUnauthorized, gin.H{"error": "Token expired"})
-					c.Abort()
-					return
-				}
-				if ve.Errors&jwt.ValidationErrorMalformed != 0 {
-					c.JSON(http.StatusUnauthorized, gin.H{"error": "Malformed token"})
-					c.Abort()
-					return
-				}
-				if ve.Errors&jwt.ValidationErrorSignatureInvalid != 0 {
-					c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token signature"})
-					c.Abort()
-					return
-				}
+			if errors.Is(err, jwt.ErrTokenExpired) {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Token expired"})
+				c.Abort()
+				return
+			}
+			if errors.Is(err, jwt.ErrTokenMalformed) {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Malformed token"})
+				c.Abort()
+				return
+			}
+			if errors.Is(err, jwt.ErrSignatureInvalid) {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token signature"})
+				c.Abort()
+				return
 			}
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()

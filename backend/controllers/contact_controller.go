@@ -58,7 +58,7 @@ func CreateContact(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Contact created successfully", "contact": contact})
+	c.JSON(http.StatusCreated, gin.H{"message": "Contact created successfully", "contact": contact})
 }
 
 func GetContacts(c *gin.Context) {
@@ -319,7 +319,10 @@ func UpdateContact(c *gin.Context) {
 
 	db.Save(&contact)
 
-	c.JSON(http.StatusOK, contact)
+	if err := db.Save(&contact).Error; err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update contact").WithError(err))
+		return
+	}
 }
 
 func DeleteContact(c *gin.Context) {

@@ -234,7 +234,7 @@ function DashboardPage({ token }: DashboardPageProps) {
                   <CardContent sx={{ py: 1.5 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                       <Avatar
-                        src={birthday.thumbnail_url || undefined}
+                        src={birthday.type === 'contact' ? birthday.thumbnail_url : undefined}
                         sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}
                       >
                         {birthday.name.charAt(0)}

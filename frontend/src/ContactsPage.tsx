@@ -32,7 +32,9 @@ export default function ContactsPage({ token }: { token: string }) {
   const page = parseInt(searchParams.get('page') || '1', 10);
   const [selectedCircle, setSelectedCircle] = useState('');
   const [circles, setCircles] = useState<string[]>([]);
-  const [sortOption, setSortOption] = useState('id-desc');
+  const [sortOption, setSortOption] = useState(() => {
+    return localStorage.getItem('contacts-sort-option') || 'id-desc';
+  });
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [customFieldNames, setCustomFieldNames] = useState<string[]>([]);
@@ -40,6 +42,11 @@ export default function ContactsPage({ token }: { token: string }) {
 
   // Parse sort option into field and order
   const [sortField, sortOrder] = sortOption.split('-');
+
+  // Persist sort option to localStorage
+  useEffect(() => {
+    localStorage.setItem('contacts-sort-option', sortOption);
+  }, [sortOption]);
 
   // Helper to update page in URL
   const setPage = useCallback((newPage: number) => {

@@ -15,7 +15,8 @@ func GetUpcomingBirthdays(db *gorm.DB, userID uint) ([]models.Birthday, error) {
 	now := time.Now()
 	currentDay := now.Format("02")
 	currentMonth := now.Format("01")
-	nextMonth := now.AddDate(0, 1, 0).Format("01")
+	// Use first day of next month to avoid overflow when current day doesn't exist in next month
+	nextMonth := time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, now.Location()).Format("01")
 
 	var birthdays []models.Birthday
 

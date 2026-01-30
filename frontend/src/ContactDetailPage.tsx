@@ -192,6 +192,14 @@ export default function ContactDetailPage({ token }: { token: string }) {
     }
   }, [token]);
 
+  // Fields to fetch for contact (excludes associations loaded separately)
+  const CONTACT_FIELDS = [
+    'ID', 'firstname', 'lastname', 'nickname', 'gender',
+    'email', 'phone', 'birthday', 'address', 'how_we_met',
+    'food_preference', 'work_information', 'contact_information',
+    'circles', 'photo', 'custom_fields'
+  ];
+
   // Fetch contact details, notes, and activities
   useEffect(() => {
     if (!id) return;
@@ -200,26 +208,27 @@ export default function ContactDetailPage({ token }: { token: string }) {
 
     const fetchData = async () => {
       try {
-        const contactData = await getContact(id, token);
+        // First batch: parallel fetch of core data
+        const [contactData, notesData, activitiesData, fieldNames] = await Promise.all([
+          getContact(id, token, CONTACT_FIELDS),
+          getContactNotes(id, token),
+          getContactActivities(id, token),
+          getCustomFieldNames(token).catch(err => {
+            console.error('Error fetching custom field names:', err);
+            return [];
+          })
+        ]);
+
         setContact(contactData);
-
-        const notesData = await getContactNotes(id, token);
         setNotes(notesData.notes || []);
-
-        const activitiesData = await getContactActivities(id, token);
         setActivities(activitiesData.activities || []);
+        setCustomFieldNames(fieldNames);
 
-        await refreshReminders();
-        await refreshRelationships();
-        await fetchCircles();
-
-        // Fetch custom field names
-        try {
-          const fieldNames = await getCustomFieldNames(token);
-          setCustomFieldNames(fieldNames);
-        } catch (err) {
-          console.error('Error fetching custom field names:', err);
-        }
+        // Second batch: refresh reminders and relationships in parallel
+        await Promise.all([
+          refreshReminders(),
+          refreshRelationships()
+        ]);
 
         // Only fetch profile picture if contact has one (avoid unnecessary 404)
         if (contactData.photo) {
@@ -252,7 +261,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
         URL.revokeObjectURL(currentBlobUrl);
       }
     };
-  }, [id, token, refreshReminders, refreshRelationships, fetchCircles]);
+  }, [id, token, refreshReminders, refreshRelationships]);
 
   // Combine and sort notes and activities for timeline
   const timelineItems: Array<{ type: 'note' | 'activity'; data: Note | Activity; date: string }> = [
@@ -489,7 +498,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     if (!id) return;
 
     await uploadProfilePicture(id, croppedImageBlob, token);
-    
+
     // Refresh the profile picture
     const blob = await getContactProfilePicture(id, token);
     if (blob) {
@@ -499,6 +508,14 @@ export default function ContactDetailPage({ token }: { token: string }) {
       }
       setProfilePic(URL.createObjectURL(blob));
     }
+  };
+
+  // Lazy-load circles only when entering edit mode
+  const handleToggleEditCircles = async () => {
+    if (!editingCircles) {
+      await fetchCircles();
+    }
+    setEditingCircles(!editingCircles);
   };
 
   if (loading) {
@@ -537,7 +554,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
         onSaveProfile={handleSaveProfile}
         onDeleteContact={handleDeleteContact}
         onProfileValueChange={setProfileValues}
-        onToggleEditCircles={() => setEditingCircles(!editingCircles)}
+        onToggleEditCircles={handleToggleEditCircles}
         onAddCircle={handleAddCircle}
         onDeleteCircle={handleDeleteCircle}
         onNewCircleNameChange={setNewCircleName}

@@ -7,7 +7,9 @@ import {
   getContactProfilePicture,
   deleteContact,
   uploadProfilePicture,
-  getCircles
+  getCircles,
+  archiveContact,
+  unarchiveContact
 } from './api/contacts';
 import { getCustomFieldNames } from './api/users';
 import { 
@@ -70,6 +72,7 @@ interface Contact {
   notes?: Note[];
   activities?: Activity[];
   custom_fields?: Record<string, string>;
+  archived?: boolean;
 }
 
 export default function ContactDetailPage({ token }: { token: string }) {
@@ -197,7 +200,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     'ID', 'firstname', 'lastname', 'nickname', 'gender',
     'email', 'phone', 'birthday', 'address', 'how_we_met',
     'food_preference', 'work_information', 'contact_information',
-    'circles', 'photo', 'custom_fields'
+    'circles', 'photo', 'custom_fields', 'archived'
   ];
 
   // Fetch contact details, notes, and activities
@@ -466,10 +469,10 @@ export default function ContactDetailPage({ token }: { token: string }) {
   const handleDeleteContact = async () => {
     if (!contact || !id) return;
 
-    const confirmMessage = t('contactDetail.confirmDeleteContact', { 
-      name: `${contact.firstname} ${contact.lastname}` 
+    const confirmMessage = t('contactDetail.confirmDeleteContact', {
+      name: `${contact.firstname} ${contact.lastname}`
     });
-    
+
     if (!window.confirm(confirmMessage)) {
       return;
     }
@@ -480,6 +483,43 @@ export default function ContactDetailPage({ token }: { token: string }) {
     } catch (err) {
       console.error('Error deleting contact:', err);
       alert(t('contactDetail.deleteContactError'));
+    }
+  };
+
+  const handleArchiveContact = async () => {
+    if (!contact || !id) return;
+
+    const confirmMessage = t('contactDetail.archiveConfirmation');
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      const updatedContact = await archiveContact(id, token);
+      setContact({ ...contact, archived: updatedContact.archived });
+    } catch (err) {
+      console.error('Error archiving contact:', err);
+      if (err instanceof ApiError) {
+        showError(err.getDisplayMessage());
+      } else {
+        showError(t('contactDetail.updateError'));
+      }
+    }
+  };
+
+  const handleUnarchiveContact = async () => {
+    if (!contact || !id) return;
+
+    try {
+      const updatedContact = await unarchiveContact(id, token);
+      setContact({ ...contact, archived: updatedContact.archived });
+    } catch (err) {
+      console.error('Error unarchiving contact:', err);
+      if (err instanceof ApiError) {
+        showError(err.getDisplayMessage());
+      } else {
+        showError(t('contactDetail.updateError'));
+      }
     }
   };
 
@@ -559,7 +599,9 @@ export default function ContactDetailPage({ token }: { token: string }) {
         onDeleteCircle={handleDeleteCircle}
         onNewCircleNameChange={setNewCircleName}
         onUploadProfilePicture={() => setProfilePictureDialogOpen(true)}
-        onStayInTouch={handleStayInTouch}
+        onStayInTouch={contact.archived ? undefined : handleStayInTouch}
+        onArchiveContact={contact.archived ? undefined : handleArchiveContact}
+        onUnarchiveContact={contact.archived ? handleUnarchiveContact : undefined}
       />
 
       {/* General Information and Timeline - Two Column Layout */}

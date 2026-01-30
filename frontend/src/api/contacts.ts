@@ -19,6 +19,7 @@ export interface Contact {
   circles?: string[];
   photo_thumbnail?: string;
   custom_fields?: Record<string, string>;
+  archived?: boolean;
 }
 
 export interface Birthday {
@@ -45,6 +46,8 @@ export interface GetContactsParams {
   circle?: string;
   sort?: string;
   order?: string;
+  includeArchived?: boolean;
+  archived?: boolean;
 }
 
 // Get all contacts with pagination and filters
@@ -52,7 +55,7 @@ export async function getContacts(
   params: GetContactsParams,
   token: string
 ): Promise<ContactsResponse> {
-  const { page = 1, limit = 25, search = '', circle = '', sort, order } = params;
+  const { page = 1, limit = 25, search = '', circle = '', sort, order, includeArchived, archived } = params;
 
   const queryParams = new URLSearchParams({
     page: page.toString(),
@@ -63,8 +66,10 @@ export async function getContacts(
   if (circle) queryParams.append('circle', circle);
   if (sort) queryParams.append('sort', sort);
   if (order) queryParams.append('order', order);
+  if (includeArchived) queryParams.append('include_archived', 'true');
+  if (archived !== undefined) queryParams.append('archived', archived.toString());
 
-  queryParams.append('fields', 'ID,firstname,lastname,nickname,circles,photo_thumbnail');
+  queryParams.append('fields', 'ID,firstname,lastname,nickname,circles,photo_thumbnail,archived');
 
   const response = await apiFetch(
     `${API_BASE_URL}/contacts?${queryParams.toString()}`,
@@ -251,4 +256,44 @@ export async function getUpcomingBirthdays(token: string): Promise<Birthday[]> {
 
   const data = await response.json();
   return data.birthdays || [];
+}
+
+// Archive a contact (deletes all reminders)
+export async function archiveContact(
+  id: string | number,
+  token: string
+): Promise<Contact> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/contacts/${id}/archive`,
+    {
+      method: 'POST',
+      headers: getAuthHeaders(token),
+    }
+  );
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  return response.json();
+}
+
+// Unarchive a contact
+export async function unarchiveContact(
+  id: string | number,
+  token: string
+): Promise<Contact> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/contacts/${id}/unarchive`,
+    {
+      method: 'POST',
+      headers: getAuthHeaders(token),
+    }
+  );
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  return response.json();
 }

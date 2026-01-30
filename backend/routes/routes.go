@@ -50,6 +50,8 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB) {
 			protected.GET("/contacts/:id", controllers.GetContact)
 			protected.PUT("/contacts/:id", middleware.ValidateJSONMiddleware(&models.ContactInput{}), controllers.UpdateContact)
 			protected.DELETE("/contacts/:id", controllers.DeleteContact)
+			protected.POST("/contacts/:id/archive", controllers.ArchiveContact)
+			protected.POST("/contacts/:id/unarchive", controllers.UnarchiveContact)
 
 			// Contact import routes (CSV)
 			protected.POST("/contacts/import/upload", controllers.UploadCSVForImport)

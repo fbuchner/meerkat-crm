@@ -128,6 +128,8 @@
       "nameZA": "Name Z-A",
       "random": "Random"
     },
+    "showArchived": "Show archived",
+    "archived": "Archived",
     "import": {
       "button": "Import",
       "title": "Import Contacts",
@@ -232,7 +234,11 @@
     "deleteContactError": "Failed to delete contact. Please try again.",
     "updateError": "Failed to update contact. Please check your input and try again.",
     "stayInTouch": "Stay in Touch",
-    "catchUpWith": "Catch-up with {{name}}"
+    "catchUpWith": "Catch-up with {{name}}",
+    "archive": "Archive",
+    "unarchive": "Unarchive",
+    "archivedBadge": "Archived",
+    "archiveConfirmation": "Are you sure you want to archive this contact? All reminders will be deleted. You can unarchive later, but reminders won't be restored."
   },
   "noteDialog": {
     "title": "Add Note",

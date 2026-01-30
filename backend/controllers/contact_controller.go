@@ -73,7 +73,7 @@ func GetContacts(c *gin.Context) {
 	pagination := GetPaginationParams(c)
 
 	// Define allowed fields and parse requested fields with validation
-	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail", "custom_fields"}
+	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail", "custom_fields", "archived"}
 	var selectedFields []string
 	fields := c.Query("fields")
 	if fields != "" {
@@ -112,10 +112,27 @@ func GetContacts(c *gin.Context) {
 		sortOrder = "desc"
 	}
 
+	// Parse archive filtering parameters
+	includeArchived := c.Query("include_archived") == "true"
+	archivedOnly := c.Query("archived") == "true"
+
 	var contacts []models.Contact
 	query := db.Model(&models.Contact{}).Where("user_id = ?", userID).Limit(pagination.Limit).Offset(pagination.Offset)
 
+	// Apply archive filtering
+	if !includeArchived {
+		if archivedOnly {
+			query = query.Where("archived = ?", true)
+		} else {
+			query = query.Where("archived = ?", false)
+		}
+	}
+
 	// Apply ordering - random uses RANDOM() function, others use column name
+	// For search with include_archived, order non-archived first
+	if includeArchived && c.Query("search") != "" {
+		query = query.Order("archived ASC")
+	}
 	if sortField == "random" {
 		query = query.Order("RANDOM()")
 	} else {
@@ -161,6 +178,15 @@ func GetContacts(c *gin.Context) {
 	var total int64
 	countQuery := db.Model(&models.Contact{}).Where("user_id = ?", userID)
 
+	// Apply the same archive filter to the count query
+	if !includeArchived {
+		if archivedOnly {
+			countQuery = countQuery.Where("archived = ?", true)
+		} else {
+			countQuery = countQuery.Where("archived = ?", false)
+		}
+	}
+
 	// Apply the same search filters to the count query
 	if searchTerm := c.Query("search"); searchTerm != "" {
 		searchTermParam := "%" + searchTerm + "%"
@@ -202,7 +228,7 @@ func GetContactsRandom(c *gin.Context) {
 	var selectedFields = []string{"ID", "firstname", "lastname", "nickname", "circles", "photo_thumbnail"}
 
 	var contacts []models.Contact
-	query := db.Model(&models.Contact{}).Where("user_id = ?", userID)
+	query := db.Model(&models.Contact{}).Where("user_id = ?", userID).Where("archived = ?", false)
 
 	if len(selectedFields) > 0 {
 		query = query.Select(selectedFields)
@@ -262,7 +288,7 @@ func GetContact(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
 	// Check for fields query parameter to enable partial fetching
-	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail", "custom_fields"}
+	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail", "custom_fields", "archived"}
 	var selectedFields []string
 	fields := c.Query("fields")
 	if fields != "" {
@@ -465,4 +491,77 @@ func GetCircles(c *gin.Context) {
 
 	// Return the list of unique circle names
 	c.JSON(http.StatusOK, circleNames)
+}
+
+// ArchiveContact archives a contact and deletes all its reminders
+func ArchiveContact(c *gin.Context) {
+	id := c.Param("id")
+	db := c.MustGet("db").(*gorm.DB)
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	var contact models.Contact
+	if err := db.Where("user_id = ?", userID).First(&contact, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", id))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve contact").WithError(err))
+		}
+		return
+	}
+
+	// Archive contact and delete reminders in a transaction
+	err := db.Transaction(func(tx *gorm.DB) error {
+		// Delete all reminders for this contact
+		if err := tx.Where("contact_id = ? AND user_id = ?", id, userID).Delete(&models.Reminder{}).Error; err != nil {
+			return err
+		}
+
+		// Set archived to true
+		if err := tx.Model(&contact).Update("archived", true).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to archive contact").WithError(err))
+		return
+	}
+
+	contact.Archived = true
+	c.JSON(http.StatusOK, contact)
+}
+
+// UnarchiveContact restores an archived contact
+func UnarchiveContact(c *gin.Context) {
+	id := c.Param("id")
+	db := c.MustGet("db").(*gorm.DB)
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	var contact models.Contact
+	if err := db.Where("user_id = ?", userID).First(&contact, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", id))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve contact").WithError(err))
+		}
+		return
+	}
+
+	if err := db.Model(&contact).Update("archived", false).Error; err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to unarchive contact").WithError(err))
+		return
+	}
+
+	contact.Archived = false
+	c.JSON(http.StatusOK, contact)
 }

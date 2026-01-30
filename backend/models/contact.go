@@ -37,6 +37,8 @@ type Contact struct {
 
 	// Custom fields (user-defined string fields)
 	CustomFields map[string]string `gorm:"type:text;serializer:json" json:"custom_fields"`
+
+	Archived bool `gorm:"default:false" json:"archived"`
 }
 
 // BeforeCreate generates VCardUID for new contacts

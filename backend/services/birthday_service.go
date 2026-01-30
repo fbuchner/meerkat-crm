@@ -26,6 +26,7 @@ func GetUpcomingBirthdays(db *gorm.DB, userID uint) ([]models.Birthday, error) {
 	var contacts []models.Contact
 	contactQuery := db.Model(&models.Contact{}).
 		Where("user_id = ?", userID).
+		Where("archived = ?", false).
 		Where("birthday IS NOT NULL AND birthday != ''").
 		Where(
 			db.Where("SUBSTR(birthday, LENGTH(birthday) - 4, 2) = ? AND SUBSTR(birthday, LENGTH(birthday) - 1, 2) >= ?", currentMonth, currentDay).
@@ -56,16 +57,18 @@ func GetUpcomingBirthdays(db *gorm.DB, userID uint) ([]models.Birthday, error) {
 	}
 
 	// Query upcoming relationship birthdays (only those without their own contact)
+	// Exclude relationships whose parent contact is archived
 	// Birthday format is now YYYY-MM-DD or --MM-DD (ISO 8601)
 	var relationships []models.Relationship
 	relationshipQuery := db.Model(&models.Relationship{}).
+		Joins("JOIN contacts ON contacts.id = relationships.contact_id AND contacts.archived = ?", false).
 		Preload("RelatedContact").
-		Where("user_id = ?", userID).
+		Where("relationships.user_id = ?", userID).
 		Where("related_contact_id IS NULL").
-		Where("birthday IS NOT NULL AND birthday != ''").
+		Where("relationships.birthday IS NOT NULL AND relationships.birthday != ''").
 		Where(
-			db.Where("SUBSTR(birthday, LENGTH(birthday) - 4, 2) = ? AND SUBSTR(birthday, LENGTH(birthday) - 1, 2) >= ?", currentMonth, currentDay).
-				Or("SUBSTR(birthday, LENGTH(birthday) - 4, 2) = ?", nextMonth),
+			db.Where("SUBSTR(relationships.birthday, LENGTH(relationships.birthday) - 4, 2) = ? AND SUBSTR(relationships.birthday, LENGTH(relationships.birthday) - 1, 2) >= ?", currentMonth, currentDay).
+				Or("SUBSTR(relationships.birthday, LENGTH(relationships.birthday) - 4, 2) = ?", nextMonth),
 		)
 
 	if err := relationshipQuery.Find(&relationships).Error; err != nil {

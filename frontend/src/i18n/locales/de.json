@@ -128,6 +128,8 @@
       "nameZA": "Name Z-A",
       "random": "Zufällig"
     },
+    "showArchived": "Archivierte anzeigen",
+    "archived": "Archiviert",
     "import": {
       "button": "Importieren",
       "title": "Kontakte importieren",
@@ -232,7 +234,11 @@
     "deleteContactError": "Kontakt konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
     "updateError": "Kontakt konnte nicht aktualisiert werden. Bitte überprüfen Sie Ihre Eingabe und versuchen Sie es erneut.",
     "stayInTouch": "In Kontakt bleiben",
-    "catchUpWith": "Treffen mit {{name}}"
+    "catchUpWith": "Treffen mit {{name}}",
+    "archive": "Archivieren",
+    "unarchive": "Wiederherstellen",
+    "archivedBadge": "Archiviert",
+    "archiveConfirmation": "Möchten Sie diesen Kontakt wirklich archivieren? Alle Erinnerungen werden gelöscht. Sie können den Kontakt später wiederherstellen, aber die Erinnerungen werden nicht wiederhergestellt."
   },
   "noteDialog": {
     "title": "Notiz hinzufügen",

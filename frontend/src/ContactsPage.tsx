@@ -18,7 +18,9 @@ import {
   FormControl,
   InputLabel,
   Pagination,
-  Button
+  Button,
+  FormControlLabel,
+  Switch
 } from '@mui/material';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
@@ -38,6 +40,7 @@ export default function ContactsPage({ token }: { token: string }) {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [customFieldNames, setCustomFieldNames] = useState<string[]>([]);
+  const [showArchived, setShowArchived] = useState(false);
   const pageSize = 10;
 
   // Parse sort option into field and order
@@ -69,7 +72,8 @@ export default function ContactsPage({ token }: { token: string }) {
     circle: selectedCircle,
     sort: sortField,
     order: sortOrder,
-  }), [page, searchQuery, selectedCircle, sortField, sortOrder]);
+    includeArchived: showArchived,
+  }), [page, searchQuery, selectedCircle, sortField, sortOrder, showArchived]);
 
   // Use custom hook for fetching contacts
   const { contacts, total: totalContacts, loading, refetch } = useContacts(contactParams);
@@ -155,6 +159,17 @@ export default function ContactsPage({ token }: { token: string }) {
             <MenuItem value="random-asc">{t('contacts.sort.random')}</MenuItem>
           </Select>
         </FormControl>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+              size="small"
+            />
+          }
+          label={t('contacts.showArchived')}
+          sx={{ ml: 0.5, whiteSpace: 'nowrap' }}
+        />
         <Button
           variant="outlined"
           startIcon={<FileUploadIcon />}
@@ -206,13 +221,14 @@ export default function ContactsPage({ token }: { token: string }) {
         <>
           <Stack spacing={2}>
             {filteredContacts.map(contact => (
-              <Card 
-                key={contact.ID} 
-                sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
+              <Card
+                key={contact.ID}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
                   p: 1.5,
                   cursor: 'pointer',
+                  opacity: contact.archived ? 0.6 : 1,
                   '&:hover': {
                     bgcolor: 'action.hover'
                   }
@@ -223,9 +239,19 @@ export default function ContactsPage({ token }: { token: string }) {
                   {contact.firstname.charAt(0)}
                 </Avatar>
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                    {contact.firstname} {contact.nickname && `"${contact.nickname}"`} {contact.lastname}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {contact.firstname} {contact.nickname && `"${contact.nickname}"`} {contact.lastname}
+                    </Typography>
+                    {contact.archived && (
+                      <Chip
+                        label={t('contacts.archived')}
+                        size="small"
+                        color="default"
+                        sx={{ height: 20, fontSize: '0.7rem' }}
+                      />
+                    )}
+                  </Box>
                   <Stack direction="row" spacing={0.5} mt={0.5} flexWrap="wrap" gap={0.5}>
                     {contact.circles && contact.circles.filter((circle, idx, arr) => arr.indexOf(circle) === idx).map((circle: string) => (
                       <Chip

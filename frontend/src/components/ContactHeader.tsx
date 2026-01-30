@@ -6,6 +6,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import AutoModeIcon from '@mui/icons-material/AutoMode';
+import ArchiveIcon from '@mui/icons-material/Archive';
+import UnarchiveIcon from '@mui/icons-material/Unarchive';
 import { useTranslation } from 'react-i18next';
 
 interface ContactHeaderProps {
@@ -16,6 +18,7 @@ interface ContactHeaderProps {
     nickname?: string;
     gender?: string;
     circles?: string[];
+    archived?: boolean;
   };
   profilePic: string;
   editingProfile: boolean;
@@ -39,6 +42,8 @@ interface ContactHeaderProps {
   onNewCircleNameChange: (name: string) => void;
   onUploadProfilePicture: () => void;
   onStayInTouch?: () => void;
+  onArchiveContact?: () => void;
+  onUnarchiveContact?: () => void;
 }
 
 export default function ContactHeader({
@@ -59,7 +64,9 @@ export default function ContactHeader({
   onDeleteCircle,
   onNewCircleNameChange,
   onUploadProfilePicture,
-  onStayInTouch
+  onStayInTouch,
+  onArchiveContact,
+  onUnarchiveContact
 }: ContactHeaderProps) {
   const { t } = useTranslation();
 
@@ -168,6 +175,14 @@ export default function ContactHeader({
             ) : (
               // View Mode
               <>
+                {contact.archived && (
+                  <Chip
+                    label={t('contactDetail.archivedBadge')}
+                    color="warning"
+                    size="small"
+                    sx={{ mb: 1 }}
+                  />
+                )}
                 <Box
                   sx={{
                     display: 'flex',
@@ -195,17 +210,45 @@ export default function ContactHeader({
                       <EditIcon fontSize="small" />
                     </IconButton>
                   </Box>
-                  {onStayInTouch && (
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<AutoModeIcon />}
-                      onClick={onStayInTouch}
-                      sx={{ ml: 2, flexShrink: 0 }}
-                    >
-                      {t('contactDetail.stayInTouch')}
-                    </Button>
-                  )}
+                  <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+                    {contact.archived ? (
+                      onUnarchiveContact && (
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          color="success"
+                          startIcon={<UnarchiveIcon />}
+                          onClick={onUnarchiveContact}
+                        >
+                          {t('contactDetail.unarchive')}
+                        </Button>
+                      )
+                    ) : (
+                      <>
+                        {onStayInTouch && (
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<AutoModeIcon />}
+                            onClick={onStayInTouch}
+                          >
+                            {t('contactDetail.stayInTouch')}
+                          </Button>
+                        )}
+                        {onArchiveContact && (
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            color="warning"
+                            startIcon={<ArchiveIcon />}
+                            onClick={onArchiveContact}
+                          >
+                            {t('contactDetail.archive')}
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </Box>
                 </Box>
                 {contact.gender && (
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>

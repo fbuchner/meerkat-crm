@@ -101,6 +101,14 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
     window.location.href = '/login';
   };
 
+  const handleSearchSubmit = () => {
+    if (searchQuery.trim()) {
+      navigate(`/contacts?search=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery('');
+      setSearchResults([]);
+    }
+  };
+
   const navItems = [
     { text: t('nav.dashboard'), icon: <DashboardIcon />, path: '/' },
     { text: t('nav.contacts'), icon: <ContactsIcon />, path: '/contacts' },
@@ -216,11 +224,8 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
               }
             }}
             onKeyDown={(event) => {
-              if (event.key === 'Enter' && searchQuery.trim()) {
-                // Navigate to contacts page with search query
-                navigate(`/contacts?search=${encodeURIComponent(searchQuery.trim())}`);
-                setSearchQuery('');
-                setSearchResults([]);
+              if (event.key === 'Enter') {
+                handleSearchSubmit();
               }
             }}
             inputValue={searchQuery}
@@ -259,7 +264,13 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
                   ...params.InputProps,
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon sx={{ color: 'rgba(255, 255, 255, 0.7)' }} />
+                      <IconButton
+                        size="small"
+                        onClick={handleSearchSubmit}
+                        sx={{ color: 'rgba(255, 255, 255, 0.7)', p: 0.5 }}
+                      >
+                        <SearchIcon />
+                      </IconButton>
                     </InputAdornment>
                   ),
                   endAdornment: searchQuery ? (

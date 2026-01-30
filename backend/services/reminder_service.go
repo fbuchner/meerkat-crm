@@ -323,11 +323,12 @@ func sendReminderEmail(user models.User, reminders []models.Reminder, config con
 		for _, birthday := range birthdays {
 			days := DaysUntilBirthday(birthday.Birthday, now)
 			var daysText string
-			if days == 0 {
+			switch days {
+			case 0:
 				daysText = i18n.T(lang, "email.reminder.today")
-			} else if days == 1 {
+			case 1:
 				daysText = i18n.T(lang, "email.reminder.tomorrow")
-			} else {
+			default:
 				daysText = i18n.T(lang, "email.reminder.inDays", map[string]string{"days": strconv.Itoa(days)})
 			}
 

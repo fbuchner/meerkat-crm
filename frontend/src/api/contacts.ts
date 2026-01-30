@@ -64,6 +64,8 @@ export async function getContacts(
   if (sort) queryParams.append('sort', sort);
   if (order) queryParams.append('order', order);
 
+  queryParams.append('fields', 'ID,firstname,lastname,nickname,circles,photo_thumbnail');
+
   const response = await apiFetch(
     `${API_BASE_URL}/contacts?${queryParams.toString()}`,
     { headers: getAuthHeaders(token) }
@@ -79,10 +81,16 @@ export async function getContacts(
 // Get single contact
 export async function getContact(
   id: string | number,
-  token: string
+  token: string,
+  fields?: string[]
 ): Promise<Contact> {
+  let url = `${API_BASE_URL}/contacts/${id}`;
+  if (fields && fields.length > 0) {
+    url += `?fields=${fields.join(',')}`;
+  }
+
   const response = await apiFetch(
-    `${API_BASE_URL}/contacts/${id}`,
+    url,
     { headers: getAuthHeaders(token) }
   );
 

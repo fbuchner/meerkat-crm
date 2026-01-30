@@ -258,15 +258,37 @@ func GetContact(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var contact models.Contact
+
 	db := c.MustGet("db").(*gorm.DB)
-	if err := db.
-		Where("user_id = ?", userID).
-		Preload("Notes", "notes.user_id = ?", userID).
-		Preload("Activities", "activities.user_id = ?", userID).
-		Preload("Relationships", "relationships.user_id = ?", userID).
-		Preload("Reminders", "reminders.user_id = ?", userID).
-		First(&contact, id).Error; err != nil {
+
+	// Check for fields query parameter to enable partial fetching
+	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail", "custom_fields"}
+	var selectedFields []string
+	fields := c.Query("fields")
+	if fields != "" {
+		for _, field := range strings.Split(fields, ",") {
+			if slices.Contains(allowedFields, field) {
+				selectedFields = append(selectedFields, field)
+			}
+		}
+	}
+
+	var contact models.Contact
+	query := db.Where("user_id = ?", userID)
+
+	if len(selectedFields) > 0 {
+		// Partial fetch: only select requested fields, skip preloading associations
+		query = query.Select(selectedFields)
+	} else {
+		// Full fetch: preload all associations
+		query = query.
+			Preload("Notes", "notes.user_id = ?", userID).
+			Preload("Activities", "activities.user_id = ?", userID).
+			Preload("Relationships", "relationships.user_id = ?", userID).
+			Preload("Reminders", "reminders.user_id = ?", userID)
+	}
+
+	if err := query.First(&contact, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", id))
 		} else {

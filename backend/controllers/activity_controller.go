@@ -81,7 +81,9 @@ func GetActivity(c *gin.Context) {
 		return
 	}
 
-	if err := db.Preload("Contacts", "contacts.user_id = ?", userID).Where("user_id = ?", userID).First(&activity, id).Error; err != nil {
+	if err := db.Preload("Contacts", func(db *gorm.DB) *gorm.DB {
+		return db.Select("ID", "Firstname", "Lastname", "PhotoThumbnail", "Circles").Where("user_id = ?", userID)
+	}).Where("user_id = ?", userID).First(&activity, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			apperrors.AbortWithError(c, apperrors.ErrNotFound("Activity").WithDetails("id", id))
 		} else {
@@ -141,7 +143,9 @@ func GetActivities(c *gin.Context) {
 		Offset(pagination.Offset)
 
 	if includeContacts {
-		query = query.Preload("Contacts", "contacts.user_id = ?", userID)
+		query = query.Preload("Contacts", func(db *gorm.DB) *gorm.DB {
+			return db.Select("ID", "Firstname", "Lastname", "PhotoThumbnail", "Circles").Where("user_id = ?", userID)
+		})
 		logger.FromContext(c).Debug().Msg("Preloading contacts for activities")
 	}
 
@@ -283,7 +287,9 @@ func GetActivitiesForContact(c *gin.Context) {
 
 	var activities []models.Activity
 	// Eager load contacts associated with each activity
-	if err := db.Preload("Contacts", "contacts.user_id = ?", userID).
+	if err := db.Preload("Contacts", func(db *gorm.DB) *gorm.DB {
+		return db.Select("ID", "Firstname", "Lastname", "PhotoThumbnail", "Circles").Where("user_id = ?", userID)
+	}).
 		Model(&models.Activity{}).
 		Where("activities.user_id = ?", userID).
 		Joins("JOIN activity_contacts ON activities.id = activity_contacts.activity_id").

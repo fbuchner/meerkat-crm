@@ -65,15 +65,16 @@ function DashboardPage({ token }: DashboardPageProps) {
       const newContactsMap: Record<number, Contact> = {};
       random.forEach(c => { newContactsMap[c.ID] = c; });
 
-      // Fetch missing contacts for reminders
+      // Fetch missing contacts for reminders (only load required fields)
       const missingContactIds = reminders
         .map(r => r.contact_id)
         .filter(id => !newContactsMap[id]);
       const uniqueMissingIds = Array.from(new Set(missingContactIds));
 
       if (uniqueMissingIds.length > 0) {
+        const minimalFields = ['ID', 'firstname', 'lastname', 'nickname'];
         const fetchedContacts = await Promise.all(
-          uniqueMissingIds.map(id => getContact(id, token).catch(() => null))
+          uniqueMissingIds.map(id => getContact(id, token, minimalFields).catch(() => null))
         );
         fetchedContacts.forEach(c => {
           if (c) newContactsMap[c.ID] = c;

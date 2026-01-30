@@ -20,40 +20,29 @@ import (
 )
 
 func RegisterUser(context *gin.Context) {
-	// Get validated user from middleware
-	validated, exists := context.Get("validated")
-	if !exists {
-		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("", "validation data not found"))
-		return
-	}
-
-	userPtr, ok := validated.(*models.User)
-	if !ok {
-		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("", "invalid validation data type"))
-		return
-	}
-	user := *userPtr
-
-	// Normalize email and username to lowercase for case-insensitive matching
-	user.Email = strings.ToLower(user.Email)
-	user.Username = strings.ToLower(user.Username)
-
-	if user.Email == "" {
-		apperrors.AbortWithError(context, apperrors.ErrMissingField("email"))
-		return
-	}
-
-	if user.Password == "" {
-		apperrors.AbortWithError(context, apperrors.ErrMissingField("password"))
-		return
-	}
-
-	hashedPassword, err := services.HashPassword(user.Password)
+	// Get validated registration input from middleware
+	// Uses UserRegistrationInput DTO which intentionally excludes IsAdmin to prevent mass assignment
+	input, err := middleware.GetValidated[models.UserRegistrationInput](context)
 	if err != nil {
-		apperrors.AbortWithError(context, apperrors.ErrInternal("Could not hash password").WithError(err))
+		apperrors.AbortWithError(context, err)
 		return
 	}
-	user.Password = hashedPassword
+
+	hashedPassword, hashErr := services.HashPassword(input.Password)
+	if hashErr != nil {
+		apperrors.AbortWithError(context, apperrors.ErrInternal("Could not hash password").WithError(hashErr))
+		return
+	}
+
+	// Create user from validated input - IsAdmin defaults to false via GORM
+	// and cannot be set via the registration DTO (mass assignment protection)
+	user := models.User{
+		Username: strings.ToLower(input.Username),
+		Email:    strings.ToLower(input.Email),
+		Password: hashedPassword,
+		Language: input.Language,
+		// IsAdmin is intentionally not set here - defaults to false
+	}
 
 	db := context.MustGet("db").(*gorm.DB)
 	if err := db.Create(&user).Error; err != nil {

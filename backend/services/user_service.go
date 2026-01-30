@@ -33,11 +33,11 @@ func GenerateToken(user models.User, cfg *config.Config) (string, error) {
 		return "", errors.New("JWT expiry hours is invalid")
 	}
 
+	// Note: is_admin is intentionally NOT included in the JWT (AdminMiddleware handles this)
 	claims := jwt.MapClaims{
 		"authorized": true,
 		"username":   user.Username,
 		"user_id":    user.ID,
-		"is_admin":   user.IsAdmin,
 		"exp":        time.Now().Add(time.Hour * time.Duration(JWTExpiryHours)).Unix(),
 	}
 

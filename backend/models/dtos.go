@@ -41,6 +41,15 @@ type CustomFieldNamesInput struct {
 	Names []string `json:"names" validate:"dive,max=100,safe_string"`
 }
 
+// UserRegistrationInput represents the DTO for user registration
+// This DTO intentionally excludes IsAdmin to prevent mass assignment attacks
+type UserRegistrationInput struct {
+	Username string `json:"username" validate:"required,min=3,max=50,safe_string,no_at_sign"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8,strong_password"`
+	Language string `json:"language" validate:"omitempty,oneof=en de"`
+}
+
 // PasswordResetRequestInput captures email for initiating password reset
 type PasswordResetRequestInput struct {
 	Email string `json:"email" validate:"required,email"`

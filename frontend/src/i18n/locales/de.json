@@ -11,7 +11,8 @@
     "notes": "Notizen",
     "network": "Netzwerk",
     "reminders": "Erinnerungen",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "users": "Benutzer"
   },
   "dashboard": {
     "welcome": "Willkommen zum Meerkat CRM Dashboard",
@@ -483,5 +484,37 @@
       "neighbor": "Nachbar",
       "other": "Andere"
     }
+  },
+  "users": {
+    "title": "Benutzerverwaltung",
+    "loadError": "Benutzer konnten nicht geladen werden",
+    "noUsers": "Keine Benutzer gefunden",
+    "columns": {
+      "id": "ID",
+      "username": "Benutzername",
+      "email": "E-Mail",
+      "role": "Rolle",
+      "created": "Erstellt",
+      "actions": "Aktionen"
+    },
+    "roles": {
+      "admin": "Admin",
+      "user": "Benutzer"
+    },
+    "editDialog": {
+      "title": "Benutzer bearbeiten",
+      "username": "Benutzername",
+      "email": "E-Mail",
+      "password": "Neues Passwort",
+      "passwordHint": "Leer lassen, um aktuelles Passwort zu behalten",
+      "isAdmin": "Administrator"
+    },
+    "deleteDialog": {
+      "title": "Benutzer löschen",
+      "message": "Möchten Sie den Benutzer \"{{username}}\" wirklich löschen?",
+      "warning": "Dies löscht den Benutzer und alle seine Daten dauerhaft, einschließlich Kontakte, Aktivitäten, Notizen und Erinnerungen."
+    },
+    "updateError": "Benutzer konnte nicht aktualisiert werden",
+    "deleteError": "Benutzer konnte nicht gelöscht werden"
   }
 }

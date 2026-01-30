@@ -56,11 +56,34 @@ export interface AuthResponse {
  * User profile information
  */
 export interface User {
-  ID: number;
+  id: number;
   email: string;
+  username: string;
+  language: string;
+  is_admin: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Paginated list of users for admin
+ */
+export interface UsersListResponse {
+  users: User[];
+  total: number;
+  page: number;
+  limit: number;
+  total_pages: number;
+}
+
+/**
+ * Input for updating a user
+ */
+export interface UserUpdateInput {
   username?: string;
-  CreatedAt: string;
-  UpdatedAt: string;
+  email?: string;
+  password?: string;
+  is_admin?: boolean;
 }
 
 /**

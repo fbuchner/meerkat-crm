@@ -43,3 +43,42 @@ export function logoutAndRedirect() {
   localStorage.removeItem('jwt_token');
   window.location.href = '/login';
 }
+
+interface DecodedToken {
+  user_id: number;
+  username: string;
+  is_admin: boolean;
+  exp: number;
+}
+
+export function decodeToken(): DecodedToken | null {
+  const token = getToken();
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      return null;
+    }
+
+    const payload = parts[1];
+    const decoded = JSON.parse(atob(payload));
+
+    return {
+      user_id: decoded.user_id,
+      username: decoded.username,
+      is_admin: decoded.is_admin || false,
+      exp: decoded.exp,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Check if the current user is an admin based on JWT token
+export function isAdmin(): boolean {
+  const decoded = decodeToken();
+  return decoded?.is_admin || false;
+}

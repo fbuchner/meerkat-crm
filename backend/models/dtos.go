@@ -108,3 +108,31 @@ type GraphResponse struct {
 	Nodes []GraphNode `json:"nodes"`
 	Edges []GraphEdge `json:"edges"`
 }
+
+// AdminUserResponse - user data returned to admin (no password)
+type AdminUserResponse struct {
+	ID        uint      `json:"id"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	Language  string    `json:"language"`
+	IsAdmin   bool      `json:"is_admin"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// AdminUserUpdateInput - DTO for admin updating a user
+type AdminUserUpdateInput struct {
+	Username *string `json:"username" validate:"omitempty,min=3,max=50,safe_string,no_at_sign"`
+	Email    *string `json:"email" validate:"omitempty,email"`
+	Password *string `json:"password" validate:"omitempty,min=8,strong_password"`
+	IsAdmin  *bool   `json:"is_admin"`
+}
+
+// AdminUsersListResponse - paginated list of users
+type AdminUsersListResponse struct {
+	Users      []AdminUserResponse `json:"users"`
+	Total      int64               `json:"total"`
+	Page       int                 `json:"page"`
+	Limit      int                 `json:"limit"`
+	TotalPages int                 `json:"total_pages"`
+}

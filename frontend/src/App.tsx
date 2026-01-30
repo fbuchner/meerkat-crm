@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import ContactsPage from './ContactsPage';
 import ContactDetailPage from './ContactDetailPage';
 import ActivitiesPage from './ActivitiesPage';
@@ -6,9 +6,10 @@ import NotesPage from './NotesPage';
 import DashboardPage from './DashboardPage';
 import SettingsPage from './SettingsPage';
 import NetworkPage from './NetworkPage';
+import UsersPage from './UsersPage';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
-import { getToken, logoutUser } from './auth';
+import { getToken, logoutUser, isAdmin } from './auth';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -41,6 +42,7 @@ import EventNoteIcon from '@mui/icons-material/EventNote';
 import NoteIcon from '@mui/icons-material/Note';
 import HubIcon from '@mui/icons-material/Hub';
 import SettingsIcon from '@mui/icons-material/Settings';
+import PeopleIcon from '@mui/icons-material/People';
 import LogoutIcon from '@mui/icons-material/Logout';
 import './App.css';
 
@@ -109,14 +111,23 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
     }
   };
 
-  const navItems = [
-    { text: t('nav.dashboard'), icon: <DashboardIcon />, path: '/' },
-    { text: t('nav.contacts'), icon: <ContactsIcon />, path: '/contacts' },
-    { text: t('nav.activities'), icon: <EventNoteIcon />, path: '/activities' },
-    { text: t('nav.notes'), icon: <NoteIcon />, path: '/notes' },
-    { text: t('nav.network'), icon: <HubIcon />, path: '/network' },
-    { text: t('nav.settings'), icon: <SettingsIcon />, path: '/settings' }
-  ];
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- token changes trigger admin status recalculation
+  const userIsAdmin = useMemo(() => isAdmin(), [token]);
+
+  const navItems = useMemo(() => {
+    const items = [
+      { text: t('nav.dashboard'), icon: <DashboardIcon />, path: '/' },
+      { text: t('nav.contacts'), icon: <ContactsIcon />, path: '/contacts' },
+      { text: t('nav.activities'), icon: <EventNoteIcon />, path: '/activities' },
+      { text: t('nav.notes'), icon: <NoteIcon />, path: '/notes' },
+      { text: t('nav.network'), icon: <HubIcon />, path: '/network' },
+      { text: t('nav.settings'), icon: <SettingsIcon />, path: '/settings' },
+    ];
+    if (userIsAdmin) {
+      items.push({ text: t('nav.users'), icon: <PeopleIcon />, path: '/users' });
+    }
+    return items;
+  }, [t, userIsAdmin]);
 
   // Check if current path matches the nav item (handle exact match for "/" and prefix match for others)
   const isActiveRoute = (path: string) => {
@@ -360,6 +371,7 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
           <Route path="/activities" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ActivitiesPage token={token} /></Suspense>} />
           <Route path="/settings" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><SettingsPage /></Suspense>} />
           <Route path="/network" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><NetworkPage /></Suspense>} />
+          <Route path="/users" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><UsersPage token={token} /></Suspense>} />
           <Route path="/reminders" element={<div>{t('pages.reminders')}</div>} />
           <Route path="/" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><DashboardPage token={token} /></Suspense>} />
           <Route path="/login" element={<Navigate to="/" replace />} />

@@ -11,7 +11,8 @@
     "notes": "Notes",
     "network": "Network",
     "reminders": "Reminders",
-    "settings": "Settings"
+    "settings": "Settings",
+    "users": "Users"
   },
   "dashboard": {
     "welcome": "Welcome to Meerkat CRM Dashboard",
@@ -483,5 +484,37 @@
       "neighbor": "Neighbor",
       "other": "Other"
     }
+  },
+  "users": {
+    "title": "User Management",
+    "loadError": "Failed to load users",
+    "noUsers": "No users found",
+    "columns": {
+      "id": "ID",
+      "username": "Username",
+      "email": "Email",
+      "role": "Role",
+      "created": "Created",
+      "actions": "Actions"
+    },
+    "roles": {
+      "admin": "Admin",
+      "user": "User"
+    },
+    "editDialog": {
+      "title": "Edit User",
+      "username": "Username",
+      "email": "Email",
+      "password": "New Password",
+      "passwordHint": "Leave empty to keep current password",
+      "isAdmin": "Administrator"
+    },
+    "deleteDialog": {
+      "title": "Delete User",
+      "message": "Are you sure you want to delete user \"{{username}}\"?",
+      "warning": "This will permanently delete the user and all their data including contacts, activities, notes, and reminders."
+    },
+    "updateError": "Failed to update user",
+    "deleteError": "Failed to delete user"
   }
 }

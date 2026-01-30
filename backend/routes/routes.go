@@ -39,6 +39,7 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB) {
 			protected.PATCH("/users/language", controllers.UpdateLanguage)
 			protected.GET("/users/custom-fields", controllers.GetCustomFieldNames)
 			protected.PATCH("/users/custom-fields", middleware.ValidateJSONMiddleware(&models.CustomFieldNamesInput{}), controllers.UpdateCustomFieldNames)
+			protected.GET("/users/me", controllers.GetCurrentUser)
 
 			// Contact routes
 			protected.GET("/contacts", controllers.GetContacts)
@@ -116,6 +117,18 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB) {
 
 			// Graph/Network visualization route
 			protected.GET("/graph", controllers.GetGraph)
+		}
+
+		// Admin routes (admin authentication required)
+		admin := v1.Group("/admin")
+		admin.Use(middleware.APIRateLimitMiddleware())
+		admin.Use(middleware.AuthMiddleware(cfg))
+		admin.Use(middleware.AdminMiddleware())
+		{
+			admin.GET("/users", controllers.ListUsers)
+			admin.GET("/users/:id", controllers.GetUser)
+			admin.PATCH("/users/:id", middleware.ValidateJSONMiddleware(&models.AdminUserUpdateInput{}), controllers.UpdateUser)
+			admin.DELETE("/users/:id", controllers.DeleteUser)
 		}
 	}
 

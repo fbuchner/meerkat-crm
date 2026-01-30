@@ -173,12 +173,12 @@ func GetContacts(c *gin.Context) {
 
 	countQuery.Count(&total)
 
-	// Map contacts to ContactResponse with thumbnail URLs
+	// Map contacts to ContactResponse with photo thumbnails
 	contactResponses := make([]models.ContactResponse, len(contacts))
 	for i, contact := range contacts {
 		contactResponses[i] = models.ContactResponse{
-			Contact:      contact,
-			ThumbnailURL: contact.PhotoThumbnail, // Already base64 data URL
+			Contact:        contact,
+			PhotoThumbnail: contact.PhotoThumbnail,
 		}
 	}
 
@@ -217,12 +217,12 @@ func GetContactsRandom(c *gin.Context) {
 		return
 	}
 
-	// Map to response with thumbnail_url
+	// Map to response with photo thumbnail
 	contactResponses := make([]models.ContactResponse, len(contacts))
 	for i, contact := range contacts {
 		contactResponses[i] = models.ContactResponse{
-			Contact:      contact,
-			ThumbnailURL: contact.PhotoThumbnail,
+			Contact:        contact,
+			PhotoThumbnail: contact.PhotoThumbnail,
 		}
 	}
 

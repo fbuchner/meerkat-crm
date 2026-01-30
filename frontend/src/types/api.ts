@@ -174,7 +174,7 @@ export interface DeleteRelationshipResponse {
 export interface UploadPhotoResponse {
   message: string;
   photo_url: string;
-  thumbnail_url?: string;
+  photo_thumbnail?: string;
 }
 
 /**

@@ -55,11 +55,11 @@ func GetGraph(c *gin.Context) {
 			label = "Unknown"
 		}
 		nodes = append(nodes, models.GraphNode{
-			ID:           fmt.Sprintf("c-%d", contact.ID),
-			Type:         "contact",
-			Label:        label,
-			ThumbnailURL: contact.PhotoThumbnail,
-			Circles:      contact.Circles,
+			ID:             fmt.Sprintf("c-%d", contact.ID),
+			Type:           "contact",
+			Label:          label,
+			PhotoThumbnail: contact.PhotoThumbnail,
+			Circles:        contact.Circles,
 		})
 	}
 

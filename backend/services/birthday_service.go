@@ -47,11 +47,11 @@ func GetUpcomingBirthdays(db *gorm.DB, userID uint) ([]models.Birthday, error) {
 		}
 
 		birthdays = append(birthdays, models.Birthday{
-			Type:         "contact",
-			Name:         name,
-			Birthday:     contact.Birthday,
-			ThumbnailURL: contact.PhotoThumbnail,
-			ContactID:    contact.ID,
+			Type:           "contact",
+			Name:           name,
+			Birthday:       contact.Birthday,
+			PhotoThumbnail: contact.PhotoThumbnail,
+			ContactID:      contact.ID,
 		})
 	}
 
@@ -104,7 +104,7 @@ func GetUpcomingBirthdays(db *gorm.DB, userID uint) ([]models.Birthday, error) {
 			Type:                  "relationship",
 			Name:                  rel.Name,
 			Birthday:              rel.Birthday,
-			ThumbnailURL:          parentContact.PhotoThumbnail,
+			PhotoThumbnail:        parentContact.PhotoThumbnail,
 			ContactID:             rel.ContactID,
 			RelationshipType:      rel.Type,
 			AssociatedContactName: parentName,

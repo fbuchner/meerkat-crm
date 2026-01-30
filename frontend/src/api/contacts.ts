@@ -17,7 +17,7 @@ export interface Contact {
   work_information?: string;
   contact_information?: string;
   circles?: string[];
-  thumbnail_url?: string;
+  photo_thumbnail?: string;
   custom_fields?: Record<string, string>;
 }
 
@@ -25,7 +25,7 @@ export interface Birthday {
   type: 'contact' | 'relationship';
   name: string;
   birthday: string;
-  thumbnail_url?: string;
+  photo_thumbnail?: string;
   contact_id: number;
   relationship_type?: string;
   associated_contact_name?: string;

@@ -68,10 +68,10 @@ type RelationshipInput struct {
 	RelatedContactID *uint  `json:"related_contact_id"`
 }
 
-// ContactResponse represents the DTO returned from GET /contacts with thumbnail URL
+// ContactResponse represents the DTO returned from GET /contacts with photo thumbnail
 type ContactResponse struct {
 	Contact
-	ThumbnailURL string `json:"thumbnail_url"`
+	PhotoThumbnail string `json:"photo_thumbnail"`
 }
 
 // Birthday represents a unified birthday entry for contacts and relationships
@@ -79,7 +79,7 @@ type Birthday struct {
 	Type                  string `json:"type"`                              // "contact" or "relationship"
 	Name                  string `json:"name"`                              // Unified display name
 	Birthday              string `json:"birthday"`                          // Birthday in DD.MM.YYYY or DD.MM. format
-	ThumbnailURL          string `json:"thumbnail_url,omitempty"`           // Profile picture thumbnail URL
+	PhotoThumbnail        string `json:"photo_thumbnail,omitempty"`         // Profile picture thumbnail (base64)
 	ContactID             uint   `json:"contact_id"`                        // Contact ID (the person or parent contact for relationships)
 	RelationshipType      string `json:"relationship_type,omitempty"`       // Relationship type (empty for contacts)
 	AssociatedContactName string `json:"associated_contact_name,omitempty"` // Parent contact name (for relationships)
@@ -87,11 +87,11 @@ type Birthday struct {
 
 // GraphNode represents a node in the network visualization (contact or activity)
 type GraphNode struct {
-	ID           string   `json:"id"`                      // "c-{contactID}" or "a-{activityID}"
-	Type         string   `json:"type"`                    // "contact" or "activity"
-	Label        string   `json:"label"`                   // Display name or activity title
-	ThumbnailURL string   `json:"thumbnail_url,omitempty"` // Profile picture for contacts
-	Circles      []string `json:"circles,omitempty"`       // Circles for contacts
+	ID             string   `json:"id"`                        // "c-{contactID}" or "a-{activityID}"
+	Type           string   `json:"type"`                      // "contact" or "activity"
+	Label          string   `json:"label"`                     // Display name or activity title
+	PhotoThumbnail string   `json:"photo_thumbnail,omitempty"` // Profile picture for contacts (base64)
+	Circles        []string `json:"circles,omitempty"`         // Circles for contacts
 }
 
 // GraphEdge represents an edge in the network visualization

@@ -4,7 +4,7 @@ export interface GraphNode {
   id: string;           // "c-{contactID}" for contacts, "a-{activityID}" for activities
   type: 'contact' | 'activity';
   label: string;        // Contact name or activity title
-  thumbnail_url?: string;
+  photo_thumbnail?: string;
   circles?: string[];
   // Properties added by force-graph during rendering
   x?: number;

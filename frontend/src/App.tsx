@@ -30,7 +30,8 @@ import {
   useMediaQuery,
   TextField,
   Autocomplete,
-  InputAdornment
+  InputAdornment,
+  Collapse
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
@@ -44,6 +45,8 @@ import HubIcon from '@mui/icons-material/Hub';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PeopleIcon from '@mui/icons-material/People';
 import LogoutIcon from '@mui/icons-material/Logout';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
 import './App.css';
 
 const drawerWidth = 180;
@@ -67,6 +70,7 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
   const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Contact[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -114,20 +118,29 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
   // eslint-disable-next-line react-hooks/exhaustive-deps -- token changes trigger admin status recalculation
   const userIsAdmin = useMemo(() => isAdmin(), [token]);
 
-  const navItems = useMemo(() => {
+  const mainNavItems = useMemo(() => [
+    { text: t('nav.dashboard'), icon: <DashboardIcon />, path: '/' },
+    { text: t('nav.contacts'), icon: <ContactsIcon />, path: '/contacts' },
+    { text: t('nav.activities'), icon: <EventNoteIcon />, path: '/activities' },
+    { text: t('nav.notes'), icon: <NoteIcon />, path: '/notes' },
+    { text: t('nav.network'), icon: <HubIcon />, path: '/network' },
+  ], [t]);
+
+  const settingsSubItems = useMemo(() => {
     const items = [
-      { text: t('nav.dashboard'), icon: <DashboardIcon />, path: '/' },
-      { text: t('nav.contacts'), icon: <ContactsIcon />, path: '/contacts' },
-      { text: t('nav.activities'), icon: <EventNoteIcon />, path: '/activities' },
-      { text: t('nav.notes'), icon: <NoteIcon />, path: '/notes' },
-      { text: t('nav.network'), icon: <HubIcon />, path: '/network' },
-      { text: t('nav.settings'), icon: <SettingsIcon />, path: '/settings' },
+      { text: t('nav.profile'), icon: <SettingsIcon />, path: '/settings' },
     ];
     if (userIsAdmin) {
       items.push({ text: t('nav.users'), icon: <PeopleIcon />, path: '/users' });
     }
     return items;
   }, [t, userIsAdmin]);
+
+  const handleSettingsMenuToggle = () => {
+    setSettingsMenuOpen(!settingsMenuOpen);
+  };
+
+  const isSettingsActive = location.pathname.startsWith('/settings') || location.pathname.startsWith('/users');
 
   // Check if current path matches the nav item (handle exact match for "/" and prefix match for others)
   const isActiveRoute = (path: string) => {
@@ -141,11 +154,11 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
     <Box>
       <Toolbar />
       <List>
-        {navItems.map((item) => (
+        {mainNavItems.map((item) => (
           <ListItem key={item.text} disablePadding>
-            <ListItemButton 
-              component={Link} 
-              to={item.path} 
+            <ListItemButton
+              component={Link}
+              to={item.path}
               onClick={isMobile ? handleDrawerToggle : undefined}
               selected={isActiveRoute(item.path)}
               sx={{
@@ -162,6 +175,51 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
             </ListItemButton>
           </ListItem>
         ))}
+        {/* Settings submenu */}
+        <ListItem disablePadding>
+          <ListItemButton
+            onClick={handleSettingsMenuToggle}
+            selected={isSettingsActive && !settingsMenuOpen}
+            sx={{
+              '&.Mui-selected': {
+                backgroundColor: 'action.selected',
+              },
+              '&.Mui-selected:hover': {
+                backgroundColor: 'action.selected',
+              },
+            }}
+          >
+            <ListItemIcon><SettingsIcon /></ListItemIcon>
+            <ListItemText primary={t('nav.settings')} />
+            {settingsMenuOpen ? <ExpandLess /> : <ExpandMore />}
+          </ListItemButton>
+        </ListItem>
+        <Collapse in={settingsMenuOpen} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding>
+            {settingsSubItems.map((item) => (
+              <ListItem key={item.text} disablePadding>
+                <ListItemButton
+                  component={Link}
+                  to={item.path}
+                  onClick={isMobile ? handleDrawerToggle : undefined}
+                  selected={isActiveRoute(item.path)}
+                  sx={{
+                    pl: 4,
+                    '&.Mui-selected': {
+                      backgroundColor: 'action.selected',
+                    },
+                    '&.Mui-selected:hover': {
+                      backgroundColor: 'action.selected',
+                    },
+                  }}
+                >
+                  <ListItemIcon>{item.icon}</ListItemIcon>
+                  <ListItemText primary={item.text} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </Collapse>
       </List>
     </Box>
   );

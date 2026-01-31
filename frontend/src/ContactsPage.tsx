@@ -187,12 +187,12 @@ export default function ContactsPage({ token }: { token: string }) {
           {t('contacts.add.button')}
         </Button>
       </Stack>
-      {totalContacts > 0 && (
+      {(totalContacts > 0 || searchQuery || selectedCircle) && (
         <Box sx={{ mb: 2, p: 1.5, bgcolor: 'action.hover', borderRadius: 1, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           <Typography variant="body2" sx={{ flexGrow: 1 }}>
-            {searchQuery && selectedCircle 
+            {searchQuery && selectedCircle
               ? t('contacts.filteredBySearchAndCircle', { search: searchQuery, circle: selectedCircle, count: totalContacts })
-              : searchQuery 
+              : searchQuery
                 ? t('contacts.filteredBySearch', { search: searchQuery, count: totalContacts })
                 : selectedCircle
                   ? t('contacts.filteredMessage', { count: filteredContacts.length, total: totalContacts, circle: selectedCircle })
@@ -228,7 +228,7 @@ export default function ContactsPage({ token }: { token: string }) {
                   alignItems: 'center',
                   p: 1.5,
                   cursor: 'pointer',
-                  opacity: contact.archived ? 0.6 : 1,
+                  bgcolor: contact.archived ? 'action.disabledBackground' : undefined,
                   '&:hover': {
                     bgcolor: 'action.hover'
                   }

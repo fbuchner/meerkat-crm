@@ -146,7 +146,7 @@ func GetContacts(c *gin.Context) {
 	// Apply search filter using parameterization
 	if searchTerm := c.Query("search"); searchTerm != "" {
 		searchTermParam := "%" + searchTerm + "%"
-		query = query.Where("firstname LIKE ? OR lastname LIKE ? OR nickname LIKE ?", searchTermParam, searchTermParam, searchTermParam)
+		query = query.Where("firstname LIKE ? OR lastname LIKE ? OR nickname LIKE ? OR (firstname || ' ' || lastname) LIKE ? OR (nickname || ' ' || lastname) LIKE ?", searchTermParam, searchTermParam, searchTermParam, searchTermParam)
 	}
 
 	if circle := c.Query("circle"); circle != "" {
@@ -190,7 +190,7 @@ func GetContacts(c *gin.Context) {
 	// Apply the same search filters to the count query
 	if searchTerm := c.Query("search"); searchTerm != "" {
 		searchTermParam := "%" + searchTerm + "%"
-		countQuery = countQuery.Where("firstname LIKE ? OR lastname LIKE ? OR nickname LIKE ?", searchTermParam, searchTermParam, searchTermParam)
+		countQuery = countQuery.Where("firstname LIKE ? OR lastname LIKE ? OR nickname LIKE ? OR (firstname || ' ' || lastname) LIKE ? OR (nickname || ' ' || lastname) LIKE ?", searchTermParam, searchTermParam, searchTermParam, searchTermParam)
 	}
 
 	if circle := c.Query("circle"); circle != "" {

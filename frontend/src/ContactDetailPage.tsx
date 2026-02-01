@@ -21,6 +21,11 @@ import {
   Activity
 } from './api/activities';
 import {
+  ReminderCompletion,
+  getCompletionsForContact,
+  deleteCompletion
+} from './api/reminders';
+import {
   Box,
   Card,
   CardContent,
@@ -89,6 +94,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
   const [validationError, setValidationError] = useState<string>('');
   const [notes, setNotes] = useState<Note[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [completions, setCompletions] = useState<ReminderCompletion[]>([]);
   
   // Profile editing state
   const [editingProfile, setEditingProfile] = useState(false);
@@ -113,16 +119,19 @@ export default function ContactDetailPage({ token }: { token: string }) {
   // Custom field names
   const [customFieldNames, setCustomFieldNames] = useState<string[]>([]);
 
-  // Unified refresh function for notes and activities
+  // Unified refresh function for notes, activities, and completions
   const refreshNotesAndActivities = async () => {
     if (!id) return;
 
     try {
-      const notesData = await getContactNotes(id, token);
+      const [notesData, activitiesData, completionsData] = await Promise.all([
+        getContactNotes(id, token),
+        getContactActivities(id, token),
+        getCompletionsForContact(parseInt(id), token)
+      ]);
       setNotes(notesData.notes || []);
-
-      const activitiesData = await getContactActivities(id, token);
       setActivities(activitiesData.activities || []);
+      setCompletions(completionsData || []);
     } catch (err) {
       handleFetchError(err, 'refreshing notes and activities');
     }
@@ -212,10 +221,11 @@ export default function ContactDetailPage({ token }: { token: string }) {
     const fetchData = async () => {
       try {
         // First batch: parallel fetch of core data
-        const [contactData, notesData, activitiesData, fieldNames] = await Promise.all([
+        const [contactData, notesData, activitiesData, completionsData, fieldNames] = await Promise.all([
           getContact(id, token, CONTACT_FIELDS),
           getContactNotes(id, token),
           getContactActivities(id, token),
+          getCompletionsForContact(parseInt(id), token),
           getCustomFieldNames(token).catch(err => {
             console.error('Error fetching custom field names:', err);
             return [];
@@ -225,6 +235,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
         setContact(contactData);
         setNotes(notesData.notes || []);
         setActivities(activitiesData.activities || []);
+        setCompletions(completionsData || []);
         setCustomFieldNames(fieldNames);
 
         // Second batch: refresh reminders and relationships in parallel
@@ -266,8 +277,8 @@ export default function ContactDetailPage({ token }: { token: string }) {
     };
   }, [id, token, refreshReminders, refreshRelationships]);
 
-  // Combine and sort notes and activities for timeline
-  const timelineItems: Array<{ type: 'note' | 'activity'; data: Note | Activity; date: string }> = [
+  // Combine and sort notes, activities, and completions for timeline
+  const timelineItems: Array<{ type: 'note' | 'activity' | 'completion'; data: Note | Activity | ReminderCompletion; date: string }> = [
     ...notes.map(note => ({
       type: 'note' as const,
       data: note,
@@ -277,8 +288,25 @@ export default function ContactDetailPage({ token }: { token: string }) {
       type: 'activity' as const,
       data: activity,
       date: activity.date || activity.CreatedAt
+    })),
+    ...completions.map(completion => ({
+      type: 'completion' as const,
+      data: completion,
+      date: completion.completed_at
     }))
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const handleDeleteCompletion = async (completionId: number) => {
+    if (!window.confirm(t('timeline.deleteCompletionConfirm'))) {
+      return;
+    }
+    try {
+      await deleteCompletion(completionId, token);
+      await refreshNotesAndActivities();
+    } catch (err) {
+      handleFetchError(err, 'deleting completion');
+    }
+  };
 
   const validateBirthday = (value: string): boolean => {
     if (!value || value.trim() === '') return true;
@@ -666,6 +694,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
               <ContactTimeline
                 timelineItems={timelineItems}
                 onEditItem={handleStartEditTimelineItem}
+                onDeleteCompletion={handleDeleteCompletion}
               />
             </CardContent>
           )}

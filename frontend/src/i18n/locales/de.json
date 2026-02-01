@@ -194,6 +194,11 @@
       }
     }
   },
+  "timeline": {
+    "reminderCompleted": "Erinnerung erledigt",
+    "deleteCompletion": "Löschen",
+    "deleteCompletionConfirm": "Möchten Sie diese erledigte Erinnerung wirklich aus der Zeitachse entfernen?"
+  },
   "contactDetail": {
     "notFound": "Kontakt nicht gefunden",
     "generalInfo": "Allgemeine Informationen",
@@ -297,6 +302,8 @@
     "date": "Datum",
     "sendEmail": "E-Mail-Benachrichtigung senden",
     "complete": "Erledigen",
+    "skip": "Überspringen",
+    "skipConfirm": "Diese Erinnerung überspringen? Bei wiederkehrenden Erinnerungen wird zum nächsten Termin verschoben, ohne in der Zeitachse zu erscheinen.",
     "noReminders": "Noch keine Erinnerungen",
     "messageRequired": "Nachricht ist erforderlich",
     "dateRequired": "Datum ist erforderlich",

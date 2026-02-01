@@ -20,3 +20,12 @@ type Reminder struct {
 	ContactID             *uint      `gorm:"not null" json:"contact_id" validate:"required"`
 	Contact               Contact    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"contact,omitempty" validate:"-"`
 }
+
+type ReminderCompletion struct {
+	gorm.Model
+	UserID      uint      `gorm:"not null;index" json:"-"`
+	ReminderID  *uint     `gorm:"index" json:"reminder_id,omitempty"`
+	ContactID   uint      `gorm:"not null;index" json:"contact_id"`
+	Message     string    `gorm:"not null;type:text" json:"message"`
+	CompletedAt time.Time `gorm:"not null" json:"completed_at"`
+}

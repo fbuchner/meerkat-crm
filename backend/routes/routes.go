@@ -112,6 +112,10 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB) {
 			protected.POST("/reminders/:id/complete", controllers.CompleteReminder)
 			protected.DELETE("/reminders/:id", controllers.DeleteReminder)
 
+			// Reminder completion routes (for timeline)
+			protected.GET("/contacts/:id/reminder-completions", controllers.GetCompletionsForContact)
+			protected.DELETE("/reminder-completions/:id", controllers.DeleteCompletion)
+
 			// Export routes
 			protected.GET("/export", controllers.ExportData)
 			protected.GET("/export/vcf", func(c *gin.Context) {

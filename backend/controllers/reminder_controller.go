@@ -264,9 +264,11 @@ func GetUpcomingReminders(c *gin.Context) {
 }
 
 // CompleteReminder marks a reminder as completed
+// Use ?skip=true to skip without recording in timeline (for recurring reminders, reschedules to next occurrence)
 func CompleteReminder(c *gin.Context) {
 	id := c.Param("id")
 	db := c.MustGet("db").(*gorm.DB)
+	skip := c.Query("skip") == "true"
 
 	userID, ok := currentUserID(c)
 	if !ok {
@@ -288,6 +290,26 @@ func CompleteReminder(c *gin.Context) {
 	reminder.LastSent = new(time.Time)
 	*reminder.LastSent = time.Now()
 
+	// Create a completion record for the timeline (unless skipping)
+	if !skip {
+		completion := models.ReminderCompletion{
+			UserID:      userID,
+			ReminderID:  &reminder.ID,
+			ContactID:   *reminder.ContactID,
+			Message:     reminder.Message,
+			CompletedAt: time.Now(),
+		}
+		if err := db.Create(&completion).Error; err != nil {
+			logger.FromContext(c).Error().Err(err).Msg("Failed to create reminder completion record")
+			// Don't fail the entire operation if completion record fails
+		}
+	}
+
+	action := "completed"
+	if skip {
+		action = "skipped"
+	}
+
 	// If reoccur from completion, calculate next reminder time
 	// Default to true if not specified (nil)
 	reoccurFromCompletion := reminder.ReoccurFromCompletion == nil || *reminder.ReoccurFromCompletion
@@ -300,18 +322,19 @@ func CompleteReminder(c *gin.Context) {
 		logger.FromContext(c).Info().
 			Time("next_remind_at", reminder.RemindAt).
 			Uint("reminder_id", reminder.ID).
-			Msg("Reminder completed, next occurrence scheduled")
+			Str("action", action).
+			Msg("Reminder processed, next occurrence scheduled")
 	}
 
 	// Delete "once" reminders after completion
 	if reminder.Recurrence == "once" {
 		if err := db.Delete(&reminder).Error; err != nil {
-			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to delete completed 'once' reminder").WithError(err))
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to delete 'once' reminder").WithError(err))
 			return
 		}
 
-		logger.FromContext(c).Info().Uint("reminder_id", reminder.ID).Msg("Deleted 'once' reminder after completion")
-		c.JSON(http.StatusOK, gin.H{"message": "Reminder completed and deleted"})
+		logger.FromContext(c).Info().Uint("reminder_id", reminder.ID).Str("action", action).Msg("Deleted 'once' reminder")
+		c.JSON(http.StatusOK, gin.H{"message": "Reminder " + action + " and deleted"})
 		return
 	}
 
@@ -325,7 +348,69 @@ func CompleteReminder(c *gin.Context) {
 	reminder.Contact = models.Contact{}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":  "Reminder completed successfully",
+		"message":  "Reminder " + action + " successfully",
 		"reminder": reminder,
 	})
+}
+
+// GetCompletionsForContact returns all reminder completions for a specific contact
+func GetCompletionsForContact(c *gin.Context) {
+	contactID := c.Param("id")
+	db := c.MustGet("db").(*gorm.DB)
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	// Verify contact belongs to user
+	var contact models.Contact
+	if err := db.Where("user_id = ?", userID).First(&contact, contactID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", contactID))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve contact").WithError(err))
+		}
+		return
+	}
+
+	var completions []models.ReminderCompletion
+	if err := db.Where("user_id = ? AND contact_id = ?", userID, contactID).
+		Order("completed_at DESC").
+		Find(&completions).Error; err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve reminder completions").WithError(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"completions": completions,
+	})
+}
+
+// DeleteCompletion deletes a reminder completion record
+func DeleteCompletion(c *gin.Context) {
+	id := c.Param("id")
+	db := c.MustGet("db").(*gorm.DB)
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	var completion models.ReminderCompletion
+	if err := db.Where("user_id = ?", userID).First(&completion, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Reminder completion").WithDetails("id", id))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve reminder completion").WithError(err))
+		}
+		return
+	}
+
+	if err := db.Delete(&completion).Error; err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to delete reminder completion").WithError(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Reminder completion deleted"})
 }

@@ -20,16 +20,20 @@ import {
 import NoteIcon from '@mui/icons-material/Note';
 import EventIcon from '@mui/icons-material/Event';
 import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { Note } from '../api/notes';
 import { Activity } from '../api/activities';
+import { ReminderCompletion } from '../api/reminders';
 import { useDateFormat } from '../DateFormatProvider';
 
 interface ContactTimelineProps {
-  timelineItems: Array<{ type: 'note' | 'activity'; data: Note | Activity; date: string }>;
+  timelineItems: Array<{ type: 'note' | 'activity' | 'completion'; data: Note | Activity | ReminderCompletion; date: string }>;
   onEditItem: (type: 'note' | 'activity', item: Note | Activity) => void;
+  onDeleteCompletion?: (completionId: number) => void;
 }
 
-export default function ContactTimeline({ timelineItems, onEditItem }: ContactTimelineProps) {
+export default function ContactTimeline({ timelineItems, onEditItem, onDeleteCompletion }: ContactTimelineProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { formatDate } = useDateFormat();
@@ -56,8 +60,10 @@ export default function ContactTimeline({ timelineItems, onEditItem }: ContactTi
               </Typography>
             </TimelineOppositeContent>
             <TimelineSeparator>
-              <TimelineDot color={item.type === 'note' ? 'primary' : 'secondary'}>
-                {item.type === 'note' ? <NoteIcon fontSize="small" /> : <EventIcon fontSize="small" />}
+              <TimelineDot color={item.type === 'note' ? 'primary' : item.type === 'activity' ? 'secondary' : 'success'}>
+                {item.type === 'note' ? <NoteIcon fontSize="small" /> :
+                 item.type === 'activity' ? <EventIcon fontSize="small" /> :
+                 <CheckCircleIcon fontSize="small" />}
               </TimelineDot>
               {index < timelineItems.length - 1 && <TimelineConnector />}
             </TimelineSeparator>
@@ -67,18 +73,22 @@ export default function ContactTimeline({ timelineItems, onEditItem }: ContactTi
                 sx={{
                   p: 1.5,
                   position: 'relative',
-                  '&:hover .edit-icon': {
+                  '&:hover .action-icon': {
                     opacity: 1
                   }
                 }}
               >
                 <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
-                  {item.type === 'note' ? t('contactDetail.note') : (item.data as Activity).title}
+                  {item.type === 'note' ? t('contactDetail.note') :
+                   item.type === 'activity' ? (item.data as Activity).title :
+                   t('timeline.reminderCompleted')}
                 </Typography>
                 <Typography variant="body2" sx={{ mt: 1 }}>
                   {item.type === 'note'
                     ? (item.data as Note).content
-                    : (item.data as Activity).description || t('contactDetail.noDescription')}
+                    : item.type === 'activity'
+                    ? (item.data as Activity).description || t('contactDetail.noDescription')
+                    : (item.data as ReminderCompletion).message}
                 </Typography>
                 {item.type === 'activity' && (item.data as Activity).location && (
                   <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
@@ -117,20 +127,37 @@ export default function ContactTimeline({ timelineItems, onEditItem }: ContactTi
                   </Box>
                 )}
 
-                <IconButton
-                  className="edit-icon"
-                  size="small"
-                  onClick={() => onEditItem(item.type, item.data)}
-                  sx={{
-                    position: 'absolute',
-                    top: 8,
-                    right: 8,
-                    opacity: 0,
-                    transition: 'opacity 0.2s'
-                  }}
-                >
-                  <EditIcon fontSize="small" />
-                </IconButton>
+                {item.type === 'completion' ? (
+                  <IconButton
+                    className="action-icon"
+                    size="small"
+                    onClick={() => onDeleteCompletion?.((item.data as ReminderCompletion).ID)}
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      opacity: 0,
+                      transition: 'opacity 0.2s'
+                    }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                ) : (
+                  <IconButton
+                    className="action-icon"
+                    size="small"
+                    onClick={() => onEditItem(item.type as 'note' | 'activity', item.data as Note | Activity)}
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      opacity: 0,
+                      transition: 'opacity 0.2s'
+                    }}
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                )}
               </Paper>
             </TimelineContent>
           </TimelineItem>

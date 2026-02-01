@@ -30,6 +30,20 @@ export interface RemindersResponse {
   reminders: Reminder[];
 }
 
+export interface ReminderCompletion {
+  ID: number;
+  reminder_id?: number;
+  contact_id: number;
+  message: string;
+  completed_at: string;
+  CreatedAt?: string;
+  UpdatedAt?: string;
+}
+
+export interface CompletionsResponse {
+  completions: ReminderCompletion[];
+}
+
 // Get all reminders across all contacts
 export async function getAllReminders(token: string): Promise<Reminder[]> {
   const response = await apiFetch(
@@ -155,10 +169,60 @@ export async function completeReminder(
   return response.json();
 }
 
+// Skip a reminder (reschedules recurring reminders without recording completion)
+export async function skipReminder(
+  reminderId: number,
+  token: string
+): Promise<{ message: string; reminder?: Reminder }> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/reminders/${reminderId}/complete?skip=true`,
+    {
+      method: 'POST',
+      headers: getAuthHeaders(token),
+    }
+  );
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  return response.json();
+}
+
 // Delete a reminder
 export async function deleteReminder(reminderId: number, token: string): Promise<void> {
   const response = await apiFetch(
     `${API_BASE_URL}/reminders/${reminderId}`,
+    {
+      method: 'DELETE',
+      headers: getAuthHeaders(token),
+    }
+  );
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+}
+
+// Get reminder completions for a specific contact
+export async function getCompletionsForContact(contactId: number, token: string): Promise<ReminderCompletion[]> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/contacts/${contactId}/reminder-completions`,
+    { headers: getAuthHeaders(token) }
+  );
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  const data: CompletionsResponse = await response.json();
+  return data.completions || [];
+}
+
+// Delete a reminder completion
+export async function deleteCompletion(completionId: number, token: string): Promise<void> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/reminder-completions/${completionId}`,
     {
       method: 'DELETE',
       headers: getAuthHeaders(token),

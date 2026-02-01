@@ -194,6 +194,11 @@
       }
     }
   },
+  "timeline": {
+    "reminderCompleted": "Reminder Completed",
+    "deleteCompletion": "Delete",
+    "deleteCompletionConfirm": "Are you sure you want to remove this completed reminder from the timeline?"
+  },
   "contactDetail": {
     "notFound": "Contact not found",
     "generalInfo": "General Information",
@@ -297,6 +302,8 @@
     "date": "Date",
     "sendEmail": "Send email notification",
     "complete": "Complete",
+    "skip": "Skip",
+    "skipConfirm": "Skip this reminder? For recurring reminders, this will reschedule to the next occurrence without recording it in the timeline.",
     "noReminders": "No reminders yet",
     "messageRequired": "Message is required",
     "dateRequired": "Date is required",

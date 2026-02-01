@@ -18,12 +18,13 @@ import CakeIcon from '@mui/icons-material/Cake';
 import ShuffleIcon from '@mui/icons-material/Shuffle';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import SkipNextIcon from '@mui/icons-material/SkipNext';
 import EmailIcon from '@mui/icons-material/Email';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import WarningIcon from '@mui/icons-material/Warning';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { Contact, Birthday, getRandomContacts, getUpcomingBirthdays, getContact } from './api/contacts';
-import { Reminder, getUpcomingReminders, completeReminder } from './api/reminders';
+import { Reminder, getUpcomingReminders, completeReminder, skipReminder } from './api/reminders';
 import { ContactListSkeleton } from './components/LoadingSkeletons';
 import { handleFetchError, handleError } from './utils/errorHandler';
 import { useDateFormat } from './DateFormatProvider';
@@ -102,6 +103,20 @@ function DashboardPage({ token }: DashboardPageProps) {
       setUpcomingReminders(reminders);
     } catch (err) {
       handleError(err, { operation: 'completing reminder' });
+    }
+  };
+
+  const handleSkipReminder = async (reminderId: number) => {
+    if (!window.confirm(t('reminders.skipConfirm'))) {
+      return;
+    }
+    try {
+      await skipReminder(reminderId, token);
+      // Reload reminders after skipping
+      const reminders = await getUpcomingReminders(token);
+      setUpcomingReminders(reminders);
+    } catch (err) {
+      handleError(err, { operation: 'skipping reminder' });
     }
   };
 
@@ -364,25 +379,45 @@ function DashboardPage({ token }: DashboardPageProps) {
                             )}
                           </Box>
                         </Box>
-                        <Tooltip title={t('reminders.complete')}>
-                          <IconButton
-                            size="small"
-                            color="success"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCompleteReminder(reminder.ID);
-                            }}
-                            sx={{
-                              transition: 'transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out',
-                              '&:hover': {
-                                transform: 'scale(1.15)',
-                                boxShadow: '0 0 8px rgba(76, 175, 80, 0.5)',
-                              },
-                            }}
-                          >
-                            <CheckCircleIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        <Box sx={{ display: 'flex', gap: 0.5 }}>
+                          <Tooltip title={t('reminders.skip')}>
+                            <IconButton
+                              size="small"
+                              color="default"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSkipReminder(reminder.ID);
+                              }}
+                              sx={{
+                                transition: 'transform 0.15s ease-in-out',
+                                '&:hover': {
+                                  transform: 'scale(1.15)',
+                                },
+                              }}
+                            >
+                              <SkipNextIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title={t('reminders.complete')}>
+                            <IconButton
+                              size="small"
+                              color="success"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCompleteReminder(reminder.ID);
+                              }}
+                              sx={{
+                                transition: 'transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out',
+                                '&:hover': {
+                                  transform: 'scale(1.15)',
+                                  boxShadow: '0 0 8px rgba(76, 175, 80, 0.5)',
+                                },
+                              }}
+                            >
+                              <CheckCircleIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
                       </Box>
                     </CardContent>
                   </Card>

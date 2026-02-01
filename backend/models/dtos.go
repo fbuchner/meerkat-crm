@@ -120,13 +120,14 @@ type GraphResponse struct {
 
 // AdminUserResponse - user data returned to admin (no password)
 type AdminUserResponse struct {
-	ID        uint      `json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	Language  string    `json:"language"`
-	IsAdmin   bool      `json:"is_admin"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID         uint      `json:"id"`
+	Username   string    `json:"username"`
+	Email      string    `json:"email"`
+	Language   string    `json:"language"`
+	DateFormat string    `json:"date_format"`
+	IsAdmin    bool      `json:"is_admin"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 // AdminUserUpdateInput - DTO for admin updating a user

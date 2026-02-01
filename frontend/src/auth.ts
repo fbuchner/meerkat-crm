@@ -7,6 +7,7 @@ export const API_BASE_URL = `${API_SERVER_URL}/api/v1`;
 export interface LoginResponse {
   token: string;
   language?: string;
+  date_format?: string;
 }
 
 export async function loginUser(identifier: string, password: string): Promise<LoginResponse> {
@@ -24,6 +25,7 @@ export async function loginUser(identifier: string, password: string): Promise<L
   return {
     token: data.token,
     language: data.language,
+    date_format: data.date_format,
   };
 }
 

@@ -153,8 +153,9 @@ func LoginUser(context *gin.Context, cfg *config.Config) {
 
 	// Return token and user preferences
 	context.JSON(http.StatusOK, gin.H{
-		"token":    tokenString,
-		"language": foundUser.Language,
+		"token":       tokenString,
+		"language":    foundUser.Language,
+		"date_format": foundUser.DateFormat,
 	})
 }
 
@@ -319,6 +320,11 @@ type UpdateLanguageInput struct {
 	Language string `json:"language" validate:"required,oneof=en de"`
 }
 
+// UpdateDateFormatInput represents the request body for updating user date format
+type UpdateDateFormatInput struct {
+	DateFormat string `json:"date_format" validate:"required,oneof=eu us"`
+}
+
 // UpdateLanguage updates the authenticated user's language preference
 func UpdateLanguage(context *gin.Context) {
 	log := logger.FromContext(context)
@@ -369,6 +375,58 @@ func UpdateLanguage(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Language updated successfully", "language": user.Language})
+}
+
+// UpdateDateFormat updates the authenticated user's date format preference
+func UpdateDateFormat(context *gin.Context) {
+	log := logger.FromContext(context)
+
+	var input UpdateDateFormatInput
+	if err := context.ShouldBindJSON(&input); err != nil {
+		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("date_format", "Invalid date format value"))
+		return
+	}
+
+	// Validate date format is supported
+	if input.DateFormat != "eu" && input.DateFormat != "us" {
+		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("date_format", "Unsupported date format. Supported: eu, us"))
+		return
+	}
+
+	usernameValue, exists := context.Get("username")
+	if !exists {
+		apperrors.AbortWithError(context, apperrors.ErrUnauthorized("Authentication required"))
+		return
+	}
+
+	username, ok := usernameValue.(string)
+	if !ok || username == "" {
+		apperrors.AbortWithError(context, apperrors.ErrUnauthorized("Authentication required"))
+		return
+	}
+
+	db := context.MustGet("db").(*gorm.DB)
+
+	var user models.User
+	if err := db.Where("username = ?", username).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(context, apperrors.ErrUnauthorized("Authentication required"))
+			return
+		}
+
+		log.Error().Err(err).Msg("Failed to lookup user for date format update")
+		apperrors.AbortWithError(context, apperrors.ErrDatabase("query user").WithError(err))
+		return
+	}
+
+	user.DateFormat = input.DateFormat
+	if err := db.Save(&user).Error; err != nil {
+		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to update user date format")
+		apperrors.AbortWithError(context, apperrors.ErrDatabase("update user").WithError(err))
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Date format updated successfully", "date_format": user.DateFormat})
 }
 
 // UpdateCustomFieldNames updates the authenticated user's custom field definitions

@@ -3,6 +3,7 @@ import { loginUser, saveToken } from './auth';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import i18n from './i18n/config';
+import { initializeDateFormatFromBackend } from './DateFormatProvider';
 import {
   Box,
   TextField,
@@ -33,15 +34,18 @@ export default function LoginPage({ setToken }: LoginPageProps) {
     setLoading(true);
     setError('');
     try {
-      const { token, language } = await loginUser(identifier, password);
+      const { token, language, date_format } = await loginUser(identifier, password);
       saveToken(token);
       if (setToken) setToken(token);
-      
+
       // Sync language preference from backend if available
       if (language && language !== i18n.language) {
         i18n.changeLanguage(language);
       }
-      
+
+      // Sync date format preference from backend
+      initializeDateFormatFromBackend(date_format);
+
       navigate('/');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : t('login.loginFailed');

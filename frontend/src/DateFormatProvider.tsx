@@ -18,6 +18,16 @@ const DateFormatContext = createContext<DateFormatContextValue | undefined>(unde
 
 const DATE_FORMAT_STORAGE_KEY = "dateFormat";
 
+// Initialize date format from backend value (called on login)
+export function initializeDateFormatFromBackend(dateFormat: string | undefined): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  if (dateFormat === "eu" || dateFormat === "us") {
+    window.localStorage.setItem(DATE_FORMAT_STORAGE_KEY, dateFormat);
+  }
+}
+
 const getStoredFormat = (): DateFormat => {
   if (typeof window === "undefined") {
     return "eu";

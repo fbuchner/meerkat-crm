@@ -286,6 +286,49 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 	return nil
 }
 
+// formatDateForUser formats a time.Time according to user's date format preference
+func formatDateForUser(t time.Time, dateFormat string) string {
+	switch dateFormat {
+	case "us":
+		return t.Format("01/02/2006") // MM/DD/YYYY
+	default:
+		return t.Format("02.01.2006") // DD.MM.YYYY (EU default)
+	}
+}
+
+// formatBirthdayForUser formats a birthday string (YYYY-MM-DD or --MM-DD) according to user's preference
+func formatBirthdayForUser(birthday string, dateFormat string) string {
+	if birthday == "" {
+		return ""
+	}
+
+	// Handle year-unknown format: --MM-DD
+	if len(birthday) >= 2 && birthday[:2] == "--" {
+		if len(birthday) >= 7 {
+			month := birthday[2:4]
+			day := birthday[5:7]
+			if dateFormat == "us" {
+				return month + "/" + day
+			}
+			return day + "." + month + "."
+		}
+		return birthday
+	}
+
+	// Handle full date format: YYYY-MM-DD
+	if len(birthday) >= 10 {
+		year := birthday[0:4]
+		month := birthday[5:7]
+		day := birthday[8:10]
+		if dateFormat == "us" {
+			return month + "/" + day + "/" + year
+		}
+		return day + "." + month + "." + year
+	}
+
+	return birthday
+}
+
 // Send email using Resend with daily reminders and upcoming birthdays
 func sendReminderEmail(user models.User, reminders []models.Reminder, config config.Config, db *gorm.DB) error {
 	if user.Email == "" {
@@ -299,6 +342,12 @@ func sendReminderEmail(user models.User, reminders []models.Reminder, config con
 		lang = i18n.DefaultLanguage
 	}
 
+	// Get user's date format preference (default to "eu" if not set)
+	dateFormat := user.DateFormat
+	if dateFormat == "" {
+		dateFormat = "eu"
+	}
+
 	// Build the HTML content for reminders
 	htmlContent := fmt.Sprintf("<h1>%s</h1><ul>", i18n.T(lang, "email.reminder.remindersTitle"))
 	for _, reminder := range reminders {
@@ -309,7 +358,7 @@ func sendReminderEmail(user models.User, reminders []models.Reminder, config con
 				contactName = contact.Firstname + " " + contact.Lastname
 			}
 		}
-		htmlContent += fmt.Sprintf("<li>%s - %s (Contact: %s)</li>", reminder.RemindAt.Format("02.01.2006"), reminder.Message, contactName)
+		htmlContent += fmt.Sprintf("<li>%s - %s (Contact: %s)</li>", formatDateForUser(reminder.RemindAt, dateFormat), reminder.Message, contactName)
 	}
 	htmlContent += "</ul>"
 
@@ -332,12 +381,13 @@ func sendReminderEmail(user models.User, reminders []models.Reminder, config con
 				daysText = i18n.T(lang, "email.reminder.inDays", map[string]string{"days": strconv.Itoa(days)})
 			}
 
+			formattedBirthday := formatBirthdayForUser(birthday.Birthday, dateFormat)
 			if birthday.Type == "relationship" {
 				htmlContent += fmt.Sprintf("<li>%s (%s) - %s's %s - %s</li>",
-					birthday.Birthday, daysText, birthday.AssociatedContactName, birthday.RelationshipType, birthday.Name)
+					formattedBirthday, daysText, birthday.AssociatedContactName, birthday.RelationshipType, birthday.Name)
 			} else {
 				htmlContent += fmt.Sprintf("<li>%s (%s) - %s</li>",
-					birthday.Birthday, daysText, birthday.Name)
+					formattedBirthday, daysText, birthday.Name)
 			}
 		}
 		htmlContent += "</ul>"

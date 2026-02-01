@@ -98,6 +98,17 @@ export async function updateLanguage(language: string, token?: string | null): P
   return data?.message || 'Language updated successfully.';
 }
 
+export async function updateDateFormat(dateFormat: string, token?: string | null): Promise<string> {
+  const response = await apiFetch(`${API_BASE_URL}/users/date-format`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(token || undefined),
+    body: JSON.stringify({ date_format: dateFormat }),
+  });
+
+  const data = await handleResponse(response, 'Unable to update date format.');
+  return data?.message || 'Date format updated successfully.';
+}
+
 export async function getCustomFieldNames(token?: string | null): Promise<string[]> {
   const response = await apiFetch(`${API_BASE_URL}/users/custom-fields`, {
     method: 'GET',

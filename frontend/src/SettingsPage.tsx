@@ -26,7 +26,7 @@ import InfoIcon from '@mui/icons-material/Info';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import Link from '@mui/material/Link';
 import { changePassword } from './api/auth';
-import { updateLanguage } from './api/users';
+import { updateLanguage, updateDateFormat } from './api/users';
 import { exportDataAsCsv, exportContactsAsVcf } from './api/export';
 import { ThemePreference, useThemePreference } from './AppThemeProvider';
 import { DateFormat, useDateFormat } from './DateFormatProvider';
@@ -68,8 +68,19 @@ export default function SettingsPage() {
     setThemePreference(event.target.value as ThemePreference);
   };
 
-  const handleDateFormatChange = (event: SelectChangeEvent<DateFormat>) => {
-    setDateFormat(event.target.value as DateFormat);
+  const handleDateFormatChange = async (event: SelectChangeEvent<DateFormat>) => {
+    const newFormat = event.target.value as DateFormat;
+    // Update frontend immediately for responsive UI
+    setDateFormat(newFormat);
+
+    // Sync to backend for email date format preferences (fire and forget)
+    try {
+      await updateDateFormat(newFormat);
+    } catch (error) {
+      // Silently fail - the frontend date format is still updated
+      // Backend sync failure doesn't affect UI date format
+      console.error('Failed to sync date format to backend:', error);
+    }
   };
 
   const handleExportData = async () => {

@@ -36,13 +36,14 @@ func GetCurrentUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, models.AdminUserResponse{
-		ID:        user.ID,
-		Username:  user.Username,
-		Email:     user.Email,
-		Language:  user.Language,
-		IsAdmin:   user.IsAdmin,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
+		ID:         user.ID,
+		Username:   user.Username,
+		Email:      user.Email,
+		Language:   user.Language,
+		DateFormat: user.DateFormat,
+		IsAdmin:    user.IsAdmin,
+		CreatedAt:  user.CreatedAt,
+		UpdatedAt:  user.UpdatedAt,
 	})
 }
 
@@ -69,13 +70,14 @@ func ListUsers(c *gin.Context) {
 	userResponses := make([]models.AdminUserResponse, len(users))
 	for i, user := range users {
 		userResponses[i] = models.AdminUserResponse{
-			ID:        user.ID,
-			Username:  user.Username,
-			Email:     user.Email,
-			Language:  user.Language,
-			IsAdmin:   user.IsAdmin,
-			CreatedAt: user.CreatedAt,
-			UpdatedAt: user.UpdatedAt,
+			ID:         user.ID,
+			Username:   user.Username,
+			Email:      user.Email,
+			Language:   user.Language,
+			DateFormat: user.DateFormat,
+			IsAdmin:    user.IsAdmin,
+			CreatedAt:  user.CreatedAt,
+			UpdatedAt:  user.UpdatedAt,
 		}
 	}
 
@@ -117,13 +119,14 @@ func GetUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, models.AdminUserResponse{
-		ID:        user.ID,
-		Username:  user.Username,
-		Email:     user.Email,
-		Language:  user.Language,
-		IsAdmin:   user.IsAdmin,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
+		ID:         user.ID,
+		Username:   user.Username,
+		Email:      user.Email,
+		Language:   user.Language,
+		DateFormat: user.DateFormat,
+		IsAdmin:    user.IsAdmin,
+		CreatedAt:  user.CreatedAt,
+		UpdatedAt:  user.UpdatedAt,
 	})
 }
 
@@ -212,13 +215,14 @@ func UpdateUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, models.AdminUserResponse{
-		ID:        user.ID,
-		Username:  user.Username,
-		Email:     user.Email,
-		Language:  user.Language,
-		IsAdmin:   user.IsAdmin,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
+		ID:         user.ID,
+		Username:   user.Username,
+		Email:      user.Email,
+		Language:   user.Language,
+		DateFormat: user.DateFormat,
+		IsAdmin:    user.IsAdmin,
+		CreatedAt:  user.CreatedAt,
+		UpdatedAt:  user.UpdatedAt,
 	})
 }
 

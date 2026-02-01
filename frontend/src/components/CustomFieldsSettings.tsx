@@ -34,11 +34,8 @@ export default function CustomFieldsSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [fieldToDelete, setFieldToDelete] = useState<number | null>(null);
-  const [hasChanges, setHasChanges] = useState(false);
-  const [originalFieldNames, setOriginalFieldNames] = useState<string[]>([]);
 
   useEffect(() => {
     const loadCustomFieldNames = async () => {
@@ -46,7 +43,6 @@ export default function CustomFieldsSettings() {
         setLoading(true);
         const names = await getCustomFieldNames();
         setFieldNames(names);
-        setOriginalFieldNames(names);
       } catch (err) {
         setError(err instanceof Error ? err.message : t('settings.customFields.loadError'));
       } finally {
@@ -56,63 +52,12 @@ export default function CustomFieldsSettings() {
     loadCustomFieldNames();
   }, [t]);
 
-  const handleAddField = () => {
-    const trimmedName = newFieldName.trim();
-    if (!trimmedName) return;
-    
-    // Check for duplicates (case-insensitive)
-    if (fieldNames.some(name => name.toLowerCase() === trimmedName.toLowerCase())) {
-      setError(t('settings.customFields.duplicateError'));
-      return;
-    }
-
-    setFieldNames([...fieldNames, trimmedName]);
-    setNewFieldName('');
-    setHasChanges(true);
-    setError('');
-  };
-
-  const handleDeleteClick = (index: number) => {
-    setFieldToDelete(index);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleDeleteConfirm = () => {
-    if (fieldToDelete !== null) {
-      const newNames = fieldNames.filter((_, i) => i !== fieldToDelete);
-      setFieldNames(newNames);
-      setHasChanges(true);
-    }
-    setDeleteDialogOpen(false);
-    setFieldToDelete(null);
-  };
-
-  const handleMoveUp = (index: number) => {
-    if (index === 0) return;
-    const newNames = [...fieldNames];
-    [newNames[index - 1], newNames[index]] = [newNames[index], newNames[index - 1]];
-    setFieldNames(newNames);
-    setHasChanges(true);
-  };
-
-  const handleMoveDown = (index: number) => {
-    if (index === fieldNames.length - 1) return;
-    const newNames = [...fieldNames];
-    [newNames[index], newNames[index + 1]] = [newNames[index + 1], newNames[index]];
-    setFieldNames(newNames);
-    setHasChanges(true);
-  };
-
-  const handleSave = async () => {
+  const saveFields = async (newNames: string[]) => {
     try {
       setSaving(true);
       setError('');
-      setSuccess('');
-      const savedNames = await updateCustomFieldNames(fieldNames);
+      const savedNames = await updateCustomFieldNames(newNames);
       setFieldNames(savedNames);
-      setOriginalFieldNames(savedNames);
-      setHasChanges(false);
-      setSuccess(t('settings.customFields.saveSuccess'));
     } catch (err) {
       setError(err instanceof Error ? err.message : t('settings.customFields.saveError'));
     } finally {
@@ -120,11 +65,55 @@ export default function CustomFieldsSettings() {
     }
   };
 
-  const handleCancel = () => {
-    setFieldNames(originalFieldNames);
-    setHasChanges(false);
+  const handleAddField = async () => {
+    const trimmedName = newFieldName.trim();
+    if (!trimmedName) return;
+
+    // Check for duplicates (case-insensitive)
+    if (fieldNames.some(name => name.toLowerCase() === trimmedName.toLowerCase())) {
+      setError(t('settings.customFields.duplicateError'));
+      return;
+    }
+
+    const newNames = [...fieldNames, trimmedName];
+    setFieldNames(newNames);
+    setNewFieldName('');
     setError('');
-    setSuccess('');
+    await saveFields(newNames);
+  };
+
+  const handleDeleteClick = (index: number) => {
+    setFieldToDelete(index);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (fieldToDelete !== null) {
+      const newNames = fieldNames.filter((_, i) => i !== fieldToDelete);
+      setFieldNames(newNames);
+      setDeleteDialogOpen(false);
+      setFieldToDelete(null);
+      await saveFields(newNames);
+    } else {
+      setDeleteDialogOpen(false);
+      setFieldToDelete(null);
+    }
+  };
+
+  const handleMoveUp = async (index: number) => {
+    if (index === 0) return;
+    const newNames = [...fieldNames];
+    [newNames[index - 1], newNames[index]] = [newNames[index], newNames[index - 1]];
+    setFieldNames(newNames);
+    await saveFields(newNames);
+  };
+
+  const handleMoveDown = async (index: number) => {
+    if (index === fieldNames.length - 1) return;
+    const newNames = [...fieldNames];
+    [newNames[index], newNames[index + 1]] = [newNames[index + 1], newNames[index]];
+    setFieldNames(newNames);
+    await saveFields(newNames);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -152,7 +141,6 @@ export default function CustomFieldsSettings() {
             </Typography>
 
             {error && <Alert severity="error" sx={{ py: 0 }}>{error}</Alert>}
-            {success && <Alert severity="success" sx={{ py: 0 }}>{success}</Alert>}
 
             {loading ? (
               <Typography variant="body2" color="text.secondary">
@@ -171,7 +159,7 @@ export default function CustomFieldsSettings() {
                             <IconButton
                               size="small"
                               onClick={() => handleMoveUp(index)}
-                              disabled={index === 0}
+                              disabled={saving || index === 0}
                               aria-label={t('settings.customFields.moveUp')}
                             >
                               <ArrowUpwardIcon fontSize="small" />
@@ -179,7 +167,7 @@ export default function CustomFieldsSettings() {
                             <IconButton
                               size="small"
                               onClick={() => handleMoveDown(index)}
-                              disabled={index === fieldNames.length - 1}
+                              disabled={saving || index === fieldNames.length - 1}
                               aria-label={t('settings.customFields.moveDown')}
                             >
                               <ArrowDownwardIcon fontSize="small" />
@@ -187,6 +175,7 @@ export default function CustomFieldsSettings() {
                             <IconButton
                               size="small"
                               onClick={() => handleDeleteClick(index)}
+                              disabled={saving}
                               aria-label={t('settings.customFields.delete')}
                               color="error"
                             >
@@ -212,6 +201,7 @@ export default function CustomFieldsSettings() {
                     value={newFieldName}
                     onChange={(e) => setNewFieldName(e.target.value)}
                     onKeyDown={handleKeyDown}
+                    disabled={saving}
                     sx={{ flexGrow: 1 }}
                     slotProps={{ htmlInput: { maxLength: 100 } }}
                   />
@@ -220,32 +210,11 @@ export default function CustomFieldsSettings() {
                     size="small"
                     startIcon={<AddIcon />}
                     onClick={handleAddField}
-                    disabled={!newFieldName.trim()}
+                    disabled={saving || !newFieldName.trim()}
                   >
                     {t('settings.customFields.add')}
                   </Button>
                 </Box>
-
-                {hasChanges && (
-                  <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={handleCancel}
-                      disabled={saving}
-                    >
-                      {t('settings.customFields.cancel')}
-                    </Button>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      onClick={handleSave}
-                      disabled={saving}
-                    >
-                      {saving ? t('settings.customFields.saving') : t('settings.customFields.save')}
-                    </Button>
-                  </Box>
-                )}
               </>
             )}
           </Stack>

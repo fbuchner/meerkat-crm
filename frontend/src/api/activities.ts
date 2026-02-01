@@ -31,6 +31,8 @@ export interface GetActivitiesParams {
   limit?: number;
   includeContacts?: boolean;
   search?: string;
+  fromDate?: string;
+  toDate?: string;
 }
 
 // Get all activities
@@ -52,6 +54,14 @@ export async function getActivities(
 
   if (search) {
     queryParams.append('search', search);
+  }
+
+  if (params.fromDate) {
+    queryParams.append('fromDate', params.fromDate);
+  }
+
+  if (params.toDate) {
+    queryParams.append('toDate', params.toDate);
   }
 
   const response = await apiFetch(

@@ -275,8 +275,10 @@
     "search": "Aktivitäten suchen...",
     "addActivity": "Aktivität hinzufügen",
     "noActivities": "Keine Aktivitäten gefunden",
-    "noResults": "Keine Aktivitäten entsprechen Ihrer Suche",
+    "noResults": "Keine Aktivitäten entsprechen Ihren Filtern",
     "date": "Datum",
+    "fromDate": "Von",
+    "toDate": "Bis",
     "deleteConfirm": "Aktivität löschen",
     "deleteMessage": "Möchten Sie diese Aktivität wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
     "allContactsInfo": "Diese Seite zeigt alle Aktivitäten aus allen Kontakten."
@@ -286,8 +288,10 @@
     "search": "Notizen suchen...",
     "addNote": "Notiz hinzufügen",
     "noNotes": "Keine Notizen gefunden",
-    "noResults": "Keine Notizen entsprechen Ihrer Suche",
+    "noResults": "Keine Notizen entsprechen Ihren Filtern",
     "date": "Datum",
+    "fromDate": "Von",
+    "toDate": "Bis",
     "deleteConfirm": "Notiz löschen",
     "deleteMessage": "Möchten Sie diese Notiz wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
     "unassignedInfo": "Diese Seite zeigt nur nicht zugewiesene Notizen, die keinem Kontakt zugeordnet sind und wie ein Tagebuch genutzt werden können."

@@ -21,6 +21,8 @@ export interface GetNotesParams {
   page?: number;
   limit?: number;
   search?: string;
+  fromDate?: string;
+  toDate?: string;
 }
 
 // Get notes for a contact
@@ -55,6 +57,14 @@ export async function getUnassignedNotes(
 
   if (search) {
     queryParams.append('search', search);
+  }
+
+  if (params.fromDate) {
+    queryParams.append('fromDate', params.fromDate);
+  }
+
+  if (params.toDate) {
+    queryParams.append('toDate', params.toDate);
   }
 
   const response = await apiFetch(

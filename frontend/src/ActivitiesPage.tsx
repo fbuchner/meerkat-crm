@@ -51,6 +51,8 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
   const [searchInput, setSearchInput] = useState('');
   const debouncedSearch = useDebouncedValue(searchInput, 400);
   const [page, setPage] = useState(1);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const ACTIVITIES_PER_PAGE = 25;
 
   // Memoize params to prevent unnecessary refetching
@@ -60,8 +62,10 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
       page,
       limit: ACTIVITIES_PER_PAGE,
       search: debouncedSearch.trim() || undefined,
+      fromDate: fromDate || undefined,
+      toDate: toDate || undefined,
     }),
-    [page, debouncedSearch]
+    [page, debouncedSearch, fromDate, toDate]
   );
 
   const {
@@ -88,6 +92,16 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
 
   const handleSearchChange = (value: string) => {
     setSearchInput(value);
+    setPage(1);
+  };
+
+  const handleFromDateChange = (value: string) => {
+    setFromDate(value);
+    setPage(1);
+  };
+
+  const handleToDateChange = (value: string) => {
+    setToDate(value);
     setPage(1);
   };
 
@@ -192,7 +206,7 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
 
 
   const isInitialLoading = loading && activities.length === 0;
-  const hasSearchQuery = searchInput.trim().length > 0;
+  const hasFilters = searchInput.trim().length > 0 || fromDate || toDate;
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 2 }}>
@@ -225,14 +239,36 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
       </Popover>
 
       <Paper sx={{ p: 1.5, mb: 2 }}>
-        <TextField
-          fullWidth
-          size="small"
-          label={t('activities.search')}
-          value={searchInput}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          variant="outlined"
-        />
+        <Box display="flex" gap={2} flexWrap="wrap">
+          <TextField
+            size="small"
+            label={t('activities.search')}
+            value={searchInput}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            variant="outlined"
+            sx={{ flex: 1, minWidth: 200 }}
+          />
+          <TextField
+            size="small"
+            label={t('activities.fromDate')}
+            type="date"
+            value={fromDate}
+            onChange={(e) => handleFromDateChange(e.target.value)}
+            variant="outlined"
+            slotProps={{ inputLabel: { shrink: true } }}
+            sx={{ width: 160 }}
+          />
+          <TextField
+            size="small"
+            label={t('activities.toDate')}
+            type="date"
+            value={toDate}
+            onChange={(e) => handleToDateChange(e.target.value)}
+            variant="outlined"
+            slotProps={{ inputLabel: { shrink: true } }}
+            sx={{ width: 160 }}
+          />
+        </Box>
       </Paper>
 
       {isInitialLoading ? (
@@ -240,7 +276,7 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
       ) : activities.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
           <Typography variant="body1" color="text.secondary">
-            {hasSearchQuery ? t('activities.noResults') : t('activities.noActivities')}
+            {hasFilters ? t('activities.noResults') : t('activities.noActivities')}
           </Typography>
         </Paper>
       ) : (

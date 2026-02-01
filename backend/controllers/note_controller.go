@@ -8,6 +8,7 @@ import (
 	"meerkat/models"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -142,9 +143,25 @@ func GetUnassignedNotes(c *gin.Context) {
 
 	pagination := GetPaginationParams(c)
 	search := strings.ToLower(strings.TrimSpace(c.Query("search")))
+	fromDateStr := c.Query("fromDate")
+	toDateStr := c.Query("toDate")
 
 	baseQuery := db.Model(&models.Note{}).
 		Where("notes.user_id = ? AND contact_id IS NULL", userID)
+
+	// Apply date filters
+	if fromDateStr != "" {
+		if fromDate, err := time.Parse("2006-01-02", fromDateStr); err == nil {
+			baseQuery = baseQuery.Where("notes.date >= ?", fromDate)
+		}
+	}
+	if toDateStr != "" {
+		if toDate, err := time.Parse("2006-01-02", toDateStr); err == nil {
+			// Add one day to include the entire end date
+			toDate = toDate.AddDate(0, 0, 1)
+			baseQuery = baseQuery.Where("notes.date < ?", toDate)
+		}
+	}
 
 	if search != "" {
 		like := "%" + search + "%"

@@ -21,7 +21,7 @@ import NoteIcon from '@mui/icons-material/Note';
 import EventIcon from '@mui/icons-material/Event';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 import { Note } from '../api/notes';
 import { Activity } from '../api/activities';
 import { ReminderCompletion } from '../api/reminders';
@@ -63,7 +63,7 @@ export default function ContactTimeline({ timelineItems, onEditItem, onDeleteCom
               <TimelineDot color={item.type === 'note' ? 'primary' : item.type === 'activity' ? 'secondary' : 'success'}>
                 {item.type === 'note' ? <NoteIcon fontSize="small" /> :
                  item.type === 'activity' ? <EventIcon fontSize="small" /> :
-                 <CheckCircleIcon fontSize="small" />}
+                 <NotificationsIcon fontSize="small" />}
               </TimelineDot>
               {index < timelineItems.length - 1 && <TimelineConnector />}
             </TimelineSeparator>
@@ -131,6 +131,7 @@ export default function ContactTimeline({ timelineItems, onEditItem, onDeleteCom
                   <IconButton
                     className="action-icon"
                     size="small"
+                    color="error"
                     onClick={() => onDeleteCompletion?.((item.data as ReminderCompletion).ID)}
                     sx={{
                       position: 'absolute',

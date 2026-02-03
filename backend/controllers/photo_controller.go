@@ -91,6 +91,12 @@ func GetProfilePicture(c *gin.Context, cfg *config.Config) {
 		return
 	}
 
+	// Prevent path traversal attacks
+	if strings.Contains(contact.Photo, "..") || filepath.IsAbs(contact.Photo) {
+		apperrors.AbortWithError(c, apperrors.ErrValidation("Invalid photo path"))
+		return
+	}
+
 	filePath := filepath.Join(cfg.ProfilePhotoDir, contact.Photo)
 	logger.FromContext(c).Debug().Str("file_path", filePath).Msg("Serving profile picture")
 

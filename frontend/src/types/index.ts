@@ -25,6 +25,14 @@ export type {
   GetActivitiesParams,
 } from '../api/activities';
 
+export type {
+  Reminder,
+  ReminderFormData,
+  RemindersResponse,
+  ReminderCompletion,
+  CompletionsResponse,
+} from '../api/reminders';
+
 // Additional shared types
 
 /**
@@ -94,19 +102,7 @@ export interface ValidationError {
   message: string;
 }
 
-/**
- * Reminder data structure
- */
-export interface Reminder {
-  ID: number;
-  title: string;
-  description?: string;
-  date: string;
-  contact_id?: number;
-  sent: boolean;
-  CreatedAt: string;
-  UpdatedAt: string;
-}
+// Reminder type is re-exported from '../api/reminders' above
 
 /**
  * Relationship between contacts
@@ -176,8 +172,7 @@ export type {
   ActivityUpdateFormData,
   NoteFormData,
   NoteUpdateFormData,
-  ReminderFormData,
-  ReminderUpdateFormData,
+  // ReminderFormData is re-exported from api/reminders above
   LoginFormData,
   RegisterFormData,
   PasswordResetRequestFormData,

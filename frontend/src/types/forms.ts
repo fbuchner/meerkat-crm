@@ -50,20 +50,7 @@ export interface NoteFormData {
  */
 export type NoteUpdateFormData = Partial<NoteFormData> & { ID: number };
 
-/**
- * Form data for creating a reminder
- */
-export interface ReminderFormData {
-  title: string;
-  description?: string;
-  date: string;
-  contact_id?: number;
-}
-
-/**
- * Form data for updating a reminder
- */
-export type ReminderUpdateFormData = Partial<ReminderFormData> & { ID: number };
+// ReminderFormData is defined in api/reminders.ts and re-exported via types/index.ts
 
 /**
  * Login form data

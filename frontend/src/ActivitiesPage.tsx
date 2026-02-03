@@ -27,18 +27,11 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useActivities } from './hooks/useActivities';
 import { useDebouncedValue } from './hooks/useDebounce';
 import { createActivity, updateActivity, deleteActivity, Activity } from './api/activities';
-import { getContacts } from './api/contacts';
+import { Contact, getContacts } from './api/contacts';
 import AddActivityDialog from './components/AddActivityDialog';
 import EditTimelineItemDialog from './components/EditTimelineItemDialog';
 import { ListSkeleton } from './components/LoadingSkeletons';
 import { useDateFormat } from './DateFormatProvider';
-
-interface Contact {
-  ID: number;
-  firstname: string;
-  lastname: string;
-  nickname?: string;
-}
 
 interface ActivitiesPageProps {
   token: string;

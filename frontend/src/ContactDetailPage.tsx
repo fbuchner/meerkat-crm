@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
+  Contact,
   getContact,
   updateContact,
   getContactProfilePicture,
@@ -58,26 +59,10 @@ import { ApiError } from './api/client';
 import { handleFetchError } from './utils/errorHandler';
 import { useDateFormat } from './DateFormatProvider';
 
-interface Contact {
-  ID: number;
-  firstname: string;
-  lastname: string;
-  nickname?: string;
-  gender?: string;
-  email?: string;
-  phone?: string;
-  birthday?: string;
-  photo?: string;
-  address?: string;
-  how_we_met?: string;
-  food_preference?: string;
-  work_information?: string;
-  contact_information?: string;
-  circles?: string[];
+// Extended Contact type with optional relations for local state
+interface ContactWithRelations extends Contact {
   notes?: Note[];
   activities?: Activity[];
-  custom_fields?: Record<string, string>;
-  archived?: boolean;
 }
 
 export default function ContactDetailPage({ token }: { token: string }) {
@@ -86,7 +71,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
   const navigate = useNavigate();
   const { showError } = useSnackbar();
   const { formatBirthdayForInput, parseBirthdayInput } = useDateFormat();
-  const [contact, setContact] = useState<Contact | null>(null);
+  const [contact, setContact] = useState<ContactWithRelations | null>(null);
   const [profilePic, setProfilePic] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [editingField, setEditingField] = useState<string | null>(null);

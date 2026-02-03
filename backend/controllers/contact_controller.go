@@ -367,8 +367,6 @@ func UpdateContact(c *gin.Context) {
 	contact.Circles = contactInput.Circles
 	contact.CustomFields = contactInput.CustomFields
 
-	db.Save(&contact)
-
 	if err := db.Save(&contact).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update contact").WithError(err))
 		return

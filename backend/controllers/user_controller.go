@@ -151,12 +151,39 @@ func LoginUser(context *gin.Context, cfg *config.Config) {
 		return
 	}
 
-	// Return token and user preferences
+	// Set httpOnly cookie with the JWT token
+	maxAge := cfg.JWTExpiryHours * 3600 // Convert hours to seconds
+	context.SetSameSite(http.SameSiteLaxMode)
+	context.SetCookie(
+		"auth_token",     // name
+		tokenString,      // value
+		maxAge,           // maxAge in seconds
+		"/",              // path
+		cfg.CookieDomain, // domain (empty = current domain)
+		cfg.CookieSecure, // secure (true = HTTPS only)
+		true,             // httpOnly (not accessible via JavaScript)
+	)
+
+	// Return user preferences (token is now in httpOnly cookie)
 	context.JSON(http.StatusOK, gin.H{
-		"token":       tokenString,
 		"language":    foundUser.Language,
 		"date_format": foundUser.DateFormat,
 	})
+}
+
+// LogoutUser clears the auth cookie to log out the user
+func LogoutUser(context *gin.Context, cfg *config.Config) {
+	context.SetSameSite(http.SameSiteLaxMode)
+	context.SetCookie(
+		"auth_token",     // name
+		"",               // value (empty)
+		-1,               // maxAge -1 = delete cookie
+		"/",              // path
+		cfg.CookieDomain, // domain
+		cfg.CookieSecure, // secure
+		true,             // httpOnly
+	)
+	context.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }
 
 // CheckPasswordStrength evaluates password strength without registration

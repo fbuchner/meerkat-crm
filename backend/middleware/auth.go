@@ -13,21 +13,29 @@ import (
 
 func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenString := c.GetHeader("Authorization")
-		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required"})
-			c.Abort()
-			return
-		}
+		var tokenString string
 
-		// Check if Authorization header is formatted properly
-		if !strings.HasPrefix(tokenString, "Bearer ") {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header must start with Bearer"})
-			c.Abort()
-			return
-		}
+		// First, try to get token from httpOnly cookie
+		if cookie, err := c.Cookie("auth_token"); err == nil && cookie != "" {
+			tokenString = cookie
+		} else {
+			// Fall back to Authorization header (for API clients like CardDAV)
+			authHeader := c.GetHeader("Authorization")
+			if authHeader == "" {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required"})
+				c.Abort()
+				return
+			}
 
-		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+			// Check if Authorization header is formatted properly
+			if !strings.HasPrefix(authHeader, "Bearer ") {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header must start with Bearer"})
+				c.Abort()
+				return
+			}
+
+			tokenString = strings.TrimPrefix(authHeader, "Bearer ")
+		}
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

@@ -9,7 +9,7 @@ import NetworkPage from './NetworkPage';
 import UsersPage from './UsersPage';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
-import { getToken, logoutUser, isAdmin } from './auth';
+import { getToken, logoutAndRedirect, isAdmin } from './auth';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -102,9 +102,8 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
     return () => clearTimeout(timer);
   }, [searchQuery, token]);
 
-  const handleLogout = () => {
-    logoutUser();
-    window.location.href = '/login';
+  const handleLogout = async () => {
+    await logoutAndRedirect();
   };
 
   const handleSearchSubmit = () => {
@@ -445,7 +444,12 @@ function App() {
   const [token, setToken] = useState(getToken());
   
   useEffect(() => {
-    const onStorage = () => setToken(getToken());
+    // Listen for storage changes (e.g., logout in another tab)
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'user_info') {
+        setToken(getToken());
+      }
+    };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);

@@ -1,5 +1,6 @@
 // API client with authentication and error handling
-import { getToken, API_BASE_URL } from '../auth';
+// Uses httpOnly cookies for authentication (credentials: 'include')
+import { API_BASE_URL } from '../auth';
 
 export { API_BASE_URL };
 
@@ -75,7 +76,7 @@ export async function parseErrorResponse(response: Response): Promise<ApiError> 
   );
 }
 
-// Centralized fetch wrapper that handles token expiration and timeouts
+// Centralized fetch wrapper that handles session expiration and timeouts
 export async function apiFetch(
   url: string,
   options: RequestInit = {},
@@ -88,15 +89,16 @@ export async function apiFetch(
   try {
     const response = await fetch(url, {
       ...options,
+      credentials: 'include', // Send httpOnly auth cookie
       signal: controller.signal,
     });
 
     clearTimeout(timeoutId);
 
-    // Check if token has expired (401 Unauthorized)
+    // Check if session has expired (401 Unauthorized)
     if (response.status === 401) {
-      // Token is invalid or expired - logout and redirect
-      localStorage.removeItem('jwt_token');
+      // Session is invalid or expired - logout and redirect
+      localStorage.removeItem('user_info');
       window.location.href = '/login';
       throw new Error('Session expired. Please login again.');
     }
@@ -114,11 +116,9 @@ export async function apiFetch(
   }
 }
 
-// Helper to create authenticated headers
-export function getAuthHeaders(token?: string): HeadersInit {
-  const authToken = token || getToken();
+// Helper to create request headers (no longer includes Authorization - using cookies)
+export function getAuthHeaders(_token?: string): HeadersInit {
   return {
-    'Authorization': `Bearer ${authToken}`,
     'Content-Type': 'application/json',
   };
 }

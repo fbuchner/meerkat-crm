@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { loginUser, saveToken } from './auth';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { loginUser, isAuthenticated } from './auth';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import i18n from './i18n/config';
 import { initializeDateFormatFromBackend } from './DateFormatProvider';
@@ -21,9 +21,8 @@ type LoginPageProps = {
 
 export default function LoginPage({ setToken }: LoginPageProps) {
   const { t } = useTranslation();
-  const [searchParams] = useSearchParams();
-  const [identifier, setIdentifier] = useState(searchParams.get('username') || '');
-  const [password, setPassword] = useState(searchParams.get('password') || '');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
@@ -34,9 +33,9 @@ export default function LoginPage({ setToken }: LoginPageProps) {
     setLoading(true);
     setError('');
     try {
-      const { token, language, date_format } = await loginUser(identifier, password);
-      saveToken(token);
-      if (setToken) setToken(token);
+      const { language, date_format } = await loginUser(identifier, password);
+      // Signal that user is now authenticated (token is in httpOnly cookie)
+      if (setToken) setToken(isAuthenticated() ? 'authenticated' : null);
 
       // Sync language preference from backend if available
       if (language && language !== i18n.language) {

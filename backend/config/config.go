@@ -28,6 +28,8 @@ type Config struct {
 	IdleTimeout     int    // HTTP server idle timeout in seconds
 	ProfilePhotoDir string // Directory for storing profile photos (must be absolute path)
 	CardDAVEnabled  bool   // Enable CardDAV server for contact sync
+	CookieSecure    bool   // Set Secure flag on auth cookie (requires HTTPS)
+	CookieDomain    string // Domain for auth cookie (empty = current domain only)
 }
 
 func LoadConfig() *Config {
@@ -60,6 +62,8 @@ func LoadConfig() *Config {
 		IdleTimeout:     idleTimeout,
 		ProfilePhotoDir: getEnv("PROFILE_PHOTO_DIR", ""),
 		CardDAVEnabled:  getBoolEnv("CARDDAV_ENABLED", false),
+		CookieSecure:    getBoolEnv("COOKIE_SECURE", false),
+		CookieDomain:    getEnv("COOKIE_DOMAIN", ""),
 	}
 
 	if cfg.ResendAPIKey == "" || cfg.ResendFromEmail == "" {

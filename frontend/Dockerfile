@@ -20,8 +20,8 @@ ENV REACT_APP_API_URL=${REACT_APP_API_URL}
 
 RUN if [ -f yarn.lock ]; then yarn build; else npm run build; fi
 
-# Production stage - serve with nginx
-FROM nginx:alpine
+# Production stage - serve with unprivileged nginx
+FROM nginxinc/nginx-unprivileged:alpine
 
 # Copy custom nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
@@ -29,8 +29,8 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copy built assets from builder
 COPY --from=builder /app/build /usr/share/nginx/html
 
-# Expose port 80
-EXPOSE 80
+# nginx-unprivileged runs on port 8080 by default
+EXPOSE 8080
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]

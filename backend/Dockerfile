@@ -14,10 +14,10 @@ RUN go mod download
 COPY . .
 
 # Build the application with CGO enabled for SQLite
-RUN CGO_ENABLED=1 GOOS=linux go build -a -ldflags '-linkmode external -extldflags "-static"' -o meerkat .
+RUN CGO_ENABLED=1 GOOS=linux go build -ldflags '-linkmode external -extldflags "-static"' -o meerkat .
 
 # Runtime stage
-FROM alpine:3.20
+FROM alpine:latest
 
 # Install runtime dependencies
 RUN apk add --no-cache ca-certificates tzdata sqlite

@@ -52,7 +52,10 @@ test.describe('Navigation', () => {
 
   test('should navigate to settings from sidebar', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('link', { name: /settings/i }).click();
+    // Settings is a collapsible submenu - click to expand it
+    await page.locator('.MuiDrawer-root').getByText('Settings').click();
+    // Click the Profile link inside the expanded submenu
+    await page.locator('.MuiDrawer-root').getByText('Profile').click();
     await expect(page).toHaveURL(/\/settings/);
   });
 });

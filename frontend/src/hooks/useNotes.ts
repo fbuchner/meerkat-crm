@@ -23,10 +23,14 @@ export function useNotes(
 	contactId?: string | number,
 	params: GetNotesParams = {}
 ): UseNotesResult {
+  // Destructure params to use primitive values as dependencies
+  // This prevents re-fetches when callers pass new object references with identical values
+  const { page: paramPage, limit: paramLimit, search, fromDate, toDate } = params;
+
   const [notes, setNotes] = useState<Note[]>([]);
   const [total, setTotal] = useState(0);
-  const [pageState, setPageState] = useState(params.page || 1);
-  const [limit, setLimit] = useState(params.limit || 25);
+  const [pageState, setPageState] = useState(paramPage || 1);
+  const [limit, setLimit] = useState(paramLimit || 25);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,13 +50,14 @@ export function useNotes(
         setNotes(normalized);
         setTotal(normalized.length);
         setPageState(1);
-        setLimit(normalized.length || params.limit || 25);
+        setLimit(normalized.length || paramLimit || 25);
       } else {
-        const data = await getUnassignedNotes(token, params);
+        const fetchParams: GetNotesParams = { page: paramPage, limit: paramLimit, search, fromDate, toDate };
+        const data = await getUnassignedNotes(token, fetchParams);
         setNotes(data.notes || []);
         setTotal(data.total ?? data.notes?.length ?? 0);
-        setPageState(data.page || params.page || 1);
-        setLimit(data.limit || params.limit || 25);
+        setPageState(data.page || paramPage || 1);
+        setLimit(data.limit || paramLimit || 25);
       }
     } catch (err) {
       const message = handleFetchError(err, 'fetching notes');
@@ -60,7 +65,7 @@ export function useNotes(
     } finally {
       setLoading(false);
     }
-  }, [contactId, params]);
+  }, [contactId, paramPage, paramLimit, search, fromDate, toDate]);
 
   useEffect(() => {
     fetchNotes();

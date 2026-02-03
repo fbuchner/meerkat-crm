@@ -24,10 +24,14 @@ export function useActivities(
   params: GetActivitiesParams = {},
   contactId?: string | number
 ): UseActivitiesResult {
+  // Destructure params to use primitive values as dependencies
+  // This prevents re-fetches when callers pass new object references with identical values
+  const { page: paramPage, limit: paramLimit, includeContacts, search, fromDate, toDate } = params;
+
   const [activities, setActivities] = useState<Activity[]>([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(params.page || 1);
-  const [limit, setLimit] = useState(params.limit || 25);
+  const [page, setPage] = useState(paramPage || 1);
+  const [limit, setLimit] = useState(paramLimit || 25);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const requestRef = useRef(0);
@@ -52,16 +56,17 @@ export function useActivities(
         setActivities(data.activities || []);
         setTotal(data.activities?.length || 0);
         setPage(1);
-        setLimit(params.limit || data.activities?.length || 25);
+        setLimit(paramLimit || data.activities?.length || 25);
       } else {
-        const data: ActivitiesResponse = await getActivities(params, token);
+        const fetchParams: GetActivitiesParams = { page: paramPage, limit: paramLimit, includeContacts, search, fromDate, toDate };
+        const data: ActivitiesResponse = await getActivities(fetchParams, token);
         if (requestRef.current !== requestId) {
           return;
         }
         setActivities(data.activities || []);
         setTotal(data.total || 0);
         setPage(data.page || 1);
-        setLimit(data.limit || params.limit || 25);
+        setLimit(data.limit || paramLimit || 25);
       }
     } catch (err) {
       if (requestRef.current !== requestId) {
@@ -74,7 +79,7 @@ export function useActivities(
         setLoading(false);
       }
     }
-  }, [params, contactId]);
+  }, [contactId, paramPage, paramLimit, includeContacts, search, fromDate, toDate]);
 
   useEffect(() => {
     fetchActivities();

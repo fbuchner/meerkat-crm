@@ -5,6 +5,7 @@ import (
 	"meerkat/middleware"
 	"meerkat/models"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -36,7 +37,7 @@ func BasicAuthMiddleware() gin.HandlerFunc {
 				Int("retry_after", remainingSecs).
 				Msg("CardDAV auth blocked: account temporarily locked")
 			c.Header("WWW-Authenticate", `Basic realm="CardDAV"`)
-			c.Header("Retry-After", string(rune(remainingSecs)))
+			c.Header("Retry-After", strconv.Itoa(remainingSecs))
 			c.AbortWithStatus(http.StatusTooManyRequests)
 			return
 		}

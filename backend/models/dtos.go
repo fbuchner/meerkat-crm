@@ -4,47 +4,47 @@ import "time"
 
 // ActivityInput represents the DTO for creating/updating activities
 type ActivityInput struct {
-	Title       string    `json:"title" validate:"required,min=1,max=200,safe_string"`
-	Description string    `json:"description" validate:"max=2000,safe_string"`
-	Location    string    `json:"location" validate:"max=300,safe_string"`
+	Title       string    `json:"title" validate:"required,min=1,max=200"`
+	Description string    `json:"description" validate:"max=2000"`
+	Location    string    `json:"location" validate:"max=300"`
 	Date        time.Time `json:"date" validate:"required"`
 	ContactIDs  []uint    `json:"contact_ids"` // Accept an array of contact IDs for many-to-many association
 }
 
 // NoteInput represents the DTO for creating/updating notes
 type NoteInput struct {
-	Content   string    `json:"content" validate:"required,min=1,max=5000,safe_string"`
+	Content   string    `json:"content" validate:"required,min=1,max=5000"`
 	Date      time.Time `json:"date" validate:"required"`
 	ContactID *uint     `json:"contact_id" validate:"omitempty,gt=0"`
 }
 
 // ContactInput represents the DTO for creating/updating contacts
 type ContactInput struct {
-	Firstname          string            `json:"firstname" validate:"required,min=1,max=100,safe_string"`
-	Lastname           string            `json:"lastname" validate:"max=100,safe_string"`
-	Nickname           string            `json:"nickname" validate:"max=50,safe_string"`
+	Firstname          string            `json:"firstname" validate:"required,min=1,max=100"`
+	Lastname           string            `json:"lastname" validate:"max=100"`
+	Nickname           string            `json:"nickname" validate:"max=50"`
 	Gender             string            `json:"gender" validate:"omitempty,oneof=male female other prefer_not_to_say"`
 	Email              string            `json:"email" validate:"omitempty,email"`
 	Phone              string            `json:"phone" validate:"omitempty,phone"`
 	Birthday           string            `json:"birthday" validate:"omitempty,birthday"`
-	Address            string            `json:"address" validate:"max=500,safe_string"`
-	HowWeMet           string            `json:"how_we_met" validate:"max=1000,safe_string"`
-	FoodPreference     string            `json:"food_preference" validate:"max=500,safe_string"`
-	WorkInformation    string            `json:"work_information" validate:"max=1000,safe_string"`
-	ContactInformation string            `json:"contact_information" validate:"max=1000,safe_string"`
+	Address            string            `json:"address" validate:"max=500"`
+	HowWeMet           string            `json:"how_we_met" validate:"max=1000"`
+	FoodPreference     string            `json:"food_preference" validate:"max=500"`
+	WorkInformation    string            `json:"work_information" validate:"max=1000"`
+	ContactInformation string            `json:"contact_information" validate:"max=1000"`
 	Circles            []string          `json:"circles" validate:"unique_circles"`
 	CustomFields       map[string]string `json:"custom_fields"`
 }
 
 // CustomFieldNamesInput represents the DTO for updating user's custom field definitions
 type CustomFieldNamesInput struct {
-	Names []string `json:"names" validate:"dive,max=100,safe_string"`
+	Names []string `json:"names" validate:"dive,max=100"`
 }
 
 // UserRegistrationInput represents the DTO for user registration
 // This DTO intentionally excludes IsAdmin to prevent mass assignment attacks
 type UserRegistrationInput struct {
-	Username string `json:"username" validate:"required,min=3,max=50,safe_string,no_at_sign"`
+	Username string `json:"username" validate:"required,min=3,max=50,no_at_sign"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8,strong_password"`
 	Language string `json:"language" validate:"omitempty,oneof=en de"`
@@ -70,8 +70,8 @@ type ChangePasswordInput struct {
 // RelationshipInput represents the DTO for creating/updating relationships
 // ContactID is not included as it comes from the URL parameter
 type RelationshipInput struct {
-	Name             string `json:"name" validate:"required,min=1,max=100,safe_string"`
-	Type             string `json:"type" validate:"required,min=1,max=50,safe_string"`
+	Name             string `json:"name" validate:"required,min=1,max=100"`
+	Type             string `json:"type" validate:"required,min=1,max=50"`
 	Gender           string `json:"gender" validate:"omitempty,oneof=male female other prefer_not_to_say"`
 	Birthday         string `json:"birthday" validate:"omitempty,birthday"`
 	RelatedContactID *uint  `json:"related_contact_id"`
@@ -132,7 +132,7 @@ type AdminUserResponse struct {
 
 // AdminUserUpdateInput - DTO for admin updating a user
 type AdminUserUpdateInput struct {
-	Username *string `json:"username" validate:"omitempty,min=3,max=50,safe_string,no_at_sign"`
+	Username *string `json:"username" validate:"omitempty,min=3,max=50,no_at_sign"`
 	Email    *string `json:"email" validate:"omitempty,email"`
 	Password *string `json:"password" validate:"omitempty,min=8,strong_password"`
 	IsAdmin  *bool   `json:"is_admin"`

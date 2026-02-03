@@ -24,7 +24,7 @@ func init() {
 
 type TestValidationStruct struct {
 	Email    string `json:"email" validate:"required,email"`
-	Username string `json:"username" validate:"required,min=3,max=20,safe_string"`
+	Username string `json:"username" validate:"required,min=3,max=20"`
 	Phone    string `json:"phone" validate:"required,phone"`
 	Birthday string `json:"birthday" validate:"omitempty,birthday"`
 	Password string `json:"password" validate:"required,strong_password"`

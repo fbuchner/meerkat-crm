@@ -9,7 +9,7 @@ import (
 type Reminder struct {
 	gorm.Model
 	UserID                uint       `gorm:"not null;index" json:"-"`
-	Message               string     `gorm:"not null type:text" json:"message" validate:"required,min=1,max=500,safe_string"`
+	Message               string     `gorm:"not null type:text" json:"message" validate:"required,min=1,max=500"`
 	ByMail                *bool      `gorm:"default:false" json:"by_mail"`
 	RemindAt              time.Time  `gorm:"not null" json:"remind_at" validate:"required"`
 	Recurrence            string     `gorm:"not null" json:"recurrence" validate:"required,oneof=once weekly monthly quarterly six-months yearly"`

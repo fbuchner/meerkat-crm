@@ -25,7 +25,7 @@ func TestValidationWithErrorSystem(t *testing.T) {
 
 	type TestStruct struct {
 		Email    string `json:"email" validate:"required,email"`
-		Username string `json:"username" validate:"required,min=3,max=20,safe_string"`
+		Username string `json:"username" validate:"required,min=3,max=20"`
 		Phone    string `json:"phone" validate:"required,phone"`
 	}
 
@@ -75,17 +75,6 @@ func TestValidationWithErrorSystem(t *testing.T) {
 			expectedStatus: http.StatusBadRequest,
 			expectedCode:   "VALIDATION_ERROR",
 			checkField:     "Phone", // Note: Field names are capitalized in validation errors
-		},
-		{
-			name: "unsafe_string",
-			payload: map[string]string{
-				"email":    "test@example.com",
-				"username": "<script>alert('xss')</script>",
-				"phone":    "1234567890",
-			},
-			expectedStatus: http.StatusBadRequest,
-			expectedCode:   "VALIDATION_ERROR",
-			checkField:     "Username", // Note: Field names are capitalized in validation errors
 		},
 	}
 

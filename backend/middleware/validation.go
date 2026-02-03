@@ -21,7 +21,6 @@ func init() {
 	// Register custom validators
 	validate.RegisterValidation("phone", validatePhone)
 	validate.RegisterValidation("birthday", validateBirthday)
-	validate.RegisterValidation("safe_string", validateSafeString)
 	validate.RegisterValidation("strong_password", validateStrongPassword)
 	validate.RegisterValidation("unique_circles", validateUniqueCircles)
 	validate.RegisterValidation("no_at_sign", validateNoAtSign)
@@ -67,8 +66,6 @@ func formatValidationError(err validator.FieldError) string {
 		return field + " must be a valid phone number"
 	case "birthday":
 		return field + " must be in YYYY-MM-DD format (use --MM-DD if year unknown)"
-	case "safe_string":
-		return field + " contains invalid characters"
 	case "strong_password":
 		return field + " is too weak. Use a longer password (15+ characters) or a passphrase (20+ characters). Avoid common passwords."
 	case "unique_circles":
@@ -144,26 +141,6 @@ func validateBirthday(fl validator.FieldLevel) bool {
 	}
 
 	// Additional validation could check if date is valid
-	return true
-}
-
-// validateSafeString checks for potentially dangerous characters
-func validateSafeString(fl validator.FieldLevel) bool {
-	str := fl.Field().String()
-
-	// Check for SQL injection patterns
-	dangerous := []string{
-		"--", "/*", "*/", "xp_", "sp_", "exec", "execute",
-		"script", "javascript:", "onerror", "onload",
-	}
-
-	lowerStr := strings.ToLower(str)
-	for _, pattern := range dangerous {
-		if strings.Contains(lowerStr, pattern) {
-			return false
-		}
-	}
-
 	return true
 }
 

@@ -24,8 +24,12 @@ RUN apk add --no-cache ca-certificates tzdata sqlite
 
 WORKDIR /app
 
+# Create non-root user for security
+RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup
+
 # Create directories for data persistence
-RUN mkdir -p /app/static/photos /app/data
+RUN mkdir -p /app/static/photos /app/data && \
+    chown -R appuser:appgroup /app
 
 # Set default environment
 ENV PORT=8080
@@ -37,6 +41,9 @@ COPY --from=builder /app/meerkat .
 
 # Copy static assets if any
 COPY --from=builder /app/static/styles.css ./static/
+
+# Switch to non-root user
+USER appuser
 
 # Expose the port
 EXPOSE 8080

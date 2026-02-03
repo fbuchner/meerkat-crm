@@ -244,7 +244,7 @@ func UpdateActivity(c *gin.Context) {
 	}
 
 	// Reload the activity with contacts to return complete data
-	if err := db.Preload("Contacts").First(&activity, id).Error; err != nil {
+	if err := db.Preload("Contacts", "contacts.user_id = ?", userID).Where("user_id = ?", userID).First(&activity, id).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to reload activity").WithError(err))
 		return
 	}

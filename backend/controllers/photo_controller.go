@@ -30,7 +30,7 @@ func GetProfilePicture(c *gin.Context, cfg *config.Config) {
 	idParam := c.Param("id")
 	contactID, err := strconv.Atoi(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid contact ID"})
+		apperrors.AbortWithError(c, apperrors.ErrValidation("Invalid contact ID"))
 		return
 	}
 	var contact models.Contact
@@ -44,10 +44,10 @@ func GetProfilePicture(c *gin.Context, cfg *config.Config) {
 	// Find the contact in the database
 	if err := db.Where("user_id = ?", userID).First(&contact, contactID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact"))
 			return
 		}
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find contact"})
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("find").WithError(err))
 		return
 	}
 
@@ -57,7 +57,7 @@ func GetProfilePicture(c *gin.Context, cfg *config.Config) {
 	if wantsThumbnail {
 		// Serve thumbnail from database (base64 data URL)
 		if contact.PhotoThumbnail == "" {
-			c.JSON(http.StatusNotFound, gin.H{"error": "No thumbnail available"})
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Thumbnail"))
 			return
 		}
 
@@ -65,19 +65,19 @@ func GetProfilePicture(c *gin.Context, cfg *config.Config) {
 		// Format: data:image/jpeg;base64,<data>
 		if !strings.HasPrefix(contact.PhotoThumbnail, "data:") {
 			// Legacy file-based thumbnail - no longer supported
-			c.JSON(http.StatusNotFound, gin.H{"error": "No thumbnail available"})
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Thumbnail"))
 			return
 		}
 
 		parts := strings.SplitN(contact.PhotoThumbnail, ",", 2)
 		if len(parts) != 2 {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid thumbnail format"})
+			apperrors.AbortWithError(c, apperrors.ErrInternal("Invalid thumbnail format"))
 			return
 		}
 
 		imageData, err := base64.StdEncoding.DecodeString(parts[1])
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode thumbnail"})
+			apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to decode thumbnail").WithError(err))
 			return
 		}
 
@@ -87,7 +87,7 @@ func GetProfilePicture(c *gin.Context, cfg *config.Config) {
 
 	// Serve full photo from file using validated config path
 	if contact.Photo == "" {
-		c.JSON(http.StatusNotFound, gin.H{"error": "No photo available"})
+		apperrors.AbortWithError(c, apperrors.ErrNotFound("Photo"))
 		return
 	}
 
@@ -101,7 +101,7 @@ func GetProfilePicture(c *gin.Context, cfg *config.Config) {
 	logger.FromContext(c).Debug().Str("file_path", filePath).Msg("Serving profile picture")
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Image not found"})
+		apperrors.AbortWithError(c, apperrors.ErrNotFound("Image"))
 		return
 	}
 
@@ -118,7 +118,7 @@ func AddPhotoToContact(c *gin.Context, cfg *config.Config) {
 	idParam := c.Param("id")
 	contactID, err := strconv.Atoi(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid contact ID"})
+		apperrors.AbortWithError(c, apperrors.ErrValidation("Invalid contact ID"))
 		return
 	}
 	var contact models.Contact
@@ -132,10 +132,10 @@ func AddPhotoToContact(c *gin.Context, cfg *config.Config) {
 	// Find the contact in the database
 	if err := db.Where("user_id = ?", userID).First(&contact, contactID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact"))
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find contact"})
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("find").WithError(err))
 		return
 	}
 
@@ -145,18 +145,18 @@ func AddPhotoToContact(c *gin.Context, cfg *config.Config) {
 		// Validate file size (10MB limit to prevent DoS)
 		const maxFileSize = 10 * 1024 * 1024 // 10MB
 		if file.Size > maxFileSize {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "File too large. Maximum size is 10MB"})
+			apperrors.AbortWithError(c, apperrors.ErrValidation("File too large. Maximum size is 10MB"))
 			return
 		}
 
 		// Use validated upload directory from config
 		if err := os.MkdirAll(cfg.ProfilePhotoDir, os.ModePerm); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
+			apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to create upload directory").WithError(err))
 			return
 		}
 		photoPath, thumbnailPath, err := processAndSavePhoto(file, cfg.ProfilePhotoDir)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process photo"})
+			apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to process photo").WithError(err))
 			return
 		}
 		contact.Photo = photoPath
@@ -165,7 +165,7 @@ func AddPhotoToContact(c *gin.Context, cfg *config.Config) {
 
 	// Save the updated contact
 	if err := db.Save(&contact).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update contact"})
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("update").WithError(err))
 		return
 	}
 
@@ -311,7 +311,7 @@ func saveImage(path string, img image.Image) error {
 func ProxyImage(c *gin.Context) {
 	imageURL := c.Query("url")
 	if imageURL == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "URL parameter is required"})
+		apperrors.AbortWithError(c, apperrors.ErrMissingField("url"))
 		return
 	}
 
@@ -319,7 +319,7 @@ func ProxyImage(c *gin.Context) {
 	body, contentType, err := httputil.FetchImageFromURL(imageURL)
 	if err != nil {
 		logger.FromContext(c).Warn().Err(err).Str("url", imageURL).Msg("Failed to fetch image from URL")
-		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		apperrors.AbortWithError(c, apperrors.ErrExternal("image proxy", "Failed to fetch image").WithError(err))
 		return
 	}
 

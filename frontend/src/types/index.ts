@@ -129,9 +129,6 @@ export interface Photo {
 
 // Re-export utility types
 export type {
-  RequireFields,
-  OptionalFields,
-  NonNullableFields,
   FormState,
   AsyncState,
   PaginationParams,
@@ -148,20 +145,9 @@ export type {
   ClickHandler,
   SubmitHandler,
   SelectChangeHandler,
-  ContactId,
-  ActivityId,
-  NoteId,
-  ReminderId,
-  UserId,
   Nullable,
   Optional,
   Maybe,
-  DeepPartial,
-  DeepReadonly,
-  KeysOfType,
-  Mutable,
-  AsyncData,
-  AsyncFunction,
 } from './utils';
 
 // Re-export form types
@@ -234,7 +220,4 @@ export type {
   HttpMethod,
   ApiRequestConfig,
   TypedFetchOptions,
-  ApiEndpoint,
 } from './api';
-
-export { API_ENDPOINTS } from './api';

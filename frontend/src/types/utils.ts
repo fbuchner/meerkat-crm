@@ -1,39 +1,4 @@
 /**
- * Utility TypeScript types for Meerkat CRM
- * 
- * This file contains reusable utility types, form types, and common patterns
- * used throughout the application.
- */
-
-/**
- * Makes specific properties of T required
- * @example
- * type User = { id?: number; name?: string; email?: string };
- * type RequiredUser = RequireFields<User, 'name' | 'email'>;
- * // Result: { id?: number; name: string; email: string }
- */
-export type RequireFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
-
-/**
- * Makes specific properties of T optional
- * @example
- * type User = { id: number; name: string; email: string };
- * type PartialUser = OptionalFields<User, 'name' | 'email'>;
- * // Result: { id: number; name?: string; email?: string }
- */
-export type OptionalFields<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
-
-/**
- * Extracts non-nullable values from T
- * @example
- * type MaybeString = string | null | undefined;
- * type DefiniteString = NonNullable<MaybeString>; // string
- */
-export type NonNullableFields<T> = {
-  [P in keyof T]: NonNullable<T[P]>;
-};
-
-/**
  * Generic form state wrapper
  * Useful for tracking form values, errors, and submission state
  */
@@ -159,75 +124,9 @@ export type SubmitHandler = (event: React.FormEvent<HTMLFormElement>) => void;
 export type SelectChangeHandler<T = string> = (value: T | null) => void;
 
 /**
- * Branded types for type-safe IDs
- * Prevents accidentally mixing different ID types
- */
-export type ContactId = number & { readonly __brand: 'ContactId' };
-export type ActivityId = number & { readonly __brand: 'ActivityId' };
-export type NoteId = number & { readonly __brand: 'NoteId' };
-export type ReminderId = number & { readonly __brand: 'ReminderId' };
-export type UserId = number & { readonly __brand: 'UserId' };
-
-/**
- * Type guard helper functions
- */
-export function isContactId(id: number): id is ContactId {
-  return typeof id === 'number' && id > 0;
-}
-
-export function isActivityId(id: number): id is ActivityId {
-  return typeof id === 'number' && id > 0;
-}
-
-export function isNoteId(id: number): id is NoteId {
-  return typeof id === 'number' && id > 0;
-}
-
-/**
  * Response data that might be null or undefined
  */
 export type Nullable<T> = T | null;
 export type Optional<T> = T | undefined;
 export type Maybe<T> = T | null | undefined;
 
-/**
- * Deep partial - makes all nested properties optional
- */
-export type DeepPartial<T> = {
-  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
-};
-
-/**
- * Deep readonly - makes all nested properties readonly
- */
-export type DeepReadonly<T> = {
-  readonly [P in keyof T]: T[P] extends object ? DeepReadonly<T[P]> : T[P];
-};
-
-/**
- * Extract keys of T where value type matches V
- * @example
- * type User = { id: number; name: string; age: number };
- * type StringKeys = KeysOfType<User, string>; // 'name'
- * type NumberKeys = KeysOfType<User, number>; // 'id' | 'age'
- */
-export type KeysOfType<T, V> = {
-  [K in keyof T]: T[K] extends V ? K : never;
-}[keyof T];
-
-/**
- * Mutable version of T (removes readonly)
- */
-export type Mutable<T> = {
-  -readonly [P in keyof T]: T[P];
-};
-
-/**
- * Promise that resolves to T
- */
-export type AsyncData<T> = Promise<T>;
-
-/**
- * Function that returns a promise
- */
-export type AsyncFunction<T extends unknown[], R> = (...args: T) => Promise<R>;

@@ -364,7 +364,7 @@ export default function AddContactDialog({
                 label={t('contacts.newCircle')}
                 value={newCircle}
                 onChange={(e) => setNewCircle(e.target.value)}
-                onKeyPress={(e) => {
+                onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
                     handleAddCircle();

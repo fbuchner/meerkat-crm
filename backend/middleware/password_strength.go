@@ -30,8 +30,6 @@ const (
 	SymbolsCharSet   = 32 // Common symbols
 )
 
-// CalculatePasswordEntropy calculates the entropy of a password in bits
-// Entropy = log2(charset_size^length) = length * log2(charset_size)
 func CalculatePasswordEntropy(password string) float64 {
 	if len(password) == 0 {
 		return 0
@@ -46,7 +44,6 @@ func CalculatePasswordEntropy(password string) float64 {
 	return entropy
 }
 
-// determineCharacterSetSize determines the size of the character set used
 func determineCharacterSetSize(password string) int {
 	hasLower := false
 	hasUpper := false
@@ -82,7 +79,6 @@ func determineCharacterSetSize(password string) int {
 	return charSetSize
 }
 
-// EvaluatePasswordStrength evaluates password strength based on entropy
 func EvaluatePasswordStrength(password string) PasswordStrength {
 	entropy := CalculatePasswordEntropy(password)
 	charSetSize := determineCharacterSetSize(password)
@@ -133,8 +129,6 @@ func EvaluatePasswordStrength(password string) PasswordStrength {
 	return result
 }
 
-// ValidatePasswordStrength checks if a password meets minimum entropy requirements
-// and isn't a common password
 func ValidatePasswordStrength(password string) error {
 	// Check if it's a common password first
 	if IsCommonPassword(password) {
@@ -178,8 +172,6 @@ func GetPasswordRequirements() string {
 Longer passphrases are preferred over short complex passwords.`
 }
 
-// IsCommonPassword checks if password is in common password list
-// This is a simplified version - in production, use a comprehensive list
 func IsCommonPassword(password string) bool {
 	// Common weak passwords and patterns
 	commonPasswords := []string{

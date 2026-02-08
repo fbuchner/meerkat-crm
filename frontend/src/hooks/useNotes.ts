@@ -1,7 +1,7 @@
 // Custom hook for fetching and managing notes
 import { useState, useEffect, useCallback } from 'react';
-import { getToken } from '../auth';
-import { 
+import { isAuthenticated } from '../auth';
+import {
   getUnassignedNotes,
   getContactNotes,
   Note,
@@ -39,13 +39,12 @@ export function useNotes(
     setError(null);
 
     try {
-      const token = getToken();
-      if (!token) {
+      if (!isAuthenticated()) {
         throw new Error('No authentication token found');
       }
 
       if (contactId) {
-        const data = await getContactNotes(contactId, token);
+        const data = await getContactNotes(contactId);
         const normalized = Array.isArray(data) ? data : data.notes || [];
         setNotes(normalized);
         setTotal(normalized.length);
@@ -53,7 +52,7 @@ export function useNotes(
         setLimit(normalized.length || paramLimit || 25);
       } else {
         const fetchParams: GetNotesParams = { page: paramPage, limit: paramLimit, search, fromDate, toDate };
-        const data = await getUnassignedNotes(token, fetchParams);
+        const data = await getUnassignedNotes(fetchParams);
         setNotes(data.notes || []);
         setTotal(data.total ?? data.notes?.length ?? 0);
         setPageState(data.page || paramPage || 1);

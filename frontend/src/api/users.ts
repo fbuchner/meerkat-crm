@@ -2,10 +2,10 @@
 import { apiFetch, API_BASE_URL, getAuthHeaders } from './client';
 import { handleResponse } from './errorHandling';
 
-export async function updateLanguage(language: string, token?: string | null): Promise<string> {
+export async function updateLanguage(language: string): Promise<string> {
   const response = await apiFetch(`${API_BASE_URL}/users/language`, {
     method: 'PATCH',
-    headers: getAuthHeaders(token || undefined),
+    headers: getAuthHeaders(),
     body: JSON.stringify({ language }),
   });
 
@@ -13,10 +13,10 @@ export async function updateLanguage(language: string, token?: string | null): P
   return data?.message || 'Language updated successfully.';
 }
 
-export async function updateDateFormat(dateFormat: string, token?: string | null): Promise<string> {
+export async function updateDateFormat(dateFormat: string): Promise<string> {
   const response = await apiFetch(`${API_BASE_URL}/users/date-format`, {
     method: 'PATCH',
-    headers: getAuthHeaders(token || undefined),
+    headers: getAuthHeaders(),
     body: JSON.stringify({ date_format: dateFormat }),
   });
 
@@ -24,20 +24,20 @@ export async function updateDateFormat(dateFormat: string, token?: string | null
   return data?.message || 'Date format updated successfully.';
 }
 
-export async function getCustomFieldNames(token?: string | null): Promise<string[]> {
+export async function getCustomFieldNames(): Promise<string[]> {
   const response = await apiFetch(`${API_BASE_URL}/users/custom-fields`, {
     method: 'GET',
-    headers: getAuthHeaders(token || undefined),
+    headers: getAuthHeaders(),
   });
 
   const data = await handleResponse(response, 'Unable to get custom field names.');
   return data?.custom_field_names || [];
 }
 
-export async function updateCustomFieldNames(names: string[], token?: string | null): Promise<string[]> {
+export async function updateCustomFieldNames(names: string[]): Promise<string[]> {
   const response = await apiFetch(`${API_BASE_URL}/users/custom-fields`, {
     method: 'PATCH',
-    headers: getAuthHeaders(token || undefined),
+    headers: getAuthHeaders(),
     body: JSON.stringify({ names }),
   });
 

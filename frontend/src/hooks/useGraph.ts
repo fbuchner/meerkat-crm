@@ -1,6 +1,6 @@
 // Custom hook for fetching network graph data
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getToken } from '../auth';
+import { isAuthenticated } from '../auth';
 import { getGraph } from '../api/graph';
 import { GraphData } from '../types/graph';
 import { handleFetchError } from '../utils/errorHandler';
@@ -25,12 +25,11 @@ export function useGraph(): UseGraphResult {
     setError(null);
 
     try {
-      const token = getToken();
-      if (!token) {
+      if (!isAuthenticated()) {
         throw new Error('No authentication token found');
       }
 
-      const response = await getGraph(token);
+      const response = await getGraph();
 
       if (requestRef.current !== requestId) {
         return;

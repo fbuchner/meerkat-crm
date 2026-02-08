@@ -5,7 +5,6 @@ import { updateActivity, deleteActivity, Activity } from '../api/activities';
 import { handleError, handleFetchError, ErrorNotifier } from '../utils/errorHandler';
 
 export function useTimelineEditing(
-  token: string,
   contactId: number | undefined,
   onRefresh: () => Promise<void>,
   notifier?: ErrorNotifier
@@ -37,7 +36,7 @@ export function useTimelineEditing(
       // Fetch all contacts for the autocomplete if not already loaded
       if (allContacts.length === 0) {
         try {
-          const data = await getContacts({ page: 1, limit: 1000 }, token);
+          const data = await getContacts({ page: 1, limit: 1000 });
           setAllContacts(data.contacts || []);
         } catch (err) {
           handleFetchError(err, 'fetching contacts for autocomplete');
@@ -67,7 +66,7 @@ export function useTimelineEditing(
         content: editTimelineValues.noteContent,
         date: editTimelineValues.noteDate ? new Date(editTimelineValues.noteDate).toISOString() : new Date().toISOString(),
         contact_id: contactId
-      }, token);
+      });
       await onRefresh();
       handleCancelEditTimelineItem();
     } catch (err) {
@@ -85,7 +84,7 @@ export function useTimelineEditing(
         location: editTimelineValues.activityLocation || '',
         date: editTimelineValues.activityDate ? new Date(editTimelineValues.activityDate).toISOString() : new Date().toISOString(),
         contact_ids: editTimelineValues.activityContacts?.map(c => c.ID) || []
-      }, token);
+      });
       await onRefresh();
       handleCancelEditTimelineItem();
     } catch (err) {
@@ -95,7 +94,7 @@ export function useTimelineEditing(
 
   const handleDeleteNote = async (noteId: number) => {
     try {
-      await deleteNote(noteId, token);
+      await deleteNote(noteId);
       await onRefresh();
       handleCancelEditTimelineItem();
     } catch (err) {
@@ -105,7 +104,7 @@ export function useTimelineEditing(
 
   const handleDeleteActivity = async (activityId: number) => {
     try {
-      await deleteActivity(activityId, token);
+      await deleteActivity(activityId);
       await onRefresh();
       handleCancelEditTimelineItem();
     } catch (err) {

@@ -52,8 +52,7 @@ export interface GetContactsParams {
 
 // Get all contacts with pagination and filters
 export async function getContacts(
-  params: GetContactsParams,
-  token: string
+  params: GetContactsParams
 ): Promise<ContactsResponse> {
   const { page = 1, limit = 25, search = '', circle = '', sort, order, includeArchived, archived } = params;
 
@@ -73,7 +72,7 @@ export async function getContacts(
 
   const response = await apiFetch(
     `${API_BASE_URL}/contacts?${queryParams.toString()}`,
-    { headers: getAuthHeaders(token) }
+    { headers: getAuthHeaders() }
   );
 
   if (!response.ok) {
@@ -86,7 +85,6 @@ export async function getContacts(
 // Get single contact
 export async function getContact(
   id: string | number,
-  token: string,
   fields?: string[]
 ): Promise<Contact> {
   let url = `${API_BASE_URL}/contacts/${id}`;
@@ -96,7 +94,7 @@ export async function getContact(
 
   const response = await apiFetch(
     url,
-    { headers: getAuthHeaders(token) }
+    { headers: getAuthHeaders() }
   );
 
   if (!response.ok) {
@@ -108,14 +106,13 @@ export async function getContact(
 
 // Create contact
 export async function createContact(
-  data: Partial<Contact>,
-  token: string
+  data: Partial<Contact>
 ): Promise<Contact> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts`,
     {
       method: 'POST',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     }
   );
@@ -131,14 +128,13 @@ export async function createContact(
 // Update contact
 export async function updateContact(
   id: string | number,
-  data: Partial<Contact>,
-  token: string
+  data: Partial<Contact>
 ): Promise<Contact> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/${id}`,
     {
       method: 'PUT',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     }
   );
@@ -152,14 +148,13 @@ export async function updateContact(
 
 // Delete contact
 export async function deleteContact(
-  id: string | number,
-  token: string
+  id: string | number
 ): Promise<void> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/${id}`,
     {
       method: 'DELETE',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
     }
   );
 
@@ -171,16 +166,12 @@ export async function deleteContact(
 // Get contact profile picture
 export async function getContactProfilePicture(
   id: string | number,
-  token: string,
   thumbnail: boolean = false
 ): Promise<Blob | null> {
   const url = thumbnail
     ? `${API_BASE_URL}/contacts/${id}/profile_picture?thumbnail=true`
     : `${API_BASE_URL}/contacts/${id}/profile_picture`;
-  const response = await apiFetch(
-    url,
-    { headers: { 'Authorization': `Bearer ${token}` } }
-  );
+  const response = await apiFetch(url);
 
   if (!response.ok) {
     return null;
@@ -192,8 +183,7 @@ export async function getContactProfilePicture(
 // Upload contact profile picture
 export async function uploadProfilePicture(
   id: string | number,
-  imageBlob: Blob,
-  token: string
+  imageBlob: Blob
 ): Promise<void> {
   const formData = new FormData();
   formData.append('photo', imageBlob, 'profile.jpg');
@@ -202,7 +192,6 @@ export async function uploadProfilePicture(
     `${API_BASE_URL}/contacts/${id}/profile_picture`,
     {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
       body: formData
     }
   );
@@ -213,10 +202,10 @@ export async function uploadProfilePicture(
 }
 
 // Get all circles
-export async function getCircles(token: string): Promise<string[]> {
+export async function getCircles(): Promise<string[]> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/circles`,
-    { headers: getAuthHeaders(token) }
+    { headers: getAuthHeaders() }
   );
 
   if (!response.ok) {
@@ -229,10 +218,10 @@ export async function getCircles(token: string): Promise<string[]> {
 }
 
 // Get random contacts (returns 5 contacts)
-export async function getRandomContacts(token: string): Promise<Contact[]> {
+export async function getRandomContacts(): Promise<Contact[]> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/random`,
-    { headers: getAuthHeaders(token) }
+    { headers: getAuthHeaders() }
   );
 
   if (!response.ok) {
@@ -244,10 +233,10 @@ export async function getRandomContacts(token: string): Promise<Contact[]> {
 }
 
 // Get upcoming birthdays (returns up to 10 birthdays for contacts and relationships)
-export async function getUpcomingBirthdays(token: string): Promise<Birthday[]> {
+export async function getUpcomingBirthdays(): Promise<Birthday[]> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/birthdays`,
-    { headers: getAuthHeaders(token) }
+    { headers: getAuthHeaders() }
   );
 
   if (!response.ok) {
@@ -260,14 +249,13 @@ export async function getUpcomingBirthdays(token: string): Promise<Birthday[]> {
 
 // Archive a contact (deletes all reminders)
 export async function archiveContact(
-  id: string | number,
-  token: string
+  id: string | number
 ): Promise<Contact> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/${id}/archive`,
     {
       method: 'POST',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
     }
   );
 
@@ -280,14 +268,13 @@ export async function archiveContact(
 
 // Unarchive a contact
 export async function unarchiveContact(
-  id: string | number,
-  token: string
+  id: string | number
 ): Promise<Contact> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/${id}/unarchive`,
     {
       method: 'POST',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
     }
   );
 

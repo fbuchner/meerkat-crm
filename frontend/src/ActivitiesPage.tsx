@@ -33,11 +33,7 @@ import EditTimelineItemDialog from './components/EditTimelineItemDialog';
 import { ListSkeleton } from './components/LoadingSkeletons';
 import { useDateFormat } from './DateFormatProvider';
 
-interface ActivitiesPageProps {
-  token: string;
-}
-
-const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
+const ActivitiesPage: React.FC = () => {
   const { t } = useTranslation();
   const { formatDate } = useDateFormat();
 
@@ -121,7 +117,7 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
       await createActivity({
         ...activity,
         date: new Date(activity.date).toISOString()
-      }, token);
+      });
       setAddDialogOpen(false);
       refetch();
     } catch (err) {
@@ -136,7 +132,7 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
     // Fetch all contacts if not already loaded
     if (allContacts.length === 0) {
       try {
-        const data = await getContacts({ page: 1, limit: 1000 }, token);
+        const data = await getContacts({ page: 1, limit: 1000 });
         setAllContacts(data.contacts || []);
       } catch (err) {
         console.error('Failed to fetch contacts:', err);
@@ -162,7 +158,7 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
         location: editValues.activityLocation || '',
         date: editValues.activityDate ? new Date(editValues.activityDate).toISOString() : new Date().toISOString(),
         contact_ids: editValues.activityContacts?.map(c => c.ID) || [],
-      }, token);
+      });
       setEditingActivity(null);
       setEditValues({});
       refetch();
@@ -180,7 +176,7 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
     if (!editingActivity) return;
 
     try {
-      await deleteActivity(editingActivity.ID, token);
+      await deleteActivity(editingActivity.ID);
       setEditingActivity(null);
       setEditValues({});
       refetch();
@@ -367,7 +363,6 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ token }) => {
         open={addDialogOpen}
         onClose={() => setAddDialogOpen(false)}
         onSave={handleActivitySave}
-        token={token}
       />
 
       {editingActivity && (

@@ -65,7 +65,7 @@ interface ContactWithRelations extends Contact {
   activities?: Activity[];
 }
 
-export default function ContactDetailPage({ token }: { token: string }) {
+export default function ContactDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -110,9 +110,9 @@ export default function ContactDetailPage({ token }: { token: string }) {
 
     try {
       const [notesData, activitiesData, completionsData] = await Promise.all([
-        getContactNotes(id, token),
-        getContactActivities(id, token),
-        getCompletionsForContact(parseInt(id), token)
+        getContactNotes(id),
+        getContactActivities(id),
+        getCompletionsForContact(parseInt(id))
       ]);
       setNotes(notesData.notes || []);
       setActivities(activitiesData.activities || []);
@@ -130,7 +130,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     setActivityDialogOpen,
     handleSaveNote,
     handleSaveActivity
-  } = useContactDialogs(id, token, refreshNotesAndActivities, { showError });
+  } = useContactDialogs(id, refreshNotesAndActivities, { showError });
 
   const {
     editingTimelineItem,
@@ -143,7 +143,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     handleDeleteNote,
     handleDeleteActivity,
     setEditTimelineValues
-  } = useTimelineEditing(token, contact?.ID, refreshNotesAndActivities, { showError });
+  } = useTimelineEditing(contact?.ID, refreshNotesAndActivities, { showError });
 
   const {
     reminders,
@@ -157,7 +157,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     handleAddReminder,
     setReminderDialogOpen,
     setEditingReminder
-  } = useReminderManagement(id, token, { showError });
+  } = useReminderManagement(id, { showError });
 
   // State for pre-filled reminder values (used by Stay in Touch)
   const [reminderInitialValues, setReminderInitialValues] = useState<{
@@ -177,17 +177,17 @@ export default function ContactDetailPage({ token }: { token: string }) {
     handleAddRelationship,
     setRelationshipDialogOpen,
     setEditingRelationship,
-  } = useRelationships(id, token, { showError });
+  } = useRelationships(id, { showError });
 
   // Fetch available circles
   const fetchCircles = useCallback(async () => {
     try {
-      const data = await getCircles(token);
+      const data = await getCircles();
       setAvailableCircles(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching circles:', err);
     }
-  }, [token]);
+  }, []);
 
   // Fields to fetch for contact (excludes associations loaded separately)
   const CONTACT_FIELDS = [
@@ -207,11 +207,11 @@ export default function ContactDetailPage({ token }: { token: string }) {
       try {
         // First batch: parallel fetch of core data
         const [contactData, notesData, activitiesData, completionsData, fieldNames] = await Promise.all([
-          getContact(id, token, CONTACT_FIELDS),
-          getContactNotes(id, token),
-          getContactActivities(id, token),
-          getCompletionsForContact(parseInt(id), token),
-          getCustomFieldNames(token).catch(err => {
+          getContact(id, CONTACT_FIELDS),
+          getContactNotes(id),
+          getContactActivities(id),
+          getCompletionsForContact(parseInt(id)),
+          getCustomFieldNames().catch(err => {
             console.error('Error fetching custom field names:', err);
             return [];
           })
@@ -232,7 +232,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
         // Only fetch profile picture if contact has one (avoid unnecessary 404)
         if (contactData.photo) {
           try {
-            const blob = await getContactProfilePicture(id, token);
+            const blob = await getContactProfilePicture(id);
             if (blob) {
               currentBlobUrl = URL.createObjectURL(blob);
               setProfilePic(currentBlobUrl);
@@ -260,7 +260,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
         URL.revokeObjectURL(currentBlobUrl);
       }
     };
-  }, [id, token, refreshReminders, refreshRelationships]);
+  }, [id, refreshReminders, refreshRelationships]);
 
   // Combine and sort notes, activities, and completions for timeline
   const timelineItems: Array<{ type: 'note' | 'activity' | 'completion'; data: Note | Activity | ReminderCompletion; date: string }> = [
@@ -286,7 +286,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
       return;
     }
     try {
-      await deleteCompletion(completionId, token);
+      await deleteCompletion(completionId);
       await refreshNotesAndActivities();
     } catch (err) {
       handleFetchError(err, 'deleting completion');
@@ -344,7 +344,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
         const updatedContact = await updateContact(id!, {
           ...contact,
           custom_fields: updatedCustomFields
-        }, token);
+        });
         setContact(updatedContact);
         setEditingField(null);
         setEditValue('');
@@ -366,7 +366,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
       const updatedContact = await updateContact(id!, {
         ...contact,
         [field]: valueToSave
-      }, token);
+      });
       setContact(updatedContact);
       setEditingField(null);
       setEditValue('');
@@ -401,7 +401,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
       const updatedContact = await updateContact(id!, {
         ...contact,
         circles: updatedCircles
-      }, token);
+      });
       setContact(updatedContact);
       setNewCircleName('');
       // Refresh available circles in case a new one was added
@@ -425,7 +425,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
       const updatedContact = await updateContact(id!, {
         ...contact,
         circles: updatedCircles
-      }, token);
+      });
       setContact(updatedContact);
     } catch (err) {
       console.error('Error deleting circle:', err);
@@ -466,7 +466,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
         lastname: profileValues.lastname.trim(),
         nickname: profileValues.nickname.trim(),
         gender: profileValues.gender
-      }, token);
+      });
       setContact(updatedContact);
       setEditingProfile(false);
     } catch (err) {
@@ -491,7 +491,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     }
 
     try {
-      await deleteContact(id, token);
+      await deleteContact(id);
       navigate('/contacts');
     } catch (err) {
       console.error('Error deleting contact:', err);
@@ -508,7 +508,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     }
 
     try {
-      const updatedContact = await archiveContact(id, token);
+      const updatedContact = await archiveContact(id);
       setContact({ ...contact, archived: updatedContact.archived });
     } catch (err) {
       console.error('Error archiving contact:', err);
@@ -524,7 +524,7 @@ export default function ContactDetailPage({ token }: { token: string }) {
     if (!contact || !id) return;
 
     try {
-      const updatedContact = await unarchiveContact(id, token);
+      const updatedContact = await unarchiveContact(id);
       setContact({ ...contact, archived: updatedContact.archived });
     } catch (err) {
       console.error('Error unarchiving contact:', err);
@@ -550,10 +550,10 @@ export default function ContactDetailPage({ token }: { token: string }) {
   const handleUploadProfilePicture = async (croppedImageBlob: Blob) => {
     if (!id) return;
 
-    await uploadProfilePicture(id, croppedImageBlob, token);
+    await uploadProfilePicture(id, croppedImageBlob);
 
     // Refresh the profile picture
-    const blob = await getContactProfilePicture(id, token);
+    const blob = await getContactProfilePicture(id);
     if (blob) {
       // Revoke old URL to prevent memory leaks
       if (profilePic) {
@@ -720,7 +720,6 @@ export default function ContactDetailPage({ token }: { token: string }) {
         open={activityDialogOpen}
         onClose={() => setActivityDialogOpen(false)}
         onSave={handleSaveActivity}
-        token={token}
         preselectedContactId={contact?.ID}
       />
 
@@ -776,7 +775,6 @@ export default function ContactDetailPage({ token }: { token: string }) {
         }}
         onSave={handleSaveRelationship}
         relationship={editingRelationship}
-        token={token}
         currentContactId={contact?.ID || 0}
       />
     </Box>

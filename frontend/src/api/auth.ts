@@ -27,10 +27,10 @@ export async function confirmPasswordReset(token: string, password: string): Pro
   return data?.message || 'Password reset successful.';
 }
 
-export async function changePassword(currentPassword: string, newPassword: string, token?: string | null): Promise<string> {
+export async function changePassword(currentPassword: string, newPassword: string): Promise<string> {
   const response = await apiFetch(`${API_BASE_URL}/users/change-password`, {
     method: 'POST',
-    headers: getAuthHeaders(token || undefined),
+    headers: getAuthHeaders(),
     body: JSON.stringify({
       current_password: currentPassword,
       new_password: newPassword,
@@ -40,4 +40,3 @@ export async function changePassword(currentPassword: string, newPassword: strin
   const data = await handleResponse(response, 'Unable to change password.');
   return data?.message || 'Password updated successfully.';
 }
-

@@ -1,12 +1,12 @@
 // Custom hook for fetching and managing activities
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getToken } from '../auth';
-import { 
-  getActivities, 
+import { isAuthenticated } from '../auth';
+import {
+  getActivities,
   getContactActivities,
-  GetActivitiesParams, 
+  GetActivitiesParams,
   ActivitiesResponse,
-  Activity 
+  Activity
 } from '../api/activities';
 import { handleFetchError } from '../utils/errorHandler';
 
@@ -43,13 +43,12 @@ export function useActivities(
     setError(null);
 
     try {
-      const token = getToken();
-      if (!token) {
+      if (!isAuthenticated()) {
         throw new Error('No authentication token found');
       }
 
       if (contactId) {
-        const data = await getContactActivities(contactId, token);
+        const data = await getContactActivities(contactId);
         if (requestRef.current !== requestId) {
           return;
         }
@@ -59,7 +58,7 @@ export function useActivities(
         setLimit(paramLimit || data.activities?.length || 25);
       } else {
         const fetchParams: GetActivitiesParams = { page: paramPage, limit: paramLimit, includeContacts, search, fromDate, toDate };
-        const data: ActivitiesResponse = await getActivities(fetchParams, token);
+        const data: ActivitiesResponse = await getActivities(fetchParams);
         if (requestRef.current !== requestId) {
           return;
         }

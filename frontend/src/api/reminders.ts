@@ -45,10 +45,10 @@ export interface CompletionsResponse {
 }
 
 // Get all reminders across all contacts
-export async function getAllReminders(token: string): Promise<Reminder[]> {
+export async function getAllReminders(): Promise<Reminder[]> {
   const response = await apiFetch(
     `${API_BASE_URL}/reminders`,
-    { headers: getAuthHeaders(token) }
+    { headers: getAuthHeaders() }
   );
 
   if (!response.ok) {
@@ -60,10 +60,10 @@ export async function getAllReminders(token: string): Promise<Reminder[]> {
 }
 
 // Get upcoming reminders (next 7 days or at least next 10 reminders)
-export async function getUpcomingReminders(token: string): Promise<Reminder[]> {
+export async function getUpcomingReminders(): Promise<Reminder[]> {
   const response = await apiFetch(
     `${API_BASE_URL}/reminders/upcoming`,
-    { headers: getAuthHeaders(token) }
+    { headers: getAuthHeaders() }
   );
 
   if (!response.ok) {
@@ -75,10 +75,10 @@ export async function getUpcomingReminders(token: string): Promise<Reminder[]> {
 }
 
 // Get reminders for a specific contact
-export async function getRemindersForContact(contactId: number, token: string): Promise<Reminder[]> {
+export async function getRemindersForContact(contactId: number): Promise<Reminder[]> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/${contactId}/reminders`,
-    { headers: getAuthHeaders(token) }
+    { headers: getAuthHeaders() }
   );
 
   if (!response.ok) {
@@ -90,10 +90,10 @@ export async function getRemindersForContact(contactId: number, token: string): 
 }
 
 // Get a single reminder
-export async function getReminder(reminderId: number, token: string): Promise<Reminder> {
+export async function getReminder(reminderId: number): Promise<Reminder> {
   const response = await apiFetch(
     `${API_BASE_URL}/reminders/${reminderId}`,
-    { headers: getAuthHeaders(token) }
+    { headers: getAuthHeaders() }
   );
 
   if (!response.ok) {
@@ -106,14 +106,13 @@ export async function getReminder(reminderId: number, token: string): Promise<Re
 // Create a new reminder
 export async function createReminder(
   contactId: number,
-  reminderData: ReminderFormData,
-  token: string
+  reminderData: ReminderFormData
 ): Promise<Reminder> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/${contactId}/reminders`,
     {
       method: 'POST',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
       body: JSON.stringify(reminderData),
     }
   );
@@ -129,14 +128,13 @@ export async function createReminder(
 // Update an existing reminder
 export async function updateReminder(
   reminderId: number,
-  reminderData: Partial<ReminderFormData>,
-  token: string
+  reminderData: Partial<ReminderFormData>
 ): Promise<Reminder> {
   const response = await apiFetch(
     `${API_BASE_URL}/reminders/${reminderId}`,
     {
       method: 'PUT',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
       body: JSON.stringify(reminderData),
     }
   );
@@ -151,14 +149,13 @@ export async function updateReminder(
 
 // Complete a reminder (marks as done and reschedules if recurring)
 export async function completeReminder(
-  reminderId: number,
-  token: string
+  reminderId: number
 ): Promise<{ message: string; reminder?: Reminder }> {
   const response = await apiFetch(
     `${API_BASE_URL}/reminders/${reminderId}/complete`,
     {
       method: 'POST',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
     }
   );
 
@@ -171,14 +168,13 @@ export async function completeReminder(
 
 // Skip a reminder (reschedules recurring reminders without recording completion)
 export async function skipReminder(
-  reminderId: number,
-  token: string
+  reminderId: number
 ): Promise<{ message: string; reminder?: Reminder }> {
   const response = await apiFetch(
     `${API_BASE_URL}/reminders/${reminderId}/complete?skip=true`,
     {
       method: 'POST',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
     }
   );
 
@@ -190,12 +186,12 @@ export async function skipReminder(
 }
 
 // Delete a reminder
-export async function deleteReminder(reminderId: number, token: string): Promise<void> {
+export async function deleteReminder(reminderId: number): Promise<void> {
   const response = await apiFetch(
     `${API_BASE_URL}/reminders/${reminderId}`,
     {
       method: 'DELETE',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
     }
   );
 
@@ -205,10 +201,10 @@ export async function deleteReminder(reminderId: number, token: string): Promise
 }
 
 // Get reminder completions for a specific contact
-export async function getCompletionsForContact(contactId: number, token: string): Promise<ReminderCompletion[]> {
+export async function getCompletionsForContact(contactId: number): Promise<ReminderCompletion[]> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/${contactId}/reminder-completions`,
-    { headers: getAuthHeaders(token) }
+    { headers: getAuthHeaders() }
   );
 
   if (!response.ok) {
@@ -220,12 +216,12 @@ export async function getCompletionsForContact(contactId: number, token: string)
 }
 
 // Delete a reminder completion
-export async function deleteCompletion(completionId: number, token: string): Promise<void> {
+export async function deleteCompletion(completionId: number): Promise<void> {
   const response = await apiFetch(
     `${API_BASE_URL}/reminder-completions/${completionId}`,
     {
       method: 'DELETE',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
     }
   );
 

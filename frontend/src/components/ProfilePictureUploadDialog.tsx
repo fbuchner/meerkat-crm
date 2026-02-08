@@ -20,7 +20,6 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import LinkIcon from '@mui/icons-material/Link';
 import { handleError, getErrorMessage } from '../utils/errorHandler';
 import { API_BASE_URL, apiFetch } from '../api/client';
-import { getToken } from '../auth';
 
 interface ProfilePictureUploadDialogProps {
   open: boolean;
@@ -140,14 +139,9 @@ export default function ProfilePictureUploadDialog({
     setFetchingUrl(true);
 
     try {
-      const token = getToken();
       const proxyUrl = `${API_BASE_URL}/proxy/image?url=${encodeURIComponent(imageUrl.trim())}`;
 
-      const response = await apiFetch(proxyUrl, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiFetch(proxyUrl);
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));

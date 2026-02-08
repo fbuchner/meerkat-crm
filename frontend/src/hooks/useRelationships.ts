@@ -13,7 +13,6 @@ import { handleFetchError, handleError, ErrorNotifier } from '../utils/errorHand
 
 export function useRelationships(
   contactId: string | undefined,
-  token: string,
   notifier?: ErrorNotifier
 ) {
   const [relationships, setRelationships] = useState<Relationship[]>([]);
@@ -29,8 +28,8 @@ export function useRelationships(
     setError(null);
     try {
       const [relationshipsResponse, incomingResponse] = await Promise.all([
-        getRelationships(contactId, token),
-        getIncomingRelationships(contactId, token)
+        getRelationships(contactId),
+        getIncomingRelationships(contactId)
       ]);
       setRelationships(relationshipsResponse.relationships || []);
       setIncomingRelationships(incomingResponse.incoming_relationships || []);
@@ -40,16 +39,16 @@ export function useRelationships(
     } finally {
       setLoading(false);
     }
-  }, [contactId, token]);
+  }, [contactId]);
 
   const handleSaveRelationship = async (data: RelationshipFormData) => {
     if (!contactId) return;
 
     try {
       if (editingRelationship) {
-        await updateRelationship(contactId, editingRelationship.ID, data, token);
+        await updateRelationship(contactId, editingRelationship.ID, data);
       } else {
-        await createRelationship(contactId, data, token);
+        await createRelationship(contactId, data);
       }
       await refreshRelationships();
       setRelationshipDialogOpen(false);
@@ -67,9 +66,9 @@ export function useRelationships(
 
   const handleDeleteRelationship = async (relationshipId: number) => {
     if (!contactId) return;
-    
+
     try {
-      await deleteRelationship(contactId, relationshipId, token);
+      await deleteRelationship(contactId, relationshipId);
       await refreshRelationships();
     } catch (err) {
       handleError(err, { operation: 'deleting relationship' }, notifier);

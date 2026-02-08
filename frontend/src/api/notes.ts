@@ -27,12 +27,11 @@ export interface GetNotesParams {
 
 // Get notes for a contact
 export async function getContactNotes(
-  contactId: string | number,
-  token: string
+  contactId: string | number
 ): Promise<NotesResponse> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/${contactId}/notes`,
-    { headers: getAuthHeaders(token) }
+    { headers: getAuthHeaders() }
   );
 
   if (!response.ok) {
@@ -44,7 +43,6 @@ export async function getContactNotes(
 
 // Get all unassigned notes
 export async function getUnassignedNotes(
-  token: string,
   params: GetNotesParams = {}
 ): Promise<NotesResponse> {
   const { page = 1, limit = 25 } = params;
@@ -69,7 +67,7 @@ export async function getUnassignedNotes(
 
   const response = await apiFetch(
     `${API_BASE_URL}/notes?${queryParams.toString()}`,
-    { headers: getAuthHeaders(token) }
+    { headers: getAuthHeaders() }
   );
 
   if (!response.ok) {
@@ -81,12 +79,11 @@ export async function getUnassignedNotes(
 
 // Get single note
 export async function getNote(
-  id: string | number,
-  token: string
+  id: string | number
 ): Promise<Note> {
   const response = await apiFetch(
     `${API_BASE_URL}/notes/${id}`,
-    { headers: getAuthHeaders(token) }
+    { headers: getAuthHeaders() }
   );
 
   if (!response.ok) {
@@ -99,14 +96,13 @@ export async function getNote(
 // Create note for contact
 export async function createNote(
   contactId: string | number,
-  data: { content: string; date: string; contact_id?: number },
-  token: string
+  data: { content: string; date: string; contact_id?: number }
 ): Promise<Note> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/${contactId}/notes`,
     {
       method: 'POST',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     }
   );
@@ -120,14 +116,13 @@ export async function createNote(
 
 // Create unassigned note
 export async function createUnassignedNote(
-  data: { content: string; date: string },
-  token: string
+  data: { content: string; date: string }
 ): Promise<Note> {
   const response = await apiFetch(
     `${API_BASE_URL}/notes`,
     {
       method: 'POST',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     }
   );
@@ -142,14 +137,13 @@ export async function createUnassignedNote(
 // Update note
 export async function updateNote(
   id: string | number,
-  data: { content: string; date: string; contact_id?: number },
-  token: string
+  data: { content: string; date: string; contact_id?: number }
 ): Promise<Note> {
   const response = await apiFetch(
     `${API_BASE_URL}/notes/${id}`,
     {
       method: 'PUT',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     }
   );
@@ -163,14 +157,13 @@ export async function updateNote(
 
 // Delete note
 export async function deleteNote(
-  id: string | number,
-  token: string
+  id: string | number
 ): Promise<void> {
   const response = await apiFetch(
     `${API_BASE_URL}/notes/${id}`,
     {
       method: 'DELETE',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
     }
   );
 

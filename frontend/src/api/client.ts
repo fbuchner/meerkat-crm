@@ -117,7 +117,7 @@ export async function apiFetch(
 }
 
 // Helper to create request headers (no longer includes Authorization - using cookies)
-export function getAuthHeaders(_token?: string): HeadersInit {
+export function getAuthHeaders(): HeadersInit {
   return {
     'Content-Type': 'application/json',
   };

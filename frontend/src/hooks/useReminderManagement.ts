@@ -12,7 +12,6 @@ import { handleFetchError, handleError, ErrorNotifier } from '../utils/errorHand
 
 export function useReminderManagement(
   contactId: string | undefined,
-  token: string,
   notifier?: ErrorNotifier
 ) {
   const [reminders, setReminders] = useState<Reminder[]>([]);
@@ -24,22 +23,22 @@ export function useReminderManagement(
     if (!contactId) return;
     setError(null);
     try {
-      const fetchedReminders = await getRemindersForContact(parseInt(contactId), token);
+      const fetchedReminders = await getRemindersForContact(parseInt(contactId));
       setReminders(fetchedReminders);
     } catch (err) {
       const message = handleFetchError(err, 'fetching reminders');
       setError(message);
     }
-  }, [contactId, token]);
+  }, [contactId]);
 
   const handleSaveReminder = async (reminderData: ReminderFormData) => {
     if (!contactId) return;
 
     try {
       if (editingReminder) {
-        await updateReminder(editingReminder.ID, reminderData, token);
+        await updateReminder(editingReminder.ID, reminderData);
       } else {
-        await createReminder(parseInt(contactId), reminderData, token);
+        await createReminder(parseInt(contactId), reminderData);
       }
       await refreshReminders();
       setReminderDialogOpen(false);
@@ -52,7 +51,7 @@ export function useReminderManagement(
 
   const handleCompleteReminder = async (reminderId: number) => {
     try {
-      await completeReminder(reminderId, token);
+      await completeReminder(reminderId);
       await refreshReminders();
     } catch (err) {
       handleError(err, { operation: 'completing reminder' }, notifier);
@@ -67,7 +66,7 @@ export function useReminderManagement(
 
   const handleDeleteReminder = async (reminderId: number) => {
     try {
-      await deleteReminder(reminderId, token);
+      await deleteReminder(reminderId);
       await refreshReminders();
     } catch (err) {
       handleError(err, { operation: 'deleting reminder' }, notifier);

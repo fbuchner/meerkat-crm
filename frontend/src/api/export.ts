@@ -1,6 +1,5 @@
 // Export API functions
-import { API_BASE_URL, apiFetch, parseErrorResponse } from './client';
-import { getToken } from '../auth';
+import { API_BASE_URL, apiFetch, getAuthHeaders, parseErrorResponse } from './client';
 
 /**
  * Helper function to download a file from an API response
@@ -18,7 +17,7 @@ async function downloadFileFromResponse(response: Response, defaultFilename: str
 
   // Get the blob data
   const blob = await response.blob();
-  
+
   // Create a download link and trigger download
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -35,13 +34,9 @@ async function downloadFileFromResponse(response: Response, defaultFilename: str
  * Downloads a CSV file containing all contacts, activities, notes, relationships, and reminders
  */
 export async function exportDataAsCsv(): Promise<void> {
-  const token = getToken();
-  
   const response = await apiFetch(`${API_BASE_URL}/export`, {
     method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
@@ -57,13 +52,9 @@ export async function exportDataAsCsv(): Promise<void> {
  * Downloads a VCF file containing all contacts with their photos
  */
 export async function exportContactsAsVcf(): Promise<void> {
-  const token = getToken();
-  
   const response = await apiFetch(`${API_BASE_URL}/export/vcf`, {
     method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {

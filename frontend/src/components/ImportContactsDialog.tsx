@@ -53,7 +53,6 @@ interface ImportContactsDialogProps {
   open: boolean;
   onClose: () => void;
   onImportComplete: () => void;
-  token: string;
 }
 
 type ImportStep = 'upload' | 'mapping' | 'preview' | 'result';
@@ -66,7 +65,6 @@ export default function ImportContactsDialog({
   open,
   onClose,
   onImportComplete,
-  token,
 }: ImportContactsDialogProps) {
   const { t } = useTranslation();
   const { showSuccess } = useSnackbar();
@@ -139,7 +137,7 @@ export default function ImportContactsDialog({
       if (isVCF) {
         // VCF import - goes directly to preview (no mapping needed)
         setImportType('vcf');
-        const response = await uploadVCFForImport(file, token);
+        const response = await uploadVCFForImport(file);
         setPreviewResponse(response);
 
         // Initialize row actions based on suggested actions
@@ -154,7 +152,7 @@ export default function ImportContactsDialog({
       } else {
         // CSV import - needs column mapping
         setImportType('csv');
-        const response = await uploadCSVForImport(file, token);
+        const response = await uploadCSVForImport(file);
         setUploadResponse(response);
         setMappings(response.suggested_mappings);
         setStep('mapping');
@@ -218,7 +216,7 @@ export default function ImportContactsDialog({
     setError(null);
 
     try {
-      const response = await getImportPreview(uploadResponse.session_id, mappings, token);
+      const response = await getImportPreview(uploadResponse.session_id, mappings);
       setPreviewResponse(response);
 
       // Initialize row actions based on suggested actions
@@ -259,8 +257,8 @@ export default function ImportContactsDialog({
 
       // Use appropriate confirm endpoint based on import type
       const result = importType === 'vcf'
-        ? await confirmVCFImport(previewResponse.session_id, actions, token)
-        : await confirmImport(previewResponse.session_id, actions, token);
+        ? await confirmVCFImport(previewResponse.session_id, actions)
+        : await confirmImport(previewResponse.session_id, actions);
 
       setImportResult(result);
       setStep('result');

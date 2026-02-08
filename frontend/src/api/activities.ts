@@ -37,17 +37,16 @@ export interface GetActivitiesParams {
 
 // Get all activities
 export async function getActivities(
-  params: GetActivitiesParams,
-  token: string
+  params: GetActivitiesParams
 ): Promise<ActivitiesResponse> {
   const { page = 1, limit = 25, includeContacts = false } = params;
   const search = params.search?.trim();
-  
+
   const queryParams = new URLSearchParams({
     page: page.toString(),
     limit: limit.toString(),
   });
-  
+
   if (includeContacts) {
     queryParams.append('include', 'contacts');
   }
@@ -66,7 +65,7 @@ export async function getActivities(
 
   const response = await apiFetch(
     `${API_BASE_URL}/activities?${queryParams.toString()}`,
-    { headers: getAuthHeaders(token) }
+    { headers: getAuthHeaders() }
   );
 
   if (!response.ok) {
@@ -78,12 +77,11 @@ export async function getActivities(
 
 // Get activities for a contact
 export async function getContactActivities(
-  contactId: string | number,
-  token: string
+  contactId: string | number
 ): Promise<{ activities: Activity[] }> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/${contactId}/activities`,
-    { headers: getAuthHeaders(token) }
+    { headers: getAuthHeaders() }
   );
 
   if (!response.ok) {
@@ -95,12 +93,11 @@ export async function getContactActivities(
 
 // Get single activity
 export async function getActivity(
-  id: string | number,
-  token: string
+  id: string | number
 ): Promise<Activity> {
   const response = await apiFetch(
     `${API_BASE_URL}/activities/${id}`,
-    { headers: getAuthHeaders(token) }
+    { headers: getAuthHeaders() }
   );
 
   if (!response.ok) {
@@ -118,14 +115,13 @@ export async function createActivity(
     location: string;
     date: string;
     contact_ids: number[];
-  },
-  token: string
+  }
 ): Promise<Activity> {
   const response = await apiFetch(
     `${API_BASE_URL}/activities`,
     {
       method: 'POST',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     }
   );
@@ -146,14 +142,13 @@ export async function updateActivity(
     location?: string;
     date?: string;
     contact_ids?: number[];
-  },
-  token: string
+  }
 ): Promise<Activity> {
   const response = await apiFetch(
     `${API_BASE_URL}/activities/${id}`,
     {
       method: 'PUT',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     }
   );
@@ -167,14 +162,13 @@ export async function updateActivity(
 
 // Delete activity
 export async function deleteActivity(
-  id: string | number,
-  token: string
+  id: string | number
 ): Promise<void> {
   const response = await apiFetch(
     `${API_BASE_URL}/activities/${id}`,
     {
       method: 'DELETE',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
     }
   );
 

@@ -24,7 +24,6 @@ interface AddActivityDialogProps {
     date: string;
     contact_ids: number[];
   }) => Promise<void>;
-  token: string;
   preselectedContactId?: number;
 }
 
@@ -32,7 +31,6 @@ export default function AddActivityDialog({
   open,
   onClose,
   onSave,
-  token,
   preselectedContactId,
 }: AddActivityDialogProps) {
   const { t } = useTranslation();
@@ -50,21 +48,21 @@ export default function AddActivityDialog({
   const loadContacts = useCallback(async (search: string = '') => {
     setLoading(true);
     try {
-      const response = await getContacts({ limit: 100, search }, token);
+      const response = await getContacts({ limit: 100, search });
       setContacts(response.contacts || []);
     } catch (err) {
       console.error('Failed to fetch contacts:', err);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   // Load preselected contact on open
   useEffect(() => {
     if (open && preselectedContactId) {
       const loadPreselected = async () => {
         try {
-          const response = await getContacts({ limit: 100 }, token);
+          const response = await getContacts({ limit: 100 });
           const preselected = response.contacts.find((c: Contact) => c.ID === preselectedContactId);
           if (preselected) {
             setSelectedContacts([preselected]);
@@ -78,7 +76,7 @@ export default function AddActivityDialog({
     } else if (open) {
       loadContacts('');
     }
-  }, [open, preselectedContactId, token, loadContacts]);
+  }, [open, preselectedContactId, loadContacts]);
 
   // Debounced search effect
   useEffect(() => {

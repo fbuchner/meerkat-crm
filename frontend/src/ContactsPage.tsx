@@ -26,7 +26,7 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import { ContactListSkeleton } from './components/LoadingSkeletons';
 
-export default function ContactsPage({ token }: { token: string }) {
+export default function ContactsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -83,8 +83,8 @@ export default function ContactsPage({ token }: { token: string }) {
     const fetchData = async () => {
       try {
         const [circlesData, fieldNames] = await Promise.all([
-          getCircles(token),
-          getCustomFieldNames(token)
+          getCircles(),
+          getCustomFieldNames()
         ]);
         setCircles(Array.isArray(circlesData) ? circlesData : []);
         setCustomFieldNames(fieldNames);
@@ -93,7 +93,7 @@ export default function ContactsPage({ token }: { token: string }) {
       }
     };
     fetchData();
-  }, [token]);
+  }, []);
 
   // Reset to page 1 when search or filter changes (but not on initial mount)
   const prevFiltersRef = useRef({ searchQuery, selectedCircle });
@@ -117,7 +117,7 @@ export default function ContactsPage({ token }: { token: string }) {
     await refetch();
     // Also refresh circles
     try {
-      const data = await getCircles(token);
+      const data = await getCircles();
       setCircles(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching circles:', err);
@@ -286,7 +286,6 @@ export default function ContactsPage({ token }: { token: string }) {
         open={addDialogOpen}
         onClose={() => setAddDialogOpen(false)}
         onContactAdded={handleContactAdded}
-        token={token}
         availableCircles={circles}
         customFieldNames={customFieldNames}
       />
@@ -294,7 +293,6 @@ export default function ContactsPage({ token }: { token: string }) {
         open={importDialogOpen}
         onClose={() => setImportDialogOpen(false)}
         onImportComplete={handleImportComplete}
-        token={token}
       />
     </Box>
   );

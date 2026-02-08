@@ -31,11 +31,7 @@ import EditTimelineItemDialog from './components/EditTimelineItemDialog';
 import { handleError } from './utils/errorHandler';
 import { useDateFormat } from './DateFormatProvider';
 
-interface NotesPageProps {
-  token: string;
-}
-
-const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
+const NotesPage: React.FC = () => {
   const { t } = useTranslation();
   const { formatDate } = useDateFormat();
   const [searchInput, setSearchInput] = useState('');
@@ -100,7 +96,7 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
 
   const handleNoteSave = async (content: string, date: string) => {
     try {
-      await createUnassignedNote({ content, date: new Date(date).toISOString() }, token);
+      await createUnassignedNote({ content, date: new Date(date).toISOString() });
       setAddDialogOpen(false);
       refetch();
     } catch (err) {
@@ -124,7 +120,7 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
       await updateNote(editingNote.ID, {
         content: editValues.noteContent,
         date: editValues.noteDate ? new Date(editValues.noteDate).toISOString() : new Date().toISOString(),
-      }, token);
+      });
       setEditingNote(null);
       setEditValues({});
       refetch();
@@ -142,7 +138,7 @@ const NotesPage: React.FC<NotesPageProps> = ({ token }) => {
     if (!editingNote) return;
 
     try {
-      await deleteNote(editingNote.ID, token);
+      await deleteNote(editingNote.ID);
       setEditingNote(null);
       setEditValues({});
       refetch();

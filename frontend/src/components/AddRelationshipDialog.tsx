@@ -30,7 +30,6 @@ interface AddRelationshipDialogProps {
   onClose: () => void;
   onSave: (data: RelationshipFormData) => Promise<void>;
   relationship?: Relationship | null;
-  token: string;
   currentContactId: number;
 }
 
@@ -41,7 +40,6 @@ export default function AddRelationshipDialog({
   onClose,
   onSave,
   relationship,
-  token,
   currentContactId,
 }: AddRelationshipDialogProps) {
   const { t } = useTranslation();
@@ -63,7 +61,7 @@ export default function AddRelationshipDialog({
   const loadContacts = useCallback(async (search: string = '') => {
     setContactsLoading(true);
     try {
-      const response = await getContacts({ limit: 100, search }, token);
+      const response = await getContacts({ limit: 100, search });
       // Filter out the current contact
       const filteredContacts = response.contacts.filter(c => c.ID !== currentContactId);
       setContacts(filteredContacts);
@@ -72,7 +70,7 @@ export default function AddRelationshipDialog({
     } finally {
       setContactsLoading(false);
     }
-  }, [token, currentContactId]);
+  }, [currentContactId]);
 
   // Load contacts for linking
   useEffect(() => {

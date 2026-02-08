@@ -29,11 +29,7 @@ import { ContactListSkeleton } from './components/LoadingSkeletons';
 import { handleFetchError, handleError } from './utils/errorHandler';
 import { useDateFormat } from './DateFormatProvider';
 
-interface DashboardPageProps {
-  token: string;
-}
-
-function DashboardPage({ token }: DashboardPageProps) {
+function DashboardPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { formatBirthday: formatBirthdayDate, formatDate } = useDateFormat();
@@ -53,9 +49,9 @@ function DashboardPage({ token }: DashboardPageProps) {
       setError(null);
 
       const [birthdayData, random, reminders] = await Promise.all([
-        getUpcomingBirthdays(token),
-        getRandomContacts(token),
-        getUpcomingReminders(token)
+        getUpcomingBirthdays(),
+        getRandomContacts(),
+        getUpcomingReminders()
       ]);
 
       setBirthdays(birthdayData);
@@ -75,7 +71,7 @@ function DashboardPage({ token }: DashboardPageProps) {
       if (uniqueMissingIds.length > 0) {
         const minimalFields = ['ID', 'firstname', 'lastname', 'nickname'];
         const fetchedContacts = await Promise.all(
-          uniqueMissingIds.map(id => getContact(id, token, minimalFields).catch(() => null))
+          uniqueMissingIds.map(id => getContact(id, minimalFields).catch(() => null))
         );
         fetchedContacts.forEach(c => {
           if (c) newContactsMap[c.ID] = c;
@@ -89,7 +85,7 @@ function DashboardPage({ token }: DashboardPageProps) {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     loadDashboardData();
@@ -97,9 +93,9 @@ function DashboardPage({ token }: DashboardPageProps) {
 
   const handleCompleteReminder = async (reminderId: number) => {
     try {
-      await completeReminder(reminderId, token);
+      await completeReminder(reminderId);
       // Reload reminders after completion
-      const reminders = await getUpcomingReminders(token);
+      const reminders = await getUpcomingReminders();
       setUpcomingReminders(reminders);
     } catch (err) {
       handleError(err, { operation: 'completing reminder' });
@@ -111,9 +107,9 @@ function DashboardPage({ token }: DashboardPageProps) {
       return;
     }
     try {
-      await skipReminder(reminderId, token);
+      await skipReminder(reminderId);
       // Reload reminders after skipping
-      const reminders = await getUpcomingReminders(token);
+      const reminders = await getUpcomingReminders();
       setUpcomingReminders(reminders);
     } catch (err) {
       handleError(err, { operation: 'skipping reminder' });

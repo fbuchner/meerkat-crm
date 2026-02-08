@@ -25,7 +25,6 @@ interface AddContactDialogProps {
   open: boolean;
   onClose: () => void;
   onContactAdded: (contactId: number) => void;
-  token: string;
   availableCircles: string[];
   customFieldNames?: string[];
 }
@@ -34,7 +33,6 @@ export default function AddContactDialog({
   open,
   onClose,
   onContactAdded,
-  token,
   availableCircles,
   customFieldNames = []
 }: AddContactDialogProps) {
@@ -119,7 +117,7 @@ export default function AddContactDialog({
         custom_fields: Object.keys(filteredCustomFields).length > 0 ? filteredCustomFields : undefined
       };
 
-      const newContact = await createContact(contactData, token);
+      const newContact = await createContact(contactData);
 
       if (createBirthdayReminder && birthdayISO) {
         // Birthday format is now YYYY-MM-DD or --MM-DD (ISO 8601)
@@ -158,7 +156,7 @@ export default function AddContactDialog({
             recurrence: 'yearly',
             reoccur_from_completion: false,
             contact_id: newContact.ID
-          }, token);
+          });
         }
       }
 

@@ -32,11 +32,7 @@ import { getUsers, updateUser, deleteUser } from './api/admin';
 import { isAdmin } from './auth';
 import type { User, UserUpdateInput } from './types';
 
-interface UsersPageProps {
-  token: string | null;
-}
-
-export default function UsersPage({ token }: UsersPageProps) {
+export default function UsersPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
@@ -69,13 +65,11 @@ export default function UsersPage({ token }: UsersPageProps) {
   // Fetch users
   useEffect(() => {
     const fetchUsers = async () => {
-      if (!token) return;
-
       setLoading(true);
       setError('');
 
       try {
-        const response = await getUsers(page + 1, rowsPerPage, token);
+        const response = await getUsers(page + 1, rowsPerPage);
         setUsers(response.users);
         setTotal(response.total);
       } catch (err) {
@@ -87,7 +81,7 @@ export default function UsersPage({ token }: UsersPageProps) {
     };
 
     fetchUsers();
-  }, [token, page, rowsPerPage, t]);
+  }, [page, rowsPerPage, t]);
 
   const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
@@ -123,7 +117,7 @@ export default function UsersPage({ token }: UsersPageProps) {
 
   const handleEditSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!editingUser || !token) return;
+    if (!editingUser) return;
 
     setEditLoading(true);
     setEditError('');
@@ -144,7 +138,7 @@ export default function UsersPage({ token }: UsersPageProps) {
         updateData.is_admin = editForm.is_admin;
       }
 
-      const updatedUser = await updateUser(editingUser.id, updateData, token);
+      const updatedUser = await updateUser(editingUser.id, updateData);
       setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
       handleEditClose();
     } catch (err) {
@@ -169,13 +163,13 @@ export default function UsersPage({ token }: UsersPageProps) {
   };
 
   const handleDeleteConfirm = async () => {
-    if (!deletingUser || !token) return;
+    if (!deletingUser) return;
 
     setDeleteLoading(true);
     setDeleteError('');
 
     try {
-      await deleteUser(deletingUser.id, token);
+      await deleteUser(deletingUser.id);
       setUsers(users.filter(u => u.id !== deletingUser.id));
       setTotal(total - 1);
       handleDeleteClose();

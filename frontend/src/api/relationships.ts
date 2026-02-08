@@ -45,12 +45,11 @@ export interface IncomingRelationshipsResponse {
 
 // Get all relationships for a contact
 export async function getRelationships(
-  contactId: number | string,
-  token: string
+  contactId: number | string
 ): Promise<RelationshipsResponse> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/${contactId}/relationships`,
-    { headers: getAuthHeaders(token) }
+    { headers: getAuthHeaders() }
   );
 
   if (!response.ok) {
@@ -62,12 +61,11 @@ export async function getRelationships(
 
 // Get all incoming relationships for a contact (relationships pointing to this contact)
 export async function getIncomingRelationships(
-  contactId: number | string,
-  token: string
+  contactId: number | string
 ): Promise<IncomingRelationshipsResponse> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/${contactId}/incoming-relationships`,
-    { headers: getAuthHeaders(token) }
+    { headers: getAuthHeaders() }
   );
 
   if (!response.ok) {
@@ -80,14 +78,13 @@ export async function getIncomingRelationships(
 // Create a new relationship
 export async function createRelationship(
   contactId: number | string,
-  data: RelationshipFormData,
-  token: string
+  data: RelationshipFormData
 ): Promise<Relationship> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/${contactId}/relationships`,
     {
       method: 'POST',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     }
   );
@@ -104,14 +101,13 @@ export async function createRelationship(
 export async function updateRelationship(
   contactId: number | string,
   relationshipId: number,
-  data: RelationshipFormData,
-  token: string
+  data: RelationshipFormData
 ): Promise<Relationship> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/${contactId}/relationships/${relationshipId}`,
     {
       method: 'PUT',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     }
   );
@@ -127,14 +123,13 @@ export async function updateRelationship(
 // Delete a relationship
 export async function deleteRelationship(
   contactId: number | string,
-  relationshipId: number,
-  token: string
+  relationshipId: number
 ): Promise<void> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/${contactId}/relationships/${relationshipId}`,
     {
       method: 'DELETE',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
     }
   );
 

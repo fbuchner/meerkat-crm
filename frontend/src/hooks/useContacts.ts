@@ -1,11 +1,11 @@
 // Custom hook for fetching and managing contacts
 import { useState, useEffect, useCallback } from 'react';
-import { getToken } from '../auth';
-import { 
-  getContacts, 
-  GetContactsParams, 
+import { isAuthenticated } from '../auth';
+import {
+  getContacts,
+  GetContactsParams,
   ContactsResponse,
-  Contact 
+  Contact
 } from '../api/contacts';
 import { handleFetchError } from '../utils/errorHandler';
 
@@ -34,8 +34,7 @@ export function useContacts(params: GetContactsParams = {}): UseContactsResult {
     setError(null);
 
     try {
-      const token = getToken();
-      if (!token) {
+      if (!isAuthenticated()) {
         throw new Error('No authentication token found');
       }
 
@@ -49,7 +48,7 @@ export function useContacts(params: GetContactsParams = {}): UseContactsResult {
         includeArchived,
         archived,
       };
-      const data: ContactsResponse = await getContacts(fetchParams, token);
+      const data: ContactsResponse = await getContacts(fetchParams);
       setContacts(data.contacts || []);
       setTotal(data.total || 0);
       setPage(data.page || 1);

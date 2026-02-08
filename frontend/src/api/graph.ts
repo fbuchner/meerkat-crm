@@ -2,10 +2,10 @@
 import { apiFetch, API_BASE_URL, getAuthHeaders, parseErrorResponse } from './client';
 import { GraphResponse } from '../types/graph';
 
-export async function getGraph(token: string): Promise<GraphResponse> {
+export async function getGraph(): Promise<GraphResponse> {
   const response = await apiFetch(
     `${API_BASE_URL}/graph`,
-    { headers: getAuthHeaders(token) }
+    { headers: getAuthHeaders() }
   );
 
   if (!response.ok) {

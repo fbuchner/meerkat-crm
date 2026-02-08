@@ -51,15 +51,12 @@ func CreateNote(c *gin.Context) {
 		Date:      noteInput.Date,
 		ContactID: &contact.ID,
 	}
-
-	// Save the new note to the database
 	if err := db.Create(&note).Error; err != nil {
 		logger.FromContext(c).Error().Err(err).Msg("Error saving note to database")
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save note").WithError(err))
 		return
 	}
 
-	// Respond with success and the created note
 	c.JSON(http.StatusOK, gin.H{"message": "Note created successfully", "note": note})
 }
 
@@ -98,15 +95,12 @@ func CreateUnassignedNote(c *gin.Context) {
 			return
 		}
 	}
-
-	// Save the new note to the database
 	if err := db.Create(&note).Error; err != nil {
 		logger.FromContext(c).Error().Err(err).Msg("Error saving unassigned note to database")
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save note").WithError(err))
 		return
 	}
 
-	// Respond with success and the created note
 	c.JSON(http.StatusOK, gin.H{"message": "Note created successfully", "note": note})
 }
 

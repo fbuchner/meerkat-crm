@@ -31,7 +31,7 @@ type Contact struct {
 	Reminders          []Reminder     `json:"reminders,omitempty"` // One-to-many relationship with reminders
 
 	// CardDAV fields
-	VCardUID   string `gorm:"column:vcard_uid" json:"-"`   // Permanent RFC 6350 UID
+	VCardUID   string `gorm:"column:vcard_uid;index" json:"-"` // Permanent RFC 6350 UID
 	VCardExtra string `gorm:"column:vcard_extra" json:"-"` // JSON for unmapped vCard properties
 	ETag       string `gorm:"column:etag" json:"-"`        // Sync conflict detection
 

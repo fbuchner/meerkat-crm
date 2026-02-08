@@ -51,8 +51,6 @@ func CreateActivity(c *gin.Context) {
 		Description: activityInput.Description,
 		Location:    activityInput.Location,
 	}
-
-	// Save the new activity to the database
 	if err := db.Create(&activity).Error; err != nil {
 		logger.FromContext(c).Error().Err(err).Msg("Error saving activity to database")
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save activity").WithError(err))

@@ -51,8 +51,6 @@ func CreateContact(c *gin.Context) {
 		Circles:            contactInput.Circles,
 		CustomFields:       contactInput.CustomFields,
 	}
-
-	// Save the new contact to the database
 	if err := db.Create(&contact).Error; err != nil {
 		logger.FromContext(c).Error().Err(err).Msg("Error saving contact to database")
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save contact").WithError(err))

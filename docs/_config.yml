@@ -5,6 +5,12 @@ baseurl: /meerkat-crm
 
 theme: just-the-docs
 
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: "default"
+
 search_enabled: true
 heading_anchors: true
 

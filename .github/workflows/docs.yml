@@ -32,8 +32,6 @@ jobs:
         working-directory: docs
         env:
           JEKYLL_ENV: production
-      - name: Debug built output
-        run: head -50 docs/_site/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: docs/_site/

@@ -3,7 +3,10 @@ description: Documentation for Meerkat CRM
 url: https://fbuchner.github.io
 baseurl: /meerkat-crm
 
-theme: just-the-docs
+remote_theme: just-the-docs/just-the-docs
+
+plugins:
+  - jekyll-remote-theme
 
 search_enabled: true
 heading_anchors: true

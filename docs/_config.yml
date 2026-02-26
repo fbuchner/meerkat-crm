@@ -5,7 +5,6 @@ baseurl: /meerkat-crm
 
 theme: just-the-docs
 
-color_scheme: nil
 search_enabled: true
 heading_anchors: true
 

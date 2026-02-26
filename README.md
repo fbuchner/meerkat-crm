@@ -1,7 +1,7 @@
 # Meerkat CRM - a simple CRM for the personal life
 
 <p align="center">
-  <img src="assets/meerkat-crm-logo.svg" alt="Meerkat CRM Logo" width="180" />
+  <img src="docs/assets/meerkat-crm-logo.svg" alt="Meerkat CRM Logo" width="180" />
 </p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -13,12 +13,12 @@
 Meerkat CRM (Contact Relationship Management) is a  self-hosted solution to keep track of your important contacts. As your digital rolodex it reminds you of birthdays, helps you to keep in mind dietary habits as well as names of spouses of contacts - and much more.
 
 > [!TIP]
->**[Click here to try the Demo!](https://meerkat-crm-demo.fly.dev/login?username=test&password=test_12345)** (user: test, password: test_12345)
+>**[Click here to try the Demo!](https://meerkat-crm-demo.fly.dev/login?username=demo&password=test_12345)** (user: demo, password: test_12345)
 >
 > Demo instance will be started on demand, expect some seconds delay. Demo data is reset periodically. Photo upload is disabled.
 
 <p align="center">
-  <img src="assets/screengrab.gif" alt="Meerkat CRM Demo" />
+  <img src="docs/assets/screengrab.gif" alt="Meerkat CRM Demo" />
 </p>
 
 ## Features

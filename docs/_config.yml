@@ -1,0 +1,27 @@
+title: Meerkat CRM
+description: Documentation for Meerkat CRM
+url: https://fbuchner.github.io
+baseurl: /meerkat-crm
+
+remote_theme: just-the-docs/just-the-docs
+
+color_scheme: nil
+search_enabled: true
+heading_anchors: true
+
+aux_links:
+  "GitHub": "https://github.com/fbuchner/meerkat-crm"
+  "Demo": "https://meerkat-crm-demo.fly.dev/login?username=demo&password=test_12345"
+
+footer_content: "Meerkat CRM - Self-hosted personal contact management"
+
+back_to_top: true
+back_to_top_text: "Back to top"
+
+callouts:
+  warning:
+    title: Warning
+    color: yellow
+  note:
+    title: Note
+    color: blue

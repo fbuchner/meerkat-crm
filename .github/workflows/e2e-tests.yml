@@ -8,6 +8,9 @@ on:
 
 jobs:
   e2e:
+    permissions:
+      contents: read
+      actions: read
     name: Run E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15

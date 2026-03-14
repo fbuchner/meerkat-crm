@@ -9,7 +9,7 @@ nav_order: 2
 
 ### Docker compose
 
-The official container image is published in the github registry: `ghcr.io/fbuchner/meerkat-crm-backend` and `ghcr.io/fbuchner/meerkat-crm-frontend`
+The official container images are published in the github registry: `ghcr.io/fbuchner/meerkat-crm-backend` and `ghcr.io/fbuchner/meerkat-crm-frontend`
 Images are available for linux/amd64, other architectures can be added on demand.
 
 You can use either the `:latest` tag or a specific version (e.g. `:0.9` or `:0.9.1`).

@@ -12,6 +12,9 @@
 ## About the project
 Meerkat CRM (Contact Relationship Management) is a  self-hosted solution to keep track of your important contacts. As your digital rolodex it reminds you of birthdays, helps you to keep in mind dietary habits as well as names of spouses of contacts - and much more.
 
+You can find the detailed documentation here: [fbuchner.github.io/meerkat-crm/](https://fbuchner.github.io/meerkat-crm/)
+
+
 > [!TIP]
 >**[Click here to try the Demo!](https://meerkat-crm-demo.fly.dev/login?username=demo&password=test_12345)** (user: demo, password: test_12345)
 >
@@ -62,7 +65,7 @@ The easiest way to run Meerkat CRM is with Docker Compose:
 
 3. **Start the containers:**
     ```sh
-    docker compose up -d
+    docker compose --env-file .env.docker up -d
     ```
 
 4. **Access the application:**

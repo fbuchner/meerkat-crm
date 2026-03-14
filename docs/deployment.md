@@ -12,7 +12,7 @@ For initial setup see [Getting Started](getting-started.md). This page covers pr
 
 The frontend container runs nginx, which both serves the React SPA and proxies all `/api/`, `/carddav/`, and `/.well-known/carddav` requests to the backend container. The backend is not port-mapped to the host — it is only reachable within the Docker network. Leave `REACT_APP_API_URL` empty in `.env.docker` to use this built-in proxy.
 
-You only need an external reverse proxy for **TLS termination**. Point it at the frontend container port (default `3000`):
+You only need an external reverse proxy for TLS termination. Point it at the frontend container port (default `3000`):
 
 ```nginx
 server {

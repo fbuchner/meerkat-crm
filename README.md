@@ -45,17 +45,17 @@ Meerkat CRM (Contact Relationship Management) is a  self-hosted solution to keep
 
 The easiest way to run Meerkat CRM is with Docker Compose:
 
-1. **Clone the repository:**
+1. **Download the Docker Compose file:**
     ```sh
-    git clone https://github.com/fbuchner/meerkat-crm.git
-    cd meerkat-crm
+    curl -O https://raw.githubusercontent.com/fbuchner/meerkat-crm/main/docker-compose.yml
+    curl -O https://raw.githubusercontent.com/fbuchner/meerkat-crm/main/.env.docker.example
     ```
 
 2. **Configure environment:**
     ```sh
     # Copy the Docker environment template
     cp .env.docker.example .env.docker
-    
+
     # Edit with your settings
     nano .env.docker
     ```

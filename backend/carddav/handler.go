@@ -34,6 +34,29 @@ func NewHandler(db *gorm.DB, photoDir string) *Handler {
 	}
 }
 
+// charsetResponseWriter wraps http.ResponseWriter to ensure text/vcard responses
+// include charset=utf-8, preventing iOS from misinterpreting UTF-8 as Latin-1.
+type charsetResponseWriter struct {
+	http.ResponseWriter
+}
+
+func (w *charsetResponseWriter) WriteHeader(statusCode int) {
+	w.fixContentType()
+	w.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (w *charsetResponseWriter) Write(b []byte) (int, error) {
+	w.fixContentType()
+	return w.ResponseWriter.Write(b)
+}
+
+func (w *charsetResponseWriter) fixContentType() {
+	ct := w.Header().Get("Content-Type")
+	if strings.HasPrefix(ct, "text/vcard") && !strings.Contains(ct, "charset") {
+		w.Header().Set("Content-Type", ct+"; charset=utf-8")
+	}
+}
+
 // GinHandler returns a Gin handler function that wraps the CardDAV handler
 func (h *Handler) GinHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -57,7 +80,7 @@ func (h *Handler) GinHandler() gin.HandlerFunc {
 			return
 		}
 
-		h.handler.ServeHTTP(c.Writer, c.Request)
+		h.handler.ServeHTTP(&charsetResponseWriter{c.Writer}, c.Request)
 	}
 }
 

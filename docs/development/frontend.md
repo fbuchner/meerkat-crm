@@ -19,7 +19,7 @@ yarn install
 ## Running Locally
 
 ```sh
-yarn start  # dev server on port 3000
+yarn start  # dev server on port 7300
 ```
 
 Hot reload is enabled. The dev server proxies nothing so requests go directly to `REACT_APP_API_URL`.

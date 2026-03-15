@@ -69,7 +69,7 @@ The easiest way to run Meerkat CRM is with Docker Compose:
     ```
 
 4. **Access the application:**
-    Open http://localhost:3000 in your browser.
+    Open http://localhost:7300 in your browser.
 
 
 ## Contributing

@@ -31,7 +31,7 @@ export default defineConfig({
   // Shared settings for all projects
   use: {
     // Base URL for navigation
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://localhost:7300',
     
     // Collect trace when retrying the failed test
     trace: 'on-first-retry',

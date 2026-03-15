@@ -18,7 +18,7 @@ services:
       - SQLITE_DB_PATH=/app/data/test.db
       - JWT_SECRET_KEY=test-secret-key-for-e2e-testing-minimum-32-chars
       - PROFILE_PHOTO_DIR=/app/static/photos
-      - FRONTEND_URL=http://localhost:3000
+      - FRONTEND_URL=http://localhost:7300
       - PORT=8080
     volumes:
       - test-data:/app/data
@@ -40,7 +40,7 @@ services:
         - REACT_APP_API_URL=http://localhost:8080
     container_name: meerkat-frontend-test
     ports:
-      - "3000:8080"
+      - "7300:8080"
     depends_on:
       backend:
         condition: service_healthy

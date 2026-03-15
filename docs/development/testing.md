@@ -34,7 +34,7 @@ cd frontend
 yarn playwright install  # install browsers (first time only)
 ```
 
-The E2E tests expect the full application running on `http://localhost:3000`. `global-setup.ts` seeds a test user before the suite runs.
+The E2E tests expect the full application running on `http://localhost:7300`. `global-setup.ts` seeds a test user before the suite runs.
 
 ### Running E2E Tests
 

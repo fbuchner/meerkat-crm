@@ -42,7 +42,7 @@ chmod -R 775 /path/to/data  /path/to/photos
 
 ## Post-Installation Setup
 
-When running Meerkat-CRM you can access the application under the specified port (default is `3000`). 
+When running Meerkat-CRM you can access the application under the specified port (default is `7300`). 
 To get started you need to register a user. The first user will automatically receive administrator rights and therefore be able to access the admin panel in the settings menu.
 
 ## Backup

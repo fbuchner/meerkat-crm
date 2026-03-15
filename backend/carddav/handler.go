@@ -1,6 +1,7 @@
 package carddav
 
 import (
+	"bytes"
 	"net/http"
 	"strings"
 
@@ -34,27 +35,56 @@ func NewHandler(db *gorm.DB, photoDir string) *Handler {
 	}
 }
 
-// charsetResponseWriter wraps http.ResponseWriter to ensure text/vcard responses
-// include charset=utf-8, preventing iOS from misinterpreting UTF-8 as Latin-1.
+// charsetResponseWriter wraps http.ResponseWriter to fix UTF-8 encoding issues with iOS:
+//  1. Adds charset=utf-8 to text/vcard Content-Type headers (GET responses).
+//  2. Buffers XML responses (PROPFIND/REPORT) and injects charset=utf-8 into all
+//     text/vcard content-type references, so iOS correctly interprets the embedded
+//     vCard data as UTF-8 rather than defaulting to Latin-1.
 type charsetResponseWriter struct {
 	http.ResponseWriter
+	xmlBuf bytes.Buffer
+	isXML  bool
 }
 
 func (w *charsetResponseWriter) WriteHeader(statusCode int) {
-	w.fixContentType()
+	w.fixVCardContentType()
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
 func (w *charsetResponseWriter) Write(b []byte) (int, error) {
-	w.fixContentType()
+	w.fixVCardContentType()
+	ct := w.Header().Get("Content-Type")
+	if !w.isXML && (strings.HasPrefix(ct, "application/xml") || strings.HasPrefix(ct, "text/xml")) {
+		w.isXML = true
+	}
+	if w.isXML {
+		return w.xmlBuf.Write(b)
+	}
 	return w.ResponseWriter.Write(b)
 }
 
-func (w *charsetResponseWriter) fixContentType() {
+func (w *charsetResponseWriter) fixVCardContentType() {
 	ct := w.Header().Get("Content-Type")
 	if strings.HasPrefix(ct, "text/vcard") && !strings.Contains(ct, "charset") {
 		w.Header().Set("Content-Type", ct+"; charset=utf-8")
 	}
+}
+
+// flushXML writes the buffered XML response to the underlying writer after injecting charset=utf-8 into all text/vcard content-type references.
+// This ensures iOS correctly treats embedded vCard data as UTF-8 in PROPFIND and REPORT responses.
+func (w *charsetResponseWriter) flushXML() {
+	if !w.isXML || w.xmlBuf.Len() == 0 {
+		return
+	}
+	// Fix text/vcard in element content (e.g. <getcontenttype>text/vcard</getcontenttype>)
+	data := bytes.ReplaceAll(w.xmlBuf.Bytes(),
+		[]byte(">text/vcard<"),
+		[]byte(">text/vcard; charset=utf-8<"))
+	// Fix text/vcard in attributes (e.g. content-type="text/vcard" in supported-address-data)
+	data = bytes.ReplaceAll(data,
+		[]byte(`content-type="text/vcard"`),
+		[]byte(`content-type="text/vcard; charset=utf-8"`))
+	w.ResponseWriter.Write(data) //nolint:errcheck
 }
 
 // GinHandler returns a Gin handler function that wraps the CardDAV handler
@@ -80,7 +110,9 @@ func (h *Handler) GinHandler() gin.HandlerFunc {
 			return
 		}
 
-		h.handler.ServeHTTP(&charsetResponseWriter{c.Writer}, c.Request)
+		crw := &charsetResponseWriter{ResponseWriter: c.Writer}
+		h.handler.ServeHTTP(crw, c.Request)
+		crw.flushXML()
 	}
 }
 

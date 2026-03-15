@@ -84,7 +84,17 @@ func (w *charsetResponseWriter) flushXML() {
 	data = bytes.ReplaceAll(data,
 		[]byte(`content-type="text/vcard"`),
 		[]byte(`content-type="text/vcard; charset=utf-8"`))
-	w.ResponseWriter.Write(data) //nolint:errcheck
+	// Add content-type to address-data response elements so iOS correctly decodes UTF-8.
+	// iOS (per RFC 2616) defaults text/* to ISO-8859-1 when no charset is declared.
+	// The carddav namespace is re-declared on each address-data element by Go's xml encoder.
+	data = bytes.ReplaceAll(data,
+		[]byte(`<address-data xmlns="urn:ietf:params:xml:ns:carddav">`),
+		[]byte(`<address-data content-type="text/vcard; charset=utf-8" xmlns="urn:ietf:params:xml:ns:carddav">`))
+	// Fallback: handle the rare case where the carddav namespace is declared on an ancestor element
+	data = bytes.ReplaceAll(data,
+		[]byte(`<address-data>`),
+		[]byte(`<address-data content-type="text/vcard; charset=utf-8">`))
+	w.ResponseWriter.Write(data)
 }
 
 // GinHandler returns a Gin handler function that wraps the CardDAV handler

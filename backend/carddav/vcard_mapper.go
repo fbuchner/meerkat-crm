@@ -25,12 +25,14 @@ type VCardExtra struct {
 	Properties map[string][]vcard.Field `json:"properties,omitempty"`
 }
 
-// ContactToVCard converts a Contact to a vCard 4.0
+// ContactToVCard converts a Contact to a vCard 3.0 card.
+// vCard 3.0 (RFC 2426) uses UTF-8 globally; the charset is declared via the
+// Content-Type header (text/vcard; charset=utf-8) rather than per-property CHARSET params.
 func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 	card := make(vcard.Card)
 
-	// Required: VERSION
-	card.SetValue(vcard.FieldVersion, "4.0")
+	// Required: VERSION - use 3.0 for iOS compatibility
+	card.SetValue(vcard.FieldVersion, "3.0")
 
 	// UID - use VCardUID if set, otherwise generate a new one
 	uid := contact.VCardUID
@@ -39,7 +41,7 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 	}
 	card.SetValue(vcard.FieldUID, uid)
 
-	// FN (formatted name) - required in vCard 4.0
+	// FN (formatted name) - required
 	fn := strings.TrimSpace(contact.Firstname + " " + contact.Lastname)
 	if fn == "" {
 		fn = contact.Nickname
@@ -50,9 +52,7 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 	card.SetValue(vcard.FieldFormattedName, fn)
 
 	// N (structured name)
-	card.Set(vcard.FieldName, &vcard.Field{
-		Value: contact.Lastname + ";" + contact.Firstname + ";;;",
-	})
+	card.SetValue(vcard.FieldName, contact.Lastname+";"+contact.Firstname+";;;")
 
 	// NICKNAME
 	if contact.Nickname != "" {
@@ -77,28 +77,13 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 
 	// ADR (address)
 	if contact.Address != "" {
-		// Store as unstructured address (extended address field)
-		card.Set(vcard.FieldAddress, &vcard.Field{
-			Value: ";;" + contact.Address + ";;;;",
-		})
+		// Store as unstructured address (street address field)
+		card.SetValue(vcard.FieldAddress, ";;"+contact.Address+";;;;")
 	}
 
-	// BDAY (birthday) - convert to vCard 4.0 format
+	// BDAY (birthday) - vCard 3.0 uses YYYY-MM-DD; store as-is (--MM-DD is also accepted)
 	if contact.Birthday != "" {
-		bday := contact.Birthday
-		// Convert --MM-DD to --MMDD for vCard 4.0 compatibility
-		if len(bday) == 7 && bday[0] == '-' && bday[1] == '-' && bday[4] == '-' {
-			bday = bday[:4] + bday[5:] // --06-12 -> --0612
-		}
-		card.SetValue(vcard.FieldBirthday, bday)
-	}
-
-	// GENDER
-	if contact.Gender != "" {
-		gender := mapGenderToVCard(contact.Gender)
-		if gender != "" {
-			card.SetValue(vcard.FieldGender, gender)
-		}
+		card.SetValue(vcard.FieldBirthday, contact.Birthday)
 	}
 
 	// CATEGORIES (circles)
@@ -125,9 +110,8 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 		card.Set(vcard.FieldPhoto, &vcard.Field{
 			Value: photoData,
 			Params: vcard.Params{
-				"ENCODING":  {"b"},       // vCard 3.0: base64 encoding
-				"TYPE":      {imageType}, // vCard 3.0: image type
-				"MEDIATYPE": {mediaType}, // vCard 4.0: full media type
+				"ENCODING": {"b"},       // vCard 3.0: base64 encoding
+				"TYPE":     {imageType}, // vCard 3.0: image type
 			},
 		})
 	}
@@ -464,11 +448,7 @@ func extractPhotoData(field *vcard.Field) ([]byte, string, string) {
 	// Decode base64
 	data, err := base64.StdEncoding.DecodeString(value)
 	if err != nil {
-		// Try URL-safe base64
-		data, err = base64.URLEncoding.DecodeString(value)
-		if err != nil {
-			return nil, "", ""
-		}
+		return nil, "", ""
 	}
 
 	return data, mediaType, ""
@@ -477,22 +457,6 @@ func extractPhotoData(field *vcard.Field) ([]byte, string, string) {
 // generateUID creates a UID for a contact
 func generateUID() string {
 	return uuid.New().String()
-}
-
-// mapGenderToVCard converts internal gender to vCard format
-func mapGenderToVCard(gender string) string {
-	switch gender {
-	case "male":
-		return "M"
-	case "female":
-		return "F"
-	case "other":
-		return "O"
-	case "prefer_not_to_say":
-		return "N"
-	default:
-		return ""
-	}
 }
 
 // mapGenderFromVCard converts vCard gender to internal format

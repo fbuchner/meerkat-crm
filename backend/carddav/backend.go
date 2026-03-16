@@ -1,7 +1,6 @@
 package carddav
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"meerkat/logger"
@@ -109,7 +108,6 @@ func (b *Backend) ListAddressBooks(ctx context.Context) ([]carddav.AddressBook, 
 			Description: "Meerkat CRM Contacts",
 			SupportedAddressData: []carddav.AddressDataType{
 				{ContentType: "text/vcard", Version: "3.0"},
-				{ContentType: "text/vcard", Version: "4.0"},
 			},
 		},
 	}, nil
@@ -133,7 +131,6 @@ func (b *Backend) GetAddressBook(ctx context.Context, urlPath string) (*carddav.
 		Description: "Meerkat CRM Contacts",
 		SupportedAddressData: []carddav.AddressDataType{
 			{ContentType: "text/vcard", Version: "3.0"},
-			{ContentType: "text/vcard", Version: "4.0"},
 		},
 	}, nil
 }
@@ -357,16 +354,11 @@ func (b *Backend) contactToAddressObject(ctx context.Context, contact *models.Co
 	// Generate vCard
 	card := ContactToVCard(contact, photoDir)
 
-	// Serialize card to get content length
-	var buf bytes.Buffer
-	vcard.NewEncoder(&buf).Encode(card)
-
 	return &carddav.AddressObject{
-		Path:          "/carddav/addressbooks/" + username + "/contacts/" + uid + ".vcf",
-		ModTime:       contact.UpdatedAt,
-		ContentLength: int64(buf.Len()),
-		ETag:          contact.ETag,
-		Card:          card,
+		Path:    "/carddav/addressbooks/" + username + "/contacts/" + uid + ".vcf",
+		ModTime: contact.UpdatedAt,
+		ETag:    contact.ETag,
+		Card:    card,
 	}
 }
 

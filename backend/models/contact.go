@@ -25,15 +25,15 @@ type Contact struct {
 	FoodPreference     string         `json:"food_preference" validate:"max=500"`        // Text field
 	WorkInformation    string         `json:"work_information" validate:"max=1000"`      // Text field
 	ContactInformation string         `json:"contact_information" validate:"max=1000"`   // Additional contact information
-	Circles            []string       `gorm:"type:text;serializer:json" json:"circles"`            // Serialize Circles properly
+	Circles            []string       `gorm:"type:text;serializer:json" json:"circles"`  // Serialize Circles properly
 	Activities         []Activity     `gorm:"many2many:activity_contacts;foreignKey:ID;joinForeignKey:ContactID;References:ID;joinReferences:ActivityID" json:"activities,omitempty"`
 	Notes              []Note         `json:"notes,omitempty"`     // One-to-many relationship with notes
 	Reminders          []Reminder     `json:"reminders,omitempty"` // One-to-many relationship with reminders
 
 	// CardDAV fields
 	VCardUID   string `gorm:"column:vcard_uid;index" json:"-"` // Permanent RFC 6350 UID
-	VCardExtra string `gorm:"column:vcard_extra" json:"-"` // JSON for unmapped vCard properties
-	ETag       string `gorm:"column:etag" json:"-"`        // Sync conflict detection
+	VCardExtra string `gorm:"column:vcard_extra" json:"-"`     // JSON for unmapped vCard properties
+	ETag       string `gorm:"column:etag" json:"-"`            // Sync conflict detection
 
 	// Custom fields (user-defined string fields)
 	CustomFields map[string]string `gorm:"type:text;serializer:json" json:"custom_fields"`
@@ -41,7 +41,7 @@ type Contact struct {
 	Archived bool `gorm:"default:false" json:"archived"`
 }
 
-// BeforeCreate generates VCardUID for new contacts
+// generates VCardUID for new contacts
 func (c *Contact) BeforeCreate(tx *gorm.DB) error {
 	// Generate VCardUID if not set (required for unique constraint)
 	if c.VCardUID == "" {
@@ -50,20 +50,17 @@ func (c *Contact) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
-// BeforeSave generates ETag before saving contact
-func (c *Contact) BeforeSave(tx *gorm.DB) error {
-	// ETag format: e-{id}-{updated_at_unix}
-	// For new records, ID is 0 and will be set after create
-	// We regenerate ETag in AfterSave for new records
-	if c.ID != 0 {
-		c.ETag = fmt.Sprintf("e-%d-%d", c.ID, c.UpdatedAt.Unix())
-	}
-	return nil
-}
-
-// AfterCreate sets ETag after creating a new contact
 func (c *Contact) AfterCreate(tx *gorm.DB) error {
 	// Now we have the ID, generate proper ETag
 	c.ETag = fmt.Sprintf("e-%d-%d", c.ID, c.UpdatedAt.Unix())
 	return tx.Model(c).UpdateColumn("etag", c.ETag).Error
+}
+
+func (c *Contact) AfterSave(tx *gorm.DB) error {
+	newETag := fmt.Sprintf("e-%d-%d", c.ID, c.UpdatedAt.Unix())
+	if newETag != c.ETag {
+		c.ETag = newETag
+		return tx.Model(c).UpdateColumn("etag", c.ETag).Error
+	}
+	return nil
 }

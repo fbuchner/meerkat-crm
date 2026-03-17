@@ -65,6 +65,13 @@ interface ContactWithRelations extends Contact {
   activities?: Activity[];
 }
 
+const CONTACT_FIELDS = [
+  'ID', 'firstname', 'lastname', 'nickname', 'gender',
+  'email', 'phone', 'birthday', 'address', 'how_we_met',
+  'food_preference', 'work_information', 'contact_information',
+  'circles', 'photo', 'custom_fields', 'archived'
+];
+
 export default function ContactDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
@@ -189,13 +196,6 @@ export default function ContactDetailPage() {
     }
   }, []);
 
-  // Fields to fetch for contact (excludes associations loaded separately)
-  const CONTACT_FIELDS = [
-    'ID', 'firstname', 'lastname', 'nickname', 'gender',
-    'email', 'phone', 'birthday', 'address', 'how_we_met',
-    'food_preference', 'work_information', 'contact_information',
-    'circles', 'photo', 'custom_fields', 'archived'
-  ];
 
   // Fetch contact details, notes, and activities
   useEffect(() => {

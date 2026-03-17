@@ -38,8 +38,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        - REACT_APP_API_URL=http://localhost:8080
     container_name: meerkat-frontend-test
     ports:
       - "7300:8080"

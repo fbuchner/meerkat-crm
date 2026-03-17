@@ -39,7 +39,6 @@ jobs:
           push: false
           load: true
           tags: meerkat-crm-frontend-test:latest
-          build-args: REACT_APP_API_URL=http://localhost:8080
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,scope=frontend,mode=max
 

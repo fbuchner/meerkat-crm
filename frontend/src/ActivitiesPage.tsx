@@ -34,8 +34,8 @@ import { ListSkeleton } from './components/LoadingSkeletons';
 import { useDateFormat } from './DateFormatProvider';
 
 const ActivitiesPage: React.FC = () => {
-  const { t } = useTranslation();
-  const { formatDate } = useDateFormat();
+  const { t, i18n } = useTranslation();
+  const { formatDate, getDatePlaceholder } = useDateFormat();
 
   const [searchInput, setSearchInput] = useState('');
   const debouncedSearch = useDebouncedValue(searchInput, 400);
@@ -244,7 +244,7 @@ const ActivitiesPage: React.FC = () => {
             value={fromDate}
             onChange={(e) => handleFromDateChange(e.target.value)}
             variant="outlined"
-            slotProps={{ inputLabel: { shrink: true } }}
+            slotProps={{ inputLabel: { shrink: true }, input: { placeholder: getDatePlaceholder(), lang: i18n.language } }}
             sx={{ width: 160 }}
           />
           <TextField
@@ -254,7 +254,7 @@ const ActivitiesPage: React.FC = () => {
             value={toDate}
             onChange={(e) => handleToDateChange(e.target.value)}
             variant="outlined"
-            slotProps={{ inputLabel: { shrink: true } }}
+            slotProps={{ inputLabel: { shrink: true }, input: { placeholder: getDatePlaceholder(), lang: i18n.language } }}
             sx={{ width: 160 }}
           />
         </Box>

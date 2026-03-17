@@ -10,6 +10,7 @@
 
 services:
   backend:
+    image: meerkat-crm-backend-test:latest
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -33,11 +34,10 @@ services:
       start_period: 5s
 
   frontend:
+    image: meerkat-crm-frontend-test:latest
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        - REACT_APP_API_URL=http://localhost:8080
     container_name: meerkat-frontend-test
     ports:
       - "7300:8080"

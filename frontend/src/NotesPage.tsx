@@ -32,8 +32,8 @@ import { handleError } from './utils/errorHandler';
 import { useDateFormat } from './DateFormatProvider';
 
 const NotesPage: React.FC = () => {
-  const { t } = useTranslation();
-  const { formatDate } = useDateFormat();
+  const { t, i18n } = useTranslation();
+  const { formatDate, getDatePlaceholder } = useDateFormat();
   const [searchInput, setSearchInput] = useState('');
   const debouncedSearch = useDebouncedValue(searchInput, 400);
   const [page, setPage] = useState(1);
@@ -204,7 +204,7 @@ const NotesPage: React.FC = () => {
             value={fromDate}
             onChange={(e) => handleFromDateChange(e.target.value)}
             variant="outlined"
-            slotProps={{ inputLabel: { shrink: true } }}
+            slotProps={{ inputLabel: { shrink: true }, input: { placeholder: getDatePlaceholder(), lang: i18n.language } }}
             sx={{ width: 160 }}
           />
           <TextField
@@ -214,7 +214,7 @@ const NotesPage: React.FC = () => {
             value={toDate}
             onChange={(e) => handleToDateChange(e.target.value)}
             variant="outlined"
-            slotProps={{ inputLabel: { shrink: true } }}
+            slotProps={{ inputLabel: { shrink: true }, input: { placeholder: getDatePlaceholder(), lang: i18n.language } }}
             sx={{ width: 160 }}
           />
         </Box>

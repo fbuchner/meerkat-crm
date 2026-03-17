@@ -149,9 +149,11 @@ export const SafeSection: React.FC<SafeComponentProps> = ({
   );
 };
 
-export default {
+const ErrorBoundaryUtils = {
   withErrorBoundary,
   withSectionErrorBoundary,
   SafeComponent,
   SafeSection,
 };
+
+export default ErrorBoundaryUtils;

@@ -13,8 +13,8 @@ jobs:
       actions: read
     name: Run E2E Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    
+    timeout-minutes: 25
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,9 +22,29 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: false
+          load: true
+          tags: meerkat-crm-backend-test:latest
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: false
+          load: true
+          tags: meerkat-crm-frontend-test:latest
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+
       - name: Start services
         run: |
-          docker compose -f docker-compose.test.yml up -d --build
+          docker compose -f docker-compose.test.yml up -d
           # Wait for services to be ready
           echo "Waiting for services to be ready..."
           timeout 120 bash -c 'until curl -s http://localhost:8080/health > /dev/null 2>&1; do sleep 2; done'
@@ -42,6 +62,12 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: yarn install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/yarn.lock') }}
 
       - name: Install Playwright browsers
         working-directory: frontend

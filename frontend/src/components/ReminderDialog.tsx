@@ -47,6 +47,18 @@ export default function ReminderDialog({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const getDateForRecurrence = (rec: ReminderFormData['recurrence']): string => {
+    const d = new Date();
+    switch (rec) {
+      case 'weekly':      d.setDate(d.getDate() + 7); break;
+      case 'monthly':     d.setMonth(d.getMonth() + 1); break;
+      case 'quarterly':   d.setMonth(d.getMonth() + 3); break;
+      case 'six-months':  d.setMonth(d.getMonth() + 6); break;
+      case 'yearly':      d.setFullYear(d.getFullYear() + 1); break;
+    }
+    return d.toISOString().split('T')[0];
+  };
+
   useEffect(() => {
     if (reminder) {
       setMessage(reminder.message);
@@ -56,14 +68,22 @@ export default function ReminderDialog({
       setReoccurFromCompletion(reminder.reoccur_from_completion);
     } else {
       // Reset form for new reminder, using initialValues if provided
+      const initialRec = initialValues?.recurrence || 'once';
       setMessage(initialValues?.message || '');
       setByMail(true);
-      setRemindAt(new Date().toISOString().split('T')[0]);
-      setRecurrence(initialValues?.recurrence || 'once');
+      setRecurrence(initialRec);
+      setRemindAt(getDateForRecurrence(initialRec));
       setReoccurFromCompletion(true);
     }
     setError(null);
   }, [reminder, open, initialValues]);
+
+  const handleRecurrenceChange = (newRecurrence: ReminderFormData['recurrence']) => {
+    setRecurrence(newRecurrence);
+    if (!reminder) {
+      setRemindAt(getDateForRecurrence(newRecurrence));
+    }
+  };
 
   const handleSave = async () => {
     // Validation
@@ -130,21 +150,10 @@ export default function ReminderDialog({
           />
 
           <TextField
-            label={t('reminders.date')}
-            type="date"
-            value={remindAt}
-            onChange={(e) => setRemindAt(e.target.value)}
-            required
-            fullWidth
-            InputLabelProps={{ shrink: true }}
-            inputProps={{ min: new Date().toISOString().split('T')[0] }}
-          />
-
-          <TextField
             label={t('reminders.recurrence.label')}
             select
             value={recurrence}
-            onChange={(e) => setRecurrence(e.target.value as ReminderFormData['recurrence'])}
+            onChange={(e) => handleRecurrenceChange(e.target.value as ReminderFormData['recurrence'])}
             required
             fullWidth
           >
@@ -154,6 +163,16 @@ export default function ReminderDialog({
               </MenuItem>
             ))}
           </TextField>
+
+          <TextField
+            label={t('reminders.date')}
+            type="date"
+            value={remindAt}
+            onChange={(e) => setRemindAt(e.target.value)}
+            required
+            fullWidth
+            slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: new Date().toISOString().split('T')[0] } }}
+          />
 
           {recurrence !== 'once' && (
             <FormControlLabel

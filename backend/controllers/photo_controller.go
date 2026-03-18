@@ -19,10 +19,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gen2brain/heic"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/nfnt/resize"
-	"github.com/gen2brain/heic"
 	"gorm.io/gorm"
 )
 
@@ -159,11 +159,28 @@ func AddPhotoToContact(c *gin.Context, cfg *config.Config) {
 			apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to process photo").WithError(err))
 			return
 		}
+		oldPhoto := contact.Photo
 		contact.Photo = photoPath
 		contact.PhotoThumbnail = thumbnailPath
+
+		// Save the updated contact
+		if err := db.Save(&contact).Error; err != nil {
+			// Clean up newly saved file since DB update failed
+			os.Remove(filepath.Join(cfg.ProfilePhotoDir, photoPath))
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("update").WithError(err))
+			return
+		}
+
+		// Delete old photo file after db update
+		if oldPhoto != "" {
+			os.Remove(filepath.Join(cfg.ProfilePhotoDir, oldPhoto))
+		}
+
+		c.JSON(http.StatusOK, contact)
+		return
 	}
 
-	// Save the updated contact
+	// Save the updated contact (no new photo uploaded)
 	if err := db.Save(&contact).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("update").WithError(err))
 		return

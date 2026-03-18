@@ -69,7 +69,7 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 	if contact.Phone != "" {
 		card.Set(vcard.FieldTelephone, &vcard.Field{
 			Value:  contact.Phone,
-			Params: vcard.Params{vcard.ParamType: {"CELL,VOICE"}},
+			Params: vcard.Params{vcard.ParamType: {"CELL", "VOICE"}},
 		})
 	}
 

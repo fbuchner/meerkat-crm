@@ -15,19 +15,17 @@ import (
 	"strings"
 
 	"github.com/emersion/go-vcard"
+	"github.com/gen2brain/heic"
 	"github.com/google/uuid"
 	"github.com/nfnt/resize"
-	"github.com/gen2brain/heic"
 )
 
-// VCardExtra stores unmapped vCard properties
+// for unmapped vCard properties
 type VCardExtra struct {
 	Properties map[string][]vcard.Field `json:"properties,omitempty"`
 }
 
 // ContactToVCard converts a Contact to a vCard 3.0 card.
-// vCard 3.0 (RFC 2426) uses UTF-8 globally; the charset is declared via the
-// Content-Type header (text/vcard; charset=utf-8) rather than per-property CHARSET params.
 func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 	card := make(vcard.Card)
 
@@ -71,7 +69,7 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 	if contact.Phone != "" {
 		card.Set(vcard.FieldTelephone, &vcard.Field{
 			Value:  contact.Phone,
-			Params: vcard.Params{vcard.ParamType: {"CELL"}},
+			Params: vcard.Params{vcard.ParamType: {"CELL,VOICE"}},
 		})
 	}
 

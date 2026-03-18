@@ -68,3 +68,17 @@ React Router. Each page component maps to a route. Protected routes redirect to 
 ### Internationalization
 
 `i18next` with `react-i18next`. All UI strings live in `i18n/locales/en.json` and `de.json`. Use the `useTranslation()` hook. The user's language preference is stored server-side and applied to backend email notifications too.
+
+## Security
+
+**Authentication** — JWT (HMAC-signed). Tokens are stored in an `httpOnly` cookie for the browser; API clients (e.g. CardDAV) use a `Bearer` header fallback. Tokens carry `user_id` and `username` claims and expire automatically (expiration set by env variable).
+
+**Multi-tenant isolation** — every table has a `user_id` column; all queries filter by the ID extracted from the validated JWT, so one user cannot access another's data.
+
+**Password policy** — entropy-based validation (minimum 50 bits). Passwords are rejected at registration/change time before they are hashed.
+
+**Account lockout** — after 5 failed login attempts the account is locked with exponential back-off (1 min base, doubling up to 30 min). The lockout state is reset after 1 hour of inactivity.
+
+**Rate limiting** — per-IP token-bucket limiter applied globally; tighter limits on auth endpoints.
+
+**Request size limits** — JSON bodies capped at 1 MB, other bodies at 10 MB to prevent DoS via large payloads.

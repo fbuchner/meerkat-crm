@@ -48,3 +48,7 @@ Android does not include a native CardDAV client. You will need a third-party ap
 - **Contacts not syncing**: Verify that `CARDDAV_ENABLED=true` is set in your server environment and restart the application.
 - **Discovery not working**: Some clients require the full CardDAV URL instead of relying on auto-discovery. Try entering `https://your-server.com/carddav/` directly as the server URL.
 - **Locked out**: After multiple failed login attempts, your account may be temporarily locked. Wait a few minutes and try again, or reset your password via the web interface.
+
+# Limitations
+
+- **Sync-token** is not implemented since not yet supported by go-webdav. Clients therefore have to fall back to propfind with depth 1 and compare locally.

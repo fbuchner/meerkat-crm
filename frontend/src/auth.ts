@@ -55,7 +55,7 @@ async function fetchAndCacheUserInfo(): Promise<UserInfo | null> {
     const userInfo: UserInfo = {
       user_id: data.ID,
       username: data.Username,
-      is_admin: data.IsAdmin || false,
+      is_admin: data.is_admin || false,
     };
     localStorage.setItem(USER_INFO_KEY, JSON.stringify(userInfo));
     return userInfo;

@@ -186,8 +186,10 @@ export default function ContactHeader({
                 <Box
                   sx={{
                     display: 'flex',
-                    alignItems: 'center',
+                    alignItems: 'flex-start',
                     justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 0.5,
                     '&:hover .edit-icon': {
                       opacity: 1
                     }
@@ -210,7 +212,7 @@ export default function ContactHeader({
                       <EditIcon fontSize="small" />
                     </IconButton>
                   </Box>
-                  <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
                     {contact.archived ? (
                       onUnarchiveContact && (
                         <Button

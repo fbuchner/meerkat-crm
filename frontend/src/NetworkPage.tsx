@@ -81,7 +81,10 @@ export default function NetworkPage() {
   }
 
   return (
-    <Box sx={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column', p: 2 }}>
+    <Box sx={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column', mt: 2, p: 2 }}>
+      <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
+        {t('network.title')}
+      </Typography>
       {/* Controls */}
       <Card
         sx={{
@@ -96,10 +99,6 @@ export default function NetworkPage() {
           overflow: 'visible',
         }}
       >
-        <Typography variant="h6" sx={{ flexGrow: isMobile ? 0 : 1 }}>
-          {t('network.title')}
-        </Typography>
-
         <FormControl size="small" sx={{ minWidth: 150 }}>
           <InputLabel>{t('network.filterByCircle')}</InputLabel>
           <Select

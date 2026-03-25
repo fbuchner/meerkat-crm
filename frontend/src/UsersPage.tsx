@@ -28,19 +28,23 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { getUsers, updateUser, deleteUser } from './api/admin';
+import SendIcon from '@mui/icons-material/Send';
+import { getUsers, updateUser, deleteUser, triggerReminders } from './api/admin';
 import { isAdmin } from './auth';
+import { useSnackbar } from './context/SnackbarContext';
 import type { User, UserUpdateInput } from './types';
 
 export default function UsersPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { showSuccess, showError } = useSnackbar();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [total, setTotal] = useState(0);
+  const [triggerLoading, setTriggerLoading] = useState(false);
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -149,6 +153,20 @@ export default function UsersPage() {
     }
   };
 
+  // Trigger reminders handler
+  const handleTriggerReminders = async () => {
+    setTriggerLoading(true);
+    try {
+      await triggerReminders();
+      showSuccess(t('users.triggerRemindersSuccess'));
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : t('users.triggerRemindersError');
+      showError(errorMessage);
+    } finally {
+      setTriggerLoading(false);
+    }
+  };
+
   // Delete handlers
   const handleDeleteClick = (user: User) => {
     setDeletingUser(user);
@@ -191,9 +209,19 @@ export default function UsersPage() {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 2 }}>
-      <Typography variant="h5" gutterBottom sx={{ mb: 1.5 }}>
-        {t('users.title')}
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+        <Typography variant="h5">
+          {t('users.title')}
+        </Typography>
+        <Button
+          variant="outlined"
+          startIcon={triggerLoading ? <CircularProgress size={16} /> : <SendIcon />}
+          onClick={handleTriggerReminders}
+          disabled={triggerLoading}
+        >
+          {t('users.triggerReminders')}
+        </Button>
+      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>

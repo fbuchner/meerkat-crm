@@ -59,13 +59,18 @@ func SendPasswordResetEmail(email, token, lang string, cfg *config.Config) error
 		lang = i18n.DefaultLanguage
 	}
 
+	htmlBody, err := renderPasswordResetEmail(PasswordResetEmailData{
+		Intro:       i18n.T(lang, "email.passwordReset.intro"),
+		Instruction: i18n.T(lang, "email.passwordReset.instruction"),
+		Token:       token,
+		Ignore:      i18n.T(lang, "email.passwordReset.ignore"),
+		Footer:      i18n.T(lang, "email.footer"),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to render password reset email: %w", err)
+	}
+
 	client := resend.NewClient(cfg.ResendAPIKey)
-	htmlBody := fmt.Sprintf(`<p>%s</p><p>%s</p><p><strong>%s</strong></p><p>%s</p>`,
-		i18n.T(lang, "email.passwordReset.intro"),
-		i18n.T(lang, "email.passwordReset.instruction"),
-		token,
-		i18n.T(lang, "email.passwordReset.ignore"),
-	)
 
 	params := &resend.SendEmailRequest{
 		From:    cfg.ResendFromEmail,

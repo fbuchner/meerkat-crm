@@ -111,7 +111,18 @@ func TestLoginUser(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	var responseBody map[string]string
 	json.Unmarshal(w.Body.Bytes(), &responseBody)
-	assert.Contains(t, responseBody, "token")
+	assert.Contains(t, responseBody, "language")
+	assert.Contains(t, responseBody, "date_format")
+	assert.NotEmpty(t, w.Result().Cookies())
+	var authCookie *http.Cookie
+	for _, c := range w.Result().Cookies() {
+		if c.Name == "auth_token" {
+			authCookie = c
+			break
+		}
+	}
+	assert.NotNil(t, authCookie, "auth_token cookie should be set")
+	assert.NotEmpty(t, authCookie.Value)
 }
 
 func TestLoginUser_WithUsername(t *testing.T) {
@@ -151,7 +162,17 @@ func TestLoginUser_WithUsername(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	var responseBody map[string]string
 	json.Unmarshal(w.Body.Bytes(), &responseBody)
-	assert.Contains(t, responseBody, "token")
+	assert.Contains(t, responseBody, "language")
+	assert.Contains(t, responseBody, "date_format")
+	var authCookie *http.Cookie
+	for _, c := range w.Result().Cookies() {
+		if c.Name == "auth_token" {
+			authCookie = c
+			break
+		}
+	}
+	assert.NotNil(t, authCookie, "auth_token cookie should be set")
+	assert.NotEmpty(t, authCookie.Value)
 }
 
 func TestLoginUser_LegacyEmailField(t *testing.T) {
@@ -191,7 +212,17 @@ func TestLoginUser_LegacyEmailField(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	var responseBody map[string]string
 	json.Unmarshal(w.Body.Bytes(), &responseBody)
-	assert.Contains(t, responseBody, "token")
+	assert.Contains(t, responseBody, "language")
+	assert.Contains(t, responseBody, "date_format")
+	var authCookie *http.Cookie
+	for _, c := range w.Result().Cookies() {
+		if c.Name == "auth_token" {
+			authCookie = c
+			break
+		}
+	}
+	assert.NotNil(t, authCookie, "auth_token cookie should be set")
+	assert.NotEmpty(t, authCookie.Value)
 }
 
 func TestLoginUser_InvalidCredentials(t *testing.T) {

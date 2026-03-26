@@ -139,6 +139,9 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB) {
 			admin.GET("/users/:id", controllers.GetUser)
 			admin.PATCH("/users/:id", middleware.ValidateJSONMiddleware(&models.AdminUserUpdateInput{}), controllers.UpdateUser)
 			admin.DELETE("/users/:id", controllers.DeleteUser)
+			admin.POST("/trigger-reminders", func(c *gin.Context) {
+				controllers.TriggerReminders(c, *cfg)
+			})
 		}
 	}
 

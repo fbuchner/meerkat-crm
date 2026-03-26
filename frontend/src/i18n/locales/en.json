@@ -533,6 +533,9 @@
       "warning": "This will permanently delete the user and all their data including contacts, activities, notes, and reminders."
     },
     "updateError": "Failed to update user",
-    "deleteError": "Failed to delete user"
+    "deleteError": "Failed to delete user",
+    "triggerReminders": "Send Reminder Emails",
+    "triggerRemindersSuccess": "Reminder emails sent successfully",
+    "triggerRemindersError": "Failed to send reminder emails"
   }
 }

@@ -1,13 +1,15 @@
 {
   "email": {
+    "footer": "Meerkat CRM - Personal Contact Management",
     "reminder": {
-      "subject": "Ihre täglichen Erinnerungen",
-      "remindersTitle": "Ihre Erinnerungen für heute:",
-      "birthdaysTitle": "Anstehende Geburtstage:",
+      "subject": "Tägliche Erinnerungen",
+      "remindersTitle": "Erinnerungen für heute",
+      "birthdaysTitle": "Anstehende Geburtstage",
       "today": "Heute!",
       "tomorrow": "Morgen",
       "inDays": "In {{days}} Tagen",
-      "unknownContact": "Unbekannt"
+      "unknownContact": "Unbekannt",
+      "contactLabel": "Kontakt"
     },
     "passwordReset": {
       "subject": "Setzen Sie Ihr Meerkat CRM Passwort zurück",

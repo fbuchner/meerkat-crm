@@ -348,8 +348,8 @@ func sendReminderEmail(user models.User, reminders []models.Reminder, config con
 		dateFormat = "eu"
 	}
 
-	// Build the HTML content for reminders
-	htmlContent := fmt.Sprintf("<h1>%s</h1><ul>", i18n.T(lang, "email.reminder.remindersTitle"))
+	// Build reminder items
+	reminderItems := make([]ReminderItem, 0, len(reminders))
 	for _, reminder := range reminders {
 		contactName := i18n.T(lang, "email.reminder.unknownContact")
 		if reminder.ContactID != nil {
@@ -358,42 +358,59 @@ func sendReminderEmail(user models.User, reminders []models.Reminder, config con
 				contactName = contact.Firstname + " " + contact.Lastname
 			}
 		}
-		htmlContent += fmt.Sprintf("<li>%s - %s (Contact: %s)</li>", formatDateForUser(reminder.RemindAt, dateFormat), reminder.Message, contactName)
+		reminderItems = append(reminderItems, ReminderItem{
+			Date:        formatDateForUser(reminder.RemindAt, dateFormat),
+			Message:     reminder.Message,
+			ContactName: contactName,
+		})
 	}
-	htmlContent += "</ul>"
 
-	// Add upcoming birthdays section
-	birthdays, err := GetUpcomingBirthdays(db, user.ID)
-	if err != nil {
-		logger.Warn().Err(err).Uint("user_id", user.ID).Msg("Failed to fetch birthdays for email, continuing without them")
-	} else if len(birthdays) > 0 {
-		now := time.Now()
-		htmlContent += fmt.Sprintf("<h1>%s</h1><ul>", i18n.T(lang, "email.reminder.birthdaysTitle"))
-		for _, birthday := range birthdays {
-			days := DaysUntilBirthday(birthday.Birthday, now)
-			var daysText string
-			switch days {
-			case 0:
-				daysText = i18n.T(lang, "email.reminder.today")
-			case 1:
-				daysText = i18n.T(lang, "email.reminder.tomorrow")
-			default:
-				daysText = i18n.T(lang, "email.reminder.inDays", map[string]string{"days": strconv.Itoa(days)})
-			}
-
-			formattedBirthday := formatBirthdayForUser(birthday.Birthday, dateFormat)
-			if birthday.Type == "relationship" {
-				htmlContent += fmt.Sprintf("<li>%s (%s) - %s's %s - %s</li>",
-					formattedBirthday, daysText, birthday.AssociatedContactName, birthday.RelationshipType, birthday.Name)
-			} else {
-				htmlContent += fmt.Sprintf("<li>%s (%s) - %s</li>",
-					formattedBirthday, daysText, birthday.Name)
-			}
+	// Build birthday items
+	birthdays, birthdayErr := GetUpcomingBirthdays(db, user.ID)
+	if birthdayErr != nil {
+		logger.Warn().Err(birthdayErr).Uint("user_id", user.ID).Msg("Failed to fetch birthdays for email, continuing without them")
+	}
+	birthdayItems := make([]BirthdayItem, 0, len(birthdays))
+	now := time.Now()
+	for _, birthday := range birthdays {
+		days := DaysUntilBirthday(birthday.Birthday, now)
+		var daysText, badgeType string
+		switch days {
+		case 0:
+			daysText = i18n.T(lang, "email.reminder.today")
+			badgeType = "today"
+		case 1:
+			daysText = i18n.T(lang, "email.reminder.tomorrow")
+			badgeType = "tomorrow"
+		default:
+			daysText = i18n.T(lang, "email.reminder.inDays", map[string]string{"days": strconv.Itoa(days)})
+			badgeType = "future"
 		}
-		htmlContent += "</ul>"
+		birthdayItems = append(birthdayItems, BirthdayItem{
+			FormattedDate:         formatBirthdayForUser(birthday.Birthday, dateFormat),
+			Name:                  birthday.Name,
+			DaysText:              daysText,
+			BadgeType:             badgeType,
+			IsRelationship:        birthday.Type == "relationship",
+			AssociatedContactName: birthday.AssociatedContactName,
+			RelationshipType:      birthday.RelationshipType,
+		})
 	}
 
-	logger.Debug().Str("html_content", htmlContent).Int("reminder_count", len(reminders)).Int("birthday_count", len(birthdays)).Uint("user_id", user.ID).Str("language", lang).Msg("Sending reminder email")
+	htmlContent, err := renderReminderEmail(ReminderEmailData{
+		RemindersTitle: i18n.T(lang, "email.reminder.remindersTitle"),
+		BirthdaysTitle: i18n.T(lang, "email.reminder.birthdaysTitle"),
+		ContactLabel:   i18n.T(lang, "email.reminder.contactLabel"),
+		Footer:         i18n.T(lang, "email.footer"),
+		Reminders:      reminderItems,
+		Birthdays:      birthdayItems,
+	})
+	if err != nil {
+		logger.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to render reminder email template")
+		return err
+	}
+
+	logger.Debug().Int("reminder_count", len(reminderItems)).Int("birthday_count", len(birthdayItems)).Uint("user_id", user.ID).Str("language", lang).Msg("Sending reminder email")
 
 	// Initialize Resend client
 	client := resend.NewClient(config.ResendAPIKey)

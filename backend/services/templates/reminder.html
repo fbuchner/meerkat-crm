@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body, table, td, p, a { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+    table, td { border-collapse:collapse; mso-table-lspace:0pt; mso-table-rspace:0pt; }
+    body { margin:0; padding:0; background-color:#F8FAFC; }
+    .badge-today    { background-color:#DCFCE7 !important; color:#16A34A !important; }
+    .badge-tomorrow { background-color:#FEF3C7 !important; color:#D97706 !important; }
+    .badge-future   { background-color:#DBEAFE !important; color:#2563EB !important; }
+    @media screen and (max-width:600px) {
+      .outer-pad { padding:16px 8px !important; }
+      .body-pad  { padding:20px 16px !important; }
+      .hdr-pad   { padding:20px 16px !important; }
+      .ftr-pad   { padding:12px 16px !important; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background-color:#F8FAFC;">
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F8FAFC;">
+  <tr><td class="outer-pad" style="padding:32px 16px;">
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;">
+
+      <!-- Header -->
+      <tr>
+        <td class="hdr-pad" style="background-color:#2563EB;border-radius:10px 10px 0 0;padding:24px 32px;">
+          <p style="margin:0;color:#FFFFFF;font-size:20px;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;letter-spacing:-0.3px;">
+            Meerkat CRM
+          </p>
+        </td>
+      </tr>
+
+      <!-- Body -->
+      <tr>
+        <td class="body-pad" style="background-color:#FFFFFF;padding:28px 32px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+
+            {{if .Reminders}}
+            <!-- Reminders section -->
+            <tr><td style="padding-bottom:{{if .Birthdays}}28px{{else}}0{{end}};">
+              <p style="margin:0 0 14px 0;color:#0F172A;font-size:15px;font-weight:600;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;border-bottom:2px solid #2563EB;padding-bottom:8px;">
+                {{.RemindersTitle}}
+              </p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                {{range .Reminders}}
+                <tr>
+                  <td style="padding:10px 0;border-bottom:1px solid #F1F5F9;vertical-align:top;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="width:96px;vertical-align:top;padding-top:1px;">
+                          <span style="color:#64748B;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">{{.Date}}</span>
+                        </td>
+                        <td style="vertical-align:top;">
+                          <p style="margin:0 0 3px 0;color:#0F172A;font-size:14px;font-weight:500;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">{{.Message}}</p>
+                          <p style="margin:0;color:#64748B;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">{{$.ContactLabel}}: {{.ContactName}}</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                {{end}}
+              </table>
+            </td></tr>
+            {{end}}
+
+            {{if .Birthdays}}
+            <!-- Birthdays section -->
+            <tr><td>
+              <p style="margin:0 0 14px 0;color:#0F172A;font-size:15px;font-weight:600;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;border-bottom:2px solid #14B8A6;padding-bottom:8px;">
+                {{.BirthdaysTitle}}
+              </p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                {{range .Birthdays}}
+                <tr>
+                  <td style="padding:10px 0;border-bottom:1px solid #F1F5F9;vertical-align:top;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="width:96px;vertical-align:top;padding-top:1px;">
+                          <span style="color:#64748B;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">{{.FormattedDate}}</span>
+                        </td>
+                        <td style="vertical-align:top;">
+                          <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:3px;">
+                            <tr>
+                              <td style="padding-right:8px;vertical-align:middle;">
+                                <span style="color:#0F172A;font-size:14px;font-weight:500;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">{{.Name}}</span>
+                              </td>
+                              <td style="vertical-align:middle;">
+                                <span class="badge-{{.BadgeType}}" style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;white-space:nowrap;
+                                  {{- if eq .BadgeType "today"    -}}background-color:#DCFCE7;color:#16A34A;
+                                  {{- else if eq .BadgeType "tomorrow" -}}background-color:#FEF3C7;color:#D97706;
+                                  {{- else -}}background-color:#DBEAFE;color:#2563EB;
+                                  {{- end -}}">{{.DaysText}}</span>
+                              </td>
+                            </tr>
+                          </table>
+                          {{if .IsRelationship}}
+                          <p style="margin:0;color:#64748B;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">{{.AssociatedContactName}}&#8217;s {{.RelationshipType}}</p>
+                          {{end}}
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                {{end}}
+              </table>
+            </td></tr>
+            {{end}}
+
+          </table>
+        </td>
+      </tr>
+
+      <!-- Footer -->
+      <tr>
+        <td class="ftr-pad" style="background-color:#F1F5F9;border-radius:0 0 10px 10px;padding:14px 32px;text-align:center;">
+          <p style="margin:0;color:#94A3B8;font-size:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+            {{.Footer}}
+          </p>
+        </td>
+      </tr>
+
+    </table>
+  </td></tr>
+</table>
+
+</body>
+</html>

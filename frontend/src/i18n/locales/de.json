@@ -533,6 +533,9 @@
       "warning": "Dies löscht den Benutzer und alle seine Daten dauerhaft, einschließlich Kontakte, Aktivitäten, Notizen und Erinnerungen."
     },
     "updateError": "Benutzer konnte nicht aktualisiert werden",
-    "deleteError": "Benutzer konnte nicht gelöscht werden"
+    "deleteError": "Benutzer konnte nicht gelöscht werden",
+    "triggerReminders": "Erinnerungs-E-Mails senden",
+    "triggerRemindersSuccess": "Erinnerungs-E-Mails erfolgreich gesendet",
+    "triggerRemindersError": "Fehler beim Senden der Erinnerungs-E-Mails"
   }
 }

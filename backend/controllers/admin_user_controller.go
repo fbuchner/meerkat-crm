@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	apperrors "meerkat/errors"
+	"meerkat/config"
 	"meerkat/logger"
 	"meerkat/middleware"
 	"meerkat/models"
@@ -15,6 +16,20 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
+
+// TriggerReminders manually triggers the reminder email job (admin only)
+func TriggerReminders(c *gin.Context, cfg config.Config) {
+	log := logger.FromContext(c)
+	db := c.MustGet("db").(*gorm.DB)
+
+	if err := services.SendReminders(db, cfg); err != nil {
+		log.Error().Err(err).Msg("Failed to trigger reminder emails")
+		apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to send reminder emails").WithError(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Reminder emails sent successfully"})
+}
 
 // GetCurrentUser returns the current authenticated user's information
 func GetCurrentUser(c *gin.Context) {

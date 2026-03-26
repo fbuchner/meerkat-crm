@@ -34,17 +34,20 @@ func RegisterUser(context *gin.Context) {
 		return
 	}
 
-	// Create user from validated input - IsAdmin defaults to false via GORM
-	// and cannot be set via the registration DTO (mass assignment protection)
+	db := context.MustGet("db").(*gorm.DB)
+
+	// Grant admin to the first registered user
+	var userCount int64
+	db.Model(&models.User{}).Count(&userCount)
+
 	user := models.User{
 		Username: strings.ToLower(input.Username),
 		Email:    strings.ToLower(input.Email),
 		Password: hashedPassword,
 		Language: input.Language,
-		// IsAdmin is intentionally not set here - defaults to false
+		IsAdmin:  userCount == 0,
 	}
 
-	db := context.MustGet("db").(*gorm.DB)
 	if err := db.Create(&user).Error; err != nil {
 		apperrors.AbortWithError(context, apperrors.ErrAlreadyExists("User").WithDetails("email", user.Email))
 		return

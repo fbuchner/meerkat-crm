@@ -38,7 +38,7 @@ export default function AddContactDialog({
 }: AddContactDialogProps) {
   const { t } = useTranslation();
   const { showError, showSuccess } = useSnackbar();
-  const { parseBirthdayInput, getBirthdayPlaceholder } = useDateFormat();
+  const { parseBirthdayInput, getBirthdayPlaceholder, autoFormatBirthdayInput } = useDateFormat();
   const [formData, setFormData] = useState({
     firstname: '',
     lastname: '',
@@ -61,7 +61,11 @@ export default function AddContactDialog({
   const [error, setError] = useState('');
 
   const handleChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [field]: event.target.value });
+    if (field === 'birthday') {
+      setFormData({ ...formData, birthday: autoFormatBirthdayInput(event.target.value, formData.birthday) });
+    } else {
+      setFormData({ ...formData, [field]: event.target.value });
+    }
   };
 
   const handleCustomFieldChange = (fieldName: string) => (event: React.ChangeEvent<HTMLInputElement>) => {

@@ -44,7 +44,7 @@ export default function AddRelationshipDialog({
 }: AddRelationshipDialogProps) {
   const { t } = useTranslation();
   const { showError } = useSnackbar();
-  const { parseBirthdayInput, getBirthdayPlaceholder, formatBirthdayForInput } = useDateFormat();
+  const { parseBirthdayInput, getBirthdayPlaceholder, formatBirthdayForInput, autoFormatBirthdayInput } = useDateFormat();
   const [entryMode, setEntryMode] = useState<EntryMode>('manual');
   const [name, setName] = useState('');
   const [type, setType] = useState('');
@@ -352,7 +352,7 @@ export default function AddRelationshipDialog({
             <TextField
               label={t('contacts.birthday')}
               value={birthday}
-              onChange={(e) => setBirthday(e.target.value)}
+              onChange={(e) => setBirthday(autoFormatBirthdayInput(e.target.value, birthday))}
               placeholder={getBirthdayPlaceholder()}
               fullWidth
               helperText={t('contacts.birthdayFormat')}

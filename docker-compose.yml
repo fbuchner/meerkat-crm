@@ -16,6 +16,7 @@ services:
     env_file:
       - .env.docker
     environment:
+    # Set PUID/PGID values through host env variables (.env, not .env.docker) in case required  
       - PUID=${PUID:-1001}
       - PGID=${PGID:-1001}
     volumes:

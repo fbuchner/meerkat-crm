@@ -77,7 +77,7 @@ export default function ContactDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showError } = useSnackbar();
-  const { formatBirthdayForInput, parseBirthdayInput } = useDateFormat();
+  const { formatBirthdayForInput, parseBirthdayInput, autoFormatBirthdayInput } = useDateFormat();
   const [contact, setContact] = useState<ContactWithRelations | null>(null);
   const [profilePic, setProfilePic] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -633,7 +633,7 @@ export default function ContactDetailPage() {
           onEditCancel={handleEditCancel}
           onEditSave={handleEditSave}
           onEditValueChange={(value) => {
-            setEditValue(value);
+            setEditValue(editingField === 'birthday' ? autoFormatBirthdayInput(value, editValue) : value);
             setValidationError('');
           }}
           relationships={relationships}

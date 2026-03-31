@@ -9,6 +9,7 @@ interface DateFormatContextValue {
   formatBirthday: (birthday: string, includeAge?: boolean) => string;
   formatBirthdayForInput: (birthday: string) => string;
   parseBirthdayInput: (input: string) => string | null;
+  autoFormatBirthdayInput: (newValue: string, prevValue: string) => string;
   getBirthdayPlaceholder: () => string;
   getBirthdayFormatHint: () => string;
   getDatePlaceholder: () => string;
@@ -282,6 +283,36 @@ function parseBirthdayInputWithFormat(input: string, format: DateFormat): string
   return null;
 }
 
+function autoFormatBirthdayInputWithFormat(newValue: string, prevValue: string, format: DateFormat): string {
+  const newDigits = newValue.replace(/[^0-9]/g, '');
+  const prevDigits = prevValue.replace(/[^0-9]/g, '');
+  const sep = format === 'eu' ? '.' : '/';
+
+
+  const formatDigits = (digits: string): string => {
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 4) return digits.slice(0, 2) + sep + digits.slice(2);
+    return digits.slice(0, 2) + sep + digits.slice(2, 4) + sep + digits.slice(4, 8);
+  };
+
+  if (newDigits.length < prevDigits.length) {
+    // Digit deleted, so strip leftover trailing separator
+    return newValue.replace(/[./]+$/, '');
+  }
+
+  if (newDigits.length === prevDigits.length) {
+const formatted = formatDigits(newDigits);
+    const atBoundary = newDigits.length === 2 || newDigits.length === 4;
+    const endsWithSep = /[./]$/.test(newValue);
+    if (atBoundary && newValue.length > prevValue.length && endsWithSep) {
+      return formatted + sep;
+    }
+    return formatted;
+  }
+
+  return formatDigits(newDigits);
+}
+
 export function DateFormatProvider({ children }: { children: ReactNode }) {
   const [dateFormat, setDateFormat] = useState<DateFormat>(() => getStoredFormat());
 
@@ -310,6 +341,12 @@ export function DateFormatProvider({ children }: { children: ReactNode }) {
 
   const parseBirthdayInput = useCallback(
     (input: string) => parseBirthdayInputWithFormat(input, dateFormat),
+    [dateFormat]
+  );
+
+  const autoFormatBirthdayInput = useCallback(
+    (newValue: string, prevValue: string) =>
+      autoFormatBirthdayInputWithFormat(newValue, prevValue, dateFormat),
     [dateFormat]
   );
 
@@ -343,12 +380,13 @@ export function DateFormatProvider({ children }: { children: ReactNode }) {
       formatBirthday,
       formatBirthdayForInput,
       parseBirthdayInput,
+      autoFormatBirthdayInput,
       getBirthdayPlaceholder,
       getBirthdayFormatHint,
       getDatePlaceholder,
       calculateAge,
     }),
-    [dateFormat, formatDate, formatBirthday, formatBirthdayForInput, parseBirthdayInput, getBirthdayPlaceholder, getBirthdayFormatHint, getDatePlaceholder, calculateAge]
+    [dateFormat, formatDate, formatBirthday, formatBirthdayForInput, parseBirthdayInput, autoFormatBirthdayInput, getBirthdayPlaceholder, getBirthdayFormatHint, getDatePlaceholder, calculateAge]
   );
 
   return (

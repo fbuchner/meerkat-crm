@@ -30,7 +30,11 @@ func RegisterUser(context *gin.Context) {
 
 	hashedPassword, hashErr := services.HashPassword(input.Password)
 	if hashErr != nil {
-		apperrors.AbortWithError(context, apperrors.ErrInternal("Could not hash password").WithError(hashErr))
+		if errors.Is(hashErr, services.ErrPasswordTooLong) {
+			apperrors.AbortWithError(context, apperrors.ErrValidation(hashErr.Error()))
+		} else {
+			apperrors.AbortWithError(context, apperrors.ErrInternal("Could not hash password").WithError(hashErr))
+		}
 		return
 	}
 
@@ -325,8 +329,12 @@ func ConfirmPasswordReset(context *gin.Context) {
 
 	hashedPassword, err := services.HashPassword(input.Password)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to hash password during reset")
-		apperrors.AbortWithError(context, apperrors.ErrInternal("Could not hash password").WithError(err))
+		if errors.Is(err, services.ErrPasswordTooLong) {
+			apperrors.AbortWithError(context, apperrors.ErrValidation(err.Error()))
+		} else {
+			log.Error().Err(err).Msg("Failed to hash password during reset")
+			apperrors.AbortWithError(context, apperrors.ErrInternal("Could not hash password").WithError(err))
+		}
 		return
 	}
 
@@ -586,8 +594,12 @@ func ChangePassword(context *gin.Context) {
 
 	hashedPassword, err := services.HashPassword(input.NewPassword)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to hash password during change")
-		apperrors.AbortWithError(context, apperrors.ErrInternal("Could not hash password").WithError(err))
+		if errors.Is(err, services.ErrPasswordTooLong) {
+			apperrors.AbortWithError(context, apperrors.ErrValidation(err.Error()))
+		} else {
+			log.Error().Err(err).Msg("Failed to hash password during change")
+			apperrors.AbortWithError(context, apperrors.ErrInternal("Could not hash password").WithError(err))
+		}
 		return
 	}
 

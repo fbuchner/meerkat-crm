@@ -10,9 +10,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+var ErrPasswordTooLong = errors.New("password must not exceed 72 characters")
+
 func HashPassword(password string) (string, error) {
 	if password == "" {
 		return "", errors.New("password cannot be empty")
+	}
+
+	if len([]byte(password)) > 72 {
+		return "", ErrPasswordTooLong
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)

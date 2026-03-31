@@ -209,8 +209,12 @@ func UpdateUser(c *gin.Context) {
 	if input.Password != nil {
 		hashedPassword, err := services.HashPassword(*input.Password)
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to hash password during admin update")
-			apperrors.AbortWithError(c, apperrors.ErrInternal("Could not hash password").WithError(err))
+			if errors.Is(err, services.ErrPasswordTooLong) {
+				apperrors.AbortWithError(c, apperrors.ErrValidation(err.Error()))
+			} else {
+				log.Error().Err(err).Msg("Failed to hash password during admin update")
+				apperrors.AbortWithError(c, apperrors.ErrInternal("Could not hash password").WithError(err))
+			}
 			return
 		}
 		user.Password = hashedPassword

@@ -34,11 +34,7 @@ After adjusting the environment variables as needed you can run:
 
 Other variables are found in the [sample env file](https://github.com/fbuchner/meerkat-crm/blob/main/.env.docker.example).
 
-The containers run as non-root containers. Make sure the user group 1001 has write access to the data and photo directories.
-```
-chown -R :1001 /path/to/data  /path/to/photos
-chmod -R 775 /path/to/data  /path/to/photos
-```
+The containers run as non-root containers. A startup script will execute a chown command for the UID (default 1001). Run `id` on your host to find your UID and GID and set it as host environemnt variable (e.g. in a `.env` file) if you prefer folders to be owned by your host user (optional).
 
 ## Post-Installation Setup
 

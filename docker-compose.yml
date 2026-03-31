@@ -15,6 +15,10 @@ services:
     restart: unless-stopped
     env_file:
       - .env.docker
+    environment:
+    # Set PUID/PGID values through host env variables (.env, not .env.docker) in case required  
+      - PUID=${PUID:-1001}
+      - PGID=${PGID:-1001}
     volumes:
       - ${DATA_PATH:-./data}:/app/data
       - ${PHOTOS_PATH:-./photos}:/app/static/photos

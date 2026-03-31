@@ -20,7 +20,7 @@ RUN CGO_ENABLED=1 GOOS=linux go build -ldflags '-linkmode external -extldflags "
 FROM alpine:latest
 
 # Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata sqlite
+RUN apk add --no-cache ca-certificates tzdata sqlite shadow su-exec
 
 WORKDIR /app
 
@@ -42,11 +42,13 @@ COPY --from=builder /app/meerkat .
 # Copy static assets if any
 COPY --from=builder /app/static/styles.css ./static/
 
-# Switch to non-root user
-USER appuser
+# Copy entrypoint script
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # Expose the port
 EXPOSE 8080
 
-# Run the application
+# Run as root initially; entrypoint drops to appuser after adjusting UID/GID
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["./meerkat"]

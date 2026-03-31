@@ -34,10 +34,7 @@ After adjusting the environment variables as needed you can run:
 
 Other variables are found in the [sample env file](https://github.com/fbuchner/meerkat-crm/blob/main/.env.docker.example).
 
-The containers run as non-root containers. A startup script will execute
-a chown command for the UID (default 1001). Run `id` on your host to
-find your UID and GID and set it in the `.env.docker` file if you prefer
-folders to be owned by your host user (optional).
+The containers run as non-root containers. A startup script will execute a chown command for the UID (default 1001). Run `id` on your host to find your UID and GID and set it as host environemnt variable (e.g. in a `.env` file) if you prefer folders to be owned by your host user (optional).
 
 ## Post-Installation Setup
 

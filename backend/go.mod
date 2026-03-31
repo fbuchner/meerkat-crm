@@ -4,7 +4,7 @@ go 1.25.3
 
 require (
 	github.com/gen2brain/heic v0.4.9
-	github.com/gin-contrib/cors v1.7.6
+	github.com/gin-contrib/cors v1.7.7
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-co-op/gocron v1.37.0
 	github.com/go-playground/validator/v10 v10.30.2

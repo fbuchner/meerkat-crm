@@ -7,6 +7,7 @@ import DashboardPage from './DashboardPage';
 import SettingsPage from './SettingsPage';
 import NetworkPage from './NetworkPage';
 import UsersPage from './UsersPage';
+import ApiTokensPage from './ApiTokensPage';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
 import { getToken, logoutAndRedirect, isAdmin } from './auth';
@@ -44,6 +45,7 @@ import NoteIcon from '@mui/icons-material/Note';
 import HubIcon from '@mui/icons-material/Hub';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PeopleIcon from '@mui/icons-material/People';
+import TokenIcon from '@mui/icons-material/Token';
 import LogoutIcon from '@mui/icons-material/Logout';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
@@ -131,6 +133,7 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
     ];
     if (userIsAdmin) {
       items.push({ text: t('nav.users'), icon: <PeopleIcon />, path: '/users' });
+      items.push({ text: t('nav.apiTokens'), icon: <TokenIcon />, path: '/api-tokens' });
     }
     return items;
   }, [t, userIsAdmin]);
@@ -139,7 +142,7 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
     setSettingsMenuOpen(!settingsMenuOpen);
   };
 
-  const isSettingsActive = location.pathname.startsWith('/settings') || location.pathname.startsWith('/users');
+  const isSettingsActive = location.pathname.startsWith('/settings') || location.pathname.startsWith('/users') || location.pathname.startsWith('/api-tokens');
 
   // Check if current path matches the nav item (handle exact match for "/" and prefix match for others)
   const isActiveRoute = (path: string) => {
@@ -429,6 +432,7 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
           <Route path="/settings" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><SettingsPage /></Suspense>} />
           <Route path="/network" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><NetworkPage /></Suspense>} />
           <Route path="/users" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><UsersPage /></Suspense>} />
+          <Route path="/api-tokens" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ApiTokensPage /></Suspense>} />
           <Route path="/reminders" element={<div>{t('pages.reminders')}</div>} />
           <Route path="/" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><DashboardPage /></Suspense>} />
           <Route path="/login" element={<Navigate to="/" replace />} />

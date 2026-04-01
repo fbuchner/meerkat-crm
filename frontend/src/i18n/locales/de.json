@@ -13,7 +13,8 @@
     "reminders": "Erinnerungen",
     "settings": "Einstellungen",
     "profile": "Profil",
-    "users": "Benutzer"
+    "users": "Benutzer",
+    "apiTokens": "API-Tokens"
   },
   "dashboard": {
     "welcome": "Willkommen zum Meerkat CRM Dashboard",
@@ -501,6 +502,42 @@
       "employee": "Mitarbeiter",
       "neighbor": "Nachbar",
       "other": "Andere"
+    }
+  },
+  "apiTokens": {
+    "title": "API-Tokens",
+    "createButton": "Token erstellen",
+    "neverUsed": "Nie",
+    "active": "Aktiv",
+    "revoked": "Widerrufen",
+    "noTokens": "Noch keine API-Tokens vorhanden",
+    "loadError": "API-Tokens konnten nicht geladen werden",
+    "createError": "API-Token konnte nicht erstellt werden",
+    "revokeError": "API-Token konnte nicht widerrufen werden",
+    "revokeSuccess": "Token erfolgreich widerrufen",
+    "columns": {
+      "name": "Name",
+      "created": "Erstellt",
+      "lastUsed": "Zuletzt verwendet",
+      "status": "Status",
+      "actions": "Aktionen"
+    },
+    "createDialog": {
+      "title": "API-Token erstellen",
+      "nameLabel": "Token-Name",
+      "createButton": "Erstellen"
+    },
+    "createdDialog": {
+      "title": "Token erstellt",
+      "warning": "Dieser Token wird nicht erneut angezeigt. Kopieren Sie ihn jetzt und bewahren Sie ihn sicher auf.",
+      "copy": "Kopieren",
+      "copied": "Kopiert!",
+      "done": "Fertig, ich habe ihn gespeichert"
+    },
+    "revokeDialog": {
+      "title": "Token widerrufen",
+      "message": "Möchten Sie \"{{name}}\" wirklich widerrufen? Dies kann nicht rückgängig gemacht werden.",
+      "confirm": "Widerrufen"
     }
   },
   "users": {

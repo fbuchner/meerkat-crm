@@ -1,14 +1,18 @@
 package middleware
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"meerkat/config"
+	"meerkat/models"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
+	"gorm.io/gorm"
 )
 
 func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
@@ -35,6 +39,24 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			}
 
 			tokenString = strings.TrimPrefix(authHeader, "Bearer ")
+		}
+
+		// Handle API tokens (meerkat_ prefix)
+		if strings.HasPrefix(tokenString, "meerkat_") {
+			db := c.MustGet("db").(*gorm.DB)
+			hash := fmt.Sprintf("%x", sha256.Sum256([]byte(tokenString)))
+			var apiToken models.ApiToken
+			if err := db.Where("token_hash = ? AND revoked_at IS NULL AND deleted_at IS NULL", hash).First(&apiToken).Error; err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+				c.Abort()
+				return
+			}
+			c.Set("userID", apiToken.UserID)
+			c.Set("username", "")
+			c.Set("isAPIToken", true)
+			go db.Model(&models.ApiToken{}).Where("id = ?", apiToken.ID).Update("last_used_at", time.Now())
+			c.Next()
+			return
 		}
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {

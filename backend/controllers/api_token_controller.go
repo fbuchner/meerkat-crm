@@ -25,7 +25,7 @@ func ListApiTokens(c *gin.Context) {
 	}
 
 	var tokens []models.ApiToken
-	if err := db.Where("user_id = ? AND deleted_at IS NULL", userID).
+	if err := db.Where("user_id = ?", userID).
 		Order("created_at DESC").
 		Find(&tokens).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("query"))
@@ -106,13 +106,8 @@ func RevokeApiToken(c *gin.Context) {
 	}
 
 	var token models.ApiToken
-	if err := db.Where("id = ? AND deleted_at IS NULL", id).First(&token).Error; err != nil {
+	if err := db.Where("id = ? AND user_id = ?", id, userID).First(&token).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrNotFound("API token"))
-		return
-	}
-
-	if token.UserID != userID {
-		apperrors.AbortWithError(c, apperrors.ErrForbidden(""))
 		return
 	}
 

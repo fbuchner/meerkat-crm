@@ -14,7 +14,3 @@ type ApiToken struct {
 	LastUsedAt *time.Time
 	RevokedAt  *time.Time
 }
-
-func (t *ApiToken) IsRevoked() bool {
-	return t.RevokedAt != nil
-}

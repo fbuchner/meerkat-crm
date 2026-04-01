@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"meerkat/config"
+	"meerkat/logger"
 	"meerkat/models"
 	"net/http"
 	"strings"
@@ -46,15 +47,18 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			db := c.MustGet("db").(*gorm.DB)
 			hash := fmt.Sprintf("%x", sha256.Sum256([]byte(tokenString)))
 			var apiToken models.ApiToken
-			if err := db.Where("token_hash = ? AND revoked_at IS NULL AND deleted_at IS NULL", hash).First(&apiToken).Error; err != nil {
+			if err := db.Where("token_hash = ? AND revoked_at IS NULL", hash).First(&apiToken).Error; err != nil {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 				c.Abort()
 				return
 			}
 			c.Set("userID", apiToken.UserID)
-			c.Set("username", "")
 			c.Set("isAPIToken", true)
-			go db.Model(&models.ApiToken{}).Where("id = ?", apiToken.ID).Update("last_used_at", time.Now())
+			go func(id uint) {
+				if err := db.Model(&models.ApiToken{}).Where("id = ?", id).Update("last_used_at", time.Now()).Error; err != nil {
+					logger.Logger.Warn().Err(err).Uint("api_token_id", id).Msg("Failed to update api token last_used_at")
+				}
+			}(apiToken.ID)
 			c.Next()
 			return
 		}

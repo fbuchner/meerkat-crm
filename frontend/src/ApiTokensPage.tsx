@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -62,7 +62,7 @@ export default function ApiTokensPage() {
     }
   }, [admin, navigate]);
 
-  const fetchTokens = async () => {
+  const fetchTokens = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -73,12 +73,12 @@ export default function ApiTokensPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     if (!admin) return;
     fetchTokens();
-  }, [admin]);
+  }, [admin, fetchTokens]);
 
   const handleCreate = async () => {
     if (!newTokenName.trim()) return;

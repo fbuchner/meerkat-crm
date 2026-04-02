@@ -25,7 +25,7 @@ func TestValidationWithErrorSystem(t *testing.T) {
 
 	type TestStruct struct {
 		Email    string `json:"email" validate:"required,email"`
-		Username string `json:"username" validate:"required,min=3,max=20"`
+		Username string `json:"username" validate:"required,min=1,max=20"`
 		Phone    string `json:"phone" validate:"required,phone"`
 	}
 

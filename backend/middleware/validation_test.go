@@ -237,6 +237,16 @@ func TestValidateStruct_NoAtSign(t *testing.T) {
 			isValid: true,
 		},
 		{
+			name:    "valid username with 1 character",
+			input:   "j",
+			isValid: true,
+		},
+		{
+			name:    "valid username with 2 characters (non-latin)",
+			input:   "象形",
+			isValid: true,
+		},
+		{
 			name:    "invalid - contains @",
 			input:   "john@doe",
 			isValid: false,

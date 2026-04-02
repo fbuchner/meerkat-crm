@@ -44,7 +44,7 @@ type CustomFieldNamesInput struct {
 // UserRegistrationInput represents the DTO for user registration
 // This DTO intentionally excludes IsAdmin to prevent mass assignment attacks
 type UserRegistrationInput struct {
-	Username string `json:"username" validate:"required,min=3,max=50,no_at_sign"`
+	Username string `json:"username" validate:"required,min=1,max=50,no_at_sign"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8,strong_password"`
 	Language string `json:"language" validate:"omitempty,oneof=en de"`
@@ -132,7 +132,7 @@ type AdminUserResponse struct {
 
 // AdminUserUpdateInput - DTO for admin updating a user
 type AdminUserUpdateInput struct {
-	Username *string `json:"username" validate:"omitempty,min=3,max=50,no_at_sign"`
+	Username *string `json:"username" validate:"omitempty,min=1,max=50,no_at_sign"`
 	Email    *string `json:"email" validate:"omitempty,email"`
 	Password *string `json:"password" validate:"omitempty,min=8,strong_password"`
 	IsAdmin  *bool   `json:"is_admin"`

@@ -13,7 +13,8 @@
     "reminders": "Reminders",
     "settings": "Settings",
     "profile": "Profile",
-    "users": "Users"
+    "users": "Users",
+    "apiTokens": "API Tokens"
   },
   "dashboard": {
     "welcome": "Welcome to Meerkat CRM Dashboard",
@@ -501,6 +502,42 @@
       "employee": "Employee",
       "neighbor": "Neighbor",
       "other": "Other"
+    }
+  },
+  "apiTokens": {
+    "title": "API Tokens",
+    "createButton": "Create Token",
+    "neverUsed": "Never",
+    "active": "Active",
+    "revoked": "Revoked",
+    "noTokens": "No API tokens yet",
+    "loadError": "Failed to load API tokens",
+    "createError": "Failed to create API token",
+    "revokeError": "Failed to revoke API token",
+    "revokeSuccess": "Token revoked successfully",
+    "columns": {
+      "name": "Name",
+      "created": "Created",
+      "lastUsed": "Last Used",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "createDialog": {
+      "title": "Create API Token",
+      "nameLabel": "Token Name",
+      "createButton": "Create"
+    },
+    "createdDialog": {
+      "title": "Token Created",
+      "warning": "This token will not be shown again. Copy it now and store it securely.",
+      "copy": "Copy",
+      "copied": "Copied!",
+      "done": "Done, I saved it"
+    },
+    "revokeDialog": {
+      "title": "Revoke Token",
+      "message": "Are you sure you want to revoke \"{{name}}\"? This cannot be undone.",
+      "confirm": "Revoke"
     }
   },
   "users": {

@@ -27,6 +27,12 @@ func AdminMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		if isAPIToken, _ := c.Get("isAPIToken"); isAPIToken == true {
+			c.JSON(http.StatusForbidden, gin.H{"error": "API tokens cannot access admin endpoints"})
+			c.Abort()
+			return
+		}
+
 		db := c.MustGet("db").(*gorm.DB)
 
 		var user models.User

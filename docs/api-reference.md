@@ -16,9 +16,17 @@ has_children: false
 
 Auth endpoints (`/login`, `/register`, `/logout`, `/password-reset/*`) are public. All other endpoints require authentication.
 
+Admin endpoints (`/admin/*`) additionally require the user to have the admin flag set.
+
 Login sets an httpOnly JWT cookie. Subsequent requests must include it (i.e. send with `credentials: 'include'`). The cookie name and domain are configured via `COOKIE_DOMAIN` and `COOKIE_SECURE`.
 
-Admin endpoints (`/admin/*`) additionally require the user to have the admin flag set.
+Alternatively, API tokens can be used in the `Authorization` header:
+
+```
+Authorization: Bearer meerkat_<token>
+```
+
+API tokens are created and managed via the admin endpoints, the tokens always have normal user rights. The plaintext token is only returned once at creation time.
 
 ## Error Responses
 
@@ -166,6 +174,22 @@ Every request and response carries an `X-Request-ID` header created by the middl
 |---|---|---|
 | `GET` | `/graph` | Get contact network graph data |
 
+### API Tokens
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/admin/api-tokens` | List all API tokens for the current user |
+| `POST` | `/admin/api-tokens` | Create an API token — returns the plaintext token once |
+| `DELETE` | `/admin/api-tokens/:id` | Revoke an API token |
+
+`POST /admin/api-tokens` body:
+
+```json
+{ "name": "my token" }
+```
+
+Response includes `token` (the `meerkat_…` plaintext value) only on creation. Subsequent list responses omit it.
+
 ### Admin
 
 | Method | Path | Description |
@@ -179,4 +203,4 @@ Every request and response carries an `X-Request-ID` header created by the middl
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/health` | Health check (no auth, no versioning) |
+| `GET` | `/health` | Health check (no auth, no versioning). Accessible directly (without prepending base URL). |

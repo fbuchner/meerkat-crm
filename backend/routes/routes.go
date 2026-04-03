@@ -40,7 +40,7 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB) {
 		{
 			protected.POST("/users/change-password", middleware.ValidateJSONMiddleware(&models.ChangePasswordInput{}), controllers.ChangePassword)
 			protected.PATCH("/users/language", controllers.UpdateLanguage)
-		protected.PATCH("/users/date-format", controllers.UpdateDateFormat)
+			protected.PATCH("/users/date-format", controllers.UpdateDateFormat)
 			protected.GET("/users/custom-fields", controllers.GetCustomFieldNames)
 			protected.PATCH("/users/custom-fields", middleware.ValidateJSONMiddleware(&models.CustomFieldNamesInput{}), controllers.UpdateCustomFieldNames)
 			protected.GET("/users/me", controllers.GetCurrentUser)
@@ -142,6 +142,9 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB) {
 			admin.POST("/trigger-reminders", func(c *gin.Context) {
 				controllers.TriggerReminders(c, *cfg)
 			})
+			admin.GET("/api-tokens", controllers.ListApiTokens)
+			admin.POST("/api-tokens", middleware.ValidateJSONMiddleware(&models.ApiTokenInput{}), controllers.CreateApiToken)
+			admin.DELETE("/api-tokens/:id", controllers.RevokeApiToken)
 		}
 	}
 
@@ -156,21 +159,16 @@ func registerCardDAVRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB) 
 	// Well-known discovery endpoint (no auth required for discovery)
 	router.GET("/.well-known/carddav", carddav.WellKnownRedirect)
 
-	// Create CardDAV handler
 	handler := carddav.NewHandler(db, cfg.ProfilePhotoDir)
 
-	// CardDAV routes with Basic Auth and rate limiting
 	cardDAVGroup := router.Group("/carddav")
 	cardDAVGroup.Use(func(c *gin.Context) {
-		// Inject db into context for BasicAuthMiddleware
 		c.Set("db", db)
 		c.Next()
 	})
 	cardDAVGroup.Use(middleware.AuthRateLimitMiddleware())
 	cardDAVGroup.Use(carddav.BasicAuthMiddleware())
 	{
-		// Handle all CardDAV methods on all paths
-		// Note: Gin's Any() doesn't include WebDAV methods, so we add them explicitly
 		ginHandler := handler.GinHandler()
 		cardDAVGroup.Any("/*path", ginHandler)
 		// WebDAV methods required for CardDAV

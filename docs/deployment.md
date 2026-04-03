@@ -38,14 +38,6 @@ Set these variables in `.env.docker` when running over HTTPS:
 | `COOKIE_DOMAIN` | Your domain |
 | `JWT_SECRET_KEY` | Generate with `openssl rand -base64 32` |
 
-## File Permissions
-
-The backend container runs as group `1001`. Host directories for data and photos must be writable:
-
-```sh
-chown -R :1001 /path/to/data /path/to/photos
-chmod -R 775 /path/to/data /path/to/photos
-```
 
 ## Upgrades
 
@@ -66,7 +58,3 @@ rsync -a /path/to/photos/ /backups/photos/
 ```
 
 The database can be copied while the app is running (SQLite WAL mode).
-
-# FAQ
-1. The backend seems to start correctly but then nothing works
-Have a look at the docker logs, a likely issue could be that the database and photo folders are readonly for the docker user. Use `chown -R 1001:1001 ./data ./photos` to fix this (change the relative paths to the paths on your filesystem).

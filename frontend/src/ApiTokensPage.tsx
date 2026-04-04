@@ -24,6 +24,7 @@ import {
   Stack,
   Tooltip,
 } from '@mui/material';
+import AppDialog from './components/AppDialog';
 import AddIcon from '@mui/icons-material/Add';
 import BlockIcon from '@mui/icons-material/Block';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -192,7 +193,7 @@ export default function ApiTokensPage() {
       )}
 
       {/* Create dialog */}
-      <Dialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} maxWidth="sm" fullWidth>
+      <AppDialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{t('apiTokens.createDialog.title')}</DialogTitle>
         <DialogContent>
           <TextField
@@ -214,7 +215,7 @@ export default function ApiTokensPage() {
             {t('apiTokens.createDialog.createButton')}
           </Button>
         </DialogActions>
-      </Dialog>
+      </AppDialog>
 
       {/* Token created dialog */}
       <Dialog open={!!createdToken} onClose={() => setCreatedToken(null)} maxWidth="sm" fullWidth>

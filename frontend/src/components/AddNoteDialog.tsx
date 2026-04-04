@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -8,6 +7,7 @@ import {
   Button,
   Box,
 } from '@mui/material';
+import AppDialog from './AppDialog';
 import { useTranslation } from 'react-i18next';
 
 interface AddNoteDialogProps {
@@ -48,7 +48,7 @@ export default function AddNoteDialog({ open, onClose, onSave }: AddNoteDialogPr
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <AppDialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>{t('noteDialog.title')}</DialogTitle>
       <DialogContent>
         <Box sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -88,6 +88,6 @@ export default function AddNoteDialog({ open, onClose, onSave }: AddNoteDialogPr
           {t('noteDialog.save')}
         </Button>
       </DialogActions>
-    </Dialog>
+    </AppDialog>
   );
 }

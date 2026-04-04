@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -11,6 +10,7 @@ import {
   Chip,
   CircularProgress,
 } from '@mui/material';
+import AppDialog from './AppDialog';
 import { useTranslation } from 'react-i18next';
 import { Contact, getContacts } from '../api/contacts';
 
@@ -129,7 +129,7 @@ export default function AddActivityDialog({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <AppDialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>{t('activityDialog.title')}</DialogTitle>
       <DialogContent>
         <Box sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -225,6 +225,6 @@ export default function AddActivityDialog({
           {t('activityDialog.save')}
         </Button>
       </DialogActions>
-    </Dialog>
+    </AppDialog>
   );
 }

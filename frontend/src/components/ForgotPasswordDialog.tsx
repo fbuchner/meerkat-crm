@@ -1,7 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -11,6 +10,7 @@ import {
   Alert,
   Typography
 } from '@mui/material';
+import AppDialog from './AppDialog';
 import { requestPasswordReset, confirmPasswordReset } from '../api/auth';
 
 type ForgotPasswordDialogProps = {
@@ -216,10 +216,10 @@ export default function ForgotPasswordDialog({ open, onClose }: ForgotPasswordDi
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <AppDialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>{t('passwordReset.title')}</DialogTitle>
       <DialogContent>{renderContent()}</DialogContent>
       {renderActions()}
-    </Dialog>
+    </AppDialog>
   );
 }

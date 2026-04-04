@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import Cropper, { Area } from 'react-easy-crop';
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -15,6 +14,7 @@ import {
   TextField,
   Divider
 } from '@mui/material';
+import AppDialog from './AppDialog';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import LinkIcon from '@mui/icons-material/Link';
@@ -205,7 +205,7 @@ export default function ProfilePictureUploadDialog({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <AppDialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>{t('profilePicture.title')}</DialogTitle>
       <DialogContent>
         {error && (
@@ -356,6 +356,6 @@ export default function ProfilePictureUploadDialog({
           {uploading ? t('profilePicture.uploading') : t('common.save')}
         </Button>
       </DialogActions>
-    </Dialog>
+    </AppDialog>
   );
 }

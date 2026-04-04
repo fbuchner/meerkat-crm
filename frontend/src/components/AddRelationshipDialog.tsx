@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -18,6 +17,7 @@ import {
   FormLabel,
   CircularProgress,
 } from '@mui/material';
+import AppDialog from './AppDialog';
 import { useTranslation } from 'react-i18next';
 import { Relationship, RelationshipFormData, RELATIONSHIP_TYPES } from '../api/relationships';
 import { Contact, getContacts } from '../api/contacts';
@@ -217,7 +217,7 @@ export default function AddRelationshipDialog({
   const isEditing = !!relationship;
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <AppDialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>
         {isEditing ? t('relationships.editRelationship') : t('relationships.addRelationship')}
       </DialogTitle>
@@ -374,6 +374,6 @@ export default function AddRelationshipDialog({
           {saving ? t('common.saving') : t('common.save')}
         </Button>
       </DialogActions>
-    </Dialog>
+    </AppDialog>
   );
 }

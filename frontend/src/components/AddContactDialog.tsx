@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -15,6 +14,7 @@ import {
   FormControlLabel,
   Switch
 } from '@mui/material';
+import AppDialog from './AppDialog';
 import { createContact } from '../api/contacts';
 import { createReminder } from '../api/reminders';
 import { useSnackbar } from '../context/SnackbarContext';
@@ -199,7 +199,7 @@ export default function AddContactDialog({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+    <AppDialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <DialogTitle>{t('contacts.add.title')}</DialogTitle>
       <DialogContent>
         {error && (
@@ -391,6 +391,6 @@ export default function AddContactDialog({
           {loading ? t('common.saving') : t('contacts.add.create')}
         </Button>
       </DialogActions>
-    </Dialog>
+    </AppDialog>
   );
 }

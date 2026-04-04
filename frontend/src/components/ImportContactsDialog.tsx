@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -27,6 +26,7 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material';
+import AppDialog from './AppDialog';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
@@ -617,7 +617,7 @@ export default function ImportContactsDialog({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+    <AppDialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           {t('contacts.import.title', 'Import Contacts')}
@@ -652,6 +652,6 @@ export default function ImportContactsDialog({
       </DialogContent>
 
       <DialogActions>{renderActions()}</DialogActions>
-    </Dialog>
+    </AppDialog>
   );
 }

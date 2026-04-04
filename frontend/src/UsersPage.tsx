@@ -26,6 +26,7 @@ import {
   Switch,
   Stack,
 } from '@mui/material';
+import AppDialog from './components/AppDialog';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SendIcon from '@mui/icons-material/Send';
@@ -294,7 +295,7 @@ export default function UsersPage() {
       </TableContainer>
 
       {/* Edit User Dialog */}
-      <Dialog open={editDialogOpen} onClose={handleEditClose} maxWidth="sm" fullWidth>
+      <AppDialog open={editDialogOpen} onClose={handleEditClose} maxWidth="sm" fullWidth>
         <form onSubmit={handleEditSubmit}>
           <DialogTitle>{t('users.editDialog.title')}</DialogTitle>
           <DialogContent>
@@ -344,7 +345,7 @@ export default function UsersPage() {
             </Button>
           </DialogActions>
         </form>
-      </Dialog>
+      </AppDialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onClose={handleDeleteClose}>

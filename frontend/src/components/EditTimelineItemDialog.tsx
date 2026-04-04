@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -11,6 +10,7 @@ import {
   Chip,
   IconButton
 } from '@mui/material';
+import AppDialog from './AppDialog';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 interface EditTimelineItemDialogProps {
@@ -55,7 +55,7 @@ export default function EditTimelineItemDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <AppDialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
         {type === 'note' ? t('contactDetail.editNote') : t('contactDetail.editActivity')}
       </DialogTitle>
@@ -158,6 +158,6 @@ export default function EditTimelineItemDialog({
           </Button>
         </Box>
       </DialogActions>
-    </Dialog>
+    </AppDialog>
   );
 }

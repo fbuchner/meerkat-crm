@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -13,6 +12,7 @@ import {
   Box,
   Alert
 } from '@mui/material';
+import AppDialog from './AppDialog';
 import { Reminder, ReminderFormData } from '../api/reminders';
 import { getErrorMessage } from '../utils/errorHandler';
 
@@ -128,7 +128,7 @@ export default function ReminderDialog({
   ];
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <AppDialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
         {reminder ? t('reminders.editReminder') : t('reminders.addReminder')}
       </DialogTitle>
@@ -205,6 +205,6 @@ export default function ReminderDialog({
           {loading ? t('common.saving') : t('common.save')}
         </Button>
       </DialogActions>
-    </Dialog>
+    </AppDialog>
   );
 }

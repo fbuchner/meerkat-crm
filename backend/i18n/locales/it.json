@@ -1,0 +1,21 @@
+{
+  "email": {
+    "footer": "Meerkat CRM - Gestione Contatti Personali",
+    "reminder": {
+      "subject": "I Tuoi Promemoria Quotidiani",
+      "remindersTitle": "I Tuoi Promemoria per Oggi",
+      "birthdaysTitle": "Compleanni in Arrivo",
+      "today": "Oggi!",
+      "tomorrow": "Domani",
+      "inDays": "Tra {{days}} giorni",
+      "unknownContact": "Sconosciuto",
+      "contactLabel": "Contatto"
+    },
+    "passwordReset": {
+      "subject": "Reimposta la tua password di Meerkat CRM",
+      "intro": "Abbiamo ricevuto una richiesta di reimpostazione della tua password di Meerkat CRM.",
+      "instruction": "Usa questo token per completare il ripristino entro 60 minuti:",
+      "ignore": "Se non hai richiesto questo ripristino, puoi ignorare questa email."
+    }
+  }
+}

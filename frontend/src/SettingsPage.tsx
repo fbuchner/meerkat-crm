@@ -208,7 +208,7 @@ export default function SettingsPage() {
             >
               <MenuItem value="en">English</MenuItem>
               <MenuItem value="de">Deutsch</MenuItem>
-              <MenuItem value="it">Italian</MenuItem>
+              <MenuItem value="it">Italiano</MenuItem>
             </Select>
           </FormControl>
           

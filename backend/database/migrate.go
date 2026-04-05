@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"meerkat/logger"
 
+	"github.com/glebarez/sqlite"
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/sqlite3"
+	migrateSQLite "github.com/golang-migrate/migrate/v4/database/sqlite"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
-	_ "github.com/mattn/go-sqlite3"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -20,7 +19,7 @@ var migrationsFS embed.FS
 // InitDB initializes the database connection and runs migrations
 func InitDB(dbPath string) (*gorm.DB, error) {
 	// Open database connection for migrations
-	sqlDB, err := sql.Open("sqlite3", dbPath)
+	sqlDB, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -41,7 +40,7 @@ func InitDB(dbPath string) (*gorm.DB, error) {
 
 // RunMigrations runs all pending database migrations
 func RunMigrations(db *sql.DB) error {
-	driver, err := sqlite3.WithInstance(db, &sqlite3.Config{})
+	driver, err := migrateSQLite.WithInstance(db, &migrateSQLite.Config{})
 	if err != nil {
 		return fmt.Errorf("failed to create migration driver: %w", err)
 	}
@@ -51,7 +50,7 @@ func RunMigrations(db *sql.DB) error {
 		return fmt.Errorf("failed to create migration source: %w", err)
 	}
 
-	m, err := migrate.NewWithInstance("iofs", sourceDriver, "sqlite3", driver)
+	m, err := migrate.NewWithInstance("iofs", sourceDriver, "sqlite", driver)
 	if err != nil {
 		return fmt.Errorf("failed to create migration instance: %w", err)
 	}
@@ -91,13 +90,13 @@ func RunMigrations(db *sql.DB) error {
 
 // MigrateDown rolls back the last migration (use with caution)
 func MigrateDown(dbPath string) error {
-	sqlDB, err := sql.Open("sqlite3", dbPath)
+	sqlDB, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
 	defer sqlDB.Close()
 
-	driver, err := sqlite3.WithInstance(sqlDB, &sqlite3.Config{})
+	driver, err := migrateSQLite.WithInstance(sqlDB, &migrateSQLite.Config{})
 	if err != nil {
 		return fmt.Errorf("failed to create migration driver: %w", err)
 	}
@@ -107,7 +106,7 @@ func MigrateDown(dbPath string) error {
 		return fmt.Errorf("failed to create migration source: %w", err)
 	}
 
-	m, err := migrate.NewWithInstance("iofs", sourceDriver, "sqlite3", driver)
+	m, err := migrate.NewWithInstance("iofs", sourceDriver, "sqlite", driver)
 	if err != nil {
 		return fmt.Errorf("failed to create migration instance: %w", err)
 	}

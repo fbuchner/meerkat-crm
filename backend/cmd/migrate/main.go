@@ -7,9 +7,9 @@ import (
 	"os"
 
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/sqlite3"
+	migrateSQLite "github.com/golang-migrate/migrate/v4/database/sqlite"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 func main() {
@@ -22,14 +22,14 @@ func main() {
 	migrationsPath := "file://database/migrations"
 
 	// Open database connection
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
 	defer db.Close()
 
 	// Create migration driver
-	driver, err := sqlite3.WithInstance(db, &sqlite3.Config{})
+	driver, err := migrateSQLite.WithInstance(db, &migrateSQLite.Config{})
 	if err != nil {
 		log.Fatalf("Failed to create migration driver: %v", err)
 	}
@@ -37,7 +37,7 @@ func main() {
 	// Create migration instance
 	m, err := migrate.NewWithDatabaseInstance(
 		migrationsPath,
-		"sqlite3",
+		"sqlite",
 		driver,
 	)
 	if err != nil {

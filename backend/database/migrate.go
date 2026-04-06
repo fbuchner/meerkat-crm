@@ -8,7 +8,6 @@ import (
 
 	"github.com/glebarez/sqlite"
 	"github.com/golang-migrate/migrate/v4"
-	migrateSQLite "github.com/golang-migrate/migrate/v4/database/sqlite"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"gorm.io/gorm"
 )
@@ -40,7 +39,7 @@ func InitDB(dbPath string) (*gorm.DB, error) {
 
 // RunMigrations runs all pending database migrations
 func RunMigrations(db *sql.DB) error {
-	driver, err := migrateSQLite.WithInstance(db, &migrateSQLite.Config{})
+	driver, err := withInstance(db, &sqliteConfig{})
 	if err != nil {
 		return fmt.Errorf("failed to create migration driver: %w", err)
 	}
@@ -96,7 +95,7 @@ func MigrateDown(dbPath string) error {
 	}
 	defer sqlDB.Close()
 
-	driver, err := migrateSQLite.WithInstance(sqlDB, &migrateSQLite.Config{})
+	driver, err := withInstance(sqlDB, &sqliteConfig{})
 	if err != nil {
 		return fmt.Errorf("failed to create migration driver: %w", err)
 	}

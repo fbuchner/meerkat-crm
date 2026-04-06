@@ -19,7 +19,6 @@ require (
 	golang.org/x/crypto v0.49.0
 	golang.org/x/time v0.15.0
 	gorm.io/gorm v1.31.1
-	modernc.org/sqlite v1.23.1
 )
 
 require (
@@ -41,6 +40,7 @@ require (
 	modernc.org/mathutil v1.5.0 // indirect
 	modernc.org/memory v1.5.0 // indirect
 	modernc.org/opt v0.1.3 // indirect
+	modernc.org/sqlite v1.23.1 // indirect
 	modernc.org/strutil v1.1.3 // indirect
 	modernc.org/token v1.0.1 // indirect
 )

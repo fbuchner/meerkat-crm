@@ -9,7 +9,6 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	migrateSQLite "github.com/golang-migrate/migrate/v4/database/sqlite"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	_ "modernc.org/sqlite"
 )
 
 func main() {

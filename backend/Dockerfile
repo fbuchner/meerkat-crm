@@ -20,7 +20,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o meerkat .
 FROM alpine:latest
 
 # Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata shadow su-exec
+RUN apk add --no-cache ca-certificates tzdata shadow su-exec libc6-compat
 
 WORKDIR /app
 

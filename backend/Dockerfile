@@ -14,13 +14,13 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-linkmode=internal" -o meerkat .
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o meerkat .
 
 # Runtime stage
 FROM alpine:latest
 
 # Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata shadow su-exec
+RUN apk add --no-cache ca-certificates tzdata shadow su-exec libc6-compat
 
 WORKDIR /app
 

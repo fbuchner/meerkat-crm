@@ -1,8 +1,8 @@
 # Build stage
-FROM golang:alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:alpine AS builder
 
-# Install build dependencies for SQLite
-RUN apk add --no-cache gcc musl-dev sqlite-dev
+ARG TARGETOS
+ARG TARGETARCH
 
 WORKDIR /app
 
@@ -13,14 +13,14 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the application with CGO enabled for SQLite
-RUN CGO_ENABLED=1 GOOS=linux go build -ldflags '-linkmode external -extldflags "-static"' -o meerkat .
+# Build the application
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o meerkat .
 
 # Runtime stage
 FROM alpine:latest
 
 # Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata sqlite shadow su-exec
+RUN apk add --no-cache ca-certificates tzdata shadow su-exec
 
 WORKDIR /app
 

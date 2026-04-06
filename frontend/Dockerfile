@@ -1,5 +1,5 @@
 # Build stage
-FROM node:lts-alpine AS builder
+FROM --platform=$BUILDPLATFORM node:lts-alpine AS builder
 
 WORKDIR /app
 

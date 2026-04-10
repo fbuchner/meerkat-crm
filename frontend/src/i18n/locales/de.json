@@ -501,11 +501,13 @@
       "brother": "Bruder",
       "sister": "Schwester",
       "friend": "Freund",
-      "best_friend": "Bester Freund",
       "colleague": "Kollege",
       "manager": "Vorgesetzter",
       "employee": "Mitarbeiter",
       "neighbor": "Nachbar",
+      "dog": "Hund",
+      "cat": "Katze",
+      "pet": "Haustier",
       "other": "Andere"
     }
   },

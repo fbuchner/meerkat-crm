@@ -19,6 +19,7 @@ type OIDCConfig struct {
 	ClientSecret       string
 	RedirectURL        string // derived from FrontendURL, not configurable
 	AllowAutoProvision bool
+	TrustEmail         bool // skip email_verified requirement when linking accounts (for trusted self-hosted providers)
 }
 
 type Config struct {
@@ -91,6 +92,7 @@ func LoadConfig() *Config {
 		ClientSecret:       oidcClientSecret,
 		RedirectURL:        cfg.FrontendURL + "/api/v1/auth/oidc/callback",
 		AllowAutoProvision: getBoolEnv("OIDC_AUTO_PROVISION", false),
+		TrustEmail:         getBoolEnv("OIDC_TRUST_EMAIL", false),
 	}
 
 	return cfg

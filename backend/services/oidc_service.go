@@ -129,8 +129,9 @@ func FindOrProvisionUser(db *gorm.DB, claims *OIDCClaims, cfg *config.Config) (*
 	}
 
 	// 2. Match by email and link the OIDC identity to the existing account.
-	// Require email_verified to prevent account takeover via unverified email claims.
-	if claims.Email != "" && claims.EmailVerified {
+	// Require email_verified to prevent account takeover via unverified email claims,
+	// unless OIDC_TRUST_EMAIL is set (safe for self-hosted trusted providers).
+	if claims.Email != "" && (claims.EmailVerified || cfg.OIDC.TrustEmail) {
 		err = db.Where("email = ?", strings.ToLower(claims.Email)).First(&user).Error
 		if err == nil {
 			user.OIDCSubject = &claims.Subject

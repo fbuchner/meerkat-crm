@@ -40,7 +40,12 @@
     "loggingIn": "Accesso in corso...",
     "loginFailed": "Accesso fallito",
     "noAccount": "Non hai un account? Registrati",
-    "forgotPassword": "Hai dimenticato la password?"
+    "forgotPassword": "Hai dimenticato la password?",
+    "ssoButton": "Accedi con {{provider}}",
+    "orSeparator": "oppure",
+    "oidcDenied": "Il login SSO è stato annullato o negato.",
+    "oidcNoAccount": "Nessun account trovato per la tua identità SSO. Contatta il tuo amministratore.",
+    "oidcError": "Si è verificato un errore durante il login SSO. Riprova."
   },
   "passwordReset": {
     "title": "Reimposta Password",

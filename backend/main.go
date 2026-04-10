@@ -126,13 +126,24 @@ func main() {
 		c.Next()
 	})
 
+	// Initialize OIDC provider if configured
+	var oidcProvider *services.OIDCProvider
+	if cfg.OIDC.Enabled {
+		logger.Info().Str("provider", cfg.OIDC.ProviderURL).Msg("Initializing OIDC provider...")
+		oidcCtx, oidcCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		var oidcErr error
+		oidcProvider, oidcErr = services.InitOIDCProvider(oidcCtx, cfg)
+		oidcCancel()
+		if oidcErr != nil {
+			logger.Fatal().Err(oidcErr).Msg("Failed to initialize OIDC provider")
+		}
+		logger.Info().Msg("OIDC provider initialized successfully")
+	}
+
 	// Register all routes from routes.go
-	routes.RegisterRoutes(r, cfg, db)
+	routes.RegisterRoutes(r, cfg, db, oidcProvider)
 
 	// Create HTTP server with timeout configuration
-	// ReadTimeout: Maximum duration for reading the entire request (including body)
-	// WriteTimeout: Maximum duration before timing out writes of the response
-	// IdleTimeout: Maximum time to wait for the next request when keep-alives are enabled
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%s", cfg.Port),
 		Handler:      r,

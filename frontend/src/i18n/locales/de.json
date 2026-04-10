@@ -40,7 +40,12 @@
     "loggingIn": "Anmeldung läuft...",
     "loginFailed": "Anmeldung fehlgeschlagen",
     "noAccount": "Noch kein Konto? Registrieren",
-    "forgotPassword": "Passwort vergessen?"
+    "forgotPassword": "Passwort vergessen?",
+    "ssoButton": "Anmelden mit {{provider}}",
+    "orSeparator": "oder",
+    "oidcDenied": "Die SSO-Anmeldung wurde abgebrochen oder abgelehnt.",
+    "oidcNoAccount": "Kein Konto für Ihre SSO-Identität gefunden. Kontaktieren Sie Ihren Administrator.",
+    "oidcError": "Bei der SSO-Anmeldung ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut."
   },
   "passwordReset": {
     "title": "Passwort zurücksetzen",

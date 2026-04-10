@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { loginUser, isAuthenticated } from './auth';
+import { loginUser, isAuthenticated, API_BASE_URL } from './auth';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import i18n from './i18n/config';
@@ -11,12 +11,20 @@ import {
   Typography,
   Alert,
   Paper,
-  Stack
+  Stack,
+  Divider
 } from '@mui/material';
 import ForgotPasswordDialog from './components/ForgotPasswordDialog';
+import { useOIDCConfig } from './hooks/useOIDCConfig';
 
 type LoginPageProps = {
   setToken?: (token: string | null) => void;
+};
+
+const OIDC_ERROR_MAP: Record<string, string> = {
+  oidc_denied: 'login.oidcDenied',
+  oidc_no_account: 'login.oidcNoAccount',
+  oidc_error: 'login.oidcError',
 };
 
 export default function LoginPage({ setToken }: LoginPageProps) {
@@ -24,10 +32,14 @@ export default function LoginPage({ setToken }: LoginPageProps) {
   const [searchParams] = useSearchParams();
   const [identifier, setIdentifier] = useState(searchParams.get('username') || '');
   const [password, setPassword] = useState(searchParams.get('password') || '');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() => {
+    const oidcError = searchParams.get('error');
+    return oidcError && OIDC_ERROR_MAP[oidcError] ? t(OIDC_ERROR_MAP[oidcError]) : '';
+  });
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const navigate = useNavigate();
+  const oidcConfig = useOIDCConfig();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,6 +107,18 @@ export default function LoginPage({ setToken }: LoginPageProps) {
             <Button component={Link} to="/register" color="secondary" variant="text">
               {t('login.noAccount')}
             </Button>
+            {oidcConfig.enabled && (
+              <>
+                <Divider>{t('login.orSeparator')}</Divider>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => { window.location.href = `${API_BASE_URL}/auth/oidc/login`; }}
+                >
+                  {t('login.ssoButton', { provider: oidcConfig.provider_name })}
+                </Button>
+              </>
+            )}
           </Stack>
         </form>
       </Paper>

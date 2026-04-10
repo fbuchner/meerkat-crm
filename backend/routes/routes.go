@@ -6,12 +6,13 @@ import (
 	"meerkat/controllers"
 	"meerkat/middleware"
 	"meerkat/models"
+	"meerkat/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB) {
+func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcProvider *services.OIDCProvider) {
 
 	// Health check endpoint (no versioning, standard practice)
 	router.GET("/health", controllers.HealthCheck)
@@ -19,6 +20,13 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB) {
 	// API v1 routes
 	v1 := router.Group("/api/v1")
 	{
+		// OIDC routes (config always public; login/callback only when OIDC is enabled)
+		v1.GET("/auth/oidc/config", controllers.OIDCConfigHandler(cfg))
+		if cfg.OIDC.Enabled && oidcProvider != nil {
+			v1.GET("/auth/oidc/login", middleware.AuthRateLimitMiddleware(), controllers.OIDCLoginHandler(oidcProvider, cfg))
+			v1.GET("/auth/oidc/callback", middleware.AuthRateLimitMiddleware(), controllers.OIDCCallbackHandler(oidcProvider, cfg))
+		}
+
 		// Public routes (no authentication required, strict rate limiting)
 		v1.POST("/register", middleware.AuthRateLimitMiddleware(), middleware.ValidateJSONMiddleware(&models.UserRegistrationInput{}), controllers.RegisterUser)
 		v1.POST("/login", middleware.AuthRateLimitMiddleware(), func(c *gin.Context) {

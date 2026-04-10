@@ -306,12 +306,12 @@ export default function AddRelationshipDialog({
                 setError('');
               }}
             >
+              <MenuItem value="custom">{t('relationships.customType')}</MenuItem>
               {RELATIONSHIP_TYPES.map((relType) => (
                 <MenuItem key={relType} value={relType}>
                   {t(`relationships.types.${relType.toLowerCase().replace(' ', '_')}`, relType)}
                 </MenuItem>
               ))}
-              <MenuItem value="custom">{t('relationships.customType')}</MenuItem>
             </Select>
           </FormControl>
 

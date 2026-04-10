@@ -39,6 +39,34 @@ Set these variables in `.env.docker` when running over HTTPS:
 | `JWT_SECRET_KEY` | Generate with `openssl rand -base64 32` |
 
 
+## Single Sign-On (OIDC)
+
+Meerkat CRM supports SSO via any OpenID Connect provider (Keycloak, Google, Authentik, Authelia, etc.). When enabled, a **Sign in with provider** button appears on the login page.
+
+### Setup
+
+1. Register a new OAuth2 client with your provider. Set the redirect URI to:
+   ```
+   https://meerkat.example.com/api/v1/auth/oidc/callback
+   ```
+   This is derived automatically from `FRONTEND_URL`, no separate variable needed.
+
+2.  Set the OIDC environment variables in the docker compose. See [Getting-Started → Environment variables](getting-started.md#environment-variables) for details. SSO is disabled if any of the first three variables are missing.
+
+### Account linking
+
+On first SSO login, the backend attempts to match the OIDC identity to an existing account in this order:
+
+1. **Subject match** — if the user has logged in via this provider before, their account is found directly.
+2. **Email match** — if the provider returns a *verified* email that matches an existing account, the OIDC identity is linked to that account automatically. Unverified emails are ignored to prevent account takeover.
+3. **Auto-provision** — if `OIDC_AUTO_PROVISION=true` and no account matched, a new account is created using the email/name from the provider.
+
+If auto-provisioning is disabled and no match is found, the user sees an error and must be registered manually first.
+
+### Passwords
+
+Accounts created through SSO have no password and can only log in via SSO. Existing password-based accounts that get linked retain their password.
+
 ## Upgrades
 
 ```sh

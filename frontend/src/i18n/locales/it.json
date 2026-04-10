@@ -496,11 +496,13 @@
       "brother": "Fratello",
       "sister": "Sorella",
       "friend": "Amico/a",
-      "best_friend": "Migliore Amico/a",
       "colleague": "Collega",
       "manager": "Responsabile",
       "employee": "Dipendente",
       "neighbor": "Vicino/a",
+      "dog": "Cane",
+      "cat": "Gatto",
+      "pet": "Animale domestico",
       "other": "Altro"
     }
   },

@@ -11,6 +11,16 @@ import (
 	"strings"
 )
 
+// OIDCConfig holds optional OIDC provider settings.
+type OIDCConfig struct {
+	Enabled            bool
+	ProviderURL        string
+	ClientID           string
+	ClientSecret       string
+	RedirectURL        string // derived from FrontendURL, not configurable
+	AllowAutoProvision bool
+}
+
 type Config struct {
 	DBPath          string
 	ReminderTime    string
@@ -30,6 +40,7 @@ type Config struct {
 	CardDAVEnabled  bool   // Enable CardDAV server for contact sync
 	CookieSecure    bool   // Set Secure flag on auth cookie (requires HTTPS)
 	CookieDomain    string // Domain for auth cookie (empty = current domain only)
+	OIDC            OIDCConfig
 }
 
 func LoadConfig() *Config {
@@ -68,6 +79,18 @@ func LoadConfig() *Config {
 
 	if cfg.ResendAPIKey == "" || cfg.ResendFromEmail == "" {
 		cfg.UseResend = false
+	}
+
+	oidcProviderURL := getEnv("OIDC_PROVIDER_URL", "")
+	oidcClientID := getEnv("OIDC_CLIENT_ID", "")
+	oidcClientSecret := getEnv("OIDC_CLIENT_SECRET", "")
+	cfg.OIDC = OIDCConfig{
+		Enabled:            oidcProviderURL != "" && oidcClientID != "" && oidcClientSecret != "",
+		ProviderURL:        oidcProviderURL,
+		ClientID:           oidcClientID,
+		ClientSecret:       oidcClientSecret,
+		RedirectURL:        cfg.FrontendURL + "/api/v1/auth/oidc/callback",
+		AllowAutoProvision: getBoolEnv("OIDC_AUTO_PROVISION", false),
 	}
 
 	return cfg
@@ -242,6 +265,18 @@ func (c *Config) Validate() []ValidationError {
 			Field:   "TRUSTED_PROXIES",
 			Message: fmt.Sprintf("Invalid proxy '%s'. Must be a valid IP address or CIDR notation.", proxy),
 		})
+	}
+
+	// Warn if OIDC is partially configured (some vars set but not all required ones)
+	oidcVars := []string{c.OIDC.ProviderURL, c.OIDC.ClientID, c.OIDC.ClientSecret}
+	oidcSet := 0
+	for _, v := range oidcVars {
+		if v != "" {
+			oidcSet++
+		}
+	}
+	if oidcSet > 0 && oidcSet < 3 {
+		log.Println("WARN: OIDC is partially configured. Set OIDC_PROVIDER_URL, OIDC_CLIENT_ID, and OIDC_CLIENT_SECRET to enable SSO.")
 	}
 
 	// Validate Resend configuration if emails are enabled

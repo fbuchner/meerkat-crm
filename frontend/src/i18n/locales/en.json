@@ -40,7 +40,12 @@
     "loggingIn": "Logging in...",
     "loginFailed": "Login failed",
     "noAccount": "Don't have an account? Register",
-    "forgotPassword": "Forgot your password?"
+    "forgotPassword": "Forgot your password?",
+    "ssoButton": "Login with {{provider}}",
+    "orSeparator": "or",
+    "oidcDenied": "SSO login was cancelled or denied.",
+    "oidcNoAccount": "No account found for your SSO identity. Contact your administrator.",
+    "oidcError": "An error occurred during SSO login. Please try again."
   },
   "passwordReset": {
     "title": "Reset Password",

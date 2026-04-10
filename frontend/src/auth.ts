@@ -43,7 +43,7 @@ export async function loginUser(identifier: string, password: string): Promise<L
 }
 
 // Fetch current user info from the server and cache it
-async function fetchAndCacheUserInfo(): Promise<UserInfo | null> {
+export async function fetchAndCacheUserInfo(): Promise<UserInfo | null> {
   try {
     const response = await fetch(`${API_BASE_URL}/users/me`, {
       credentials: 'include',

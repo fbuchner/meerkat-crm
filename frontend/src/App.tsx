@@ -10,7 +10,7 @@ import UsersPage from './UsersPage';
 import ApiTokensPage from './ApiTokensPage';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
-import { getToken, logoutAndRedirect, isAdmin } from './auth';
+import { getToken, logoutAndRedirect, isAdmin, fetchAndCacheUserInfo } from './auth';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -446,7 +446,17 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
 
 function App() {
   const [token, setToken] = useState(getToken());
-  
+
+  useEffect(() => {
+    // Restore session after OIDC redirect: the server sets the auth cookie but
+    // localStorage is empty, so we fetch user info once to populate it.
+    if (!getToken()) {
+      fetchAndCacheUserInfo().then(info => {
+        if (info) setToken(getToken());
+      });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     // Listen for storage changes (e.g., logout in another tab)
     const onStorage = (e: StorageEvent) => {

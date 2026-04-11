@@ -26,7 +26,8 @@ const (
 
 func TestRegisterUser(t *testing.T) {
 	_, router := setupRouter()
-	router.POST("/register", middleware.ValidateJSONMiddleware(&models.UserRegistrationInput{}), RegisterUser)
+	cfg := &config.Config{}
+	router.POST("/register", middleware.ValidateJSONMiddleware(&models.UserRegistrationInput{}), RegisterUser(cfg))
 
 	// Create a new user using the registration DTO
 	newUser := models.UserRegistrationInput{
@@ -51,7 +52,8 @@ func TestRegisterUser(t *testing.T) {
 
 func TestRegisterUser_InvalidInput(t *testing.T) {
 	_, router := setupRouter()
-	router.POST("/register", middleware.ValidateJSONMiddleware(&models.UserRegistrationInput{}), RegisterUser)
+	cfg := &config.Config{}
+	router.POST("/register", middleware.ValidateJSONMiddleware(&models.UserRegistrationInput{}), RegisterUser(cfg))
 
 	// Invalid input (no email)
 	invalidUser := models.UserRegistrationInput{

@@ -19,45 +19,55 @@ import (
 	"gorm.io/gorm"
 )
 
-func RegisterUser(context *gin.Context) {
-	// Get validated registration input from middleware
-	// Uses UserRegistrationInput DTO which intentionally excludes IsAdmin to prevent mass assignment
-	input, err := middleware.GetValidated[models.UserRegistrationInput](context)
-	if err != nil {
-		apperrors.AbortWithError(context, err)
-		return
-	}
-
-	hashedPassword, hashErr := services.HashPassword(input.Password)
-	if hashErr != nil {
-		if errors.Is(hashErr, services.ErrPasswordTooLong) {
-			apperrors.AbortWithError(context, apperrors.ErrValidation(hashErr.Error()))
-		} else {
-			apperrors.AbortWithError(context, apperrors.ErrInternal("Could not hash password").WithError(hashErr))
+func RegisterUser(cfg *config.Config) gin.HandlerFunc {
+	return func(context *gin.Context) {
+		if cfg.RegistrationDisabled {
+			context.JSON(http.StatusForbidden, gin.H{"error": gin.H{
+				"code":    "registration_disabled",
+				"message": "Registration is disabled.",
+			}})
+			return
 		}
-		return
+
+		// Get validated registration input from middleware
+		// Uses UserRegistrationInput DTO which intentionally excludes IsAdmin to prevent mass assignment
+		input, err := middleware.GetValidated[models.UserRegistrationInput](context)
+		if err != nil {
+			apperrors.AbortWithError(context, err)
+			return
+		}
+
+		hashedPassword, hashErr := services.HashPassword(input.Password)
+		if hashErr != nil {
+			if errors.Is(hashErr, services.ErrPasswordTooLong) {
+				apperrors.AbortWithError(context, apperrors.ErrValidation(hashErr.Error()))
+			} else {
+				apperrors.AbortWithError(context, apperrors.ErrInternal("Could not hash password").WithError(hashErr))
+			}
+			return
+		}
+
+		db := context.MustGet("db").(*gorm.DB)
+
+		// Grant admin to the first registered user
+		var userCount int64
+		db.Model(&models.User{}).Count(&userCount)
+
+		user := models.User{
+			Username: strings.ToLower(input.Username),
+			Email:    strings.ToLower(input.Email),
+			Password: hashedPassword,
+			Language: input.Language,
+			IsAdmin:  userCount == 0,
+		}
+
+		if err := db.Create(&user).Error; err != nil {
+			apperrors.AbortWithError(context, apperrors.ErrAlreadyExists("User").WithDetails("email", user.Email))
+			return
+		}
+
+		context.JSON(http.StatusCreated, gin.H{"message": "User registered successfully"})
 	}
-
-	db := context.MustGet("db").(*gorm.DB)
-
-	// Grant admin to the first registered user
-	var userCount int64
-	db.Model(&models.User{}).Count(&userCount)
-
-	user := models.User{
-		Username: strings.ToLower(input.Username),
-		Email:    strings.ToLower(input.Email),
-		Password: hashedPassword,
-		Language: input.Language,
-		IsAdmin:  userCount == 0,
-	}
-
-	if err := db.Create(&user).Error; err != nil {
-		apperrors.AbortWithError(context, apperrors.ErrAlreadyExists("User").WithDetails("email", user.Email))
-		return
-	}
-
-	context.JSON(http.StatusCreated, gin.H{"message": "User registered successfully"})
 }
 
 // LoginInput represents the DTO for login requests

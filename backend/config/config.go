@@ -23,25 +23,26 @@ type OIDCConfig struct {
 }
 
 type Config struct {
-	DBPath          string
-	ReminderTime    string
-	FrontendURL     string
-	Port            string
-	TrustedProxies  []string
-	UseResend       bool
-	ResendAPIKey    string
-	ResendFromEmail string
-	ResendToEmail   string
-	JWTSecretKey    string
-	JWTExpiryHours  int
-	ReadTimeout     int    // HTTP server read timeout in seconds
-	WriteTimeout    int    // HTTP server write timeout in seconds
-	IdleTimeout     int    // HTTP server idle timeout in seconds
-	ProfilePhotoDir string // Directory for storing profile photos (must be absolute path)
-	CardDAVEnabled  bool   // Enable CardDAV server for contact sync
-	CookieSecure    bool   // Set Secure flag on auth cookie (requires HTTPS)
-	CookieDomain    string // Domain for auth cookie (empty = current domain only)
-	OIDC            OIDCConfig
+	DBPath               string
+	ReminderTime         string
+	FrontendURL          string
+	Port                 string
+	TrustedProxies       []string
+	UseResend            bool
+	ResendAPIKey         string
+	ResendFromEmail      string
+	ResendToEmail        string
+	JWTSecretKey         string
+	JWTExpiryHours       int
+	ReadTimeout          int    // HTTP server read timeout in seconds
+	WriteTimeout         int    // HTTP server write timeout in seconds
+	IdleTimeout          int    // HTTP server idle timeout in seconds
+	ProfilePhotoDir      string // Directory for storing profile photos (must be absolute path)
+	CardDAVEnabled       bool   // Enable CardDAV server for contact sync
+	CookieSecure         bool   // Set Secure flag on auth cookie (requires HTTPS)
+	CookieDomain         string // Domain for auth cookie (empty = current domain only)
+	RegistrationDisabled bool   // Disable new user registration
+	OIDC                 OIDCConfig
 }
 
 func LoadConfig() *Config {
@@ -59,23 +60,24 @@ func LoadConfig() *Config {
 	idleTimeout := getIntEnv("HTTP_IDLE_TIMEOUT", 60)
 
 	cfg := &Config{
-		DBPath:          getEnv("SQLITE_DB_PATH", "meerkat.db"),
-		ReminderTime:    getEnv("REMINDER_TIME", "12:00"),
-		FrontendURL:     getEnv("FRONTEND_URL", "*"),
-		Port:            getEnv("PORT", "8080"),
-		UseResend:       true,
-		ResendAPIKey:    getEnv("RESEND_API_KEY", ""),
-		ResendFromEmail: getEnv("RESEND_FROM_EMAIL", ""),
-		JWTSecretKey:    getEnv("JWT_SECRET_KEY", ""),
-		JWTExpiryHours:  jwtExpiryHours,
-		TrustedProxies:  getProxies(getEnv("TRUSTED_PROXIES", "")),
-		ReadTimeout:     readTimeout,
-		WriteTimeout:    writeTimeout,
-		IdleTimeout:     idleTimeout,
-		ProfilePhotoDir: getEnv("PROFILE_PHOTO_DIR", ""),
-		CardDAVEnabled:  getBoolEnv("CARDDAV_ENABLED", false),
-		CookieSecure:    getBoolEnv("COOKIE_SECURE", false),
-		CookieDomain:    getEnv("COOKIE_DOMAIN", ""),
+		DBPath:               getEnv("SQLITE_DB_PATH", "meerkat.db"),
+		ReminderTime:         getEnv("REMINDER_TIME", "12:00"),
+		FrontendURL:          getEnv("FRONTEND_URL", "*"),
+		Port:                 getEnv("PORT", "8080"),
+		UseResend:            true,
+		ResendAPIKey:         getEnv("RESEND_API_KEY", ""),
+		ResendFromEmail:      getEnv("RESEND_FROM_EMAIL", ""),
+		JWTSecretKey:         getEnv("JWT_SECRET_KEY", ""),
+		JWTExpiryHours:       jwtExpiryHours,
+		TrustedProxies:       getProxies(getEnv("TRUSTED_PROXIES", "")),
+		ReadTimeout:          readTimeout,
+		WriteTimeout:         writeTimeout,
+		IdleTimeout:          idleTimeout,
+		ProfilePhotoDir:      getEnv("PROFILE_PHOTO_DIR", ""),
+		CardDAVEnabled:       getBoolEnv("CARDDAV_ENABLED", false),
+		CookieSecure:         getBoolEnv("COOKIE_SECURE", false),
+		CookieDomain:         getEnv("COOKIE_DOMAIN", ""),
+		RegistrationDisabled: getBoolEnv("DISABLE_REGISTRATION", false),
 	}
 
 	if cfg.ResendAPIKey == "" || cfg.ResendFromEmail == "" {

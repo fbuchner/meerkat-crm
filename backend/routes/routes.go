@@ -28,7 +28,7 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 		}
 
 		// Public routes (no authentication required, strict rate limiting)
-		v1.POST("/register", middleware.AuthRateLimitMiddleware(), middleware.ValidateJSONMiddleware(&models.UserRegistrationInput{}), controllers.RegisterUser)
+		v1.POST("/register", middleware.AuthRateLimitMiddleware(), middleware.ValidateJSONMiddleware(&models.UserRegistrationInput{}), controllers.RegisterUser(cfg))
 		v1.POST("/login", middleware.AuthRateLimitMiddleware(), func(c *gin.Context) {
 			controllers.LoginUser(c, cfg)
 		})

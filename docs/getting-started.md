@@ -35,6 +35,7 @@ After adjusting the environment variables as needed you can run:
 | `OIDC_CLIENT_ID` | OAuth2 client ID registered with your OIDC provider |
 | `OIDC_CLIENT_SECRET` | OAuth2 client secret registered with your OIDC provider |
 | `OIDC_AUTO_PROVISION` | When `true`, a new account is automatically created on first SSO login. Default is `false` |
+| `OIDC_TRUST_EMAIL` | When `true`, skips the `email_verified`  requirement when linking an OIDC identity to an existing account by email. Safe to enable for self-hosted providers (e.g. Authentik) where you control all user accounts. Default is `false` |
 
 SSO is disabled unless all three of `OIDC_PROVIDER_URL`, `OIDC_CLIENT_ID`, and `OIDC_CLIENT_SECRET` are set.
 

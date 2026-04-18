@@ -579,7 +579,7 @@
     "updateError": "Impossibile aggiornare l'utente",
     "deleteError": "Impossibile eliminare l'utente",
     "triggerReminders": "Invia Email Promemoria",
-    "triggerRemindersSuccess": "Email promemoria inviate con successo",
-    "triggerRemindersError": "Invio email promemoria fallito"
+    "triggerRemindersSuccess": "Email di promemoria inviate con successo",
+    "triggerRemindersError": "Invio email di promemoria fallito"
   }
 }

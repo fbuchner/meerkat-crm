@@ -250,7 +250,8 @@ export default function NetworkGraph({
 
     // Draw initials for contacts
     if (isContact && globalScale > 0.5) {
-      ctx.font = `bold ${fontSize * 1.2}px Inter, sans-serif`;
+      ctx.font = `bold ${fontSize * 1.2}px Helvetica, Helvetica Neue, Inter, Roboto, Arial, sans-serif`;
+
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = '#FFFFFF';
@@ -259,7 +260,7 @@ export default function NetworkGraph({
 
     // Draw label below node when zoomed in enough
     if (globalScale > 0.6 && (isContact || isActivity || isCircleNode)) {
-      ctx.font = `${fontSize}px Inter, sans-serif`;
+      ctx.font = `${fontSize}px Helvetica, Helvetica Neue, Inter, Roboto, Arial, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       ctx.fillStyle = textColor;

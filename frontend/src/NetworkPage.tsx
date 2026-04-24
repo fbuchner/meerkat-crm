@@ -21,8 +21,11 @@ import {
 } from '@mui/material';
 import NetworkGraph from './components/NetworkGraph';
 import NetworkLegend from './components/NetworkLegend';
+import EditTimelineItemDialog from './components/EditTimelineItemDialog';
 import { useGraph } from './hooks/useGraph';
 import { GraphNode } from './types/graph';
+import { Activity, getActivity, updateActivity, deleteActivity } from './api/activities';
+import { Contact, getContacts } from './api/contacts';
 
 export default function NetworkPage() {
   const { t } = useTranslation();
@@ -36,6 +39,15 @@ export default function NetworkPage() {
   const [showActivities, setShowActivities] = useState(true);
   const [showCircles, setShowCircles] = useState(false);
   const [centeredNodeId, setCenteredNodeId] = useState<string | null>(null);
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+  const [editValues, setEditValues] = useState<{
+    activityTitle?: string;
+    activityDescription?: string;
+    activityLocation?: string;
+    activityDate?: string;
+    activityContacts?: Contact[];
+  }>({});
+  const [allContacts, setAllContacts] = useState<Contact[]>([]);
 
   // Extract unique circles from contacts
   const circles = useMemo(() => {
@@ -60,6 +72,58 @@ export default function NetworkPage() {
     if (node.type === 'contact') {
       const contactId = node.id.replace('c-', '');
       navigate(`/contacts/${contactId}`);
+    }
+  };
+
+  const handleActivityNodeClick = async (node: GraphNode) => {
+    const id = parseInt(node.id.replace('a-', ''), 10);
+    try {
+      const activity = await getActivity(id);
+      setEditingActivity(activity);
+      if (allContacts.length === 0) {
+        const data = await getContacts({ page: 1, limit: 1000 });
+        setAllContacts(data.contacts || []);
+      }
+      setEditValues({
+        activityTitle: activity.title || '',
+        activityDescription: activity.description || '',
+        activityLocation: activity.location || '',
+        activityDate: activity.date ? new Date(activity.date).toISOString().split('T')[0] : '',
+        activityContacts: activity.contacts || [],
+      });
+    } catch (err) {
+      console.error('Failed to fetch activity:', err);
+    }
+  };
+
+  const handleActivityEditClose = () => {
+    setEditingActivity(null);
+    setEditValues({});
+  };
+
+  const handleActivitySave = async () => {
+    if (!editingActivity || !editValues.activityTitle?.trim()) return;
+    try {
+      await updateActivity(editingActivity.ID, {
+        title: editValues.activityTitle,
+        description: editValues.activityDescription || '',
+        location: editValues.activityLocation || '',
+        date: editValues.activityDate ? new Date(editValues.activityDate).toISOString() : new Date().toISOString(),
+        contact_ids: editValues.activityContacts?.map(c => c.ID) || [],
+      });
+      handleActivityEditClose();
+    } catch (err) {
+      console.error('Failed to update activity:', err);
+    }
+  };
+
+  const handleActivityDelete = async () => {
+    if (!editingActivity) return;
+    try {
+      await deleteActivity(editingActivity.ID);
+      handleActivityEditClose();
+    } catch (err) {
+      console.error('Failed to delete activity:', err);
     }
   };
 
@@ -188,6 +252,7 @@ export default function NetworkPage() {
         <NetworkGraph
           data={data}
           onNodeClick={handleNodeClick}
+          onActivityClick={handleActivityNodeClick}
           selectedCircle={selectedCircle || undefined}
           showRelationships={showRelationships}
           showActivities={showActivities}
@@ -195,6 +260,18 @@ export default function NetworkPage() {
           centeredNodeId={centeredNodeId ?? undefined}
         />
       </Card>
+      {editingActivity && (
+        <EditTimelineItemDialog
+          open={!!editingActivity}
+          onClose={handleActivityEditClose}
+          onSave={handleActivitySave}
+          onDelete={handleActivityDelete}
+          type="activity"
+          values={editValues}
+          onChange={setEditValues}
+          allContacts={allContacts}
+        />
+      )}
     </Box>
   );
 }

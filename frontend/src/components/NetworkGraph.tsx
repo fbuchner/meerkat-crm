@@ -7,6 +7,7 @@ import { GraphData, GraphNode, GraphEdge } from '../types/graph';
 interface NetworkGraphProps {
   data: GraphData;
   onNodeClick: (node: GraphNode) => void;
+  onActivityClick?: (node: GraphNode) => void;
   selectedCircle?: string;
   showRelationships: boolean;
   showActivities: boolean;
@@ -22,6 +23,7 @@ interface ForceGraphData {
 export default function NetworkGraph({
   data,
   onNodeClick,
+  onActivityClick,
   selectedCircle,
   showRelationships,
   showActivities,
@@ -262,8 +264,10 @@ export default function NetworkGraph({
   const handleNodeClick = useCallback((node: GraphNode) => {
     if (node.type === 'contact') {
       onNodeClick(node);
+    } else if (node.type === 'activity') {
+      onActivityClick?.(node);
     }
-  }, [onNodeClick]);
+  }, [onNodeClick, onActivityClick]);
 
   // Configure forces to prevent isolated nodes from drifting too far
   useEffect(() => {

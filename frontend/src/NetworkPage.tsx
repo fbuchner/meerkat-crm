@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -38,7 +38,9 @@ export default function NetworkPage() {
   const [showRelationships, setShowRelationships] = useState(true);
   const [showActivities, setShowActivities] = useState(true);
   const [showCircles, setShowCircles] = useState(false);
-  const [centeredNodeId, setCenteredNodeId] = useState<string | null>(null);
+  const [centeredNodeId, setCenteredNodeId] = useState<string | null>(() => {
+    return localStorage.getItem('network-centered-node-id');
+  });
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [editValues, setEditValues] = useState<{
     activityTitle?: string;
@@ -48,6 +50,22 @@ export default function NetworkPage() {
     activityContacts?: Contact[];
   }>({});
   const [allContacts, setAllContacts] = useState<Contact[]>([]);
+
+  useEffect(() => {
+    if (centeredNodeId !== null) {
+      localStorage.setItem('network-centered-node-id', centeredNodeId);
+    } else {
+      localStorage.removeItem('network-centered-node-id');
+    }
+  }, [centeredNodeId]);
+
+  useEffect(() => {
+    if (!data || !centeredNodeId) return;
+    const nodeExists = data.nodes.some(n => n.id === centeredNodeId);
+    if (!nodeExists) {
+      setCenteredNodeId(null);
+    }
+  }, [data, centeredNodeId]);
 
   // Extract unique circles from contacts
   const circles = useMemo(() => {

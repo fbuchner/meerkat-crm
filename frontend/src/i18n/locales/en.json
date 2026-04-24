@@ -461,8 +461,12 @@
       "relationships": "Relationship",
       "activities": "Shared Activity",
       "contact": "Contact",
-      "activity": "Activity"
-    }
+      "activity": "Activity",
+      "circle": "Circle",
+      "circleEdge": "Circle Membership"
+    },
+    "filterByContact": "Center on Contact",
+    "showCircles": "Circles"
   },
   "relationships": {
     "title": "Relationships",

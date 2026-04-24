@@ -2,14 +2,18 @@ import { useRef, useCallback, useMemo, useEffect, useState } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import { forceX, forceY } from 'd3-force';
 import { useTheme, Box, Typography, useMediaQuery } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { GraphData, GraphNode, GraphEdge } from '../types/graph';
 
 interface NetworkGraphProps {
   data: GraphData;
   onNodeClick: (node: GraphNode) => void;
+  onActivityClick?: (node: GraphNode) => void;
   selectedCircle?: string;
   showRelationships: boolean;
   showActivities: boolean;
+  showCircles: boolean;
+  centeredNodeId?: string;
 }
 
 interface ForceGraphData {
@@ -17,27 +21,40 @@ interface ForceGraphData {
   links: GraphEdge[];
 }
 
+const getNodeSize = (type: GraphNode['type']): number => {
+  if (type === 'contact') return 12;
+  if (type === 'circle') return 9;
+  return 6;
+};
+
 export default function NetworkGraph({
   data,
   onNodeClick,
+  onActivityClick,
   selectedCircle,
   showRelationships,
-  showActivities
+  showActivities,
+  showCircles,
+  centeredNodeId,
 }: NetworkGraphProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const graphRef = useRef<any>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [hoveredEdge, setHoveredEdge] = useState<GraphEdge | null>(null);
+  const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Colors from theme
   const relationshipColor = theme.palette.primary.main;
   const activityColor = theme.palette.secondary.main;
+  const circleEdgeColor = theme.palette.warning.main;
   const nodeColor = theme.palette.primary.main;
   const activityNodeColor = theme.palette.secondary.main;
+  const circleNodeColor = theme.palette.warning.main;
   const textColor = theme.palette.text.primary;
   const bgColor = theme.palette.background.paper;
 
@@ -63,7 +80,7 @@ export default function NetworkGraph({
     };
   }, []);
 
-  // Filter and transform data for the graph
+  // Filter and transform data for the graph, including synthetic circle nodes/edges
   const graphData: ForceGraphData = useMemo(() => {
     let filteredNodes = data.nodes;
 
@@ -93,24 +110,99 @@ export default function NetworkGraph({
       });
     }
 
+    // Hide activity nodes when the activities toggle is off
+    if (!showActivities) {
+      filteredNodes = filteredNodes.filter(n => n.type !== 'activity');
+    }
+
     const nodeIds = new Set(filteredNodes.map(n => n.id));
 
     // Filter edges based on visibility toggles and filtered nodes
-    const filteredEdges = data.edges.filter(e => {
+    let filteredEdges = data.edges.filter(e => {
       const sourceId = typeof e.source === 'string' ? e.source : e.source.id;
       const targetId = typeof e.target === 'string' ? e.target : e.target.id;
 
       if (!nodeIds.has(sourceId) || !nodeIds.has(targetId)) return false;
       if (e.type === 'relationship' && !showRelationships) return false;
-      if (e.type === 'activity' && !showActivities) return false;
       return true;
     });
 
+    // Synthesize circle nodes and edges from contact circles data
+    if (showCircles) {
+      const visibleContacts = filteredNodes.filter(n => n.type === 'contact');
+
+      // Count contacts per circle
+      const circleContactMap = new Map<string, string[]>();
+      visibleContacts.forEach(contact => {
+        contact.circles?.forEach(circleName => {
+          const existing = circleContactMap.get(circleName) ?? [];
+          existing.push(contact.id);
+          circleContactMap.set(circleName, existing);
+        });
+      });
+
+      const circleNodes: GraphNode[] = [];
+      const circleEdges: GraphEdge[] = [];
+
+      circleContactMap.forEach((contactIds, circleName) => {
+        if (contactIds.length < 2) return; // only show circles that connect people
+
+        const circleNodeId = `circle-${circleName}`;
+        circleNodes.push({
+          id: circleNodeId,
+          type: 'circle',
+          label: circleName,
+        });
+
+        contactIds.forEach(contactId => {
+          circleEdges.push({
+            id: `ce-${contactId}-${circleName}`,
+            type: 'circle',
+            source: contactId,
+            target: circleNodeId,
+            label: circleName,
+          });
+        });
+      });
+
+      filteredNodes = [...filteredNodes, ...circleNodes];
+      filteredEdges = [...filteredEdges, ...circleEdges];
+    }
+
+    if (centeredNodeId) {
+      const directNeighbors = new Set<string>([centeredNodeId]);
+
+      filteredEdges.forEach(e => {
+        const srcId = typeof e.source === 'string' ? e.source : e.source.id;
+        const tgtId = typeof e.target === 'string' ? e.target : e.target.id;
+        if (srcId === centeredNodeId) directNeighbors.add(tgtId);
+        if (tgtId === centeredNodeId) directNeighbors.add(srcId);
+      });
+
+      filteredNodes = filteredNodes.filter(n => directNeighbors.has(n.id));
+      filteredEdges = filteredEdges.filter(e => {
+        const srcId = typeof e.source === 'string' ? e.source : e.source.id;
+        const tgtId = typeof e.target === 'string' ? e.target : e.target.id;
+        return directNeighbors.has(srcId) && directNeighbors.has(tgtId);
+      });
+    }
+
     return {
       nodes: filteredNodes,
-      links: filteredEdges
+      links: filteredEdges,
     };
-  }, [data, selectedCircle, showRelationships, showActivities]);
+  }, [data, selectedCircle, showRelationships, showActivities, showCircles, centeredNodeId]);
+
+  // Center and zoom to selected node when centeredNodeId changes
+  useEffect(() => {
+    if (!centeredNodeId || !graphRef.current) return;
+
+    const node = graphData.nodes.find(n => n.id === centeredNodeId);
+    if (!node || node.x == null || node.y == null) return;
+
+    graphRef.current.centerAt(node.x, node.y, 800);
+    graphRef.current.zoom(2.5, 800);
+  }, [centeredNodeId, graphData.nodes]);
 
   // Get initials from a name
   const getInitials = (label: string): string => {
@@ -124,13 +216,31 @@ export default function NetworkGraph({
   // Custom node rendering
   const nodeCanvasObject = useCallback((node: GraphNode, ctx: CanvasRenderingContext2D, globalScale: number) => {
     const isContact = node.type === 'contact';
-    const size = isContact ? 12 : 6;
+    const isActivity = node.type === 'activity';
+    const isCircleNode = node.type === 'circle';
+    const size = getNodeSize(node.type);
     const fontSize = Math.max(10 / globalScale, 3);
+    const isCentered = node.id === centeredNodeId;
+
+    // Draw highlight ring for centered contact
+    if (isCentered) {
+      ctx.beginPath();
+      ctx.arc(node.x || 0, node.y || 0, size + 5, 0, 2 * Math.PI);
+      ctx.strokeStyle = theme.palette.primary.light;
+      ctx.lineWidth = 3 / globalScale;
+      ctx.stroke();
+    }
 
     // Draw node circle
     ctx.beginPath();
     ctx.arc(node.x || 0, node.y || 0, size, 0, 2 * Math.PI);
-    ctx.fillStyle = isContact ? nodeColor : activityNodeColor;
+    if (isContact) {
+      ctx.fillStyle = nodeColor;
+    } else if (isActivity) {
+      ctx.fillStyle = activityNodeColor;
+    } else {
+      ctx.fillStyle = circleNodeColor;
+    }
     ctx.fill();
 
     // Draw border
@@ -140,27 +250,35 @@ export default function NetworkGraph({
 
     // Draw initials for contacts
     if (isContact && globalScale > 0.5) {
-      ctx.font = `bold ${fontSize * 1.2}px Inter, sans-serif`;
+      ctx.font = `bold ${fontSize * 1.2}px Helvetica, Helvetica Neue, Roboto, Arial, sans-serif`;
+
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = '#FFFFFF';
       ctx.fillText(getInitials(node.label), node.x || 0, node.y || 0);
     }
 
-    // Draw label below node for contacts (only when zoomed in enough)
-    if (isContact && globalScale > 0.6) {
-      ctx.font = `${fontSize}px Inter, sans-serif`;
+    // Draw label below node when zoomed in enough
+    if (globalScale > 0.6 && (isContact || isActivity || isCircleNode)) {
+      ctx.font = `${fontSize}px Helvetica, Helvetica Neue, Roboto, Arial, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       ctx.fillStyle = textColor;
       ctx.fillText(node.label, node.x || 0, (node.y || 0) + size + 4);
     }
-  }, [nodeColor, activityNodeColor, bgColor, textColor]);
+  }, [nodeColor, activityNodeColor, circleNodeColor, bgColor, textColor, centeredNodeId, theme.palette.primary.light]);
 
   // Custom link rendering
   const linkColor = useCallback((link: GraphEdge) => {
-    return link.type === 'relationship' ? relationshipColor : activityColor;
-  }, [relationshipColor, activityColor]);
+    if (link.type === 'relationship') return relationshipColor;
+    if (link.type === 'activity') return activityColor;
+    return circleEdgeColor;
+  }, [relationshipColor, activityColor, circleEdgeColor]);
+
+  // Handle node hover
+  const handleNodeHover = useCallback((node: GraphNode | null) => {
+    setHoveredNode(node);
+  }, []);
 
   // Handle link hover
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -172,20 +290,17 @@ export default function NetworkGraph({
   const handleNodeClick = useCallback((node: GraphNode) => {
     if (node.type === 'contact') {
       onNodeClick(node);
+    } else if (node.type === 'activity') {
+      onActivityClick?.(node);
     }
-  }, [onNodeClick]);
+  }, [onNodeClick, onActivityClick]);
 
   // Configure forces to prevent isolated nodes from drifting too far
   useEffect(() => {
     if (graphRef.current) {
       const fg = graphRef.current;
-      
-      // Add position forces that gently pull all nodes toward center
-      // This particularly helps isolated nodes that have no link forces
       fg.d3Force('x', forceX(0).strength(0.05));
       fg.d3Force('y', forceY(0).strength(0.05));
-      
-      // Reduce charge strength to prevent excessive repulsion
       fg.d3Force('charge')?.strength(-100);
     }
   }, []);
@@ -199,6 +314,12 @@ export default function NetworkGraph({
     }
   }, [graphData.nodes.length, isMobile]);
 
+  const getEdgeTypeLabel = (type: string) => {
+    if (type === 'relationship') return t('network.legend.relationships');
+    if (type === 'activity') return t('network.legend.activities');
+    return t('network.legend.circleEdge');
+  };
+
   return (
     <Box ref={containerRef} sx={{ width: '100%', height: '100%', position: 'relative' }}>
       <ForceGraph2D
@@ -208,7 +329,7 @@ export default function NetworkGraph({
         graphData={graphData}
         nodeCanvasObject={nodeCanvasObject}
         nodePointerAreaPaint={(node: GraphNode, color, ctx) => {
-          const size = node.type === 'contact' ? 12 : 6;
+          const size = getNodeSize(node.type);
           ctx.beginPath();
           ctx.arc(node.x || 0, node.y || 0, size + 4, 0, 2 * Math.PI);
           ctx.fillStyle = color;
@@ -218,6 +339,7 @@ export default function NetworkGraph({
         linkWidth={2}
         linkDirectionalArrowLength={0}
         onNodeClick={handleNodeClick}
+        onNodeHover={handleNodeHover}
         onLinkHover={handleLinkHover}
         cooldownTicks={100}
         enableNodeDrag={true}
@@ -229,8 +351,8 @@ export default function NetworkGraph({
         linkTarget="target"
       />
 
-      {/* Edge label tooltip */}
-      {hoveredEdge && (
+      {/* Node / edge tooltip */}
+      {(hoveredNode || hoveredEdge) && (
         <Box
           sx={{
             position: 'fixed',
@@ -247,12 +369,25 @@ export default function NetworkGraph({
             zIndex: 1000,
           }}
         >
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-            {hoveredEdge.label}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {hoveredEdge.type === 'relationship' ? 'Relationship' : 'Shared Activity'}
-          </Typography>
+          {hoveredNode ? (
+            <>
+              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                {hoveredNode.label}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {hoveredNode.type === 'contact' ? t('network.legend.contact') : hoveredNode.type === 'activity' ? t('network.legend.activity') : t('network.legend.circle')}
+              </Typography>
+            </>
+          ) : hoveredEdge ? (
+            <>
+              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                {hoveredEdge.label}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {getEdgeTypeLabel(hoveredEdge.type)}
+              </Typography>
+            </>
+          ) : null}
         </Box>
       )}
     </Box>

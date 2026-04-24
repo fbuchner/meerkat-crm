@@ -461,8 +461,12 @@
       "relationships": "Beziehung",
       "activities": "Gemeinsame Aktivität",
       "contact": "Kontakt",
-      "activity": "Aktivität"
-    }
+      "activity": "Aktivität",
+      "circle": "Kreis",
+      "circleEdge": "Kreiszugehörigkeit"
+    },
+    "filterByContact": "Kontakt zentrieren",
+    "showCircles": "Kreise"
   },
   "relationships": {
     "title": "Beziehungen",

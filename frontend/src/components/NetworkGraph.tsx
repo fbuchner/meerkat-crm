@@ -2,6 +2,7 @@ import { useRef, useCallback, useMemo, useEffect, useState } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import { forceX, forceY } from 'd3-force';
 import { useTheme, Box, Typography, useMediaQuery } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { GraphData, GraphNode, GraphEdge } from '../types/graph';
 
 interface NetworkGraphProps {
@@ -20,6 +21,12 @@ interface ForceGraphData {
   links: GraphEdge[];
 }
 
+const getNodeSize = (type: GraphNode['type']): number => {
+  if (type === 'contact') return 12;
+  if (type === 'circle') return 9;
+  return 6;
+};
+
 export default function NetworkGraph({
   data,
   onNodeClick,
@@ -30,6 +37,7 @@ export default function NetworkGraph({
   showCircles,
   centeredNodeId,
 }: NetworkGraphProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -116,7 +124,6 @@ export default function NetworkGraph({
 
       if (!nodeIds.has(sourceId) || !nodeIds.has(targetId)) return false;
       if (e.type === 'relationship' && !showRelationships) return false;
-      if (e.type === 'activity' && !showActivities) return false;
       return true;
     });
 
@@ -211,7 +218,7 @@ export default function NetworkGraph({
     const isContact = node.type === 'contact';
     const isActivity = node.type === 'activity';
     const isCircleNode = node.type === 'circle';
-    const size = isContact ? 12 : isCircleNode ? 9 : 6;
+    const size = getNodeSize(node.type);
     const fontSize = Math.max(10 / globalScale, 3);
     const isCentered = node.id === centeredNodeId;
 
@@ -307,9 +314,9 @@ export default function NetworkGraph({
   }, [graphData.nodes.length, isMobile]);
 
   const getEdgeTypeLabel = (type: string) => {
-    if (type === 'relationship') return 'Relationship';
-    if (type === 'activity') return 'Shared Activity';
-    return 'Circle';
+    if (type === 'relationship') return t('network.legend.relationships');
+    if (type === 'activity') return t('network.legend.activities');
+    return t('network.legend.circleEdge');
   };
 
   return (
@@ -321,7 +328,7 @@ export default function NetworkGraph({
         graphData={graphData}
         nodeCanvasObject={nodeCanvasObject}
         nodePointerAreaPaint={(node: GraphNode, color, ctx) => {
-          const size = node.type === 'contact' ? 12 : node.type === 'circle' ? 9 : 6;
+          const size = getNodeSize(node.type);
           ctx.beginPath();
           ctx.arc(node.x || 0, node.y || 0, size + 4, 0, 2 * Math.PI);
           ctx.fillStyle = color;
@@ -367,7 +374,7 @@ export default function NetworkGraph({
                 {hoveredNode.label}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {hoveredNode.type === 'contact' ? 'Contact' : hoveredNode.type === 'activity' ? 'Activity' : 'Circle'}
+                {hoveredNode.type === 'contact' ? t('network.legend.contact') : hoveredNode.type === 'activity' ? t('network.legend.activity') : t('network.legend.circle')}
               </Typography>
             </>
           ) : hoveredEdge ? (

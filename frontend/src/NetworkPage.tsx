@@ -99,8 +99,8 @@ export default function NetworkPage() {
       const activity = await getActivity(id);
       setEditingActivity(activity);
       if (allContacts.length === 0) {
-        const data = await getContacts({ page: 1, limit: 1000 });
-        setAllContacts(data.contacts || []);
+        const contactsResponse = await getContacts({ page: 1, limit: 1000 });
+        setAllContacts(contactsResponse.contacts || []);
       }
       setEditValues({
         activityTitle: activity.title || '',
@@ -280,7 +280,7 @@ export default function NetworkPage() {
       </Card>
       {editingActivity && (
         <EditTimelineItemDialog
-          open={!!editingActivity}
+          open
           onClose={handleActivityEditClose}
           onSave={handleActivitySave}
           onDelete={handleActivityDelete}

@@ -34,6 +34,7 @@ export default function NetworkGraph({
   const graphRef = useRef<any>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [hoveredEdge, setHoveredEdge] = useState<GraphEdge | null>(null);
+  const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -246,6 +247,11 @@ export default function NetworkGraph({
     return circleEdgeColor;
   }, [relationshipColor, activityColor, circleEdgeColor]);
 
+  // Handle node hover
+  const handleNodeHover = useCallback((node: GraphNode | null) => {
+    setHoveredNode(node);
+  }, []);
+
   // Handle link hover
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleLinkHover = useCallback((link: any) => {
@@ -303,6 +309,7 @@ export default function NetworkGraph({
         linkWidth={2}
         linkDirectionalArrowLength={0}
         onNodeClick={handleNodeClick}
+        onNodeHover={handleNodeHover}
         onLinkHover={handleLinkHover}
         cooldownTicks={100}
         enableNodeDrag={true}
@@ -314,8 +321,8 @@ export default function NetworkGraph({
         linkTarget="target"
       />
 
-      {/* Edge label tooltip */}
-      {hoveredEdge && (
+      {/* Node / edge tooltip */}
+      {(hoveredNode || hoveredEdge) && (
         <Box
           sx={{
             position: 'fixed',
@@ -332,12 +339,25 @@ export default function NetworkGraph({
             zIndex: 1000,
           }}
         >
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-            {hoveredEdge.label}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {getEdgeTypeLabel(hoveredEdge.type)}
-          </Typography>
+          {hoveredNode ? (
+            <>
+              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                {hoveredNode.label}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {hoveredNode.type === 'contact' ? 'Contact' : hoveredNode.type === 'activity' ? 'Activity' : 'Circle'}
+              </Typography>
+            </>
+          ) : hoveredEdge ? (
+            <>
+              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                {hoveredEdge.label}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {getEdgeTypeLabel(hoveredEdge.type)}
+              </Typography>
+            </>
+          ) : null}
         </Box>
       )}
     </Box>

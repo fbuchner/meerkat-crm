@@ -162,11 +162,29 @@ export default function NetworkGraph({
       filteredEdges = [...filteredEdges, ...circleEdges];
     }
 
+    if (centeredNodeId) {
+      const directNeighbors = new Set<string>([centeredNodeId]);
+
+      filteredEdges.forEach(e => {
+        const srcId = typeof e.source === 'string' ? e.source : e.source.id;
+        const tgtId = typeof e.target === 'string' ? e.target : e.target.id;
+        if (srcId === centeredNodeId) directNeighbors.add(tgtId);
+        if (tgtId === centeredNodeId) directNeighbors.add(srcId);
+      });
+
+      filteredNodes = filteredNodes.filter(n => directNeighbors.has(n.id));
+      filteredEdges = filteredEdges.filter(e => {
+        const srcId = typeof e.source === 'string' ? e.source : e.source.id;
+        const tgtId = typeof e.target === 'string' ? e.target : e.target.id;
+        return directNeighbors.has(srcId) && directNeighbors.has(tgtId);
+      });
+    }
+
     return {
       nodes: filteredNodes,
       links: filteredEdges,
     };
-  }, [data, selectedCircle, showRelationships, showActivities, showCircles]);
+  }, [data, selectedCircle, showRelationships, showActivities, showCircles, centeredNodeId]);
 
   // Center and zoom to selected node when centeredNodeId changes
   useEffect(() => {

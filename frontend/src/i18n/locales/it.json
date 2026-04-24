@@ -461,8 +461,12 @@
       "relationships": "Rapporto",
       "activities": "Attività Condivisa",
       "contact": "Contatto",
-      "activity": "Attività"
-    }
+      "activity": "Attività",
+      "circle": "Cerchia",
+      "circleEdge": "Appartenenza a Cerchia"
+    },
+    "filterByContact": "Centra sul Contatto",
+    "showCircles": "Cerchie"
   },
   "relationships": {
     "title": "Rapporti",

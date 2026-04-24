@@ -16,6 +16,8 @@ import {
   SelectChangeEvent,
   useMediaQuery,
   useTheme,
+  Autocomplete,
+  TextField,
 } from '@mui/material';
 import NetworkGraph from './components/NetworkGraph';
 import NetworkLegend from './components/NetworkLegend';
@@ -32,6 +34,8 @@ export default function NetworkPage() {
   const [selectedCircle, setSelectedCircle] = useState<string>('');
   const [showRelationships, setShowRelationships] = useState(true);
   const [showActivities, setShowActivities] = useState(true);
+  const [showCircles, setShowCircles] = useState(false);
+  const [centeredNodeId, setCenteredNodeId] = useState<string | null>(null);
 
   // Extract unique circles from contacts
   const circles = useMemo(() => {
@@ -45,11 +49,18 @@ export default function NetworkPage() {
     return Array.from(allCircles).sort();
   }, [data]);
 
+  // Contact nodes for the center-on-contact autocomplete
+  const contactNodes = useMemo(() => {
+    if (!data) return [];
+    return data.nodes.filter(n => n.type === 'contact').sort((a, b) => a.label.localeCompare(b.label));
+  }, [data]);
+
   // Handle node click - navigate to contact detail
   const handleNodeClick = (node: GraphNode) => {
-    // Extract contact ID from node ID (format: "c-{id}")
-    const contactId = node.id.replace('c-', '');
-    navigate(`/contacts/${contactId}`);
+    if (node.type === 'contact') {
+      const contactId = node.id.replace('c-', '');
+      navigate(`/contacts/${contactId}`);
+    }
   };
 
   const handleCircleChange = (event: SelectChangeEvent<string>) => {
@@ -99,6 +110,19 @@ export default function NetworkPage() {
           overflow: 'visible',
         }}
       >
+        <Autocomplete
+          size="small"
+          sx={{ minWidth: 200 }}
+          options={contactNodes}
+          getOptionLabel={(n) => n.label}
+          value={contactNodes.find(n => n.id === centeredNodeId) ?? null}
+          onChange={(_e, node) => setCenteredNodeId(node ? node.id : null)}
+          renderInput={(params) => (
+            <TextField {...params} label={t('network.filterByContact')} />
+          )}
+          clearOnEscape
+        />
+
         <FormControl size="small" sx={{ minWidth: 150 }}>
           <InputLabel>{t('network.filterByCircle')}</InputLabel>
           <Select
@@ -135,12 +159,27 @@ export default function NetworkPage() {
           label={t('network.showActivities')}
         />
 
-        {!isMobile && <NetworkLegend />}
+        <FormControlLabel
+          control={
+            <Switch
+              checked={showCircles}
+              onChange={(e) => setShowCircles(e.target.checked)}
+              color="warning"
+            />
+          }
+          label={t('network.showCircles')}
+        />
+
+        {!isMobile && (
+          <Box sx={{ flexBasis: '100%' }}>
+            <NetworkLegend showCircles={showCircles} showActivities={showActivities} showRelationships={showRelationships} />
+          </Box>
+        )}
       </Card>
 
       {isMobile && (
         <Card sx={{ p: 1.5, mb: 2 }}>
-          <NetworkLegend />
+          <NetworkLegend showCircles={showCircles} showActivities={showActivities} showRelationships={showRelationships} />
         </Card>
       )}
 
@@ -152,6 +191,8 @@ export default function NetworkPage() {
           selectedCircle={selectedCircle || undefined}
           showRelationships={showRelationships}
           showActivities={showActivities}
+          showCircles={showCircles}
+          centeredNodeId={centeredNodeId ?? undefined}
         />
       </Card>
     </Box>

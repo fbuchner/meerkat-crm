@@ -10,6 +10,8 @@ interface NetworkGraphProps {
   selectedCircle?: string;
   showRelationships: boolean;
   showActivities: boolean;
+  showCircles: boolean;
+  centeredNodeId?: string;
 }
 
 interface ForceGraphData {
@@ -22,7 +24,9 @@ export default function NetworkGraph({
   onNodeClick,
   selectedCircle,
   showRelationships,
-  showActivities
+  showActivities,
+  showCircles,
+  centeredNodeId,
 }: NetworkGraphProps) {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -36,8 +40,10 @@ export default function NetworkGraph({
   // Colors from theme
   const relationshipColor = theme.palette.primary.main;
   const activityColor = theme.palette.secondary.main;
+  const circleEdgeColor = theme.palette.warning.main;
   const nodeColor = theme.palette.primary.main;
   const activityNodeColor = theme.palette.secondary.main;
+  const circleNodeColor = theme.palette.warning.main;
   const textColor = theme.palette.text.primary;
   const bgColor = theme.palette.background.paper;
 
@@ -63,7 +69,7 @@ export default function NetworkGraph({
     };
   }, []);
 
-  // Filter and transform data for the graph
+  // Filter and transform data for the graph, including synthetic circle nodes/edges
   const graphData: ForceGraphData = useMemo(() => {
     let filteredNodes = data.nodes;
 
@@ -93,10 +99,15 @@ export default function NetworkGraph({
       });
     }
 
+    // Hide activity nodes when the activities toggle is off
+    if (!showActivities) {
+      filteredNodes = filteredNodes.filter(n => n.type !== 'activity');
+    }
+
     const nodeIds = new Set(filteredNodes.map(n => n.id));
 
     // Filter edges based on visibility toggles and filtered nodes
-    const filteredEdges = data.edges.filter(e => {
+    let filteredEdges = data.edges.filter(e => {
       const sourceId = typeof e.source === 'string' ? e.source : e.source.id;
       const targetId = typeof e.target === 'string' ? e.target : e.target.id;
 
@@ -106,11 +117,64 @@ export default function NetworkGraph({
       return true;
     });
 
+    // Synthesize circle nodes and edges from contact circles data
+    if (showCircles) {
+      const visibleContacts = filteredNodes.filter(n => n.type === 'contact');
+
+      // Count contacts per circle
+      const circleContactMap = new Map<string, string[]>();
+      visibleContacts.forEach(contact => {
+        contact.circles?.forEach(circleName => {
+          const existing = circleContactMap.get(circleName) ?? [];
+          existing.push(contact.id);
+          circleContactMap.set(circleName, existing);
+        });
+      });
+
+      const circleNodes: GraphNode[] = [];
+      const circleEdges: GraphEdge[] = [];
+
+      circleContactMap.forEach((contactIds, circleName) => {
+        if (contactIds.length < 2) return; // only show circles that connect people
+
+        const circleNodeId = `circle-${circleName}`;
+        circleNodes.push({
+          id: circleNodeId,
+          type: 'circle',
+          label: circleName,
+        });
+
+        contactIds.forEach(contactId => {
+          circleEdges.push({
+            id: `ce-${contactId}-${circleName}`,
+            type: 'circle',
+            source: contactId,
+            target: circleNodeId,
+            label: circleName,
+          });
+        });
+      });
+
+      filteredNodes = [...filteredNodes, ...circleNodes];
+      filteredEdges = [...filteredEdges, ...circleEdges];
+    }
+
     return {
       nodes: filteredNodes,
-      links: filteredEdges
+      links: filteredEdges,
     };
-  }, [data, selectedCircle, showRelationships, showActivities]);
+  }, [data, selectedCircle, showRelationships, showActivities, showCircles]);
+
+  // Center and zoom to selected node when centeredNodeId changes
+  useEffect(() => {
+    if (!centeredNodeId || !graphRef.current) return;
+
+    const node = graphData.nodes.find(n => n.id === centeredNodeId);
+    if (!node || node.x == null || node.y == null) return;
+
+    graphRef.current.centerAt(node.x, node.y, 800);
+    graphRef.current.zoom(2.5, 800);
+  }, [centeredNodeId, graphData.nodes]);
 
   // Get initials from a name
   const getInitials = (label: string): string => {
@@ -124,13 +188,31 @@ export default function NetworkGraph({
   // Custom node rendering
   const nodeCanvasObject = useCallback((node: GraphNode, ctx: CanvasRenderingContext2D, globalScale: number) => {
     const isContact = node.type === 'contact';
-    const size = isContact ? 12 : 6;
+    const isActivity = node.type === 'activity';
+    const isCircleNode = node.type === 'circle';
+    const size = isContact ? 12 : isCircleNode ? 9 : 6;
     const fontSize = Math.max(10 / globalScale, 3);
+    const isCentered = node.id === centeredNodeId;
+
+    // Draw highlight ring for centered contact
+    if (isCentered) {
+      ctx.beginPath();
+      ctx.arc(node.x || 0, node.y || 0, size + 5, 0, 2 * Math.PI);
+      ctx.strokeStyle = theme.palette.primary.light;
+      ctx.lineWidth = 3 / globalScale;
+      ctx.stroke();
+    }
 
     // Draw node circle
     ctx.beginPath();
     ctx.arc(node.x || 0, node.y || 0, size, 0, 2 * Math.PI);
-    ctx.fillStyle = isContact ? nodeColor : activityNodeColor;
+    if (isContact) {
+      ctx.fillStyle = nodeColor;
+    } else if (isActivity) {
+      ctx.fillStyle = activityNodeColor;
+    } else {
+      ctx.fillStyle = circleNodeColor;
+    }
     ctx.fill();
 
     // Draw border
@@ -147,20 +229,22 @@ export default function NetworkGraph({
       ctx.fillText(getInitials(node.label), node.x || 0, node.y || 0);
     }
 
-    // Draw label below node for contacts (only when zoomed in enough)
-    if (isContact && globalScale > 0.6) {
+    // Draw label below node when zoomed in enough
+    if (globalScale > 0.6 && (isContact || isActivity || isCircleNode)) {
       ctx.font = `${fontSize}px Inter, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       ctx.fillStyle = textColor;
       ctx.fillText(node.label, node.x || 0, (node.y || 0) + size + 4);
     }
-  }, [nodeColor, activityNodeColor, bgColor, textColor]);
+  }, [nodeColor, activityNodeColor, circleNodeColor, bgColor, textColor, centeredNodeId, theme.palette.primary.light]);
 
   // Custom link rendering
   const linkColor = useCallback((link: GraphEdge) => {
-    return link.type === 'relationship' ? relationshipColor : activityColor;
-  }, [relationshipColor, activityColor]);
+    if (link.type === 'relationship') return relationshipColor;
+    if (link.type === 'activity') return activityColor;
+    return circleEdgeColor;
+  }, [relationshipColor, activityColor, circleEdgeColor]);
 
   // Handle link hover
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -179,13 +263,8 @@ export default function NetworkGraph({
   useEffect(() => {
     if (graphRef.current) {
       const fg = graphRef.current;
-      
-      // Add position forces that gently pull all nodes toward center
-      // This particularly helps isolated nodes that have no link forces
       fg.d3Force('x', forceX(0).strength(0.05));
       fg.d3Force('y', forceY(0).strength(0.05));
-      
-      // Reduce charge strength to prevent excessive repulsion
       fg.d3Force('charge')?.strength(-100);
     }
   }, []);
@@ -199,6 +278,12 @@ export default function NetworkGraph({
     }
   }, [graphData.nodes.length, isMobile]);
 
+  const getEdgeTypeLabel = (type: string) => {
+    if (type === 'relationship') return 'Relationship';
+    if (type === 'activity') return 'Shared Activity';
+    return 'Circle';
+  };
+
   return (
     <Box ref={containerRef} sx={{ width: '100%', height: '100%', position: 'relative' }}>
       <ForceGraph2D
@@ -208,7 +293,7 @@ export default function NetworkGraph({
         graphData={graphData}
         nodeCanvasObject={nodeCanvasObject}
         nodePointerAreaPaint={(node: GraphNode, color, ctx) => {
-          const size = node.type === 'contact' ? 12 : 6;
+          const size = node.type === 'contact' ? 12 : node.type === 'circle' ? 9 : 6;
           ctx.beginPath();
           ctx.arc(node.x || 0, node.y || 0, size + 4, 0, 2 * Math.PI);
           ctx.fillStyle = color;
@@ -251,7 +336,7 @@ export default function NetworkGraph({
             {hoveredEdge.label}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            {hoveredEdge.type === 'relationship' ? 'Relationship' : 'Shared Activity'}
+            {getEdgeTypeLabel(hoveredEdge.type)}
           </Typography>
         </Box>
       )}

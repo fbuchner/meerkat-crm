@@ -509,6 +509,25 @@ func TestAccountRateLimiter_CleanupPreservesLockedAccounts(t *testing.T) {
 	}
 }
 
+func TestCardDAVRateLimitMiddlewareAllowsBulkRequests(t *testing.T) {
+	testLimiter := NewIPRateLimiter(rate.Every(100*time.Millisecond), 1000)
+
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(RateLimitMiddleware(testLimiter))
+	router.GET("/carddav/test", func(c *gin.Context) { c.Status(http.StatusOK) })
+
+	for i := 0; i < 100; i++ {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/carddav/test", nil)
+		req.RemoteAddr = "192.168.1.1:1234"
+		router.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("Request %d got %d, want 200 — burst too small for bulk sync", i+1, w.Code)
+		}
+	}
+}
+
 func TestGetAccountRateLimiter(t *testing.T) {
 	limiter := GetAccountRateLimiter()
 

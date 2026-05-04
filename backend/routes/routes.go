@@ -176,7 +176,7 @@ func registerCardDAVRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB) 
 		c.Set("db", db)
 		c.Next()
 	})
-	cardDAVGroup.Use(middleware.AuthRateLimitMiddleware())
+	cardDAVGroup.Use(middleware.CardDAVRateLimitMiddleware())
 	cardDAVGroup.Use(carddav.BasicAuthMiddleware())
 	{
 		ginHandler := handler.GinHandler()

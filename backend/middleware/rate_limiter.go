@@ -239,6 +239,10 @@ var (
 	// 100 requests per minute with burst of 500
 	apiLimiter = NewIPRateLimiter(rate.Every(600*time.Millisecond), 500)
 
+	// CardDAV rate limiter — higher burst to accommodate bulk sync from clients like vdirsyncer
+	// 10 requests per second sustained, burst of 2500 for initial address book sync
+	cardDAVLimiter = NewIPRateLimiter(rate.Every(100*time.Millisecond), 2500)
+
 	// Per-account rate limiter for login attempts
 	// Tracks failed attempts per username/email with exponential backoff
 	// This is the primary brute force protection mechanism
@@ -275,6 +279,7 @@ func StartCleanupRoutine() {
 			case <-ticker.C:
 				authLimiter.CleanupStaleEntries()
 				apiLimiter.CleanupStaleEntries()
+				cardDAVLimiter.CleanupStaleEntries()
 				accountLimiter.CleanupStaleAccountEntries()
 			case <-cleanupDone:
 				return
@@ -331,4 +336,10 @@ func AuthRateLimitMiddleware() gin.HandlerFunc {
 // APIRateLimitMiddleware applies general rate limiting for API endpoints
 func APIRateLimitMiddleware() gin.HandlerFunc {
 	return RateLimitMiddleware(apiLimiter)
+}
+
+// CardDAVRateLimitMiddleware applies rate limiting for CardDAV endpoints.
+// Uses a higher burst than auth endpoints to allow bulk sync from clients like vdirsyncer.
+func CardDAVRateLimitMiddleware() gin.HandlerFunc {
+	return RateLimitMiddleware(cardDAVLimiter)
 }

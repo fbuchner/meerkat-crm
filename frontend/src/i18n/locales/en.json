@@ -387,6 +387,19 @@
         "dark": "Dark mode"
       }
     },
+    "caldav": {
+      "title": "CalDAV Activity Sync",
+      "description": "Connect to a CalDAV calendar and import planned events as activities. Credentials are used for this sync only.",
+      "url": "Calendar URL",
+      "username": "Username",
+      "password": "Password",
+      "limit": "Event limit",
+      "syncButton": "Sync activities",
+      "syncing": "Syncing...",
+      "required": "Calendar URL, username, and password are required.",
+      "success": "CalDAV sync completed: {{created}} created, {{skipped}} skipped.",
+      "error": "Failed to sync CalDAV activities. Please try again."
+    },
     "password": {
       "title": "Change Password",
       "description": "Use a strong password that you haven't used elsewhere.",

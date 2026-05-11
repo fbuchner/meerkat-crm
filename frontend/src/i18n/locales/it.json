@@ -387,6 +387,19 @@
         "dark": "Modalità scura"
       }
     },
+    "caldav": {
+      "title": "Sincronizzazione attivita CalDAV",
+      "description": "Connetti un calendario CalDAV e importa gli eventi pianificati come attivita. Le credenziali sono usate solo per questa sincronizzazione.",
+      "url": "URL calendario",
+      "username": "Nome utente",
+      "password": "Password",
+      "limit": "Limite eventi",
+      "syncButton": "Sincronizza attivita",
+      "syncing": "Sincronizzazione...",
+      "required": "URL calendario, nome utente e password sono obbligatori.",
+      "success": "Sincronizzazione CalDAV completata: {{created}} creati, {{skipped}} saltati.",
+      "error": "Impossibile sincronizzare le attivita CalDAV. Riprova."
+    },
     "password": {
       "title": "Cambia Password",
       "description": "Usa una password forte che non hai usato altrove.",

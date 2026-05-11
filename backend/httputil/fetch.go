@@ -82,62 +82,55 @@ func validateURLForSSRF(rawURL string) (*url.URL, error) {
 	return parsedURL, nil
 }
 
-// FetchImageFromURL fetches an image from a URL with SSRF protection.
-// Returns the image data, content type, and any error.
-// The URL is sanitized to remove whitespace (handles Google VCF format).
-func FetchImageFromURL(imageURL string) ([]byte, string, error) {
-	// Clean URL - remove spaces and newlines (Google VCF format may have these)
-	cleanURL := strings.ReplaceAll(imageURL, " ", "")
-	cleanURL = strings.ReplaceAll(cleanURL, "\n", "")
-	cleanURL = strings.ReplaceAll(cleanURL, "\r", "")
+// ValidateURLForSSRF checks if a URL is safe to fetch from user-provided input.
+func ValidateURLForSSRF(rawURL string) (*url.URL, error) {
+	return validateURLForSSRF(rawURL)
+}
 
-	// Validate the URL format and scheme
-	parsedURL, err := validateURLForSSRF(cleanURL)
+func safeDialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+	// Extract host from addr (format is host:port)
+	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
-	// Create a custom dialer that validates IP addresses at connection time
-	// This prevents DNS rebinding/TOCTOU attacks
+	// Resolve the hostname to IP addresses
+	ips, err := net.LookupIP(host)
+	if err != nil {
+		return nil, errors.New("failed to resolve hostname")
+	}
+
+	// Find a safe IP to connect to
+	var safeIP net.IP
+	for _, ip := range ips {
+		if !isPrivateIP(ip) {
+			safeIP = ip
+			break
+		}
+	}
+
+	if safeIP == nil {
+		return nil, errors.New("access to internal IP addresses is not allowed")
+	}
+
 	safeDialer := &net.Dialer{
 		Timeout:   10 * time.Second,
 		KeepAlive: 10 * time.Second,
 	}
 
-	safeDialContext := func(ctx context.Context, network, addr string) (net.Conn, error) {
-		// Extract host from addr (format is host:port)
-		host, port, err := net.SplitHostPort(addr)
-		if err != nil {
-			return nil, err
-		}
+	// Connect using the validated IP address directly
+	safeAddr := net.JoinHostPort(safeIP.String(), port)
+	return safeDialer.DialContext(ctx, network, safeAddr)
+}
 
-		// Resolve the hostname to IP addresses
-		ips, err := net.LookupIP(host)
-		if err != nil {
-			return nil, errors.New("failed to resolve hostname")
-		}
-
-		// Find a safe IP to connect to
-		var safeIP net.IP
-		for _, ip := range ips {
-			if !isPrivateIP(ip) {
-				safeIP = ip
-				break
-			}
-		}
-
-		if safeIP == nil {
-			return nil, errors.New("access to internal IP addresses is not allowed")
-		}
-
-		// Connect using the validated IP address directly
-		safeAddr := net.JoinHostPort(safeIP.String(), port)
-		return safeDialer.DialContext(ctx, network, safeAddr)
+// NewSafeHTTPClient returns an HTTP client that blocks private/reserved network targets.
+func NewSafeHTTPClient(timeout time.Duration) *http.Client {
+	if timeout <= 0 {
+		timeout = 15 * time.Second
 	}
 
-	// Create HTTP client with custom transport that validates IPs at connection time
-	client := &http.Client{
-		Timeout: 15 * time.Second,
+	return &http.Client{
+		Timeout: timeout,
 		Transport: &http.Transport{
 			DialContext: safeDialContext,
 		},
@@ -153,6 +146,25 @@ func FetchImageFromURL(imageURL string) ([]byte, string, error) {
 			return nil
 		},
 	}
+}
+
+// FetchImageFromURL fetches an image from a URL with SSRF protection.
+// Returns the image data, content type, and any error.
+// The URL is sanitized to remove whitespace (handles Google VCF format).
+func FetchImageFromURL(imageURL string) ([]byte, string, error) {
+	// Clean URL - remove spaces and newlines (Google VCF format may have these)
+	cleanURL := strings.ReplaceAll(imageURL, " ", "")
+	cleanURL = strings.ReplaceAll(cleanURL, "\n", "")
+	cleanURL = strings.ReplaceAll(cleanURL, "\r", "")
+
+	// Validate the URL format and scheme
+	parsedURL, err := validateURLForSSRF(cleanURL)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// Create HTTP client with custom transport that validates IPs at connection time.
+	client := NewSafeHTTPClient(15 * time.Second)
 
 	// Fetch the image using the validated URL
 	req, err := http.NewRequest("GET", parsedURL.String(), nil)

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	apperrors "meerkat/errors"
+	"meerkat/config"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -34,6 +35,15 @@ func currentUserID(c *gin.Context) (uint, bool) {
 	}
 
 	return userID, true
+}
+
+func currentConfig(c *gin.Context) config.Config {
+	if val, exists := c.Get("cfg"); exists {
+		if cfg, ok := val.(config.Config); ok {
+			return cfg
+		}
+	}
+	return config.Config{}
 }
 
 // GetPaginationParams extracts pagination query params using shared defaults and bounds.

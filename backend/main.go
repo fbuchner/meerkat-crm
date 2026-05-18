@@ -76,6 +76,9 @@ func main() {
 	}
 	s.Every(1).Day().At(cfg.ReminderTime).Do(task)
 	go task() // Run initially once on startup (rate-limited to prevent duplicates)
+	s.Every(5).Minutes().Do(func() {
+		services.ProcessWebhookRetries(db, *cfg)
+	})
 	go s.StartBlocking()
 
 	r := gin.Default()
@@ -120,9 +123,10 @@ func main() {
 		logger.Fatal().Err(err).Strs("proxies", cfg.TrustedProxies).Msg("Failed to set trusted proxies")
 	}
 
-	// Inject db into context
+	// Inject db and cfg into context
 	r.Use(func(c *gin.Context) {
 		c.Set("db", db)
+		c.Set("cfg", *cfg)
 		c.Next()
 	})
 

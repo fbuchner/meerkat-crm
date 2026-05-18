@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/assert"
 	"github.com/glebarez/sqlite"
+	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 )
 
@@ -25,7 +25,10 @@ func setupRouter() (*gorm.DB, *gin.Engine) {
 		panic("failed to connect database")
 	}
 
-	db.AutoMigrate(&models.Contact{}, &models.Activity{}, &models.Note{}, models.Relationship{}, models.Reminder{}, models.User{})
+	sqlDB, _ := db.DB()
+	sqlDB.SetMaxOpenConns(1)
+
+	db.AutoMigrate(&models.Contact{}, &models.Activity{}, &models.Note{}, models.Relationship{}, models.Reminder{}, models.User{}, models.Webhook{}, models.WebhookDelivery{})
 
 	user := models.User{Username: "tester", Password: "password123", Email: "tester@example.com"}
 	if err := db.Create(&user).Error; err != nil {

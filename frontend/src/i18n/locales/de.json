@@ -14,7 +14,9 @@
     "settings": "Einstellungen",
     "profile": "Profil",
     "users": "Benutzer",
-    "apiTokens": "API-Tokens"
+    "apiTokens": "API-Tokens",
+    "integrations": "Integration"
+
   },
   "dashboard": {
     "welcome": "Willkommen zum Meerkat CRM Dashboard",
@@ -419,6 +421,57 @@
       "title": "Über Meerkat CRM",
       "description": "Meerkat CRM ist eine Open-Source-Anwendung zur persönlichen Kontaktverwaltung, die Ihnen hilft, Ihre Kontakte und Beziehungen zu pflegen.",
       "contribute": "Mitwirkende sind willkommen! Sie können Probleme melden, Funktionen vorschlagen oder Code auf GitHub beitragen."
+    },
+    "webhooks": {
+      "title": "Webhooks",
+      "description": "HTTP-POST-Benachrichtigungen empfangen, wenn Ereignisse auftreten.",
+      "add": "Webhook hinzufügen",
+      "addTitle": "Webhook hinzufügen",
+      "editTitle": "Webhook bearbeiten",
+      "noWebhooks": "Noch keine Webhooks konfiguriert.",
+      "loading": "Webhooks werden geladen...",
+      "name": "Name",
+      "url": "URL",
+      "events": "Ereignisse",
+      "active": "Aktiv",
+      "inactive": "Inaktiv",
+      "eventsCount": "Ereignisse",
+      "test": "Testen",
+      "testQueued": "Test-Webhook in Warteschlange",
+      "testFailed": "Test fehlgeschlagen: {{error}}",
+      "deliveries": "Letzte Zustellungen",
+      "loadingDeliveries": "Zustellungen werden geladen...",
+      "noDeliveries": "Noch keine Zustellungen.",
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "save": "Speichern",
+      "saving": "Wird gespeichert...",
+      "cancel": "Abbrechen",
+      "loadError": "Webhooks konnten nicht geladen werden.",
+      "saveError": "Webhook konnte nicht gespeichert werden.",
+      "deleteError": "Webhook konnte nicht gelöscht werden.",
+      "eventLabels": {
+        "contact.created": "Kontakt erstellt",
+        "contact.updated": "Kontakt aktualisiert",
+        "contact.deleted": "Kontakt gelöscht",
+        "note.created": "Notiz erstellt",
+        "note.updated": "Notiz aktualisiert",
+        "note.deleted": "Notiz gelöscht",
+        "activity.created": "Aktivität erstellt",
+        "activity.updated": "Aktivität aktualisiert",
+        "activity.deleted": "Aktivität gelöscht",
+        "reminder.triggered": "Erinnerung ausgelöst",
+        "birthday.occurred": "Geburtstag"
+      },
+      "secretDialog": {
+        "title": "Webhook-Secret"
+      },
+      "deleteDialog": {
+        "title": "Webhook löschen",
+        "message": "\"{{name}}\" löschen? Alle zukünftigen Zustellungen werden gestoppt.",
+        "confirm": "Löschen",
+        "cancel": "Abbrechen"
+      }
     },
     "customFields": {
       "title": "Benutzerdefinierte Felder",

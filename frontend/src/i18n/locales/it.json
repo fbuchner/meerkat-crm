@@ -14,7 +14,8 @@
     "settings": "Impostazioni",
     "profile": "Profilo",
     "users": "Utenti",
-    "apiTokens": "Token API"
+    "apiTokens": "Token API",
+    "integrations": "Integrazioni"
   },
   "dashboard": {
     "welcome": "Benvenuto nel Cruscotto di Meerkat CRM",
@@ -419,6 +420,57 @@
       "title": "Informazioni su Meerkat CRM",
       "description": "Meerkat CRM è un'applicazione CRM personale open source progettata per aiutarti a gestire i tuoi contatti e rapporti.",
       "contribute": "I contributori sono benvenuti! Puoi segnalare problemi, suggerire funzionalità o contribuire con codice su GitHub."
+    },
+    "webhooks": {
+      "title": "Webhook",
+      "description": "Ricevi notifiche HTTP POST quando si verificano eventi nel tuo CRM.",
+      "add": "Aggiungi Webhook",
+      "addTitle": "Aggiungi Webhook",
+      "editTitle": "Modifica Webhook",
+      "noWebhooks": "Nessun webhook configurato.",
+      "loading": "Caricamento webhook...",
+      "name": "Nome",
+      "url": "URL",
+      "events": "Eventi",
+      "active": "Attivo",
+      "inactive": "Inattivo",
+      "eventsCount": "eventi",
+      "test": "Testa",
+      "testQueued": "Webhook di test in coda",
+      "testFailed": "Test fallito: {{error}}",
+      "deliveries": "Consegne recenti",
+      "loadingDeliveries": "Caricamento consegne...",
+      "noDeliveries": "Nessuna consegna ancora.",
+      "edit": "Modifica",
+      "delete": "Elimina",
+      "save": "Salva",
+      "saving": "Salvataggio...",
+      "cancel": "Annulla",
+      "loadError": "Impossibile caricare i webhook.",
+      "saveError": "Impossibile salvare il webhook.",
+      "deleteError": "Impossibile eliminare il webhook.",
+      "eventLabels": {
+        "contact.created": "Contatto creato",
+        "contact.updated": "Contatto aggiornato",
+        "contact.deleted": "Contatto eliminato",
+        "note.created": "Nota creata",
+        "note.updated": "Nota aggiornata",
+        "note.deleted": "Nota eliminata",
+        "activity.created": "Attività creata",
+        "activity.updated": "Attività aggiornata",
+        "activity.deleted": "Attività eliminata",
+        "reminder.triggered": "Promemoria attivato",
+        "birthday.occurred": "Compleanno"
+      },
+      "secretDialog": {
+        "title": "Segreto Webhook"
+      },
+      "deleteDialog": {
+        "title": "Elimina Webhook",
+        "message": "Eliminare \"{{name}}\"? Tutte le consegne future verranno interrotte.",
+        "confirm": "Elimina",
+        "cancel": "Annulla"
+      }
     },
     "customFields": {
       "title": "Campi Personalizzati",

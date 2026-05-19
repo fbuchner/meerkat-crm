@@ -14,7 +14,8 @@
     "settings": "Settings",
     "profile": "Profile",
     "users": "Users",
-    "apiTokens": "API Tokens"
+    "apiTokens": "API Tokens",
+    "integrations": "Integrations"
   },
   "dashboard": {
     "welcome": "Welcome to Meerkat CRM Dashboard",
@@ -419,6 +420,57 @@
       "title": "About Meerkat CRM",
       "description": "Meerkat CRM is an open source personal CRM application designed to help you manage your contacts and relationships.",
       "contribute": "Contributors are welcome! You can report issues, suggest features, or contribute code on GitHub."
+    },
+    "webhooks": {
+      "title": "Webhooks",
+      "description": "Receive HTTP POST notifications when events occur in your CRM.",
+      "add": "Add Webhook",
+      "addTitle": "Add Webhook",
+      "editTitle": "Edit Webhook",
+      "noWebhooks": "No webhooks configured yet.",
+      "loading": "Loading webhooks...",
+      "name": "Name",
+      "url": "URL",
+      "events": "Events",
+      "active": "Active",
+      "inactive": "Inactive",
+      "eventsCount": "events",
+      "test": "Test",
+      "testSuccess": "Test delivered ({{statusCode}})",
+      "testFailed": "Test failed: {{error}}",
+      "deliveries": "Recent Deliveries",
+      "loadingDeliveries": "Loading deliveries...",
+      "noDeliveries": "No deliveries yet.",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "loadError": "Failed to load webhooks.",
+      "saveError": "Failed to save webhook.",
+      "deleteError": "Failed to delete webhook.",
+      "eventLabels": {
+        "contact.created": "Contact Created",
+        "contact.updated": "Contact Updated",
+        "contact.deleted": "Contact Deleted",
+        "note.created": "Note Created",
+        "note.updated": "Note Updated",
+        "note.deleted": "Note Deleted",
+        "activity.created": "Activity Created",
+        "activity.updated": "Activity Updated",
+        "activity.deleted": "Activity Deleted",
+        "reminder.triggered": "Reminder Triggered",
+        "birthday.occurred": "Birthday"
+      },
+      "secretDialog": {
+        "title": "Webhook Secret"
+      },
+      "deleteDialog": {
+        "title": "Delete Webhook",
+        "message": "Delete \"{{name}}\"? This will stop all future deliveries.",
+        "confirm": "Delete",
+        "cancel": "Cancel"
+      }
     },
     "customFields": {
       "title": "Custom Fields",

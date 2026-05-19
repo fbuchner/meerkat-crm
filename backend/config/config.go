@@ -41,8 +41,9 @@ type Config struct {
 	CardDAVEnabled       bool   // Enable CardDAV server for contact sync
 	CookieSecure         bool   // Set Secure flag on auth cookie (requires HTTPS)
 	CookieDomain         string // Domain for auth cookie (empty = current domain only)
-	RegistrationDisabled bool   // Disable new user registration
-	OIDC                 OIDCConfig
+	RegistrationDisabled    bool   // Disable new user registration
+	WebhookBlockPrivateURLs bool   // Block webhook deliveries to private/loopback addresses (useful for cloud deployments)
+	OIDC                    OIDCConfig
 }
 
 func LoadConfig() *Config {
@@ -77,7 +78,8 @@ func LoadConfig() *Config {
 		CardDAVEnabled:       getBoolEnv("CARDDAV_ENABLED", false),
 		CookieSecure:         getBoolEnv("COOKIE_SECURE", false),
 		CookieDomain:         getEnv("COOKIE_DOMAIN", ""),
-		RegistrationDisabled: getBoolEnv("DISABLE_REGISTRATION", false),
+		RegistrationDisabled:    getBoolEnv("DISABLE_REGISTRATION", false),
+		WebhookBlockPrivateURLs: getBoolEnv("WEBHOOK_BLOCK_PRIVATE_URLS", false),
 	}
 
 	if cfg.ResendAPIKey == "" || cfg.ResendFromEmail == "" {

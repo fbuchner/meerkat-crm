@@ -57,6 +57,7 @@ func CreateContact(c *gin.Context) {
 		return
 	}
 
+	go services.TriggerWebhooks(db, currentConfig(c), userID, "contact.created", contact)
 	c.JSON(http.StatusCreated, gin.H{"message": "Contact created successfully", "contact": contact})
 }
 
@@ -370,6 +371,7 @@ func UpdateContact(c *gin.Context) {
 		return
 	}
 
+	go services.TriggerWebhooks(db, currentConfig(c), userID, "contact.updated", contact)
 	c.JSON(http.StatusOK, contact)
 }
 
@@ -432,6 +434,7 @@ func DeleteContact(c *gin.Context) {
 	// This is done outside the transaction since file deletion cannot be rolled back
 	deleteContactPhotos(c, contact)
 
+	go services.TriggerWebhooks(db, currentConfig(c), userID, "contact.deleted", gin.H{"id": contact.ID})
 	c.JSON(http.StatusOK, gin.H{"message": "Contact deleted"})
 }
 

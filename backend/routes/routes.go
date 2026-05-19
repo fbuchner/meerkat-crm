@@ -140,6 +140,15 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			protected.GET("/api-tokens", controllers.ListApiTokens)
 			protected.POST("/api-tokens", middleware.ValidateJSONMiddleware(&models.ApiTokenInput{}), controllers.CreateApiToken)
 			protected.DELETE("/api-tokens/:id", controllers.RevokeApiToken)
+
+			// Webhook routes
+			protected.GET("/webhooks", controllers.ListWebhooks)
+			protected.POST("/webhooks", middleware.ValidateJSONMiddleware(&models.WebhookInput{}), controllers.CreateWebhook)
+			protected.GET("/webhooks/:id", controllers.GetWebhook)
+			protected.PUT("/webhooks/:id", middleware.ValidateJSONMiddleware(&models.WebhookInput{}), controllers.UpdateWebhook)
+			protected.DELETE("/webhooks/:id", controllers.DeleteWebhook)
+			protected.POST("/webhooks/:id/test", controllers.TestWebhook)
+			protected.GET("/webhooks/:id/deliveries", controllers.GetWebhookDeliveries)
 		}
 
 		// Admin routes (admin authentication required)

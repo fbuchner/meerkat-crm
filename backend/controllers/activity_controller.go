@@ -6,6 +6,7 @@ import (
 	"meerkat/logger"
 	"meerkat/middleware"
 	"meerkat/models"
+	"meerkat/services"
 	"net/http"
 	"strings"
 	"time"
@@ -66,7 +67,7 @@ func CreateActivity(c *gin.Context) {
 		}
 	}
 
-	// Respond with success
+	go services.TriggerWebhooks(db, currentConfig(c), userID, "activity.created", activity)
 	c.JSON(http.StatusOK, gin.H{"message": "Activity created successfully", "activity": activity})
 }
 
@@ -247,6 +248,7 @@ func UpdateActivity(c *gin.Context) {
 		return
 	}
 
+	go services.TriggerWebhooks(db, currentConfig(c), userID, "activity.updated", activity)
 	c.JSON(http.StatusOK, activity)
 }
 
@@ -275,6 +277,7 @@ func DeleteActivity(c *gin.Context) {
 		return
 	}
 
+	go services.TriggerWebhooks(db, currentConfig(c), userID, "activity.deleted", gin.H{"id": activity.ID})
 	c.JSON(http.StatusOK, gin.H{"message": "Activity deleted"})
 }
 

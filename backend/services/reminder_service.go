@@ -240,41 +240,55 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 
 	sort.Slice(userIDs, func(i, j int) bool { return userIDs[i] < userIDs[j] })
 
-	// Short-circuit if email sending is disabled - preserve reminders for when it's enabled
-	if !config.UseResend {
-		logger.Info().Int("reminder_count", len(reminders)).Msg("Email sending disabled (UseResend=false), skipping reminder mutations to preserve them")
-		return nil
-	}
-
 	var sendErrors int
 	for _, userID := range userIDs {
 		user, exists := userByID[userID]
 		if !exists {
-			logger.Warn().Uint("user_id", userID).Msg("Skipping email for missing user")
+			logger.Warn().Uint("user_id", userID).Msg("Skipping user - not found")
 			continue
 		}
 
 		userReminders := remindersByUser[userID] // May be nil/empty for birthday-only users
 
-		// Attempt to send email - if it fails, skip mutations for this user and continue to next
-		if err := sendReminderEmailFn(user, userReminders, config, db); err != nil {
-			logger.Error().Err(err).Uint("user_id", user.ID).Msg("Error sending daily email, skipping mutations for this user")
-			sendErrors++
-			continue // Don't mutate reminders if email failed - allows retry on next run
+		// Send email only when enabled; preserve reminders (email_sent=false) when disabled
+		// so they are picked up again once email is configured.
+		if config.UseResend {
+			if err := sendReminderEmailFn(user, userReminders, config, db); err != nil {
+				logger.Error().Err(err).Uint("user_id", user.ID).Msg("Error sending daily email, skipping reminder mutations for this user")
+				sendErrors++
+			} else {
+				// Mark reminders as email_sent so they won't be re-emailed
+				for _, reminder := range userReminders {
+					reminder.EmailSent = true
+					reminder.LastSent = new(time.Time)
+					*reminder.LastSent = time.Now()
+					if err := db.Save(&reminder).Error; err != nil {
+						logger.Error().Err(err).Uint("reminder_id", reminder.ID).Msg("Failed to update reminder after sending email")
+					} else {
+						logger.Info().Uint("reminder_id", reminder.ID).Msg("Marked reminder as email_sent")
+					}
+				}
+			}
+		} else {
+			logger.Info().Int("reminder_count", len(userReminders)).Uint("user_id", userID).Msg("Email sending disabled (UseResend=false), skipping reminder mutations to preserve them")
 		}
 
-		// Only mutate reminders after successful email send
-		// Mark all reminders as email_sent=true so they stay visible in dashboard
-		// until manually acknowledged, but won't be included in future emails
+		// Fire reminder.triggered webhooks regardless of email config
 		for _, reminder := range userReminders {
-			reminder.EmailSent = true
-			reminder.LastSent = new(time.Time)
-			*reminder.LastSent = time.Now()
+			go TriggerWebhooks(db, config, reminder.UserID, "reminder.triggered", reminder)
+		}
 
-			if err := db.Save(&reminder).Error; err != nil {
-				logger.Error().Err(err).Uint("reminder_id", reminder.ID).Msg("Failed to update reminder after sending email")
-			} else {
-				logger.Info().Uint("reminder_id", reminder.ID).Msg("Marked reminder as email_sent")
+		// Fire birthday.occurred for each birthday that falls today regardless of email config
+		todayBirthdays, err := GetUpcomingBirthdays(db, userID)
+		if err != nil {
+			logger.Warn().Err(err).Uint("user_id", userID).Msg("Failed to fetch birthdays for webhook")
+		} else {
+			now := time.Now()
+			for _, bday := range todayBirthdays {
+				if DaysUntilBirthday(bday.Birthday, now) == 0 {
+					bday := bday
+					go TriggerWebhooks(db, config, userID, "birthday.occurred", bday)
+				}
 			}
 		}
 	}

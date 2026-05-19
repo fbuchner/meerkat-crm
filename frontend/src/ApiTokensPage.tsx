@@ -29,6 +29,7 @@ import BlockIcon from '@mui/icons-material/Block';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { getApiTokens, createApiToken, revokeApiToken, ApiToken, ApiTokenCreateResponse } from './api/apiTokens';
 import { useSnackbar } from './context/SnackbarContext';
+import WebhooksSettings from './components/WebhooksSettings';
 
 export default function ApiTokensPage() {
   const { t } = useTranslation();
@@ -117,8 +118,14 @@ export default function ApiTokensPage() {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 2 }}>
+      <Typography variant="h5" gutterBottom sx={{ mb: 1.5 }}>
+        {t('nav.integrations')}
+      </Typography>
+
+      <WebhooksSettings />
+
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-        <Typography variant="h5">{t('apiTokens.title')}</Typography>
+        <Typography variant="h6">{t('apiTokens.title')}</Typography>
         <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setCreateDialogOpen(true)}>
           {t('apiTokens.createButton')}
         </Button>

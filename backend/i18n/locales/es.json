@@ -1,0 +1,21 @@
+{
+  "email": {
+    "footer": "Meerkat CRM - Gestión Personal de Contactos",
+    "reminder": {
+      "subject": "Tus Recordatorios Diarios",
+      "remindersTitle": "Tus Recordatorios de Hoy",
+      "birthdaysTitle": "Próximos Cumpleaños",
+      "today": "¡Hoy!",
+      "tomorrow": "Mañana",
+      "inDays": "En {{days}} días",
+      "unknownContact": "Desconocido",
+      "contactLabel": "Contacto"
+    },
+    "passwordReset": {
+      "subject": "Restablece tu contraseña de Meerkat CRM",
+      "intro": "Hemos recibido una solicitud para restablecer tu contraseña de Meerkat CRM.",
+      "instruction": "Usa este token para completar el restablecimiento en 60 minutos:",
+      "ignore": "Si no solicitaste este restablecimiento, puedes ignorar este correo."
+    }
+  }
+}

@@ -16,7 +16,7 @@ var translationsMu sync.RWMutex
 var initialized bool
 
 // SupportedLanguages lists all supported language codes
-var SupportedLanguages = []string{"en", "de", "it"}
+var SupportedLanguages = []string{"en", "de", "it", "es"}
 
 // DefaultLanguage is the fallback language
 const DefaultLanguage = "en"

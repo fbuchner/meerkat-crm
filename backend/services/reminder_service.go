@@ -167,9 +167,10 @@ func SendRemindersWithRateLimit(db *gorm.DB, cfg config.Config) error {
 func SendReminders(db *gorm.DB, config config.Config) error {
 	logger.Info().Msg("Sending reminders...")
 	var reminders []models.Reminder
-	// Get the current time
-	now := time.Now()
-	endOfDay := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location())
+	// Get the current time in the configured reminder timezone
+	loc := config.GetReminderLocation()
+	now := time.Now().In(loc)
+	endOfDay := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, loc)
 
 	// Fetch reminders that are:
 	// - Set to be sent by email
@@ -200,12 +201,11 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 	if err := db.Find(&allUsers).Error; err != nil {
 		logger.Warn().Err(err).Msg("Failed to fetch all users for birthday check, continuing with reminders only")
 	} else {
-		now := time.Now()
 		for _, user := range allUsers {
 			if userIDSet[user.ID] {
 				continue // Already included via reminders
 			}
-			birthdays, err := GetUpcomingBirthdays(db, user.ID)
+			birthdays, err := GetUpcomingBirthdays(db, user.ID, now)
 			if err != nil {
 				logger.Warn().Err(err).Uint("user_id", user.ID).Msg("Failed to fetch birthdays for user")
 				continue
@@ -279,11 +279,10 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 		}
 
 		// Fire birthday.occurred for each birthday that falls today regardless of email config
-		todayBirthdays, err := GetUpcomingBirthdays(db, userID)
+		todayBirthdays, err := GetUpcomingBirthdays(db, userID, now)
 		if err != nil {
 			logger.Warn().Err(err).Uint("user_id", userID).Msg("Failed to fetch birthdays for webhook")
 		} else {
-			now := time.Now()
 			for _, bday := range todayBirthdays {
 				if DaysUntilBirthday(bday.Birthday, now) == 0 {
 					bday := bday
@@ -380,12 +379,12 @@ func sendReminderEmail(user models.User, reminders []models.Reminder, config con
 	}
 
 	// Build birthday items
-	birthdays, birthdayErr := GetUpcomingBirthdays(db, user.ID)
+	now := time.Now().In(config.GetReminderLocation())
+	birthdays, birthdayErr := GetUpcomingBirthdays(db, user.ID, now)
 	if birthdayErr != nil {
 		logger.Warn().Err(birthdayErr).Uint("user_id", user.ID).Msg("Failed to fetch birthdays for email, continuing without them")
 	}
 	birthdayItems := make([]BirthdayItem, 0, len(birthdays))
-	now := time.Now()
 	for _, birthday := range birthdays {
 		days := DaysUntilBirthday(birthday.Birthday, now)
 		var daysText, badgeType string

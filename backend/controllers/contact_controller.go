@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -265,7 +266,7 @@ func GetUpcomingBirthdays(c *gin.Context) {
 		return
 	}
 
-	birthdays, err := services.GetUpcomingBirthdays(db, userID)
+	birthdays, err := services.GetUpcomingBirthdays(db, userID, time.Now())
 	if err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve upcoming birthdays").WithError(err))
 		return

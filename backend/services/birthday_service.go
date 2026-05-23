@@ -11,8 +11,7 @@ import (
 
 // GetUpcomingBirthdays fetches upcoming birthdays for a specific user
 // Returns birthdays sorted by days until birthday, with smart limits
-func GetUpcomingBirthdays(db *gorm.DB, userID uint) ([]models.Birthday, error) {
-	now := time.Now()
+func GetUpcomingBirthdays(db *gorm.DB, userID uint, now time.Time) ([]models.Birthday, error) {
 	currentDay := now.Format("02")
 	currentMonth := now.Format("01")
 	// Use first day of next month to avoid overflow when current day doesn't exist in next month

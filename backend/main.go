@@ -67,7 +67,7 @@ func main() {
 	if !cfg.UseResend {
 		logger.Warn().Msg("No Mails to be sent since Resend configuration is not set")
 	}
-	s := gocron.NewScheduler(time.UTC)
+	s := gocron.NewScheduler(cfg.GetReminderLocation())
 	task := func() {
 		// Use rate-limited version to prevent duplicate emails during rapid restarts
 		if err := services.SendRemindersWithRateLimit(db, *cfg); err != nil {

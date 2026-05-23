@@ -167,9 +167,10 @@ func SendRemindersWithRateLimit(db *gorm.DB, cfg config.Config) error {
 func SendReminders(db *gorm.DB, config config.Config) error {
 	logger.Info().Msg("Sending reminders...")
 	var reminders []models.Reminder
-	// Get the current time
-	now := time.Now()
-	endOfDay := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location())
+	// Get the current time in the configured reminder timezone
+	loc := config.GetReminderLocation()
+	now := time.Now().In(loc)
+	endOfDay := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, loc)
 
 	// Fetch reminders that are:
 	// - Set to be sent by email

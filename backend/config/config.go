@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // OIDCConfig holds optional OIDC provider settings.
@@ -25,6 +26,7 @@ type OIDCConfig struct {
 type Config struct {
 	DBPath               string
 	ReminderTime         string
+	ReminderTimezone     string
 	FrontendURL          string
 	Port                 string
 	TrustedProxies       []string
@@ -63,6 +65,7 @@ func LoadConfig() *Config {
 	cfg := &Config{
 		DBPath:               getEnv("SQLITE_DB_PATH", "meerkat.db"),
 		ReminderTime:         getEnv("REMINDER_TIME", "12:00"),
+		ReminderTimezone:     getEnv("REMINDER_TIMEZONE", "UTC"),
 		FrontendURL:          getEnv("FRONTEND_URL", "*"),
 		Port:                 getEnv("PORT", "8080"),
 		UseResend:            true,
@@ -218,6 +221,14 @@ func (c *Config) Validate() []ValidationError {
 		})
 	}
 
+	// Validate Reminder Timezone (must be a valid IANA timezone name)
+	if _, err := time.LoadLocation(c.ReminderTimezone); err != nil {
+		errors = append(errors, ValidationError{
+			Field:   "REMINDER_TIMEZONE",
+			Message: fmt.Sprintf("Invalid timezone '%s'. Must be a valid IANA timezone name (e.g., 'UTC', 'Europe/Berlin', 'America/New_York').", c.ReminderTimezone),
+		})
+	}
+
 	// Validate Frontend URL
 	if c.FrontendURL == "" {
 		errors = append(errors, ValidationError{
@@ -302,6 +313,16 @@ func (c *Config) Validate() []ValidationError {
 	}
 
 	return errors
+}
+
+// GetReminderLocation returns the parsed time.Location for the configured ReminderTimezone.
+// Falls back to UTC if the timezone is invalid (validation should prevent this in practice).
+func (c *Config) GetReminderLocation() *time.Location {
+	loc, err := time.LoadLocation(c.ReminderTimezone)
+	if err != nil {
+		return time.UTC
+	}
+	return loc
 }
 
 // ValidateOrPanic validates the configuration and panics with detailed error message if invalid

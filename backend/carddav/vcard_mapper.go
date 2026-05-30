@@ -49,34 +49,82 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 	}
 	card.SetValue(vcard.FieldFormattedName, fn)
 
-	// N (structured name)
-	card.SetValue(vcard.FieldName, contact.Lastname+";"+contact.Firstname+";;;")
+	// N (structured name): FamilyName;GivenName;AdditionalName;HonorificPrefix;HonorificSuffix
+	card.SetValue(vcard.FieldName, strings.Join([]string{
+		contact.Lastname, contact.Firstname, contact.MiddleName, contact.Prefix, contact.Suffix,
+	}, ";"))
 
 	// NICKNAME
 	if contact.Nickname != "" {
 		card.SetValue(vcard.FieldNickname, contact.Nickname)
 	}
 
-	// EMAIL
-	if contact.Email != "" {
-		card.Set(vcard.FieldEmail, &vcard.Field{
-			Value:  contact.Email,
-			Params: vcard.Params{vcard.ParamType: {"INTERNET"}},
+	// EMAIL - emit every entry; fall back to the legacy scalar if the array is empty
+	emails := contact.Emails
+	if len(emails) == 0 && contact.Email != "" {
+		emails = []models.ContactEmail{{Type: "home", Value: contact.Email}}
+	}
+	for _, e := range emails {
+		if e.Value == "" {
+			continue
+		}
+		card.Add(vcard.FieldEmail, &vcard.Field{
+			Value:  e.Value,
+			Params: emailParams(e.Type),
 		})
 	}
 
-	// TEL (phone) - default to CELL (mobile) as most contacts have mobile numbers
-	if contact.Phone != "" {
-		card.Set(vcard.FieldTelephone, &vcard.Field{
-			Value:  contact.Phone,
-			Params: vcard.Params{vcard.ParamType: {"CELL", "VOICE"}},
+	// TEL (phone) - emit every entry; fall back to the legacy scalar if the array is empty
+	phones := contact.Phones
+	if len(phones) == 0 && contact.Phone != "" {
+		phones = []models.ContactPhone{{Type: "cell", Value: contact.Phone}}
+	}
+	for _, p := range phones {
+		if p.Value == "" {
+			continue
+		}
+		card.Add(vcard.FieldTelephone, &vcard.Field{
+			Value:  p.Value,
+			Params: typeParams(p.Type),
 		})
 	}
 
-	// ADR (address)
-	if contact.Address != "" {
-		// Store as unstructured address (street address field)
-		card.SetValue(vcard.FieldAddress, ";;"+contact.Address+";;;;")
+	// ADR (address) - structured: POBox;Extended;Street;Locality;Region;Postal;Country
+	addresses := contact.Addresses
+	if len(addresses) == 0 && contact.Address != "" {
+		addresses = []models.ContactAddress{{Type: "home", Street: contact.Address}}
+	}
+	for _, a := range addresses {
+		if isEmptyAddress(a) {
+			continue
+		}
+		card.Add(vcard.FieldAddress, &vcard.Field{
+			Value:  ";;" + a.Street + ";" + a.City + ";" + a.Region + ";" + a.Postal + ";" + a.Country,
+			Params: typeParams(a.Type),
+		})
+	}
+
+	// URL (websites)
+	for _, u := range contact.URLs {
+		if u.Value == "" {
+			continue
+		}
+		card.Add(vcard.FieldURL, &vcard.Field{
+			Value:  u.Value,
+			Params: typeParams(u.Type),
+		})
+	}
+
+	// IMPP (instant messaging / social handles) - service goes in the X-SERVICE-TYPE param
+	for _, im := range contact.IMPPs {
+		if im.Value == "" {
+			continue
+		}
+		params := vcard.Params{}
+		if im.Type != "" {
+			params["X-SERVICE-TYPE"] = []string{im.Type}
+		}
+		card.Add(vcard.FieldIMPP, &vcard.Field{Value: im.Value, Params: params})
 	}
 
 	// BDAY (birthday) - vCard 3.0 uses YYYY-MM-DD; store as-is (--MM-DD is also accepted)
@@ -84,14 +132,36 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 		card.SetValue(vcard.FieldBirthday, contact.Birthday)
 	}
 
+	// ANNIVERSARY
+	if contact.Anniversary != "" {
+		card.SetValue(vcard.FieldAnniversary, contact.Anniversary)
+	}
+
 	// CATEGORIES (circles)
 	if len(contact.Circles) > 0 {
 		card.SetValue(vcard.FieldCategories, strings.Join(contact.Circles, ","))
 	}
 
-	// ORG (work information)
-	if contact.WorkInformation != "" {
-		card.SetValue(vcard.FieldOrganization, contact.WorkInformation)
+	// ORG (organization;department). Prefer the dedicated field; fall back to the
+	// legacy WorkInformation so already-synced data is unaffected.
+	org := contact.Organization
+	if org == "" {
+		org = contact.WorkInformation
+	}
+	if org != "" || contact.Department != "" {
+		orgValue := org
+		if contact.Department != "" {
+			orgValue = org + ";" + contact.Department
+		}
+		card.SetValue(vcard.FieldOrganization, orgValue)
+	}
+
+	// TITLE / ROLE
+	if contact.JobTitle != "" {
+		card.SetValue(vcard.FieldTitle, contact.JobTitle)
+	}
+	if contact.Role != "" {
+		card.SetValue(vcard.FieldRole, contact.Role)
 	}
 
 	// PHOTO - read from disk, fall back to thumbnail
@@ -114,11 +184,18 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 		})
 	}
 
-	// Restore unmapped properties from VCardExtra
+	// Restore unmapped properties from VCardExtra. Skip any property that is now
+	// mapped to a real column: legacy data may still carry it in vcard_extra (until
+	// migration 000021 strips it), and emitting it here as well would duplicate the
+	// value alongside the one written from the column above.
 	if contact.VCardExtra != "" {
 		var extra VCardExtra
 		if err := json.Unmarshal([]byte(contact.VCardExtra), &extra); err == nil {
+			mapped := mappedVCardFields()
 			for name, fields := range extra.Properties {
+				if mapped[name] {
+					continue
+				}
 				for _, field := range fields {
 					card.Add(name, &field)
 				}
@@ -146,6 +223,9 @@ func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact,
 	if name := card.Name(); name != nil {
 		contact.Firstname = name.GivenName
 		contact.Lastname = name.FamilyName
+		contact.MiddleName = name.AdditionalName
+		contact.Prefix = name.HonorificPrefix
+		contact.Suffix = name.HonorificSuffix
 	} else if fn := card.Value(vcard.FieldFormattedName); fn != "" {
 		// Fall back to FN - try to split
 		parts := strings.SplitN(fn, " ", 2)
@@ -160,39 +240,91 @@ func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact,
 		contact.Nickname = nickname
 	}
 
-	// EMAIL - take first one
-	if emails := card.Values(vcard.FieldEmail); len(emails) > 0 {
-		contact.Email = emails[0]
+	// EMAIL - import every entry with its type
+	if fields := card[vcard.FieldEmail]; len(fields) > 0 {
+		contact.Emails = contact.Emails[:0]
+		for _, f := range fields {
+			if f.Value == "" {
+				continue
+			}
+			contact.Emails = append(contact.Emails, models.ContactEmail{
+				Type:  typeFromField(f),
+				Value: f.Value,
+			})
+		}
+		if len(contact.Emails) > 0 {
+			contact.Email = contact.Emails[0].Value
+		}
 	}
 
-	// TEL - take first one
-	if phones := card.Values(vcard.FieldTelephone); len(phones) > 0 {
-		contact.Phone = phones[0]
+	// TEL - import every entry with its type
+	if fields := card[vcard.FieldTelephone]; len(fields) > 0 {
+		contact.Phones = contact.Phones[:0]
+		for _, f := range fields {
+			if f.Value == "" {
+				continue
+			}
+			contact.Phones = append(contact.Phones, models.ContactPhone{
+				Type:  typeFromField(f),
+				Value: f.Value,
+			})
+		}
+		if len(contact.Phones) > 0 {
+			contact.Phone = contact.Phones[0].Value
+		}
 	}
 
-	// ADR - combine into single string
+	// ADR - import every structured address
 	if addresses := card.Addresses(); len(addresses) > 0 {
-		addr := addresses[0]
-		parts := []string{}
-		if addr.StreetAddress != "" {
-			parts = append(parts, addr.StreetAddress)
+		contact.Addresses = contact.Addresses[:0]
+		for _, addr := range addresses {
+			ca := models.ContactAddress{
+				Type:    typeFromField(addr.Field),
+				Street:  strings.TrimSpace(strings.Join(nonEmpty(addr.StreetAddress, addr.ExtendedAddress), " ")),
+				City:    addr.Locality,
+				Region:  addr.Region,
+				Postal:  addr.PostalCode,
+				Country: addr.Country,
+			}
+			if !isEmptyAddress(ca) {
+				contact.Addresses = append(contact.Addresses, ca)
+			}
 		}
-		if addr.ExtendedAddress != "" {
-			parts = append(parts, addr.ExtendedAddress)
+		if len(contact.Addresses) > 0 {
+			contact.Address = models.FormatAddress(contact.Addresses[0])
 		}
-		if addr.Locality != "" {
-			parts = append(parts, addr.Locality)
+	}
+
+	// URL - import every entry
+	if fields := card[vcard.FieldURL]; len(fields) > 0 {
+		contact.URLs = contact.URLs[:0]
+		for _, f := range fields {
+			if f.Value == "" {
+				continue
+			}
+			contact.URLs = append(contact.URLs, models.ContactURL{
+				Type:  typeFromField(f),
+				Value: f.Value,
+			})
 		}
-		if addr.Region != "" {
-			parts = append(parts, addr.Region)
+	}
+
+	// IMPP - import every entry; service comes from X-SERVICE-TYPE or TYPE
+	if fields := card[vcard.FieldIMPP]; len(fields) > 0 {
+		contact.IMPPs = contact.IMPPs[:0]
+		for _, f := range fields {
+			if f.Value == "" {
+				continue
+			}
+			service := f.Params.Get("X-SERVICE-TYPE")
+			if service == "" {
+				service = typeFromField(f)
+			}
+			contact.IMPPs = append(contact.IMPPs, models.ContactIMPP{
+				Type:  service,
+				Value: f.Value,
+			})
 		}
-		if addr.PostalCode != "" {
-			parts = append(parts, addr.PostalCode)
-		}
-		if addr.Country != "" {
-			parts = append(parts, addr.Country)
-		}
-		contact.Address = strings.Join(parts, ", ")
 	}
 
 	// BDAY
@@ -213,9 +345,26 @@ func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact,
 		}
 	}
 
-	// ORG -> WorkInformation
+	// ORG -> Organization (+ Department after the ';' separator)
 	if org := card.Value(vcard.FieldOrganization); org != "" {
-		contact.WorkInformation = org
+		parts := strings.SplitN(org, ";", 2)
+		contact.Organization = strings.TrimSpace(parts[0])
+		if len(parts) > 1 {
+			contact.Department = strings.TrimSpace(parts[1])
+		}
+	}
+
+	// TITLE / ROLE
+	if title := card.Value(vcard.FieldTitle); title != "" {
+		contact.JobTitle = title
+	}
+	if role := card.Value(vcard.FieldRole); role != "" {
+		contact.Role = role
+	}
+
+	// ANNIVERSARY
+	if anniv := card.Value(vcard.FieldAnniversary); anniv != "" {
+		contact.Anniversary = normalizeBirthday(anniv)
 	}
 
 	// Extract photo data for separate processing
@@ -457,6 +606,73 @@ func generateUID() string {
 	return uuid.New().String()
 }
 
+// typeTokens maps our internal lowercase type token to vCard TYPE param tokens.
+func typeTokens(t string) []string {
+	up := strings.ToUpper(strings.TrimSpace(t))
+	if up == "" {
+		return nil
+	}
+	switch up {
+	case "CELL", "MOBILE":
+		return []string{"CELL", "VOICE"}
+	default:
+		return []string{up}
+	}
+}
+
+// typeParams builds a vCard Params containing the TYPE for a value, or nil if untyped.
+func typeParams(t string) vcard.Params {
+	tokens := typeTokens(t)
+	if len(tokens) == 0 {
+		return nil
+	}
+	return vcard.Params{vcard.ParamType: tokens}
+}
+
+// emailParams builds TYPE params for an EMAIL, always including INTERNET (vCard 3.0).
+func emailParams(t string) vcard.Params {
+	tokens := append([]string{"INTERNET"}, typeTokens(t)...)
+	return vcard.Params{vcard.ParamType: tokens}
+}
+
+// typeFromField extracts our internal lowercase type token from a vCard field's
+// TYPE params, ignoring transport/preference markers.
+func typeFromField(field *vcard.Field) string {
+	if field == nil {
+		return ""
+	}
+	for _, raw := range field.Params[vcard.ParamType] {
+		for _, t := range strings.Split(raw, ",") {
+			u := strings.ToUpper(strings.TrimSpace(t))
+			switch u {
+			case "", "INTERNET", "VOICE", "PREF":
+				continue
+			case "CELL", "MOBILE":
+				return "cell"
+			default:
+				return strings.ToLower(u)
+			}
+		}
+	}
+	return ""
+}
+
+// isEmptyAddress reports whether a structured address has no content.
+func isEmptyAddress(a models.ContactAddress) bool {
+	return strings.TrimSpace(a.Street+a.City+a.Region+a.Postal+a.Country) == ""
+}
+
+// nonEmpty returns the non-empty strings from the provided values, preserving order.
+func nonEmpty(values ...string) []string {
+	out := make([]string, 0, len(values))
+	for _, v := range values {
+		if strings.TrimSpace(v) != "" {
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
 // mapGenderFromVCard converts vCard gender to internal format
 func mapGenderFromVCard(gender string) string {
 	switch strings.ToUpper(gender) {
@@ -497,9 +713,11 @@ func normalizeBirthday(bday string) string {
 	return bday
 }
 
-// extractUnmappedProperties extracts vCard properties not mapped to Contact fields
-func extractUnmappedProperties(card vcard.Card) VCardExtra {
-	mappedFields := map[string]bool{
+// mappedVCardFields lists the vCard property names that map to dedicated Contact
+// columns. Such properties must not also be stored in / restored from vcard_extra,
+// otherwise they would be emitted twice on export.
+func mappedVCardFields() map[string]bool {
+	return map[string]bool{
 		vcard.FieldVersion:       true,
 		vcard.FieldUID:           true,
 		vcard.FieldFormattedName: true,
@@ -513,7 +731,17 @@ func extractUnmappedProperties(card vcard.Card) VCardExtra {
 		vcard.FieldCategories:    true,
 		vcard.FieldOrganization:  true,
 		vcard.FieldPhoto:         true,
+		vcard.FieldURL:           true,
+		vcard.FieldIMPP:          true,
+		vcard.FieldTitle:         true,
+		vcard.FieldRole:          true,
+		vcard.FieldAnniversary:   true,
 	}
+}
+
+// extractUnmappedProperties extracts vCard properties not mapped to Contact fields
+func extractUnmappedProperties(card vcard.Card) VCardExtra {
+	mappedFields := mappedVCardFields()
 
 	extra := VCardExtra{
 		Properties: make(map[string][]vcard.Field),

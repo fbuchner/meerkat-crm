@@ -1,0 +1,3 @@
+-- No-op: moving the values back into vcard_extra is not reliably reversible, and the
+-- data still lives in the new columns. Rolling back the column additions is handled
+-- by 000020's down migration.

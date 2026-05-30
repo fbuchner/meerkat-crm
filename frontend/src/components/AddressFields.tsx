@@ -13,6 +13,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { ContactAddress } from '../api/contacts';
 import { CONTACT_TYPE_OPTIONS } from '../contactFields';
+import { useRowKeys } from '../hooks/useRowKeys';
 
 interface AddressFieldsProps {
   label: string;
@@ -31,16 +32,19 @@ const EMPTY_ADDRESS: ContactAddress = {
 
 export default function AddressFields({ label, value, onChange }: AddressFieldsProps) {
   const { t } = useTranslation();
+  const rowKeys = useRowKeys(value.length);
 
   const updateAddr = (index: number, patch: Partial<ContactAddress>) => {
     onChange(value.map((a, i) => (i === index ? { ...a, ...patch } : a)));
   };
 
   const removeAddr = (index: number) => {
+    rowKeys.onRemove(index);
     onChange(value.filter((_, i) => i !== index));
   };
 
   const addAddr = () => {
+    rowKeys.onAdd();
     onChange([...value, { ...EMPTY_ADDRESS }]);
   };
 
@@ -51,7 +55,7 @@ export default function AddressFields({ label, value, onChange }: AddressFieldsP
       </Typography>
       <Stack spacing={1.5}>
         {value.map((addr, index) => (
-          <Paper key={index} variant="outlined" sx={{ p: 1.5 }}>
+          <Paper key={rowKeys.keyAt(index)} variant="outlined" sx={{ p: 1.5 }}>
             <Stack spacing={1}>
               <Stack direction="row" spacing={1} alignItems="center">
                 <TextField

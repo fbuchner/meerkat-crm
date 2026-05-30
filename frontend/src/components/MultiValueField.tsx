@@ -4,6 +4,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { ContactValue } from '../api/contacts';
 import { CONTACT_TYPE_OPTIONS } from '../contactFields';
+import { useRowKeys } from '../hooks/useRowKeys';
 
 interface MultiValueFieldProps {
   label: string;
@@ -29,16 +30,19 @@ export default function MultiValueField({
   freeTextType = false,
 }: MultiValueFieldProps) {
   const { t } = useTranslation();
+  const rowKeys = useRowKeys(value.length);
 
   const updateRow = (index: number, patch: Partial<ContactValue>) => {
     onChange(value.map((row, i) => (i === index ? { ...row, ...patch } : row)));
   };
 
   const removeRow = (index: number) => {
+    rowKeys.onRemove(index);
     onChange(value.filter((_, i) => i !== index));
   };
 
   const addRow = () => {
+    rowKeys.onAdd();
     onChange([...value, { type: defaultType, value: '' }]);
   };
 
@@ -49,7 +53,7 @@ export default function MultiValueField({
       </Typography>
       <Stack spacing={1}>
         {value.map((row, index) => (
-          <Stack key={index} direction="row" spacing={1} alignItems="center">
+          <Stack key={rowKeys.keyAt(index)} direction="row" spacing={1} alignItems="center">
             {freeTextType ? (
               <TextField
                 label={t('contacts.fieldType')}

@@ -503,7 +503,7 @@ func UpdateCustomFieldNames(c *gin.Context) {
 	}
 
 	user.CustomFieldNames = input.Names
-	if err := db.Save(&user).Error; err != nil {
+	if err := db.Model(&user).Select("CustomFieldNames").Updates(&user).Error; err != nil {
 		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to update user custom field names")
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("update user").WithError(err))
 		return
@@ -569,7 +569,8 @@ func UpdateEnabledContactFields(c *gin.Context) {
 	}
 
 	user.EnabledContactFields = input.Fields
-	if err := db.Save(&user).Error; err != nil {
+	// Scope the write to just this column so we never rewrite the password hash / OIDC fields.
+	if err := db.Model(&user).Select("EnabledContactFields").Updates(&user).Error; err != nil {
 		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to update user enabled contact fields")
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("update user").WithError(err))
 		return

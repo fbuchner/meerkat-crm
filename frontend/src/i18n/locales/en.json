@@ -15,7 +15,8 @@
     "profile": "Profile",
     "users": "Users",
     "apiTokens": "API Tokens",
-    "integrations": "Integrations"
+    "integrations": "Integrations",
+    "data": "Data"
   },
   "dashboard": {
     "welcome": "Welcome to Meerkat CRM Dashboard",
@@ -199,6 +200,31 @@
         "previewFailed": "Failed to generate preview. Please try again.",
         "importFailed": "Import failed. Please try again."
       }
+    },
+    "urls": "Websites",
+    "impps": "Instant Messaging",
+    "prefix": "Prefix",
+    "middleName": "Middle Name",
+    "suffix": "Suffix",
+    "organization": "Organization",
+    "department": "Department",
+    "jobTitle": "Job Title",
+    "role": "Role",
+    "anniversary": "Anniversary",
+    "fieldType": "Type",
+    "types": {
+      "home": "Home",
+      "work": "Work",
+      "cell": "Mobile",
+      "fax": "Fax",
+      "other": "Other"
+    },
+    "addressFields": {
+      "street": "Street",
+      "city": "City",
+      "region": "State / Region",
+      "postal": "Postal Code",
+      "country": "Country"
     }
   },
   "timeline": {
@@ -345,7 +371,8 @@
     "delete": "Delete",
     "close": "Close",
     "back": "Back",
-    "continue": "Continue"
+    "continue": "Continue",
+    "add": "Add"
   },
   "profilePicture": {
     "title": "Upload Profile Picture",
@@ -495,6 +522,23 @@
         "cancel": "Cancel",
         "confirm": "Delete"
       }
+    },
+    "contactFields": {
+      "title": "Contact Fields",
+      "description": "Choose which extended fields appear on the contact form. Disabled fields are hidden but their data is kept and still syncs.",
+      "loading": "Loading…",
+      "loadError": "Unable to load contact field settings.",
+      "saveError": "Unable to save contact field settings.",
+      "groups": {
+        "communication": "Communication",
+        "name": "Name",
+        "work": "Work",
+        "personal": "Personal",
+        "meerkat": "Notes"
+      }
+    },
+    "data": {
+      "title": "Data"
     }
   },
   "pages": {

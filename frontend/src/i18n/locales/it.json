@@ -15,7 +15,8 @@
     "profile": "Profilo",
     "users": "Utenti",
     "apiTokens": "Token API",
-    "integrations": "Integrazioni"
+    "integrations": "Integrazioni",
+    "data": "Dati"
   },
   "dashboard": {
     "welcome": "Benvenuto nel Cruscotto di Meerkat CRM",
@@ -199,6 +200,31 @@
         "previewFailed": "Generazione anteprima fallita. Riprova.",
         "importFailed": "Importazione fallita. Riprova."
       }
+    },
+    "urls": "Siti web",
+    "impps": "Messaggistica",
+    "prefix": "Prefisso",
+    "middleName": "Secondo nome",
+    "suffix": "Suffisso",
+    "organization": "Organizzazione",
+    "department": "Reparto",
+    "jobTitle": "Posizione",
+    "role": "Ruolo",
+    "anniversary": "Anniversario",
+    "fieldType": "Tipo",
+    "types": {
+      "home": "Casa",
+      "work": "Lavoro",
+      "cell": "Cellulare",
+      "fax": "Fax",
+      "other": "Altro"
+    },
+    "addressFields": {
+      "street": "Via",
+      "city": "Città",
+      "region": "Regione",
+      "postal": "CAP",
+      "country": "Paese"
     }
   },
   "timeline": {
@@ -345,7 +371,8 @@
     "delete": "Elimina",
     "close": "Chiudi",
     "back": "Indietro",
-    "continue": "Continua"
+    "continue": "Continua",
+    "add": "Aggiungi"
   },
   "profilePicture": {
     "title": "Carica Foto Profilo",
@@ -495,6 +522,23 @@
         "cancel": "Annulla",
         "confirm": "Elimina"
       }
+    },
+    "contactFields": {
+      "title": "Campi contatto",
+      "description": "Scegli quali campi estesi appaiono nel modulo del contatto. I campi disattivati sono nascosti ma i loro dati vengono mantenuti e continuano a sincronizzarsi.",
+      "loading": "Caricamento…",
+      "loadError": "Impossibile caricare le impostazioni dei campi contatto.",
+      "saveError": "Impossibile salvare le impostazioni dei campi contatto.",
+      "groups": {
+        "communication": "Comunicazione",
+        "name": "Nome",
+        "work": "Lavoro",
+        "personal": "Personale",
+        "meerkat": "Note"
+      }
+    },
+    "data": {
+      "title": "Dati"
     }
   },
   "pages": {

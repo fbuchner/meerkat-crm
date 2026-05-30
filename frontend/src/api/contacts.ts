@@ -1,6 +1,20 @@
 // Contact-related API calls
 import { apiFetch, API_BASE_URL, getAuthHeaders, parseErrorResponse } from './client';
 
+export interface ContactValue {
+  type: string;
+  value: string;
+}
+
+export interface ContactAddress {
+  type: string;
+  street: string;
+  city: string;
+  region: string;
+  postal: string;
+  country: string;
+}
+
 export interface Contact {
   ID: number;
   firstname: string;
@@ -20,6 +34,22 @@ export interface Contact {
   photo_thumbnail?: string;
   custom_fields?: Record<string, string>;
   archived?: boolean;
+  // Multi-valued vCard fields
+  emails?: ContactValue[];
+  phones?: ContactValue[];
+  addresses?: ContactAddress[];
+  urls?: ContactValue[];
+  impps?: ContactValue[];
+  // Structured name parts
+  prefix?: string;
+  middle_name?: string;
+  suffix?: string;
+  // Organizational fields
+  organization?: string;
+  department?: string;
+  job_title?: string;
+  role?: string;
+  anniversary?: string;
 }
 
 export interface Birthday {

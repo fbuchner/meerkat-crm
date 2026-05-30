@@ -12,7 +12,8 @@ import {
   archiveContact,
   unarchiveContact
 } from './api/contacts';
-import { getCustomFieldNames } from './api/users';
+import { getCustomFieldNames, getEnabledContactFields } from './api/users';
+import { resolveEnabledFields, ContactFieldKey } from './contactFields';
 import { 
   getContactNotes, 
   Note 
@@ -69,7 +70,10 @@ const CONTACT_FIELDS = [
   'ID', 'firstname', 'lastname', 'nickname', 'gender',
   'email', 'phone', 'birthday', 'address', 'how_we_met',
   'food_preference', 'work_information', 'contact_information',
-  'circles', 'photo', 'custom_fields', 'archived'
+  'circles', 'photo', 'custom_fields', 'archived',
+  'emails', 'phones', 'addresses', 'urls', 'impps',
+  'prefix', 'middle_name', 'suffix', 'organization', 'department',
+  'job_title', 'role', 'anniversary'
 ];
 
 export default function ContactDetailPage() {
@@ -110,6 +114,9 @@ export default function ContactDetailPage() {
 
   // Custom field names
   const [customFieldNames, setCustomFieldNames] = useState<string[]>([]);
+
+  // Enabled extended contact fields (UI visibility)
+  const [enabledFields, setEnabledFields] = useState<Set<ContactFieldKey>>(() => resolveEnabledFields(null));
 
   // Unified refresh function for notes, activities, and completions
   const refreshNotesAndActivities = async () => {
@@ -206,7 +213,7 @@ export default function ContactDetailPage() {
     const fetchData = async () => {
       try {
         // First batch: parallel fetch of core data
-        const [contactData, notesData, activitiesData, completionsData, fieldNames] = await Promise.all([
+        const [contactData, notesData, activitiesData, completionsData, fieldNames, enabled] = await Promise.all([
           getContact(id, CONTACT_FIELDS),
           getContactNotes(id),
           getContactActivities(id),
@@ -214,6 +221,10 @@ export default function ContactDetailPage() {
           getCustomFieldNames().catch(err => {
             console.error('Error fetching custom field names:', err);
             return [];
+          }),
+          getEnabledContactFields().catch(err => {
+            console.error('Error fetching enabled contact fields:', err);
+            return null;
           })
         ]);
 
@@ -222,6 +233,7 @@ export default function ContactDetailPage() {
         setActivities(activitiesData.activities || []);
         setCompletions(completionsData || []);
         setCustomFieldNames(fieldNames);
+        setEnabledFields(resolveEnabledFields(enabled));
 
         // Second batch: refresh reminders and relationships in parallel
         await Promise.all([
@@ -302,8 +314,8 @@ export default function ContactDetailPage() {
 
   const handleEditStart = (field: string, currentValue: string) => {
     setEditingField(field);
-    // For birthday field, convert from ISO to display format
-    if (field === 'birthday' && currentValue) {
+    // For date fields, convert from ISO to display format
+    if ((field === 'birthday' || field === 'anniversary') && currentValue) {
       setEditValue(formatBirthdayForInput(currentValue));
     } else {
       setEditValue(currentValue || '');
@@ -321,8 +333,8 @@ export default function ContactDetailPage() {
     if (!contact) return;
 
     let valueToSave = editValue;
-    
-    if (field === 'birthday') {
+
+    if (field === 'birthday' || field === 'anniversary') {
       if (!validateBirthday(editValue)) {
         setValidationError(t('contactDetail.birthdayError'));
         return;
@@ -380,6 +392,23 @@ export default function ContactDetailPage() {
       } else {
         showError(t('contactDetail.updateError'));
       }
+    }
+  };
+
+  // Persist multi-valued / structured field updates (emails, phones, addresses, urls, impps)
+  const handleUpdateContactFields = async (partial: Partial<Contact>) => {
+    if (!contact) return;
+    try {
+      const updatedContact = await updateContact(id!, { ...contact, ...partial });
+      setContact(updatedContact);
+    } catch (err) {
+      console.error('Error updating contact:', err);
+      if (err instanceof ApiError) {
+        showError(err.getDisplayMessage());
+      } else {
+        showError(t('contactDetail.updateError'));
+      }
+      throw err;
     }
   };
 
@@ -633,9 +662,15 @@ export default function ContactDetailPage() {
           onEditCancel={handleEditCancel}
           onEditSave={handleEditSave}
           onEditValueChange={(value) => {
-            setEditValue(editingField === 'birthday' ? autoFormatBirthdayInput(value, editValue) : value);
+            setEditValue(
+              editingField === 'birthday' || editingField === 'anniversary'
+                ? autoFormatBirthdayInput(value, editValue)
+                : value
+            );
             setValidationError('');
           }}
+          onUpdateContact={handleUpdateContactFields}
+          enabledFields={enabledFields}
           relationships={relationships}
           incomingRelationships={incomingRelationships}
           onAddRelationship={handleAddRelationship}

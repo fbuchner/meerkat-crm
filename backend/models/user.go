@@ -18,6 +18,7 @@ type User struct {
 	PasswordResetExpiresAt   *time.Time `gorm:"column:password_reset_expires_at"`
 	PasswordResetRequestedAt *time.Time `gorm:"column:password_reset_requested_at"`
 	CustomFieldNames         []string   `gorm:"type:text;serializer:json" json:"custom_field_names"`
+	EnabledContactFields     []string   `gorm:"type:text;serializer:json" json:"enabled_contact_fields"`
 	OIDCSubject              *string    `gorm:"column:oidc_subject"`
 	OIDCProvider             *string    `gorm:"column:oidc_provider"`
 }

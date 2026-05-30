@@ -8,6 +8,7 @@ import SettingsPage from './SettingsPage';
 import NetworkPage from './NetworkPage';
 import UsersPage from './UsersPage';
 import ApiTokensPage from './ApiTokensPage';
+import DataSettingsPage from './DataSettingsPage';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
 import { getToken, logoutAndRedirect, isAdmin, fetchAndCacheUserInfo } from './auth';
@@ -46,6 +47,7 @@ import HubIcon from '@mui/icons-material/Hub';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PeopleIcon from '@mui/icons-material/People';
 import TokenIcon from '@mui/icons-material/Token';
+import StorageIcon from '@mui/icons-material/Storage';
 import LogoutIcon from '@mui/icons-material/Logout';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
@@ -130,6 +132,7 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
   const settingsSubItems = useMemo(() => {
     const items = [
       { text: t('nav.profile'), icon: <SettingsIcon />, path: '/settings' },
+      { text: t('nav.data'), icon: <StorageIcon />, path: '/settings/data' },
       { text: t('nav.integrations'), icon: <TokenIcon />, path: '/api-tokens' },
     ];
     if (userIsAdmin) {
@@ -204,7 +207,7 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
                   component={Link}
                   to={item.path}
                   onClick={isMobile ? handleDrawerToggle : undefined}
-                  selected={isActiveRoute(item.path)}
+                  selected={item.path === '/settings' ? location.pathname === '/settings' : isActiveRoute(item.path)}
                   sx={{
                     pl: 4,
                     '&.Mui-selected': {
@@ -430,6 +433,7 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
           <Route path="/notes" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><NotesPage /></Suspense>} />
           <Route path="/activities" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ActivitiesPage /></Suspense>} />
           <Route path="/settings" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><SettingsPage /></Suspense>} />
+          <Route path="/settings/data" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><DataSettingsPage /></Suspense>} />
           <Route path="/network" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><NetworkPage /></Suspense>} />
           <Route path="/users" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><UsersPage /></Suspense>} />
           <Route path="/api-tokens" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ApiTokensPage /></Suspense>} />

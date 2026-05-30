@@ -87,6 +87,47 @@ func TestGetContacts(t *testing.T) {
 	assert.Equal(t, float64(2), responseBody["limit"]) // Limit per page
 }
 
+// TestGetContactsSearchMultiValue verifies search matches values in the emails/phones
+// JSON arrays (including secondary entries), not just the denormalized primary scalar.
+func TestGetContactsSearchMultiValue(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+
+	router.GET("/contacts", GetContacts)
+
+	c := models.Contact{
+		UserID:    user.ID,
+		Firstname: "Grace",
+		Lastname:  "Hopper",
+		Emails: []models.ContactEmail{
+			{Type: "home", Value: "grace@home.example"},
+			{Type: "work", Value: "grace@navy.example"},
+		},
+		Phones: []models.ContactPhone{{Type: "cell", Value: "+15551112222"}},
+	}
+	db.Create(&c)
+	// A second contact that must NOT match the searches below.
+	db.Create(&models.Contact{UserID: user.ID, Firstname: "Alan", Lastname: "Turing"})
+
+	search := func(term string) int {
+		req, _ := http.NewRequest("GET", "/contacts?search="+term, nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+		var body map[string]any
+		json.Unmarshal(w.Body.Bytes(), &body)
+		return int(body["total"].(float64))
+	}
+
+	assert.Equal(t, 1, search("navy"), "secondary work email should be searchable")
+	assert.Equal(t, 1, search("grace@home"), "primary email should be searchable")
+	assert.Equal(t, 1, search("5551112"), "phone array value should be searchable")
+	assert.Equal(t, 1, search("Hopper"), "name should still be searchable")
+	assert.Equal(t, 0, search("nomatch"), "unrelated term should match nothing")
+}
+
 func TestGetContact(t *testing.T) {
 	db, router := setupRouter()
 

@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useContacts } from './hooks/useContacts';
 import { getCircles } from './api/contacts';
-import { getCustomFieldNames, getEnabledContactFields } from './api/users';
+import { getCurrentUser } from './api/admin';
 import { resolveEnabledFields, ContactFieldKey } from './contactFields';
 import AddContactDialog from './components/AddContactDialog';
 import ImportContactsDialog from './components/ImportContactsDialog';
@@ -84,14 +84,13 @@ export default function ContactsPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [circlesData, fieldNames, enabled] = await Promise.all([
+        const [circlesData, user] = await Promise.all([
           getCircles(),
-          getCustomFieldNames(),
-          getEnabledContactFields()
+          getCurrentUser()
         ]);
         setCircles(Array.isArray(circlesData) ? circlesData : []);
-        setCustomFieldNames(fieldNames);
-        setEnabledFields(resolveEnabledFields(enabled));
+        setCustomFieldNames(user.custom_field_names ?? []);
+        setEnabledFields(resolveEnabledFields(user.enabled_contact_fields));
       } catch (err) {
         console.error('Error fetching circles or custom field names:', err);
       }

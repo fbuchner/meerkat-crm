@@ -23,14 +23,14 @@ type ContactPhone struct {
 // ContactURL is a single typed website URL (vCard URL).
 type ContactURL struct {
 	Type  string `json:"type" validate:"max=30"`
-	Value string `json:"value" validate:"required,max=500"`
+	Value string `json:"value" validate:"required,max=500,safeurl"`
 }
 
 // ContactIMPP is a single instant-messaging / social handle (vCard IMPP).
 // Type holds the service (e.g. "telegram", "signal"); Value holds the handle.
 type ContactIMPP struct {
 	Type  string `json:"type" validate:"max=30"`
-	Value string `json:"value" validate:"required,max=200"`
+	Value string `json:"value" validate:"required,max=200,safeurl"`
 }
 
 // ContactAddress is a single structured postal address (vCard ADR).
@@ -112,7 +112,7 @@ func FormatAddress(a ContactAddress) string {
 }
 
 // BeforeSave keeps the denormalized primary scalars (Email/Phone/Address) in sync
-// with the first entry of their respective JSON arrays. Runs on both create and update.
+// with the first entry of their respective JSON arrays. Runs on both create and update
 func (c *Contact) BeforeSave(tx *gorm.DB) error {
 	if len(c.Emails) > 0 {
 		c.Email = c.Emails[0].Value

@@ -12,7 +12,7 @@ import {
   archiveContact,
   unarchiveContact
 } from './api/contacts';
-import { getCustomFieldNames, getEnabledContactFields } from './api/users';
+import { getCurrentUser } from './api/admin';
 import { resolveEnabledFields, ContactFieldKey } from './contactFields';
 import { 
   getContactNotes, 
@@ -213,17 +213,13 @@ export default function ContactDetailPage() {
     const fetchData = async () => {
       try {
         // First batch: parallel fetch of core data
-        const [contactData, notesData, activitiesData, completionsData, fieldNames, enabled] = await Promise.all([
+        const [contactData, notesData, activitiesData, completionsData, user] = await Promise.all([
           getContact(id, CONTACT_FIELDS),
           getContactNotes(id),
           getContactActivities(id),
           getCompletionsForContact(parseInt(id)),
-          getCustomFieldNames().catch(err => {
-            console.error('Error fetching custom field names:', err);
-            return [];
-          }),
-          getEnabledContactFields().catch(err => {
-            console.error('Error fetching enabled contact fields:', err);
+          getCurrentUser().catch(err => {
+            console.error('Error fetching current user preferences:', err);
             return null;
           })
         ]);
@@ -232,8 +228,8 @@ export default function ContactDetailPage() {
         setNotes(notesData.notes || []);
         setActivities(activitiesData.activities || []);
         setCompletions(completionsData || []);
-        setCustomFieldNames(fieldNames);
-        setEnabledFields(resolveEnabledFields(enabled));
+        setCustomFieldNames(user?.custom_field_names ?? []);
+        setEnabledFields(resolveEnabledFields(user?.enabled_contact_fields ?? null));
 
         // Second batch: refresh reminders and relationships in parallel
         await Promise.all([

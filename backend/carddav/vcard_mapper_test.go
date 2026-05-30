@@ -151,3 +151,48 @@ func TestLegacyScalarFallback(t *testing.T) {
 		t.Error("legacy address not exported")
 	}
 }
+
+// TestStructuredSemicolonRoundTrip verifies that a literal ";" inside ORG/ADR
+// components survives a round trip instead of leaking into the next component.
+func TestStructuredSemicolonRoundTrip(t *testing.T) {
+	original := &models.Contact{
+		Firstname:    "Semi",
+		Lastname:     "Colon",
+		Organization: "Smith; Jones & Co",
+		Department:   "R&D; Labs",
+		Addresses: []models.ContactAddress{
+			{Type: "work", Street: "1 Main St; Suite 2", City: "Town; ville", Region: "RE", Postal: "12345", Country: "UK"},
+		},
+	}
+
+	card := ContactToVCard(original, "")
+	got, _, _, _ := VCardToContact(card, nil)
+
+	if got.Organization != original.Organization {
+		t.Errorf("organization corrupted: got %q want %q", got.Organization, original.Organization)
+	}
+	if got.Department != original.Department {
+		t.Errorf("department corrupted: got %q want %q", got.Department, original.Department)
+	}
+	if len(got.Addresses) != 1 {
+		t.Fatalf("expected 1 address, got %d", len(got.Addresses))
+	}
+	a := got.Addresses[0]
+	if a.Street != "1 Main St; Suite 2" || a.City != "Town; ville" {
+		t.Errorf("address component with ';' corrupted: %+v", a)
+	}
+}
+
+// TestComponentBackslashRoundTrip verifies a literal backslash in a structured
+// component is not mangled by our escaping interacting with go-vcard's own.
+func TestComponentBackslashRoundTrip(t *testing.T) {
+	original := &models.Contact{
+		Firstname:    "Back",
+		Lastname:     "Slash",
+		Organization: `Path\To\Co`,
+	}
+	got, _, _, _ := VCardToContact(ContactToVCard(original, ""), nil)
+	if got.Organization != `Path\To\Co` {
+		t.Errorf("backslash corrupted: got %q", got.Organization)
+	}
+}

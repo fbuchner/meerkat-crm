@@ -75,6 +75,19 @@ func CreateContact(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Contact created successfully", "contact": contact})
 }
 
+// filters a contacts query by a free-text term
+func applyContactSearch(query *gorm.DB, searchTerm string) *gorm.DB {
+	like := "%" + searchTerm + "%"
+	return query.Where(
+		"firstname LIKE ? OR lastname LIKE ? OR nickname LIKE ? "+
+			"OR (firstname || ' ' || lastname) LIKE ? OR (nickname || ' ' || lastname) LIKE ? "+
+			"OR email LIKE ? OR phone LIKE ? "+
+			"OR (json_valid(emails) AND EXISTS (SELECT 1 FROM json_each(contacts.emails) WHERE json_extract(json_each.value, '$.value') LIKE ?)) "+
+			"OR (json_valid(phones) AND EXISTS (SELECT 1 FROM json_each(contacts.phones) WHERE json_extract(json_each.value, '$.value') LIKE ?))",
+		like, like, like, like, like, like, like, like, like,
+	)
+}
+
 func GetContacts(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
@@ -158,8 +171,7 @@ func GetContacts(c *gin.Context) {
 
 	// Apply search filter using parameterization
 	if searchTerm := c.Query("search"); searchTerm != "" {
-		searchTermParam := "%" + searchTerm + "%"
-		query = query.Where("firstname LIKE ? OR lastname LIKE ? OR nickname LIKE ? OR (firstname || ' ' || lastname) LIKE ? OR (nickname || ' ' || lastname) LIKE ?", searchTermParam, searchTermParam, searchTermParam, searchTermParam, searchTermParam)
+		query = applyContactSearch(query, searchTerm)
 	}
 
 	if circle := c.Query("circle"); circle != "" {
@@ -202,8 +214,7 @@ func GetContacts(c *gin.Context) {
 
 	// Apply the same search filters to the count query
 	if searchTerm := c.Query("search"); searchTerm != "" {
-		searchTermParam := "%" + searchTerm + "%"
-		countQuery = countQuery.Where("firstname LIKE ? OR lastname LIKE ? OR nickname LIKE ? OR (firstname || ' ' || lastname) LIKE ? OR (nickname || ' ' || lastname) LIKE ?", searchTermParam, searchTermParam, searchTermParam, searchTermParam, searchTermParam)
+		countQuery = applyContactSearch(countQuery, searchTerm)
 	}
 
 	if circle := c.Query("circle"); circle != "" {

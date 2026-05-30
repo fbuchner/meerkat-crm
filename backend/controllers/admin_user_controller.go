@@ -50,15 +50,19 @@ func GetCurrentUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, models.AdminUserResponse{
-		ID:         user.ID,
-		Username:   user.Username,
-		Email:      user.Email,
-		Language:   user.Language,
-		DateFormat: user.DateFormat,
-		IsAdmin:    user.IsAdmin,
-		CreatedAt:  user.CreatedAt,
-		UpdatedAt:  user.UpdatedAt,
+	c.JSON(http.StatusOK, models.CurrentUserResponse{
+		AdminUserResponse: models.AdminUserResponse{
+			ID:         user.ID,
+			Username:   user.Username,
+			Email:      user.Email,
+			Language:   user.Language,
+			DateFormat: user.DateFormat,
+			IsAdmin:    user.IsAdmin,
+			CreatedAt:  user.CreatedAt,
+			UpdatedAt:  user.UpdatedAt,
+		},
+		CustomFieldNames:     user.CustomFieldNames,
+		EnabledContactFields: user.EnabledContactFields,
 	})
 }
 

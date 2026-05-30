@@ -24,6 +24,7 @@ func init() {
 	validate.RegisterValidation("strong_password", validateStrongPassword)
 	validate.RegisterValidation("unique_circles", validateUniqueCircles)
 	validate.RegisterValidation("no_at_sign", validateNoAtSign)
+	validate.RegisterValidation("safeurl", validateSafeURL)
 }
 
 // ValidationError represents a validation error response
@@ -74,6 +75,8 @@ func formatValidationError(err validator.FieldError) string {
 		return field + " cannot contain the @ character"
 	case "url":
 		return field + " must be a valid URL"
+	case "safeurl":
+		return field + " uses an unsafe URL scheme"
 	default:
 		return field + " is invalid"
 	}
@@ -124,6 +127,28 @@ func validatePhone(fl validator.FieldLevel) bool {
 		return false
 	}
 
+	return true
+}
+
+// rejects values whose URL scheme can execute scripts when the value is rendered as link
+func validateSafeURL(fl validator.FieldLevel) bool {
+	raw := strings.TrimSpace(fl.Field().String())
+	if raw == "" {
+		return true
+	}
+	normalized := strings.Map(func(r rune) rune {
+		if r <= ' ' {
+			return -1
+		}
+		return unicode.ToLower(r)
+	}, raw)
+	// Only a leading "scheme:" is dangerous; a bare "host:port" or path is fine.
+	if i := strings.IndexByte(normalized, ':'); i > 0 {
+		switch normalized[:i] {
+		case "javascript", "data", "vbscript", "file":
+			return false
+		}
+	}
 	return true
 }
 

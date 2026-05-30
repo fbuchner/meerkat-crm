@@ -155,6 +155,13 @@ type AdminUserResponse struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 
+// /users/me payload: standard user fields plus caller's UI preferences (custom field names and enabled contact fields)
+type CurrentUserResponse struct {
+	AdminUserResponse
+	CustomFieldNames     []string `json:"custom_field_names"`
+	EnabledContactFields []string `json:"enabled_contact_fields"`
+}
+
 // AdminUserUpdateInput - DTO for admin updating a user
 type AdminUserUpdateInput struct {
 	Username *string `json:"username" validate:"omitempty,min=1,max=50,no_at_sign"`

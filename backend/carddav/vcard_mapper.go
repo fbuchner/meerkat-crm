@@ -98,8 +98,13 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 		if isEmptyAddress(a) {
 			continue
 		}
+		// ADR components: POBox;Extended;Street;Locality;Region;Postal;Country
+		comps := []string{"", "", a.Street, a.City, a.Region, a.Postal, a.Country}
+		for i := range comps {
+			comps[i] = escapeComponent(comps[i])
+		}
 		card.Add(vcard.FieldAddress, &vcard.Field{
-			Value:  ";;" + a.Street + ";" + a.City + ";" + a.Region + ";" + a.Postal + ";" + a.Country,
+			Value:  strings.Join(comps, ";"),
 			Params: typeParams(a.Type),
 		})
 	}
@@ -149,11 +154,11 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 		org = contact.WorkInformation
 	}
 	if org != "" || contact.Department != "" {
-		orgValue := org
+		comps := []string{escapeComponent(org)}
 		if contact.Department != "" {
-			orgValue = org + ";" + contact.Department
+			comps = append(comps, escapeComponent(contact.Department))
 		}
-		card.SetValue(vcard.FieldOrganization, orgValue)
+		card.SetValue(vcard.FieldOrganization, strings.Join(comps, ";"))
 	}
 
 	// TITLE / ROLE
@@ -274,17 +279,21 @@ func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact,
 		}
 	}
 
-	// ADR - import every structured address
-	if addresses := card.Addresses(); len(addresses) > 0 {
+	// ADR - import every structured address. Parsed manually (rather than via
+	// card.Addresses()) so our "\;" escaping of embedded semicolons round-trips;
+	// go-vcard's helper splits naively on every ";".
+	if fields := card[vcard.FieldAddress]; len(fields) > 0 {
 		contact.Addresses = contact.Addresses[:0]
-		for _, addr := range addresses {
+		for _, f := range fields {
+			// ADR components: POBox;Extended;Street;Locality;Region;Postal;Country
+			comps := splitComponents(f.Value)
 			ca := models.ContactAddress{
-				Type:    typeFromField(addr.Field),
-				Street:  strings.TrimSpace(strings.Join(nonEmpty(addr.StreetAddress, addr.ExtendedAddress), " ")),
-				City:    addr.Locality,
-				Region:  addr.Region,
-				Postal:  addr.PostalCode,
-				Country: addr.Country,
+				Type:    typeFromField(f),
+				Street:  strings.TrimSpace(strings.Join(nonEmpty(component(comps, 2), component(comps, 1)), " ")),
+				City:    component(comps, 3),
+				Region:  component(comps, 4),
+				Postal:  component(comps, 5),
+				Country: component(comps, 6),
 			}
 			if !isEmptyAddress(ca) {
 				contact.Addresses = append(contact.Addresses, ca)
@@ -347,10 +356,10 @@ func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact,
 
 	// ORG -> Organization (+ Department after the ';' separator)
 	if org := card.Value(vcard.FieldOrganization); org != "" {
-		parts := strings.SplitN(org, ";", 2)
-		contact.Organization = strings.TrimSpace(parts[0])
-		if len(parts) > 1 {
-			contact.Department = strings.TrimSpace(parts[1])
+		comps := splitComponents(org)
+		contact.Organization = strings.TrimSpace(component(comps, 0))
+		if d := strings.TrimSpace(component(comps, 1)); d != "" {
+			contact.Department = d
 		}
 	}
 
@@ -660,6 +669,48 @@ func typeFromField(field *vcard.Field) string {
 // isEmptyAddress reports whether a structured address has no content.
 func isEmptyAddress(a models.ContactAddress) bool {
 	return strings.TrimSpace(a.Street+a.City+a.Region+a.Postal+a.Country) == ""
+}
+
+// escapeComponent escapes a single value before it is joined into a vCard
+// structured value (e.g. ORG or ADR) with ";" separators. go-vcard's encoder only
+// escapes "\", "\n" and "," (not the structured ";" separator, per its formatValue),
+// so we escape "\" and ";" ourselves; splitComponents reverses it on the way back.
+// "\" must be escaped first so the backslash we add for ";" is not doubled.
+func escapeComponent(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, ";", `\;`)
+	return s
+}
+
+// splitComponents splits a vCard structured value on its unescaped ";" separators
+// and unescapes each component, reversing escapeComponent. By the time it runs,
+// go-vcard's decoder has already applied its own value-level unescaping (\\, \n, \,),
+// so the only escape left to honor here is the "\;" we emit for embedded semicolons.
+func splitComponents(s string) []string {
+	var parts []string
+	var cur strings.Builder
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\\' && i+1 < len(s) {
+			cur.WriteByte(s[i+1])
+			i++
+			continue
+		}
+		if s[i] == ';' {
+			parts = append(parts, cur.String())
+			cur.Reset()
+			continue
+		}
+		cur.WriteByte(s[i])
+	}
+	return append(parts, cur.String())
+}
+
+// component returns the i-th element of a structured value, or "" when absent.
+func component(comps []string, i int) string {
+	if i < len(comps) {
+		return comps[i]
+	}
+	return ""
 }
 
 // nonEmpty returns the non-empty strings from the provided values, preserving order.

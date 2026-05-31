@@ -24,10 +24,12 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import DownloadIcon from '@mui/icons-material/Download';
 import InfoIcon from '@mui/icons-material/Info';
 import GitHubIcon from '@mui/icons-material/GitHub';
+import SyncIcon from '@mui/icons-material/Sync';
 import Link from '@mui/material/Link';
 import { changePassword } from './api/auth';
 import { updateLanguage, updateDateFormat } from './api/users';
 import { exportDataAsCsv, exportContactsAsVcf } from './api/export';
+import { syncCalDAVActivities } from './api/caldav';
 import { ThemePreference, useThemePreference } from './AppThemeProvider';
 import { DateFormat, useDateFormat } from './DateFormatProvider';
 import CustomFieldsSettings from './components/CustomFieldsSettings';
@@ -48,6 +50,13 @@ export default function SettingsPage() {
   const [exportingVcf, setExportingVcf] = useState(false);
   const [exportVcfError, setExportVcfError] = useState('');
   const [exportVcfSuccess, setExportVcfSuccess] = useState('');
+  const [calDAVUrl, setCalDAVUrl] = useState('');
+  const [calDAVUsername, setCalDAVUsername] = useState('');
+  const [calDAVPassword, setCalDAVPassword] = useState('');
+  const [calDAVLimit, setCalDAVLimit] = useState('200');
+  const [syncingCalDAV, setSyncingCalDAV] = useState(false);
+  const [calDAVError, setCalDAVError] = useState('');
+  const [calDAVSuccess, setCalDAVSuccess] = useState('');
 
   const handleLanguageChange = async (event: any) => {
     const newLang = event.target.value;
@@ -112,6 +121,39 @@ export default function SettingsPage() {
       setExportVcfError(errorMessage);
     } finally {
       setExportingVcf(false);
+    }
+  };
+
+  const handleCalDAVSync = async (event: FormEvent) => {
+    event.preventDefault();
+    setCalDAVError('');
+    setCalDAVSuccess('');
+
+    if (!calDAVUrl.trim() || !calDAVUsername.trim() || !calDAVPassword) {
+      setCalDAVError(t('settings.caldav.required'));
+      return;
+    }
+
+    const parsedLimit = Number.parseInt(calDAVLimit, 10);
+    setSyncingCalDAV(true);
+
+    try {
+      const result = await syncCalDAVActivities({
+        url: calDAVUrl.trim(),
+        username: calDAVUsername.trim(),
+        password: calDAVPassword,
+        limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
+      });
+      setCalDAVSuccess(t('settings.caldav.success', {
+        created: result.created,
+        skipped: result.skipped,
+      }));
+      setCalDAVPassword('');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : t('settings.caldav.error');
+      setCalDAVError(errorMessage);
+    } finally {
+      setSyncingCalDAV(false);
     }
   };
 
@@ -283,6 +325,74 @@ export default function SettingsPage() {
       </Card>
 
       <CustomFieldsSettings />
+
+      <Card sx={{ mb: 2 }}>
+        <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <SyncIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+              {t('settings.caldav.title')}
+            </Typography>
+          </Box>
+          <Divider sx={{ mb: 1.5 }} />
+
+          <form onSubmit={handleCalDAVSync}>
+            <Stack spacing={1.5}>
+              <Typography variant="body2" color="text.secondary">
+                {t('settings.caldav.description')}
+              </Typography>
+              {calDAVError && <Alert severity="error" sx={{ py: 0 }}>{calDAVError}</Alert>}
+              {calDAVSuccess && <Alert severity="success" sx={{ py: 0 }}>{calDAVSuccess}</Alert>}
+              <TextField
+                label={t('settings.caldav.url')}
+                type="url"
+                value={calDAVUrl}
+                onChange={event => setCalDAVUrl(event.target.value)}
+                fullWidth
+                required
+                size="small"
+              />
+              <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
+                <TextField
+                  label={t('settings.caldav.username')}
+                  value={calDAVUsername}
+                  onChange={event => setCalDAVUsername(event.target.value)}
+                  fullWidth
+                  required
+                  size="small"
+                />
+                <TextField
+                  label={t('settings.caldav.password')}
+                  type="password"
+                  value={calDAVPassword}
+                  onChange={event => setCalDAVPassword(event.target.value)}
+                  fullWidth
+                  required
+                  size="small"
+                />
+              </Box>
+              <TextField
+                label={t('settings.caldav.limit')}
+                type="number"
+                value={calDAVLimit}
+                onChange={event => setCalDAVLimit(event.target.value)}
+                inputProps={{ min: 1, max: 200 }}
+                size="small"
+                sx={{ maxWidth: 180 }}
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                size="small"
+                startIcon={syncingCalDAV ? <CircularProgress size={16} color="inherit" /> : <CalendarMonthIcon />}
+                disabled={syncingCalDAV}
+              >
+                {syncingCalDAV ? t('settings.caldav.syncing') : t('settings.caldav.syncButton')}
+              </Button>
+            </Stack>
+          </form>
+        </CardContent>
+      </Card>
 
       <Card sx={{ mb: 2 }}>
         <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>

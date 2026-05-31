@@ -112,6 +112,7 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			protected.GET("/activities/:id", controllers.GetActivity)
 			protected.PUT("/activities/:id", middleware.ValidateJSONMiddleware(&models.ActivityInput{}), controllers.UpdateActivity)
 			protected.DELETE("/activities/:id", controllers.DeleteActivity)
+			protected.POST("/caldav/sync", middleware.ValidateJSONMiddleware(&models.CalDAVSyncInput{}), controllers.SyncCalDAVActivities)
 
 			// Reminder routes
 			protected.GET("/reminders", controllers.GetAllReminders)

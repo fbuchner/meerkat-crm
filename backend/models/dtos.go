@@ -11,6 +11,15 @@ type ActivityInput struct {
 	ContactIDs  []uint    `json:"contact_ids"` // Accept an array of contact IDs for many-to-many association
 }
 
+// CalDAVSyncInput connects to a CalDAV calendar once and imports VEVENTs as activities.
+type CalDAVSyncInput struct {
+	URL        string `json:"url" validate:"required,url,max=2048"`
+	Username   string `json:"username" validate:"required,max=200"`
+	Password   string `json:"password" validate:"required,max=500"`
+	ContactIDs []uint `json:"contact_ids"`
+	Limit      int    `json:"limit" validate:"omitempty,min=1,max=200"`
+}
+
 // NoteInput represents the DTO for creating/updating notes
 type NoteInput struct {
 	Content   string    `json:"content" validate:"required,min=1,max=5000"`

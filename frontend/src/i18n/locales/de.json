@@ -389,6 +389,19 @@
         "dark": "Dunkles Design"
       }
     },
+    "caldav": {
+      "title": "CalDAV-Aktivitaetssync",
+      "description": "Verbinden Sie einen CalDAV-Kalender und importieren Sie geplante Termine als Aktivitaeten. Zugangsdaten werden nur fuer diesen Sync verwendet.",
+      "url": "Kalender-URL",
+      "username": "Benutzername",
+      "password": "Passwort",
+      "limit": "Terminlimit",
+      "syncButton": "Aktivitaeten synchronisieren",
+      "syncing": "Synchronisiere...",
+      "required": "Kalender-URL, Benutzername und Passwort sind erforderlich.",
+      "success": "CalDAV-Sync abgeschlossen: {{created}} erstellt, {{skipped}} uebersprungen.",
+      "error": "CalDAV-Aktivitaeten konnten nicht synchronisiert werden. Bitte versuchen Sie es erneut."
+    },
     "password": {
       "title": "Passwort ändern",
       "description": "Verwenden Sie ein starkes Passwort, das Sie noch nicht genutzt haben.",

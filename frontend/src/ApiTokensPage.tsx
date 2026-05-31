@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Box,
+  Card,
+  CardContent,
+  Divider,
   Typography,
   Table,
   TableBody,
@@ -25,6 +28,7 @@ import {
 } from '@mui/material';
 import AppDialog from './components/AppDialog';
 import AddIcon from '@mui/icons-material/Add';
+import KeyIcon from '@mui/icons-material/Key';
 import BlockIcon from '@mui/icons-material/Block';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { getApiTokens, createApiToken, revokeApiToken, ApiToken, ApiTokenCreateResponse } from './api/apiTokens';
@@ -124,68 +128,83 @@ export default function ApiTokensPage() {
 
       <WebhooksSettings />
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-        <Typography variant="h6">{t('apiTokens.title')}</Typography>
-        <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setCreateDialogOpen(true)}>
-          {t('apiTokens.createButton')}
-        </Button>
-      </Box>
+      <Card sx={{ mb: 2 }}>
+        <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <KeyIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                {t('apiTokens.title')}
+              </Typography>
+            </Box>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={() => setCreateDialogOpen(true)}
+            >
+              {t('apiTokens.createButton')}
+            </Button>
+          </Box>
+          <Divider sx={{ mb: 1.5 }} />
 
-      {loading && <CircularProgress />}
-      {error && <Alert severity="error">{error}</Alert>}
+          {loading && <CircularProgress />}
+          {error && <Alert severity="error">{error}</Alert>}
 
-      {!loading && !error && (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>{t('apiTokens.columns.name')}</TableCell>
-                <TableCell>{t('apiTokens.columns.created')}</TableCell>
-                <TableCell>{t('apiTokens.columns.lastUsed')}</TableCell>
-                <TableCell>{t('apiTokens.columns.status')}</TableCell>
-                <TableCell>{t('apiTokens.columns.actions')}</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {tokens.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} align="center">
-                    <Typography color="text.secondary">{t('apiTokens.noTokens')}</Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                tokens.map((token) => (
-                  <TableRow key={token.id}>
-                    <TableCell>{token.name}</TableCell>
-                    <TableCell>{new Date(token.created_at).toLocaleString()}</TableCell>
-                    <TableCell>{formatDate(token.last_used_at)}</TableCell>
-                    <TableCell>
-                      {token.revoked_at ? (
-                        <Chip label={t('apiTokens.revoked')} color="error" size="small" />
-                      ) : (
-                        <Chip label={t('apiTokens.active')} color="success" size="small" />
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {!token.revoked_at && (
-                        <Tooltip title={t('apiTokens.revokeDialog.title')}>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => { setRevokingToken(token); setRevokeDialogOpen(true); }}
-                          >
-                            <BlockIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </TableCell>
+          {!loading && !error && (
+            <TableContainer component={Paper} variant="outlined">
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>{t('apiTokens.columns.name')}</TableCell>
+                    <TableCell>{t('apiTokens.columns.created')}</TableCell>
+                    <TableCell>{t('apiTokens.columns.lastUsed')}</TableCell>
+                    <TableCell>{t('apiTokens.columns.status')}</TableCell>
+                    <TableCell>{t('apiTokens.columns.actions')}</TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+                </TableHead>
+                <TableBody>
+                  {tokens.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center">
+                        <Typography color="text.secondary">{t('apiTokens.noTokens')}</Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    tokens.map((token) => (
+                      <TableRow key={token.id}>
+                        <TableCell>{token.name}</TableCell>
+                        <TableCell>{new Date(token.created_at).toLocaleString()}</TableCell>
+                        <TableCell>{formatDate(token.last_used_at)}</TableCell>
+                        <TableCell>
+                          {token.revoked_at ? (
+                            <Chip label={t('apiTokens.revoked')} color="error" size="small" />
+                          ) : (
+                            <Chip label={t('apiTokens.active')} color="success" size="small" />
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {!token.revoked_at && (
+                            <Tooltip title={t('apiTokens.revokeDialog.title')}>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => { setRevokingToken(token); setRevokeDialogOpen(true); }}
+                              >
+                                <BlockIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Create dialog */}
       <AppDialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} maxWidth="sm" fullWidth>

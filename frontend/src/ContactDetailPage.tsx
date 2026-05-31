@@ -95,8 +95,11 @@ export default function ContactDetailPage() {
   // Profile editing state
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileValues, setProfileValues] = useState({
+    prefix: '',
     firstname: '',
+    middle_name: '',
     lastname: '',
+    suffix: '',
     nickname: '',
     gender: ''
   });
@@ -465,8 +468,11 @@ export default function ContactDetailPage() {
   const handleStartEditProfile = () => {
     if (!contact) return;
     setProfileValues({
+      prefix: contact.prefix || '',
       firstname: contact.firstname || '',
+      middle_name: contact.middle_name || '',
       lastname: contact.lastname || '',
+      suffix: contact.suffix || '',
       nickname: contact.nickname || '',
       gender: contact.gender ? contact.gender.toLowerCase() : ''
     });
@@ -475,7 +481,7 @@ export default function ContactDetailPage() {
 
   const handleCancelEditProfile = () => {
     setEditingProfile(false);
-    setProfileValues({ firstname: '', lastname: '', nickname: '', gender: '' });
+    setProfileValues({ prefix: '', firstname: '', middle_name: '', lastname: '', suffix: '', nickname: '', gender: '' });
   };
 
   const handleSaveProfile = async () => {
@@ -487,8 +493,11 @@ export default function ContactDetailPage() {
     try {
       const updatedContact = await updateContact(id!, {
         ...contact,
+        prefix: profileValues.prefix.trim(),
         firstname: profileValues.firstname.trim(),
+        middle_name: profileValues.middle_name.trim(),
         lastname: profileValues.lastname.trim(),
+        suffix: profileValues.suffix.trim(),
         nickname: profileValues.nickname.trim(),
         gender: profileValues.gender
       });
@@ -624,6 +633,7 @@ export default function ContactDetailPage() {
         profilePic={profilePic}
         editingProfile={editingProfile}
         profileValues={profileValues}
+        enabledFields={enabledFields}
         editingCircles={editingCircles}
         newCircleName={newCircleName}
         availableCircles={availableCircles}

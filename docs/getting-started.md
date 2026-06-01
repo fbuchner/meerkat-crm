@@ -27,6 +27,12 @@ After adjusting the environment variables as needed you can run:
 | `FRONTEND_URL` | Used for CORS headers. Wildcard (`*`) is allowed but not recommended for production use |
 | `RESEND_API_KEY` | API key for [Resend](https://resend.com), used to send e-mail notifications. The generous free tier is more than enough for any personal setup |
 | `RESEND_FROM_EMAIL` | Sender e-mail address for Resend, needs to be configured in Resend |
+| `SMTP_HOST` | SMTP server hostname, used to send e-mail notifications via your own mail server (alternative or in addition to Resend) |
+| `SMTP_PORT` | SMTP server port (default `587`; use `465` with `SMTP_USE_TLS=true`) |
+| `SMTP_USERNAME` | SMTP auth username (leave empty for unauthenticated relays) |
+| `SMTP_PASSWORD` | SMTP auth password |
+| `SMTP_FROM_EMAIL` | Sender e-mail address for SMTP |
+| `SMTP_USE_TLS` | Set to `true` for implicit TLS (port 465); otherwise STARTTLS is used |
 | `CARDDAV_ENABLED` | When set to `true` the application acts as a CardDAV server which allows contacts to be synced with your phone |
 | `DISABLE_REGISTRATION` | When set to `true`, new user registration is disabled (existing users can still log in). Default is `false` |
 | `DATA_PATH` | Host directory where the database file should be stored |

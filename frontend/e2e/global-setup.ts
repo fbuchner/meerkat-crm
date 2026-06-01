@@ -1,6 +1,6 @@
 import { chromium, FullConfig, BrowserContext } from '@playwright/test';
 
-const API_BASE_URL = 'http://localhost:8080/api/v1';
+export const API_BASE_URL = 'http://localhost:8080/api/v1';
 
 // Test user credentials
 export const TEST_USER = {

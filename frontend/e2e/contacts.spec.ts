@@ -1,5 +1,6 @@
 import { test, expect } from './fixtures';
 import { loginUser, waitForLoading } from './fixtures';
+import { API_BASE_URL } from './global-setup';
 
 test.describe('Contacts', () => {
   test.beforeEach(async ({ page }) => {
@@ -60,23 +61,34 @@ test.describe('Contacts', () => {
   });
 
   test('should create a new contact', async ({ page }) => {
+    // Use a unique name per run so repeated runs don't accumulate duplicates
+    const firstname = `E2ETest${Date.now()}`;
+    const lastname = 'Contact';
+
     await page.goto('/contacts');
-    
+
     // Click Add Contact button
     await page.getByRole('button', { name: /add/i }).click();
-    
+
     // Should show dialog
     await expect(page.getByRole('dialog')).toBeVisible();
-    
+
     // Fill in minimal contact details
-    await page.getByLabel(/first.*name/i).fill('E2ETest');
-    await page.getByLabel(/last.*name/i).fill('Contact');
-    
+    await page.getByLabel(/first.*name/i).fill(firstname);
+    await page.getByLabel(/last.*name/i).fill(lastname);
+
     // Submit the form
     await page.getByRole('button', { name: /create/i }).click();
-    
+
     // Should navigate to the new contact's detail page
     await expect(page).toHaveURL(/\/contacts\/\d+/);
-    await expect(page.getByText('E2ETest Contact')).toBeVisible();
+    // Target the detail page header specifically (avoids matching list cards)
+    await expect(page.getByRole('heading', { name: `${firstname} ${lastname}` })).toBeVisible();
+
+    // Clean up the created contact so runs stay idempotent
+    const contactId = page.url().match(/\/contacts\/(\d+)/)?.[1];
+    if (contactId) {
+      await page.request.delete(`${API_BASE_URL}/contacts/${contactId}`);
+    }
   });
 });

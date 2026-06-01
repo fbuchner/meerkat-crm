@@ -247,7 +247,7 @@ export default function ContactsPage() {
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {contact.firstname} {contact.nickname && `"${contact.nickname}"`} {contact.lastname}
+                      {[contact.firstname, contact.nickname && `"${contact.nickname}"`, contact.lastname].filter(Boolean).join(' ')}
                     </Typography>
                     {contact.archived && (
                       <Chip

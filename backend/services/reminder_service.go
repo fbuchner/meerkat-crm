@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/resend/resend-go/v2"
 	"gorm.io/gorm"
 )
 
@@ -252,7 +251,7 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 
 		// Send email only when enabled; preserve reminders (email_sent=false) when disabled
 		// so they are picked up again once email is configured.
-		if config.UseResend {
+		if config.EmailEnabled() {
 			if err := sendReminderEmailFn(user, userReminders, config, db); err != nil {
 				logger.Error().Err(err).Uint("user_id", user.ID).Msg("Error sending daily email, skipping reminder mutations for this user")
 				sendErrors++
@@ -270,7 +269,7 @@ func SendReminders(db *gorm.DB, config config.Config) error {
 				}
 			}
 		} else {
-			logger.Info().Int("reminder_count", len(userReminders)).Uint("user_id", userID).Msg("Email sending disabled (UseResend=false), skipping reminder mutations to preserve them")
+			logger.Info().Int("reminder_count", len(userReminders)).Uint("user_id", userID).Msg("Email sending disabled (no channel configured), skipping reminder mutations to preserve them")
 		}
 
 		// Fire reminder.triggered webhooks regardless of email config
@@ -425,25 +424,16 @@ func sendReminderEmail(user models.User, reminders []models.Reminder, config con
 
 	logger.Debug().Int("reminder_count", len(reminderItems)).Int("birthday_count", len(birthdayItems)).Uint("user_id", user.ID).Str("language", lang).Msg("Sending reminder email")
 
-	// Initialize Resend client
-	client := resend.NewClient(config.ResendAPIKey)
-
-	// Prepare email parameters
-	params := &resend.SendEmailRequest{
-		From:    config.ResendFromEmail,
-		To:      []string{user.Email},
+	if err := SendEmail(config, EmailMessage{
+		To:      user.Email,
 		Subject: i18n.T(lang, "email.reminder.subject"),
-		Html:    htmlContent,
-	}
-
-	// Send email
-	sent, err := client.Emails.Send(params)
-	if err != nil {
-		logger.Error().Err(err).Msg("Failed to send reminder email")
+		HTML:    htmlContent,
+	}); err != nil {
+		logger.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to send reminder email")
 		return err
 	}
 
-	logger.Info().Str("email_id", sent.Id).Uint("user_id", user.ID).Msg("Reminder email sent successfully")
+	logger.Info().Uint("user_id", user.ID).Msg("Reminder email sent successfully")
 
 	return nil
 }

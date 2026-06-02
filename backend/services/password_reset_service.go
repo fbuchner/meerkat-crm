@@ -10,8 +10,6 @@ import (
 	"meerkat/i18n"
 	"meerkat/logger"
 	"time"
-
-	"github.com/resend/resend-go/v2"
 )
 
 const (
@@ -49,8 +47,8 @@ func SendPasswordResetEmail(email, token, lang string, cfg *config.Config) error
 		return fmt.Errorf("config is required")
 	}
 
-	if !cfg.UseResend {
-		logger.Warn().Str("email", email).Msg("Resend disabled; password reset email not sent")
+	if !cfg.EmailEnabled() {
+		logger.Warn().Str("email", email).Msg("No email channel configured; password reset email not sent")
 		return nil
 	}
 
@@ -70,20 +68,14 @@ func SendPasswordResetEmail(email, token, lang string, cfg *config.Config) error
 		return fmt.Errorf("failed to render password reset email: %w", err)
 	}
 
-	client := resend.NewClient(cfg.ResendAPIKey)
-
-	params := &resend.SendEmailRequest{
-		From:    cfg.ResendFromEmail,
-		To:      []string{email},
+	if err := SendEmail(*cfg, EmailMessage{
+		To:      email,
 		Subject: i18n.T(lang, "email.passwordReset.subject"),
-		Html:    htmlBody,
-	}
-
-	sent, err := client.Emails.Send(params)
-	if err != nil {
+		HTML:    htmlBody,
+	}); err != nil {
 		return err
 	}
 
-	logger.Info().Str("email_id", sent.Id).Str("email", email).Str("language", lang).Msg("Password reset email sent")
+	logger.Info().Str("email", email).Str("language", lang).Msg("Password reset email sent")
 	return nil
 }

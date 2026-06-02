@@ -24,25 +24,32 @@ type OIDCConfig struct {
 }
 
 type Config struct {
-	DBPath               string
-	ReminderTime         string
-	ReminderTimezone     string
-	FrontendURL          string
-	Port                 string
-	TrustedProxies       []string
-	UseResend            bool
-	ResendAPIKey         string
-	ResendFromEmail      string
-	ResendToEmail        string
-	JWTSecretKey         string
-	JWTExpiryHours       int
-	ReadTimeout          int    // HTTP server read timeout in seconds
-	WriteTimeout         int    // HTTP server write timeout in seconds
-	IdleTimeout          int    // HTTP server idle timeout in seconds
-	ProfilePhotoDir      string // Directory for storing profile photos (must be absolute path)
-	CardDAVEnabled       bool   // Enable CardDAV server for contact sync
-	CookieSecure         bool   // Set Secure flag on auth cookie (requires HTTPS)
-	CookieDomain         string // Domain for auth cookie (empty = current domain only)
+	DBPath                  string
+	ReminderTime            string
+	ReminderTimezone        string
+	FrontendURL             string
+	Port                    string
+	TrustedProxies          []string
+	UseResend               bool
+	ResendAPIKey            string
+	ResendFromEmail         string
+	ResendToEmail           string
+	UseSMTP                 bool
+	SMTPHost                string
+	SMTPPort                int
+	SMTPUsername            string
+	SMTPPassword            string
+	SMTPFromEmail           string
+	SMTPUseTLS              bool // implicit TLS (e.g. port 465); otherwise STARTTLS is used when available
+	JWTSecretKey            string
+	JWTExpiryHours          int
+	ReadTimeout             int    // HTTP server read timeout in seconds
+	WriteTimeout            int    // HTTP server write timeout in seconds
+	IdleTimeout             int    // HTTP server idle timeout in seconds
+	ProfilePhotoDir         string // Directory for storing profile photos (must be absolute path)
+	CardDAVEnabled          bool   // Enable CardDAV server for contact sync
+	CookieSecure            bool   // Set Secure flag on auth cookie (requires HTTPS)
+	CookieDomain            string // Domain for auth cookie (empty = current domain only)
 	RegistrationDisabled    bool   // Disable new user registration
 	WebhookBlockPrivateURLs bool   // Block webhook deliveries to private/loopback addresses (useful for cloud deployments)
 	OIDC                    OIDCConfig
@@ -63,30 +70,41 @@ func LoadConfig() *Config {
 	idleTimeout := getIntEnv("HTTP_IDLE_TIMEOUT", 60)
 
 	cfg := &Config{
-		DBPath:               getEnv("SQLITE_DB_PATH", "meerkat.db"),
-		ReminderTime:         getEnv("REMINDER_TIME", "12:00"),
-		ReminderTimezone:     getEnv("REMINDER_TIMEZONE", "UTC"),
-		FrontendURL:          getEnv("FRONTEND_URL", "*"),
-		Port:                 getEnv("PORT", "8080"),
-		UseResend:            true,
-		ResendAPIKey:         getEnv("RESEND_API_KEY", ""),
-		ResendFromEmail:      getEnv("RESEND_FROM_EMAIL", ""),
-		JWTSecretKey:         getEnv("JWT_SECRET_KEY", ""),
-		JWTExpiryHours:       jwtExpiryHours,
-		TrustedProxies:       getProxies(getEnv("TRUSTED_PROXIES", "")),
-		ReadTimeout:          readTimeout,
-		WriteTimeout:         writeTimeout,
-		IdleTimeout:          idleTimeout,
-		ProfilePhotoDir:      getEnv("PROFILE_PHOTO_DIR", ""),
-		CardDAVEnabled:       getBoolEnv("CARDDAV_ENABLED", false),
-		CookieSecure:         getBoolEnv("COOKIE_SECURE", false),
-		CookieDomain:         getEnv("COOKIE_DOMAIN", ""),
+		DBPath:                  getEnv("SQLITE_DB_PATH", "meerkat.db"),
+		ReminderTime:            getEnv("REMINDER_TIME", "12:00"),
+		ReminderTimezone:        getEnv("REMINDER_TIMEZONE", "UTC"),
+		FrontendURL:             getEnv("FRONTEND_URL", "*"),
+		Port:                    getEnv("PORT", "8080"),
+		UseResend:               true,
+		ResendAPIKey:            getEnv("RESEND_API_KEY", ""),
+		ResendFromEmail:         getEnv("RESEND_FROM_EMAIL", ""),
+		UseSMTP:                 true,
+		SMTPHost:                getEnv("SMTP_HOST", ""),
+		SMTPPort:                getIntEnv("SMTP_PORT", 587),
+		SMTPUsername:            getEnv("SMTP_USERNAME", ""),
+		SMTPPassword:            getEnv("SMTP_PASSWORD", ""),
+		SMTPFromEmail:           getEnv("SMTP_FROM_EMAIL", ""),
+		SMTPUseTLS:              getBoolEnv("SMTP_USE_TLS", false),
+		JWTSecretKey:            getEnv("JWT_SECRET_KEY", ""),
+		JWTExpiryHours:          jwtExpiryHours,
+		TrustedProxies:          getProxies(getEnv("TRUSTED_PROXIES", "")),
+		ReadTimeout:             readTimeout,
+		WriteTimeout:            writeTimeout,
+		IdleTimeout:             idleTimeout,
+		ProfilePhotoDir:         getEnv("PROFILE_PHOTO_DIR", ""),
+		CardDAVEnabled:          getBoolEnv("CARDDAV_ENABLED", false),
+		CookieSecure:            getBoolEnv("COOKIE_SECURE", false),
+		CookieDomain:            getEnv("COOKIE_DOMAIN", ""),
 		RegistrationDisabled:    getBoolEnv("DISABLE_REGISTRATION", false),
 		WebhookBlockPrivateURLs: getBoolEnv("WEBHOOK_BLOCK_PRIVATE_URLS", false),
 	}
 
 	if cfg.ResendAPIKey == "" || cfg.ResendFromEmail == "" {
 		cfg.UseResend = false
+	}
+
+	if cfg.SMTPHost == "" || cfg.SMTPFromEmail == "" {
+		cfg.UseSMTP = false
 	}
 
 	oidcProviderURL := getEnv("OIDC_PROVIDER_URL", "")
@@ -312,7 +330,34 @@ func (c *Config) Validate() []ValidationError {
 		}
 	}
 
+	// Validate SMTP configuration if SMTP delivery is enabled
+	if c.UseSMTP {
+		if c.SMTPHost == "" {
+			errors = append(errors, ValidationError{
+				Field:   "SMTP_HOST",
+				Message: "SMTP host is required when SMTP email is enabled.",
+			})
+		}
+		if c.SMTPFromEmail == "" {
+			errors = append(errors, ValidationError{
+				Field:   "SMTP_FROM_EMAIL",
+				Message: "SMTP sender email is required when SMTP email is enabled.",
+			})
+		}
+		if c.SMTPPort < 1 || c.SMTPPort > 65535 {
+			errors = append(errors, ValidationError{
+				Field:   "SMTP_PORT",
+				Message: fmt.Sprintf("Invalid SMTP port '%d'. Must be between 1 and 65535.", c.SMTPPort),
+			})
+		}
+	}
+
 	return errors
+}
+
+// EmailEnabled reports whether at least one email delivery channel is configured.
+func (c *Config) EmailEnabled() bool {
+	return c.UseResend || c.UseSMTP
 }
 
 // GetReminderLocation returns the parsed time.Location for the configured ReminderTimezone.

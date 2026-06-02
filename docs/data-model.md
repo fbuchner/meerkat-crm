@@ -41,7 +41,7 @@ Reminders help you stay on top of important dates and follow-ups.
 Reminders can be one-time or recur on a schedule. Reminders are tied to a specific contact and appear on both the contact's detail page and the dashboard. You can decide wether the reminder should reschule from the completion date (e.g. for a catch-up) or from the original date (e.g. for an anniversary).
 The **Stay in Touch** button on a contact's detail page opens a prefilled reminder creation dialog for a quarterly catch-up.
 
-If you enable **Send email notification** on a reminder, you will receive an email when the reminder is due. This requires a valid email address on your account and a configured email service (Resend API key) on the server.
+If you enable **Send email notification** on a reminder, you will receive an email when the reminder is due. This requires a valid email address on your account and a configured email channel (Resend or SMTP) on the server.
 
 When a reminder is due, you can complete or skip it. The difference is that selecting **Complete** creates a completion entry on the related contact's timeline while the **Skip** option directly schedules the next reminder occurence (if there is one) without creating a timeline entry. Overdue reminders remain visible until they are completed or skipped though they will not show up in the reminder emails  again.
 

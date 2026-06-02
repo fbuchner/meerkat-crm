@@ -120,6 +120,18 @@ function DashboardPage() {
     return new Date(remindAt) < new Date();
   };
 
+  const isBirthdayToday = (birthday: string | undefined) => {
+    if (!birthday) return false;
+    // Birthday is either "YYYY-MM-DD" or "--MM-DD"; compare month and day to today
+    const parts = birthday.split('-').filter(p => p !== '');
+    if (parts.length < 2) return false;
+    const month = parseInt(parts[parts.length - 2], 10);
+    const day = parseInt(parts[parts.length - 1], 10);
+    if (isNaN(month) || isNaN(day)) return false;
+    const today = new Date();
+    return today.getMonth() + 1 === month && today.getDate() === day;
+  };
+
   const formatBirthday = (birthday: string | undefined) => {
     if (!birthday) return '';
     
@@ -229,13 +241,18 @@ function DashboardPage() {
             </Card>
           ) : (
             <Stack spacing={1.5}>
-              {birthdays.map((birthday, index) => (
+              {birthdays.map((birthday, index) => {
+                const today = isBirthdayToday(birthday.birthday);
+
+                return (
                 <Card
                   key={`${birthday.type}-${birthday.contact_id}-${index}`}
                   component={Link}
                   to={`/contacts/${birthday.contact_id}`}
                   sx={{
                     textDecoration: 'none',
+                    border: '1px solid',
+                    borderColor: today ? 'success.main' : 'divider',
                     '&:hover': {
                       boxShadow: 2,
                       transform: 'translateY(-1px)',
@@ -277,7 +294,8 @@ function DashboardPage() {
                     </Box>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </Stack>
           )}
         </Box>

@@ -34,11 +34,36 @@ type ContactInput struct {
 	ContactInformation string            `json:"contact_information" validate:"max=1000"`
 	Circles            []string          `json:"circles" validate:"unique_circles"`
 	CustomFields       map[string]string `json:"custom_fields"`
+
+	// Multi-valued vCard fields
+	Emails    []ContactEmail   `json:"emails" validate:"omitempty,max=25,dive"`
+	Phones    []ContactPhone   `json:"phones" validate:"omitempty,max=25,dive"`
+	Addresses []ContactAddress `json:"addresses" validate:"omitempty,max=25,dive"`
+	URLs      []ContactURL     `json:"urls" validate:"omitempty,max=25,dive"`
+	IMPPs     []ContactIMPP    `json:"impps" validate:"omitempty,max=25,dive"`
+
+	// Structured name parts
+	Prefix     string `json:"prefix" validate:"max=50"`
+	MiddleName string `json:"middle_name" validate:"max=100"`
+	Suffix     string `json:"suffix" validate:"max=50"`
+
+	// Organizational fields
+	Organization string `json:"organization" validate:"max=200"`
+	Department   string `json:"department" validate:"max=200"`
+	JobTitle     string `json:"job_title" validate:"max=200"`
+	Role         string `json:"role" validate:"max=200"`
+
+	Anniversary string `json:"anniversary" validate:"omitempty,birthday"`
 }
 
 // CustomFieldNamesInput represents the DTO for updating user's custom field definitions
 type CustomFieldNamesInput struct {
 	Names []string `json:"names" validate:"dive,max=100"`
+}
+
+// represents the DTO for updating which extended contact fields are visible in the UI. A nil/absent list means "use the default set"
+type EnabledContactFieldsInput struct {
+	Fields []string `json:"fields" validate:"dive,max=50"`
 }
 
 // UserRegistrationInput represents the DTO for user registration
@@ -128,6 +153,13 @@ type AdminUserResponse struct {
 	IsAdmin    bool      `json:"is_admin"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+// /users/me payload: standard user fields plus caller's UI preferences (custom field names and enabled contact fields)
+type CurrentUserResponse struct {
+	AdminUserResponse
+	CustomFieldNames     []string `json:"custom_field_names"`
+	EnabledContactFields []string `json:"enabled_contact_fields"`
 }
 
 // AdminUserUpdateInput - DTO for admin updating a user

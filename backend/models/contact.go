@@ -2,10 +2,46 @@ package models
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+// ContactEmail is a single typed email address (vCard EMAIL).
+type ContactEmail struct {
+	Type  string `json:"type" validate:"max=30"`
+	Value string `json:"value" validate:"required,email"`
+}
+
+// ContactPhone is a single typed phone number (vCard TEL).
+type ContactPhone struct {
+	Type  string `json:"type" validate:"max=30"`
+	Value string `json:"value" validate:"required,phone"`
+}
+
+// ContactURL is a single typed website URL (vCard URL).
+type ContactURL struct {
+	Type  string `json:"type" validate:"max=30"`
+	Value string `json:"value" validate:"required,max=500,safeurl"`
+}
+
+// ContactIMPP is a single instant-messaging / social handle (vCard IMPP).
+// Type holds the service (e.g. "telegram", "signal"); Value holds the handle.
+type ContactIMPP struct {
+	Type  string `json:"type" validate:"max=30"`
+	Value string `json:"value" validate:"required,max=200,safeurl"`
+}
+
+// ContactAddress is a single structured postal address (vCard ADR).
+type ContactAddress struct {
+	Type    string `json:"type" validate:"max=30"`
+	Street  string `json:"street" validate:"max=500"`
+	City    string `json:"city" validate:"max=200"`
+	Region  string `json:"region" validate:"max=200"`
+	Postal  string `json:"postal" validate:"max=30"`
+	Country string `json:"country" validate:"max=100"`
+}
 
 type Contact struct {
 	gorm.Model
@@ -30,6 +66,29 @@ type Contact struct {
 	Notes              []Note         `json:"notes,omitempty"`     // One-to-many relationship with notes
 	Reminders          []Reminder     `json:"reminders,omitempty"` // One-to-many relationship with reminders
 
+	// Multi-valued vCard fields (stored as JSON arrays). The legacy Email/Phone/Address
+	// scalars above are kept in sync (see BeforeSave) as the denormalized "primary" value
+	// used for search and list views.
+	Emails    []ContactEmail   `gorm:"column:emails;type:text;serializer:json" json:"emails"`
+	Phones    []ContactPhone   `gorm:"column:phones;type:text;serializer:json" json:"phones"`
+	Addresses []ContactAddress `gorm:"column:addresses;type:text;serializer:json" json:"addresses"`
+	URLs      []ContactURL     `gorm:"column:urls;type:text;serializer:json" json:"urls"`
+	IMPPs     []ContactIMPP    `gorm:"column:impps;type:text;serializer:json" json:"impps"`
+
+	// Structured name parts (vCard N)
+	Prefix     string `gorm:"type:text" json:"prefix" validate:"max=50"`
+	MiddleName string `gorm:"type:text" json:"middle_name" validate:"max=100"`
+	Suffix     string `gorm:"type:text" json:"suffix" validate:"max=50"`
+
+	// Organizational fields (vCard ORG / TITLE / ROLE)
+	Organization string `gorm:"type:text" json:"organization" validate:"max=200"`
+	Department   string `gorm:"type:text" json:"department" validate:"max=200"`
+	JobTitle     string `gorm:"type:text" json:"job_title" validate:"max=200"`
+	Role         string `gorm:"type:text" json:"role" validate:"max=200"`
+
+	// Anniversary date (vCard X-ANNIVERSARY), same format as Birthday
+	Anniversary string `json:"anniversary" validate:"omitempty,birthday"`
+
 	// CardDAV fields
 	VCardUID   string `gorm:"column:vcard_uid;index" json:"-"` // Permanent RFC 6350 UID
 	VCardExtra string `gorm:"column:vcard_extra" json:"-"`     // JSON for unmapped vCard properties
@@ -39,6 +98,32 @@ type Contact struct {
 	CustomFields map[string]string `gorm:"type:text;serializer:json" json:"custom_fields"`
 
 	Archived bool `gorm:"default:false" json:"archived"`
+}
+
+// renders a structured address as a single human-readable line, used to keep the legacy Address scalar in sync for search/list views.
+func FormatAddress(a ContactAddress) string {
+	parts := []string{}
+	for _, p := range []string{a.Street, a.City, a.Region, a.Postal, a.Country} {
+		if strings.TrimSpace(p) != "" {
+			parts = append(parts, p)
+		}
+	}
+	return strings.Join(parts, ", ")
+}
+
+// BeforeSave keeps the denormalized primary scalars (Email/Phone/Address) in sync
+// with the first entry of their respective JSON arrays. Runs on both create and update
+func (c *Contact) BeforeSave(tx *gorm.DB) error {
+	if len(c.Emails) > 0 {
+		c.Email = c.Emails[0].Value
+	}
+	if len(c.Phones) > 0 {
+		c.Phone = c.Phones[0].Value
+	}
+	if len(c.Addresses) > 0 {
+		c.Address = FormatAddress(c.Addresses[0])
+	}
+	return nil
 }
 
 // generates VCardUID for new contacts

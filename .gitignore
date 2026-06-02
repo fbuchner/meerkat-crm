@@ -80,3 +80,4 @@ CLAUDE.md
 BACKLOG.md
 .env.docker
 fly.demo.toml
+fly.test.toml

@@ -15,11 +15,14 @@ import {
   Switch
 } from '@mui/material';
 import AppDialog from './AppDialog';
-import { createContact } from '../api/contacts';
+import MultiValueField from './MultiValueField';
+import AddressFields from './AddressFields';
+import { createContact, ContactValue, ContactAddress } from '../api/contacts';
 import { createReminder } from '../api/reminders';
 import { useSnackbar } from '../context/SnackbarContext';
 import { handleError, getErrorMessage } from '../utils/errorHandler';
 import { useDateFormat } from '../DateFormatProvider';
+import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
 
 interface AddContactDialogProps {
   open: boolean;
@@ -27,32 +30,49 @@ interface AddContactDialogProps {
   onContactAdded: (contactId: number) => void;
   availableCircles: string[];
   customFieldNames?: string[];
+  enabledFields?: Set<ContactFieldKey>;
 }
+
+const emptyForm = {
+  firstname: '',
+  lastname: '',
+  prefix: '',
+  middle_name: '',
+  suffix: '',
+  nickname: '',
+  gender: '',
+  birthday: '',
+  anniversary: '',
+  organization: '',
+  department: '',
+  job_title: '',
+  role: '',
+  how_we_met: '',
+  food_preference: '',
+  work_information: '',
+  contact_information: ''
+};
 
 export default function AddContactDialog({
   open,
   onClose,
   onContactAdded,
   availableCircles,
-  customFieldNames = []
+  customFieldNames = [],
+  enabledFields
 }: AddContactDialogProps) {
   const { t } = useTranslation();
   const { showError, showSuccess } = useSnackbar();
   const { parseBirthdayInput, getBirthdayPlaceholder, autoFormatBirthdayInput } = useDateFormat();
-  const [formData, setFormData] = useState({
-    firstname: '',
-    lastname: '',
-    nickname: '',
-    gender: '',
-    email: '',
-    phone: '',
-    birthday: '',
-    address: '',
-    how_we_met: '',
-    food_preference: '',
-    work_information: '',
-    contact_information: ''
-  });
+  const enabled = enabledFields ?? resolveEnabledFields(null);
+  const isOn = (key: ContactFieldKey) => enabled.has(key);
+
+  const [formData, setFormData] = useState({ ...emptyForm });
+  const [emails, setEmails] = useState<ContactValue[]>([]);
+  const [phones, setPhones] = useState<ContactValue[]>([]);
+  const [addresses, setAddresses] = useState<ContactAddress[]>([]);
+  const [urls, setUrls] = useState<ContactValue[]>([]);
+  const [impps, setImpps] = useState<ContactValue[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [selectedCircles, setSelectedCircles] = useState<string[]>([]);
   const [newCircle, setNewCircle] = useState('');
@@ -63,6 +83,8 @@ export default function AddContactDialog({
   const handleChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
     if (field === 'birthday') {
       setFormData({ ...formData, birthday: autoFormatBirthdayInput(event.target.value, formData.birthday) });
+    } else if (field === 'anniversary') {
+      setFormData({ ...formData, anniversary: autoFormatBirthdayInput(event.target.value, formData.anniversary) });
     } else {
       setFormData({ ...formData, [field]: event.target.value });
     }
@@ -85,7 +107,6 @@ export default function AddContactDialog({
   };
 
   const handleSubmit = async () => {
-    // Validate required fields
     if (!formData.firstname.trim()) {
       setError(t('contacts.add.requiredFields'));
       return;
@@ -102,11 +123,20 @@ export default function AddContactDialog({
       birthdayISO = parsed;
     }
 
+    let anniversaryISO = '';
+    if (formData.anniversary.trim()) {
+      const parsed = parseBirthdayInput(formData.anniversary);
+      if (parsed === null) {
+        setError(t('contactDetail.birthdayError'));
+        return;
+      }
+      anniversaryISO = parsed;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      // Filter out empty custom field values
       const filteredCustomFields: Record<string, string> = {};
       for (const [key, value] of Object.entries(customFieldValues)) {
         if (value.trim()) {
@@ -114,9 +144,41 @@ export default function AddContactDialog({
         }
       }
 
+      // Drop empty rows from the multi-value fields
+      const cleanEmails = emails.filter(e => e.value.trim());
+      const cleanPhones = phones.filter(p => p.value.trim());
+      const cleanUrls = urls.filter(u => u.value.trim());
+      const cleanImpps = impps.filter(i => i.value.trim());
+      const cleanAddresses = addresses.filter(
+        a => a.street.trim() || a.city.trim() || a.region.trim() || a.postal.trim() || a.country.trim()
+      );
+
       const contactData = {
-        ...formData,
+        firstname: formData.firstname,
+        lastname: formData.lastname,
+        prefix: formData.prefix,
+        middle_name: formData.middle_name,
+        suffix: formData.suffix,
+        nickname: formData.nickname,
+        gender: formData.gender,
         birthday: birthdayISO,
+        anniversary: anniversaryISO,
+        organization: formData.organization,
+        department: formData.department,
+        job_title: formData.job_title,
+        role: formData.role,
+        how_we_met: formData.how_we_met,
+        food_preference: formData.food_preference,
+        work_information: formData.work_information,
+        contact_information: formData.contact_information,
+        emails: cleanEmails,
+        phones: cleanPhones,
+        addresses: cleanAddresses,
+        urls: cleanUrls,
+        impps: cleanImpps,
+        // Derived primary scalars keep search/list and the backend in sync
+        email: cleanEmails[0]?.value || '',
+        phone: cleanPhones[0]?.value || '',
         circles: selectedCircles.length > 0 ? selectedCircles : undefined,
         custom_fields: Object.keys(filteredCustomFields).length > 0 ? filteredCustomFields : undefined
       };
@@ -124,16 +186,13 @@ export default function AddContactDialog({
       const newContact = await createContact(contactData);
 
       if (createBirthdayReminder && birthdayISO) {
-        // Birthday format is now YYYY-MM-DD or --MM-DD (ISO 8601)
         let day: number | undefined;
         let month: number | undefined;
 
         if (birthdayISO.startsWith('--')) {
-          // --MM-DD format
           month = parseInt(birthdayISO.substring(2, 4), 10) - 1;
           day = parseInt(birthdayISO.substring(5, 7), 10);
         } else {
-          // YYYY-MM-DD format
           const parts = birthdayISO.split('-');
           if (parts.length === 3) {
             month = parseInt(parts[1], 10) - 1;
@@ -145,12 +204,10 @@ export default function AddContactDialog({
           const today = new Date();
           let nextBirthday = new Date(today.getFullYear(), month, day);
 
-          // If birthday has passed this year, set for next year
           if (nextBirthday < today) {
             nextBirthday.setFullYear(today.getFullYear() + 1);
           }
 
-          // Set reminder for 9 AM
           nextBirthday.setHours(9, 0, 0, 0);
 
           await createReminder(newContact.ID, {
@@ -177,23 +234,16 @@ export default function AddContactDialog({
   };
 
   const handleClose = () => {
-    setFormData({
-      firstname: '',
-      lastname: '',
-      nickname: '',
-      gender: '',
-      email: '',
-      phone: '',
-      birthday: '',
-      address: '',
-      how_we_met: '',
-      food_preference: '',
-      work_information: '',
-      contact_information: ''
-    });
+    setFormData({ ...emptyForm });
+    setEmails([]);
+    setPhones([]);
+    setAddresses([]);
+    setUrls([]);
+    setImpps([]);
     setCustomFieldValues({});
     setSelectedCircles([]);
     setNewCircle('');
+    setCreateBirthdayReminder(false);
     setError('');
     onClose();
   };
@@ -208,6 +258,16 @@ export default function AddContactDialog({
           </Typography>
         )}
         <Stack spacing={2} sx={{ mt: 1 }}>
+          {(isOn('prefix') || isOn('suffix')) && (
+            <Stack direction="row" spacing={2}>
+              {isOn('prefix') && (
+                <TextField label={t('contacts.prefix')} fullWidth value={formData.prefix} onChange={handleChange('prefix')} />
+              )}
+              {isOn('suffix') && (
+                <TextField label={t('contacts.suffix')} fullWidth value={formData.suffix} onChange={handleChange('suffix')} />
+              )}
+            </Stack>
+          )}
           <Stack direction="row" spacing={2}>
             <TextField
               label={t('contacts.firstname')}
@@ -223,98 +283,136 @@ export default function AddContactDialog({
               onChange={handleChange('lastname')}
             />
           </Stack>
+          {isOn('middle_name') && (
+            <TextField label={t('contacts.middleName')} fullWidth value={formData.middle_name} onChange={handleChange('middle_name')} />
+          )}
           <Stack direction="row" spacing={2}>
-            <TextField
-              label={t('contacts.nickname')}
-              fullWidth
-              value={formData.nickname}
-              onChange={handleChange('nickname')}
-            />
-            <TextField
-              select
-              label={t('contacts.gender')}
-              fullWidth
-              value={formData.gender}
-              onChange={handleChange('gender')}
-            >
-              <MenuItem value="">{t('contacts.selectGender')}</MenuItem>
-              <MenuItem value="male">{t('contacts.male')}</MenuItem>
-              <MenuItem value="female">{t('contacts.female')}</MenuItem>
-              <MenuItem value="other">{t('contacts.other')}</MenuItem>
-            </TextField>
+            {isOn('nickname') && (
+              <TextField
+                label={t('contacts.nickname')}
+                fullWidth
+                value={formData.nickname}
+                onChange={handleChange('nickname')}
+              />
+            )}
+            {isOn('gender') && (
+              <TextField
+                select
+                label={t('contacts.gender')}
+                fullWidth
+                value={formData.gender}
+                onChange={handleChange('gender')}
+              >
+                <MenuItem value="">{t('contacts.selectGender')}</MenuItem>
+                <MenuItem value="male">{t('contacts.male')}</MenuItem>
+                <MenuItem value="female">{t('contacts.female')}</MenuItem>
+                <MenuItem value="other">{t('contacts.other')}</MenuItem>
+              </TextField>
+            )}
           </Stack>
-          <Stack direction="row" spacing={2}>
-            <TextField
-              label={t('contacts.email')}
-              fullWidth
-              type="email"
-              value={formData.email}
-              onChange={handleChange('email')}
-            />
-            <TextField
-              label={t('contacts.phone')}
-              fullWidth
-              value={formData.phone}
-              onChange={handleChange('phone')}
-            />
-          </Stack>
-          <TextField
-            label={t('contacts.birthday')}
-            fullWidth
-            value={formData.birthday}
-            onChange={handleChange('birthday')}
-            placeholder={getBirthdayPlaceholder()}
-            helperText={t('contacts.birthdayFormat')}
-          />
-          {formData.birthday && (
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={createBirthdayReminder}
-                  onChange={(e) => setCreateBirthdayReminder(e.target.checked)}
+
+          {isOn('emails') && (
+            <MultiValueField label={t('contacts.email')} value={emails} onChange={setEmails} valueType="email" defaultType="home" />
+          )}
+          {isOn('phones') && (
+            <MultiValueField label={t('contacts.phone')} value={phones} onChange={setPhones} valueType="tel" defaultType="cell" />
+          )}
+          {isOn('addresses') && (
+            <AddressFields label={t('contacts.address')} value={addresses} onChange={setAddresses} />
+          )}
+          {isOn('urls') && (
+            <MultiValueField label={t('contacts.urls')} value={urls} onChange={setUrls} valueType="url" defaultType="home" />
+          )}
+          {isOn('impps') && (
+            <MultiValueField label={t('contacts.impps')} value={impps} onChange={setImpps} defaultType="" freeTextType />
+          )}
+
+          {isOn('birthday') && (
+            <>
+              <TextField
+                label={t('contacts.birthday')}
+                fullWidth
+                value={formData.birthday}
+                onChange={handleChange('birthday')}
+                placeholder={getBirthdayPlaceholder()}
+                helperText={t('contacts.birthdayFormat')}
+              />
+              {formData.birthday && (
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={createBirthdayReminder}
+                      onChange={(e) => setCreateBirthdayReminder(e.target.checked)}
+                    />
+                  }
+                  label={t('contacts.add.createBirthdayReminder')}
                 />
-              }
-              label={t('contacts.add.createBirthdayReminder')}
+              )}
+            </>
+          )}
+          {isOn('anniversary') && (
+            <TextField
+              label={t('contacts.anniversary')}
+              fullWidth
+              value={formData.anniversary}
+              onChange={handleChange('anniversary')}
+              placeholder={getBirthdayPlaceholder()}
+              helperText={t('contacts.birthdayFormat')}
             />
           )}
-          <TextField
-            label={t('contacts.address')}
-            fullWidth
-            multiline
-            rows={2}
-            value={formData.address}
-            onChange={handleChange('address')}
-          />
-          <TextField
-            label={t('contacts.howWeMet')}
-            fullWidth
-            multiline
-            rows={2}
-            value={formData.how_we_met}
-            onChange={handleChange('how_we_met')}
-          />
-          <TextField
-            label={t('contacts.foodPreference')}
-            fullWidth
-            value={formData.food_preference}
-            onChange={handleChange('food_preference')}
-          />
-          <TextField
-            label={t('contacts.workInformation')}
-            fullWidth
-            multiline
-            rows={2}
-            value={formData.work_information}
-            onChange={handleChange('work_information')}
-          />
-          <TextField
-            label={t('contacts.contactInformation')}
-            fullWidth
-            multiline
-            rows={2}
-            value={formData.contact_information}
-            onChange={handleChange('contact_information')}
-          />
+
+          {isOn('organization') && (
+            <TextField label={t('contacts.organization')} fullWidth value={formData.organization} onChange={handleChange('organization')} />
+          )}
+          {isOn('department') && (
+            <TextField label={t('contacts.department')} fullWidth value={formData.department} onChange={handleChange('department')} />
+          )}
+          {isOn('job_title') && (
+            <TextField label={t('contacts.jobTitle')} fullWidth value={formData.job_title} onChange={handleChange('job_title')} />
+          )}
+          {isOn('role') && (
+            <TextField label={t('contacts.role')} fullWidth value={formData.role} onChange={handleChange('role')} />
+          )}
+          {isOn('work_information') && (
+            <TextField
+              label={t('contacts.workInformation')}
+              fullWidth
+              multiline
+              rows={2}
+              value={formData.work_information}
+              onChange={handleChange('work_information')}
+            />
+          )}
+
+          {isOn('how_we_met') && (
+            <TextField
+              label={t('contacts.howWeMet')}
+              fullWidth
+              multiline
+              rows={2}
+              value={formData.how_we_met}
+              onChange={handleChange('how_we_met')}
+            />
+          )}
+          {isOn('food_preference') && (
+            <TextField
+              label={t('contacts.foodPreference')}
+              fullWidth
+              value={formData.food_preference}
+              onChange={handleChange('food_preference')}
+            />
+          )}
+          {isOn('contact_information') && (
+            <TextField
+              label={t('contacts.contactInformation')}
+              fullWidth
+              multiline
+              rows={2}
+              value={formData.contact_information}
+              onChange={handleChange('contact_information')}
+            />
+          )}
+
           {/* Custom Fields */}
           {customFieldNames.map((fieldName) => (
             <TextField

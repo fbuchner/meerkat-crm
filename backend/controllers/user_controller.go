@@ -503,7 +503,7 @@ func UpdateCustomFieldNames(c *gin.Context) {
 	}
 
 	user.CustomFieldNames = input.Names
-	if err := db.Save(&user).Error; err != nil {
+	if err := db.Model(&user).Select("CustomFieldNames").Updates(&user).Error; err != nil {
 		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to update user custom field names")
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("update user").WithError(err))
 		return
@@ -541,6 +541,68 @@ func GetCustomFieldNames(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"custom_field_names": names,
+	})
+}
+
+// UpdateEnabledContactFields updates which extended contact fields are visible in the UI
+func UpdateEnabledContactFields(c *gin.Context) {
+	log := logger.FromContext(c)
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	input, err := middleware.GetValidated[models.EnabledContactFieldsInput](c)
+	if err != nil {
+		apperrors.AbortWithError(c, err)
+		return
+	}
+
+	db := c.MustGet("db").(*gorm.DB)
+
+	var user models.User
+	if err := db.First(&user, userID).Error; err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to lookup user for enabled contact fields update")
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("query user").WithError(err))
+		return
+	}
+
+	user.EnabledContactFields = input.Fields
+	// Scope the write to just this column so we never rewrite the password hash / OIDC fields.
+	if err := db.Model(&user).Select("EnabledContactFields").Updates(&user).Error; err != nil {
+		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to update user enabled contact fields")
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("update user").WithError(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":                "Enabled contact fields updated successfully",
+		"enabled_contact_fields": user.EnabledContactFields,
+	})
+}
+
+// GetEnabledContactFields returns which extended contact fields are visible in the UI.
+// Returns null when the user has never configured it, so the client applies its defaults.
+func GetEnabledContactFields(c *gin.Context) {
+	log := logger.FromContext(c)
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	db := c.MustGet("db").(*gorm.DB)
+
+	var user models.User
+	if err := db.First(&user, userID).Error; err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to lookup user for enabled contact fields")
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("query user").WithError(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"enabled_contact_fields": user.EnabledContactFields,
 	})
 }
 

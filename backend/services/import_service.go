@@ -555,15 +555,18 @@ func BuildContactFromParsed(userID uint, parsed map[string]interface{}) models.C
 	}
 	if v := GetStringField(parsed, "email"); v != "" {
 		contact.Email = v
+		contact.Emails = []models.ContactEmail{{Type: "home", Value: v}}
 	}
 	if v := GetStringField(parsed, "phone"); v != "" {
 		contact.Phone = v
+		contact.Phones = []models.ContactPhone{{Type: "cell", Value: v}}
 	}
 	if v := GetStringField(parsed, "birthday"); v != "" {
 		contact.Birthday = NormalizeBirthday(v)
 	}
 	if v := GetStringField(parsed, "address"); v != "" {
 		contact.Address = v
+		contact.Addresses = []models.ContactAddress{{Type: "home", Street: v}}
 	}
 	if v := GetStringField(parsed, "gender"); v != "" {
 		contact.Gender = NormalizeGender(v)
@@ -600,15 +603,18 @@ func UpdateContactFromParsed(contact *models.Contact, parsed map[string]interfac
 	}
 	if v := GetStringField(parsed, "email"); v != "" {
 		contact.Email = v
+		contact.Emails = []models.ContactEmail{{Type: "home", Value: v}}
 	}
 	if v := GetStringField(parsed, "phone"); v != "" {
 		contact.Phone = v
+		contact.Phones = []models.ContactPhone{{Type: "cell", Value: v}}
 	}
 	if v := GetStringField(parsed, "birthday"); v != "" {
 		contact.Birthday = NormalizeBirthday(v)
 	}
 	if v := GetStringField(parsed, "address"); v != "" {
 		contact.Address = v
+		contact.Addresses = []models.ContactAddress{{Type: "home", Street: v}}
 	}
 	if v := GetStringField(parsed, "gender"); v != "" {
 		contact.Gender = NormalizeGender(v)
@@ -661,6 +667,46 @@ func UpdateContactFromVCF(existing *models.Contact, vcf *models.Contact) {
 	}
 	if len(vcf.Circles) > 0 {
 		existing.Circles = vcf.Circles
+	}
+	// Multi-valued and structured vCard fields
+	if len(vcf.Emails) > 0 {
+		existing.Emails = vcf.Emails
+	}
+	if len(vcf.Phones) > 0 {
+		existing.Phones = vcf.Phones
+	}
+	if len(vcf.Addresses) > 0 {
+		existing.Addresses = vcf.Addresses
+	}
+	if len(vcf.URLs) > 0 {
+		existing.URLs = vcf.URLs
+	}
+	if len(vcf.IMPPs) > 0 {
+		existing.IMPPs = vcf.IMPPs
+	}
+	if vcf.MiddleName != "" {
+		existing.MiddleName = vcf.MiddleName
+	}
+	if vcf.Prefix != "" {
+		existing.Prefix = vcf.Prefix
+	}
+	if vcf.Suffix != "" {
+		existing.Suffix = vcf.Suffix
+	}
+	if vcf.Organization != "" {
+		existing.Organization = vcf.Organization
+	}
+	if vcf.Department != "" {
+		existing.Department = vcf.Department
+	}
+	if vcf.JobTitle != "" {
+		existing.JobTitle = vcf.JobTitle
+	}
+	if vcf.Role != "" {
+		existing.Role = vcf.Role
+	}
+	if vcf.Anniversary != "" {
+		existing.Anniversary = vcf.Anniversary
 	}
 	if vcf.VCardExtra != "" {
 		existing.VCardExtra = vcf.VCardExtra

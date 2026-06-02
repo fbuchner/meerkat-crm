@@ -1,6 +1,6 @@
 import { chromium, FullConfig, BrowserContext } from '@playwright/test';
 
-const API_BASE_URL = 'http://localhost:8080/api/v1';
+export const API_BASE_URL = 'http://localhost:8080/api/v1';
 
 // Test user credentials
 export const TEST_USER = {
@@ -14,36 +14,36 @@ const SAMPLE_CONTACTS = [
   {
     firstname: 'Alice',
     lastname: 'Johnson',
-    email: 'alice@example.com',
-    phone: '+1 555-0101',
+    emails: [{ type: 'home', value: 'alice@example.com' }],
+    phones: [{ type: 'mobile', value: '+1 555-0101' }],
     birthday: '1990-03-15',
     circles: ['Friends', 'Work'],
   },
   {
     firstname: 'Bob',
     lastname: 'Smith',
-    email: 'bob@example.com',
-    phone: '+1 555-0102',
+    emails: [{ type: 'home', value: 'bob@example.com' }],
+    phones: [{ type: 'mobile', value: '+1 555-0102' }],
     circles: ['Family'],
   },
   {
     firstname: 'Carol',
     lastname: 'Williams',
-    email: 'carol@example.com',
+    emails: [{ type: 'home', value: 'carol@example.com' }],
     birthday: '1985-07-22',
     circles: ['Friends'],
   },
   {
     firstname: 'David',
     lastname: 'Brown',
-    email: 'david@example.com',
+    emails: [{ type: 'home', value: 'david@example.com' }],
     circles: ['Work'],
   },
   {
     firstname: 'Eve',
     lastname: 'Davis',
-    email: 'eve@example.com',
-    phone: '+1 555-0105',
+    emails: [{ type: 'home', value: 'eve@example.com' }],
+    phones: [{ type: 'mobile', value: '+1 555-0105' }],
   },
 ];
 

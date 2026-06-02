@@ -12,7 +12,8 @@ import {
   archiveContact,
   unarchiveContact
 } from './api/contacts';
-import { getCustomFieldNames } from './api/users';
+import { getCurrentUser } from './api/admin';
+import { resolveEnabledFields, ContactFieldKey } from './contactFields';
 import { 
   getContactNotes, 
   Note 
@@ -69,7 +70,10 @@ const CONTACT_FIELDS = [
   'ID', 'firstname', 'lastname', 'nickname', 'gender',
   'email', 'phone', 'birthday', 'address', 'how_we_met',
   'food_preference', 'work_information', 'contact_information',
-  'circles', 'photo', 'custom_fields', 'archived'
+  'circles', 'photo', 'custom_fields', 'archived',
+  'emails', 'phones', 'addresses', 'urls', 'impps',
+  'prefix', 'middle_name', 'suffix', 'organization', 'department',
+  'job_title', 'role', 'anniversary'
 ];
 
 export default function ContactDetailPage() {
@@ -91,8 +95,11 @@ export default function ContactDetailPage() {
   // Profile editing state
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileValues, setProfileValues] = useState({
+    prefix: '',
     firstname: '',
+    middle_name: '',
     lastname: '',
+    suffix: '',
     nickname: '',
     gender: ''
   });
@@ -110,6 +117,9 @@ export default function ContactDetailPage() {
 
   // Custom field names
   const [customFieldNames, setCustomFieldNames] = useState<string[]>([]);
+
+  // Enabled extended contact fields (UI visibility)
+  const [enabledFields, setEnabledFields] = useState<Set<ContactFieldKey>>(() => resolveEnabledFields(null));
 
   // Unified refresh function for notes, activities, and completions
   const refreshNotesAndActivities = async () => {
@@ -206,14 +216,14 @@ export default function ContactDetailPage() {
     const fetchData = async () => {
       try {
         // First batch: parallel fetch of core data
-        const [contactData, notesData, activitiesData, completionsData, fieldNames] = await Promise.all([
+        const [contactData, notesData, activitiesData, completionsData, user] = await Promise.all([
           getContact(id, CONTACT_FIELDS),
           getContactNotes(id),
           getContactActivities(id),
           getCompletionsForContact(parseInt(id)),
-          getCustomFieldNames().catch(err => {
-            console.error('Error fetching custom field names:', err);
-            return [];
+          getCurrentUser().catch(err => {
+            console.error('Error fetching current user preferences:', err);
+            return null;
           })
         ]);
 
@@ -221,7 +231,8 @@ export default function ContactDetailPage() {
         setNotes(notesData.notes || []);
         setActivities(activitiesData.activities || []);
         setCompletions(completionsData || []);
-        setCustomFieldNames(fieldNames);
+        setCustomFieldNames(user?.custom_field_names ?? []);
+        setEnabledFields(resolveEnabledFields(user?.enabled_contact_fields ?? null));
 
         // Second batch: refresh reminders and relationships in parallel
         await Promise.all([
@@ -302,8 +313,8 @@ export default function ContactDetailPage() {
 
   const handleEditStart = (field: string, currentValue: string) => {
     setEditingField(field);
-    // For birthday field, convert from ISO to display format
-    if (field === 'birthday' && currentValue) {
+    // For date fields, convert from ISO to display format
+    if ((field === 'birthday' || field === 'anniversary') && currentValue) {
       setEditValue(formatBirthdayForInput(currentValue));
     } else {
       setEditValue(currentValue || '');
@@ -321,8 +332,8 @@ export default function ContactDetailPage() {
     if (!contact) return;
 
     let valueToSave = editValue;
-    
-    if (field === 'birthday') {
+
+    if (field === 'birthday' || field === 'anniversary') {
       if (!validateBirthday(editValue)) {
         setValidationError(t('contactDetail.birthdayError'));
         return;
@@ -383,6 +394,23 @@ export default function ContactDetailPage() {
     }
   };
 
+  // Persist multi-valued / structured field updates (emails, phones, addresses, urls, impps)
+  const handleUpdateContactFields = async (partial: Partial<Contact>) => {
+    if (!contact) return;
+    try {
+      const updatedContact = await updateContact(id!, { ...contact, ...partial });
+      setContact(updatedContact);
+    } catch (err) {
+      console.error('Error updating contact:', err);
+      if (err instanceof ApiError) {
+        showError(err.getDisplayMessage());
+      } else {
+        showError(t('contactDetail.updateError'));
+      }
+      throw err;
+    }
+  };
+
   const handleAddCircle = async (circleName?: string) => {
     const circleToAdd = circleName || newCircleName;
     if (!contact || !circleToAdd.trim()) return;
@@ -440,8 +468,11 @@ export default function ContactDetailPage() {
   const handleStartEditProfile = () => {
     if (!contact) return;
     setProfileValues({
+      prefix: contact.prefix || '',
       firstname: contact.firstname || '',
+      middle_name: contact.middle_name || '',
       lastname: contact.lastname || '',
+      suffix: contact.suffix || '',
       nickname: contact.nickname || '',
       gender: contact.gender ? contact.gender.toLowerCase() : ''
     });
@@ -450,7 +481,7 @@ export default function ContactDetailPage() {
 
   const handleCancelEditProfile = () => {
     setEditingProfile(false);
-    setProfileValues({ firstname: '', lastname: '', nickname: '', gender: '' });
+    setProfileValues({ prefix: '', firstname: '', middle_name: '', lastname: '', suffix: '', nickname: '', gender: '' });
   };
 
   const handleSaveProfile = async () => {
@@ -462,8 +493,11 @@ export default function ContactDetailPage() {
     try {
       const updatedContact = await updateContact(id!, {
         ...contact,
+        prefix: profileValues.prefix.trim(),
         firstname: profileValues.firstname.trim(),
+        middle_name: profileValues.middle_name.trim(),
         lastname: profileValues.lastname.trim(),
+        suffix: profileValues.suffix.trim(),
         nickname: profileValues.nickname.trim(),
         gender: profileValues.gender
       });
@@ -599,6 +633,7 @@ export default function ContactDetailPage() {
         profilePic={profilePic}
         editingProfile={editingProfile}
         profileValues={profileValues}
+        enabledFields={enabledFields}
         editingCircles={editingCircles}
         newCircleName={newCircleName}
         availableCircles={availableCircles}
@@ -633,9 +668,15 @@ export default function ContactDetailPage() {
           onEditCancel={handleEditCancel}
           onEditSave={handleEditSave}
           onEditValueChange={(value) => {
-            setEditValue(editingField === 'birthday' ? autoFormatBirthdayInput(value, editValue) : value);
+            setEditValue(
+              editingField === 'birthday' || editingField === 'anniversary'
+                ? autoFormatBirthdayInput(value, editValue)
+                : value
+            );
             setValidationError('');
           }}
+          onUpdateContact={handleUpdateContactFields}
+          enabledFields={enabledFields}
           relationships={relationships}
           incomingRelationships={incomingRelationships}
           onAddRelationship={handleAddRelationship}

@@ -3,7 +3,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useContacts } from './hooks/useContacts';
 import { getCircles } from './api/contacts';
-import { getCustomFieldNames } from './api/users';
+import { getCurrentUser } from './api/admin';
+import { resolveEnabledFields, ContactFieldKey } from './contactFields';
 import AddContactDialog from './components/AddContactDialog';
 import ImportContactsDialog from './components/ImportContactsDialog';
 import {
@@ -40,6 +41,7 @@ export default function ContactsPage() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [customFieldNames, setCustomFieldNames] = useState<string[]>([]);
+  const [enabledFields, setEnabledFields] = useState<Set<ContactFieldKey>>(() => resolveEnabledFields(null));
   const [showArchived, setShowArchived] = useState(false);
   const pageSize = 10;
 
@@ -82,12 +84,13 @@ export default function ContactsPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [circlesData, fieldNames] = await Promise.all([
+        const [circlesData, user] = await Promise.all([
           getCircles(),
-          getCustomFieldNames()
+          getCurrentUser()
         ]);
         setCircles(Array.isArray(circlesData) ? circlesData : []);
-        setCustomFieldNames(fieldNames);
+        setCustomFieldNames(user.custom_field_names ?? []);
+        setEnabledFields(resolveEnabledFields(user.enabled_contact_fields));
       } catch (err) {
         console.error('Error fetching circles or custom field names:', err);
       }
@@ -244,7 +247,7 @@ export default function ContactsPage() {
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {contact.firstname} {contact.nickname && `"${contact.nickname}"`} {contact.lastname}
+                      {[contact.firstname, contact.nickname && `"${contact.nickname}"`, contact.lastname].filter(Boolean).join(' ')}
                     </Typography>
                     {contact.archived && (
                       <Chip
@@ -291,6 +294,7 @@ export default function ContactsPage() {
         onContactAdded={handleContactAdded}
         availableCircles={circles}
         customFieldNames={customFieldNames}
+        enabledFields={enabledFields}
       />
       <ImportContactsDialog
         open={importDialogOpen}

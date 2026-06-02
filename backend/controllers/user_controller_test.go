@@ -396,3 +396,47 @@ func TestChangePassword_Succeeds(t *testing.T) {
 	assert.Nil(t, updated.PasswordResetExpiresAt)
 	assert.Nil(t, updated.PasswordResetRequestedAt)
 }
+
+// TestEnabledContactFieldsNullVsEmpty verifies the GET/PATCH endpoints preserve the
+// distinction between "never configured" (null -> client applies defaults) and
+// "configured empty" ([] -> no extended fields), and that the scoped column write
+// round-trips concrete values.
+func TestEnabledContactFieldsNullVsEmpty(t *testing.T) {
+	db, router := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	router.GET("/enabled", GetEnabledContactFields)
+	router.PATCH("/enabled",
+		middleware.ValidateJSONMiddleware(&models.EnabledContactFieldsInput{}),
+		UpdateEnabledContactFields)
+
+	rawField := func() string {
+		req, _ := http.NewRequest("GET", "/enabled", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+		var body map[string]json.RawMessage
+		json.Unmarshal(w.Body.Bytes(), &body)
+		return string(body["enabled_contact_fields"])
+	}
+
+	patch := func(jsonBody string) {
+		req, _ := http.NewRequest("PATCH", "/enabled", bytes.NewBufferString(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+	}
+
+	// Never configured -> null (client applies its defaults).
+	assert.Equal(t, "null", rawField())
+
+	// Concrete values round-trip.
+	patch(`{"fields":["emails","phones"]}`)
+	assert.JSONEq(t, `["emails","phones"]`, rawField())
+
+	// Explicitly empty stays distinct from null.
+	patch(`{"fields":[]}`)
+	assert.Equal(t, "[]", rawField())
+}

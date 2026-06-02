@@ -51,6 +51,19 @@ func CreateContact(c *gin.Context) {
 		ContactInformation: contactInput.ContactInformation,
 		Circles:            contactInput.Circles,
 		CustomFields:       contactInput.CustomFields,
+		Emails:             contactInput.Emails,
+		Phones:             contactInput.Phones,
+		Addresses:          contactInput.Addresses,
+		URLs:               contactInput.URLs,
+		IMPPs:              contactInput.IMPPs,
+		Prefix:             contactInput.Prefix,
+		MiddleName:         contactInput.MiddleName,
+		Suffix:             contactInput.Suffix,
+		Organization:       contactInput.Organization,
+		Department:         contactInput.Department,
+		JobTitle:           contactInput.JobTitle,
+		Role:               contactInput.Role,
+		Anniversary:        contactInput.Anniversary,
 	}
 	if err := db.Create(&contact).Error; err != nil {
 		logger.FromContext(c).Error().Err(err).Msg("Error saving contact to database")
@@ -60,6 +73,19 @@ func CreateContact(c *gin.Context) {
 
 	go services.TriggerWebhooks(db, currentConfig(c), userID, "contact.created", contact)
 	c.JSON(http.StatusCreated, gin.H{"message": "Contact created successfully", "contact": contact})
+}
+
+// filters a contacts query by a free-text term
+func applyContactSearch(query *gorm.DB, searchTerm string) *gorm.DB {
+	like := "%" + searchTerm + "%"
+	return query.Where(
+		"firstname LIKE ? OR lastname LIKE ? OR nickname LIKE ? "+
+			"OR (firstname || ' ' || lastname) LIKE ? OR (nickname || ' ' || lastname) LIKE ? "+
+			"OR email LIKE ? OR phone LIKE ? "+
+			"OR (json_valid(emails) AND EXISTS (SELECT 1 FROM json_each(contacts.emails) WHERE json_extract(json_each.value, '$.value') LIKE ?)) "+
+			"OR (json_valid(phones) AND EXISTS (SELECT 1 FROM json_each(contacts.phones) WHERE json_extract(json_each.value, '$.value') LIKE ?))",
+		like, like, like, like, like, like, like, like, like,
+	)
 }
 
 func GetContacts(c *gin.Context) {
@@ -73,7 +99,7 @@ func GetContacts(c *gin.Context) {
 	pagination := GetPaginationParams(c)
 
 	// Define allowed fields and parse requested fields with validation
-	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail", "custom_fields", "archived"}
+	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail", "custom_fields", "archived", "emails", "phones", "addresses", "urls", "impps", "prefix", "middle_name", "suffix", "organization", "department", "job_title", "role", "anniversary"}
 	var selectedFields []string
 	fields := c.Query("fields")
 	if fields != "" {
@@ -145,8 +171,7 @@ func GetContacts(c *gin.Context) {
 
 	// Apply search filter using parameterization
 	if searchTerm := c.Query("search"); searchTerm != "" {
-		searchTermParam := "%" + searchTerm + "%"
-		query = query.Where("firstname LIKE ? OR lastname LIKE ? OR nickname LIKE ? OR (firstname || ' ' || lastname) LIKE ? OR (nickname || ' ' || lastname) LIKE ?", searchTermParam, searchTermParam, searchTermParam, searchTermParam, searchTermParam)
+		query = applyContactSearch(query, searchTerm)
 	}
 
 	if circle := c.Query("circle"); circle != "" {
@@ -189,8 +214,7 @@ func GetContacts(c *gin.Context) {
 
 	// Apply the same search filters to the count query
 	if searchTerm := c.Query("search"); searchTerm != "" {
-		searchTermParam := "%" + searchTerm + "%"
-		countQuery = countQuery.Where("firstname LIKE ? OR lastname LIKE ? OR nickname LIKE ? OR (firstname || ' ' || lastname) LIKE ? OR (nickname || ' ' || lastname) LIKE ?", searchTermParam, searchTermParam, searchTermParam, searchTermParam, searchTermParam)
+		countQuery = applyContactSearch(countQuery, searchTerm)
 	}
 
 	if circle := c.Query("circle"); circle != "" {
@@ -288,7 +312,7 @@ func GetContact(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
 	// Check for fields query parameter to enable partial fetching
-	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail", "custom_fields", "archived"}
+	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail", "custom_fields", "archived", "emails", "phones", "addresses", "urls", "impps", "prefix", "middle_name", "suffix", "organization", "department", "job_title", "role", "anniversary"}
 	var selectedFields []string
 	fields := c.Query("fields")
 	if fields != "" {
@@ -366,6 +390,19 @@ func UpdateContact(c *gin.Context) {
 	contact.ContactInformation = contactInput.ContactInformation
 	contact.Circles = contactInput.Circles
 	contact.CustomFields = contactInput.CustomFields
+	contact.Emails = contactInput.Emails
+	contact.Phones = contactInput.Phones
+	contact.Addresses = contactInput.Addresses
+	contact.URLs = contactInput.URLs
+	contact.IMPPs = contactInput.IMPPs
+	contact.Prefix = contactInput.Prefix
+	contact.MiddleName = contactInput.MiddleName
+	contact.Suffix = contactInput.Suffix
+	contact.Organization = contactInput.Organization
+	contact.Department = contactInput.Department
+	contact.JobTitle = contactInput.JobTitle
+	contact.Role = contactInput.Role
+	contact.Anniversary = contactInput.Anniversary
 
 	if err := db.Save(&contact).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update contact").WithError(err))

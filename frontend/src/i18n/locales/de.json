@@ -15,8 +15,8 @@
     "profile": "Profil",
     "users": "Benutzer",
     "apiTokens": "API-Tokens",
-    "integrations": "Integration"
-
+    "integrations": "Integration",
+    "data": "Daten"
   },
   "dashboard": {
     "welcome": "Willkommen zum Meerkat CRM Dashboard",
@@ -200,6 +200,31 @@
         "previewFailed": "Vorschau konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
         "importFailed": "Import fehlgeschlagen. Bitte versuchen Sie es erneut."
       }
+    },
+    "urls": "Webseiten",
+    "impps": "Instant Messaging",
+    "prefix": "Titel (vorangestellt)",
+    "middleName": "Zweiter Vorname",
+    "suffix": "Namenszusatz",
+    "organization": "Organisation",
+    "department": "Abteilung",
+    "jobTitle": "Position",
+    "role": "Rolle",
+    "anniversary": "Jahrestag",
+    "fieldType": "Typ",
+    "types": {
+      "home": "Privat",
+      "work": "Arbeit",
+      "cell": "Mobil",
+      "fax": "Fax",
+      "other": "Sonstige"
+    },
+    "addressFields": {
+      "street": "Straße",
+      "city": "Stadt",
+      "region": "Bundesland / Region",
+      "postal": "Postleitzahl",
+      "country": "Land"
     }
   },
   "timeline": {
@@ -346,7 +371,8 @@
     "delete": "Löschen",
     "close": "Schließen",
     "back": "Zurück",
-    "continue": "Weiter"
+    "continue": "Weiter",
+    "add": "Hinzufügen"
   },
   "profilePicture": {
     "title": "Profilbild hochladen",
@@ -496,6 +522,23 @@
         "cancel": "Abbrechen",
         "confirm": "Löschen"
       }
+    },
+    "contactFields": {
+      "title": "Kontaktfelder",
+      "description": "Wählen Sie, welche erweiterten Felder im Kontaktformular erscheinen. Deaktivierte Felder werden ausgeblendet, ihre Daten bleiben erhalten und werden weiterhin synchronisiert.",
+      "loading": "Wird geladen…",
+      "loadError": "Kontaktfeld-Einstellungen konnten nicht geladen werden.",
+      "saveError": "Kontaktfeld-Einstellungen konnten nicht gespeichert werden.",
+      "groups": {
+        "communication": "Kommunikation",
+        "name": "Name",
+        "work": "Beruf",
+        "personal": "Persönlich",
+        "meerkat": "Notizen"
+      }
+    },
+    "data": {
+      "title": "Daten"
     }
   },
   "pages": {

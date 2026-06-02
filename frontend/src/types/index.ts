@@ -71,6 +71,10 @@ export interface User {
   is_admin: boolean;
   created_at: string;
   updated_at: string;
+  // Present only on the /users/me response (CurrentUserResponse), not in admin lists.
+  custom_field_names?: string[];
+  // null means the user has never configured it; apply DEFAULT_ENABLED_CONTACT_FIELDS.
+  enabled_contact_fields?: string[] | null;
 }
 
 /**

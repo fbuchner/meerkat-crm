@@ -150,6 +150,43 @@ func TestValidateStruct_Phone(t *testing.T) {
 	}
 }
 
+// TestValidateStruct_SafeURL tests the safeurl validator through ValidateStruct
+func TestValidateStruct_SafeURL(t *testing.T) {
+	type TestStruct struct {
+		URL string `validate:"safeurl"`
+	}
+
+	tests := []struct {
+		name    string
+		url     string
+		isValid bool
+	}{
+		{name: "empty allowed", url: "", isValid: true},
+		{name: "https", url: "https://example.com", isValid: true},
+		{name: "http", url: "http://example.com/path", isValid: true},
+		{name: "scheme-less host", url: "example.com", isValid: true},
+		{name: "host with port", url: "example.com:8080/x", isValid: true},
+		{name: "mailto allowed", url: "mailto:a@b.com", isValid: true},
+		{name: "javascript blocked", url: "javascript:alert(1)", isValid: false},
+		{name: "uppercase javascript blocked", url: "JavaScript:alert(1)", isValid: false},
+		{name: "whitespace-obfuscated javascript blocked", url: "java\tscript:alert(1)", isValid: false},
+		{name: "leading space javascript blocked", url: "  javascript:alert(1)", isValid: false},
+		{name: "data blocked", url: "data:text/html,<script>", isValid: false},
+		{name: "vbscript blocked", url: "vbscript:msgbox(1)", isValid: false},
+		{name: "file blocked", url: "file:///etc/passwd", isValid: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errors := ValidateStruct(TestStruct{URL: tt.url})
+			hasErrors := len(errors) > 0
+			if hasErrors == tt.isValid {
+				t.Errorf("ValidateStruct with url %q: hasErrors=%v, want isValid=%v", tt.url, hasErrors, tt.isValid)
+			}
+		})
+	}
+}
+
 // TestValidateStruct_Birthday tests birthday validation through ValidateStruct
 func TestValidateStruct_Birthday(t *testing.T) {
 	type TestStruct struct {

@@ -9,12 +9,16 @@ import AutoModeIcon from '@mui/icons-material/AutoMode';
 import ArchiveIcon from '@mui/icons-material/Archive';
 import UnarchiveIcon from '@mui/icons-material/Unarchive';
 import { useTranslation } from 'react-i18next';
+import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
 
 interface ContactHeaderProps {
   contact: {
     ID: number;
+    prefix?: string;
     firstname: string;
+    middle_name?: string;
     lastname: string;
+    suffix?: string;
     nickname?: string;
     gender?: string;
     circles?: string[];
@@ -23,11 +27,15 @@ interface ContactHeaderProps {
   profilePic: string;
   editingProfile: boolean;
   profileValues: {
+    prefix: string;
     firstname: string;
+    middle_name: string;
     lastname: string;
+    suffix: string;
     nickname: string;
     gender: string;
   };
+  enabledFields?: Set<ContactFieldKey>;
   editingCircles: boolean;
   newCircleName: string;
   availableCircles: string[];
@@ -51,6 +59,7 @@ export default function ContactHeader({
   profilePic,
   editingProfile,
   profileValues,
+  enabledFields,
   editingCircles,
   newCircleName,
   availableCircles,
@@ -69,6 +78,20 @@ export default function ContactHeader({
   onUnarchiveContact
 }: ContactHeaderProps) {
   const { t } = useTranslation();
+  const enabled = enabledFields ?? resolveEnabledFields(null);
+  const isOn = (key: ContactFieldKey) => enabled.has(key);
+
+  const displayName = [
+    contact.prefix,
+    contact.firstname,
+    contact.nickname ? `"${contact.nickname}"` : '',
+    contact.middle_name,
+    contact.lastname,
+    contact.suffix,
+  ]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <Card sx={{ mb: 1.5 }}>
@@ -120,6 +143,14 @@ export default function ContactHeader({
             {editingProfile ? (
               // Edit Mode
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {isOn('prefix') && (
+                  <TextField
+                    label={t('contacts.prefix')}
+                    value={profileValues.prefix}
+                    onChange={(e) => onProfileValueChange({ ...profileValues, prefix: e.target.value })}
+                    size="small"
+                  />
+                )}
                 <TextField
                   label={t('contactDetail.firstname')}
                   value={profileValues.firstname}
@@ -128,12 +159,28 @@ export default function ContactHeader({
                   required
                   autoFocus
                 />
+                {isOn('middle_name') && (
+                  <TextField
+                    label={t('contacts.middleName')}
+                    value={profileValues.middle_name}
+                    onChange={(e) => onProfileValueChange({ ...profileValues, middle_name: e.target.value })}
+                    size="small"
+                  />
+                )}
                 <TextField
                   label={t('contactDetail.lastname')}
                   value={profileValues.lastname}
                   onChange={(e) => onProfileValueChange({ ...profileValues, lastname: e.target.value })}
                   size="small"
                 />
+                {isOn('suffix') && (
+                  <TextField
+                    label={t('contacts.suffix')}
+                    value={profileValues.suffix}
+                    onChange={(e) => onProfileValueChange({ ...profileValues, suffix: e.target.value })}
+                    size="small"
+                  />
+                )}
                 <TextField
                   label={t('contactDetail.nickname')}
                   value={profileValues.nickname}
@@ -197,7 +244,7 @@ export default function ContactHeader({
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <Typography variant="h5" sx={{ fontWeight: 500, lineHeight: 1.2 }}>
-                      {contact.firstname} {contact.nickname && `"${contact.nickname}"`} {contact.lastname}
+                      {displayName}
                     </Typography>
                     <IconButton
                       className="edit-icon"

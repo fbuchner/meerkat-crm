@@ -51,6 +51,8 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			protected.PATCH("/users/date-format", controllers.UpdateDateFormat)
 			protected.GET("/users/custom-fields", controllers.GetCustomFieldNames)
 			protected.PATCH("/users/custom-fields", middleware.ValidateJSONMiddleware(&models.CustomFieldNamesInput{}), controllers.UpdateCustomFieldNames)
+			protected.GET("/users/enabled-contact-fields", controllers.GetEnabledContactFields)
+			protected.PATCH("/users/enabled-contact-fields", middleware.ValidateJSONMiddleware(&models.EnabledContactFieldsInput{}), controllers.UpdateEnabledContactFields)
 			protected.GET("/users/me", controllers.GetCurrentUser)
 
 			// Contact routes

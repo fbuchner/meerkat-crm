@@ -4,15 +4,22 @@ import "time"
 
 // ImportableContactFields defines the valid target fields for import
 var ImportableContactFields = []string{
-	"firstname", "lastname", "nickname", "gender", "email", "phone",
-	"birthday", "address", "how_we_met", "food_preference",
-	"work_information", "contact_information", "circles",
+	// Scalars
+	"firstname", "lastname", "middle_name", "prefix", "suffix", "nickname", "gender",
+	"birthday", "anniversary", "organization", "department", "job_title", "role",
+	"how_we_met", "food_preference", "work_information", "contact_information", "circles",
+	// Multi-value values
+	"email", "phone", "url", "impp",
+	"address_street", "address_city", "address_region", "address_postal", "address_country",
+	// Multi-value labels/types
+	"email_label", "phone_label", "url_label", "impp_label", "address_label",
 }
 
 // ColumnMapping represents how a CSV column maps to a contact field
 type ColumnMapping struct {
 	CSVColumn    string `json:"csv_column" validate:"required"`
 	ContactField string `json:"contact_field"` // Empty means "ignore this column"
+	Group        int    `json:"group"`         // Multi-value entry index (0-based); ties value+label/parts of one entry together
 }
 
 // ImportUploadResponse is returned after CSV upload

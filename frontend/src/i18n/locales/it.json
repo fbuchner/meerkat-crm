@@ -155,7 +155,9 @@
         "csvColumn": "Colonna CSV",
         "mapsTo": "Mappa a",
         "sampleData": "Dati di esempio",
-        "ignore": "-- Ignora --"
+        "ignore": "-- Ignora --",
+        "duplicateWarning": "Questi campi a valore singolo sono mappati su più di una colonna; verrà usata solo l'ultima colonna: {{fields}}",
+        "duplicateField": "Mappato più di una volta"
       },
       "steps": {
         "upload": "Carica",

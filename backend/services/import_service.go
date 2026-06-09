@@ -8,6 +8,7 @@ import (
 	"meerkat/middleware"
 	"meerkat/models"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/emersion/go-vcard"
@@ -112,8 +113,8 @@ func ParseVCF(reader io.Reader, db *gorm.DB, userID uint) (contacts []VCFContact
 			SuggestedAction:  "add",
 		}
 
-		// Validate the contact
-		validationErrors := ValidateVCFContact(contact)
+		// Validate contact
+		validationErrors := ValidateImportedContact(contact)
 		preview.ValidationErrors = validationErrors
 
 		if len(validationErrors) > 0 {
@@ -148,39 +149,132 @@ type ImportStats struct {
 	ErrorCount     int
 }
 
+// headerToField holds case-insensitive rules for non-indexed headers.
+var headerToField = map[string]string{
+	// English
+	"firstname": "firstname", "first name": "firstname", "first": "firstname", "given name": "firstname",
+	"lastname": "lastname", "last name": "lastname", "last": "lastname", "surname": "lastname", "family name": "lastname",
+	"middle name": "middle_name", "middle": "middle_name", "additional name": "middle_name",
+	"name prefix": "prefix", "prefix": "prefix", "title prefix": "prefix",
+	"name suffix": "suffix", "suffix": "suffix",
+	"nickname": "nickname", "nick": "nickname", "alias": "nickname",
+	"email": "email", "e-mail": "email", "mail": "email", "email address": "email",
+	"phone": "phone", "telephone": "phone", "tel": "phone", "mobile": "phone", "cell": "phone", "phone number": "phone",
+	"website": "url", "web site": "url", "url": "url", "homepage": "url",
+	"birthday": "birthday", "birth date": "birthday", "birthdate": "birthday", "dob": "birthday", "date of birth": "birthday",
+	"anniversary": "anniversary",
+	"address":     "address_street", "street address": "address_street", "home address": "address_street", "street": "address_street",
+	"city": "address_city", "town": "address_city",
+	"region": "address_region", "state": "address_region", "province": "address_region",
+	"postal code": "address_postal", "zip": "address_postal", "zip code": "address_postal", "postcode": "address_postal",
+	"country": "address_country",
+	"gender":  "gender", "sex": "gender",
+	"organization": "organization", "organization name": "organization", "company": "organization", "employer": "organization",
+	"department": "department", "organization department": "department",
+	"job title": "job_title", "title": "job_title", "organization title": "job_title", "position": "job_title",
+	"role": "role", "organization role": "role",
+	"how we met": "how_we_met", "how_we_met": "how_we_met", "notes": "how_we_met", "how i met": "how_we_met",
+	"food": "food_preference", "food preference": "food_preference", "food_preference": "food_preference", "dietary": "food_preference", "diet": "food_preference",
+	"work": "work_information", "work_information": "work_information", "job": "work_information", "occupation": "work_information",
+	"contact information": "contact_information", "contact_information": "contact_information", "other contact": "contact_information",
+	"circles": "circles", "groups": "circles", "tags": "circles", "category": "circles", "categories": "circles", "labels": "circles",
+	// German
+	"vorname":  "firstname",
+	"nachname": "lastname", "familienname": "lastname",
+	"zweiter vorname": "middle_name",
+	"spitzname":       "nickname",
+	"telefon":         "phone", "handy": "phone", "mobiltelefon": "phone",
+	"webseite": "url", "website (de)": "url",
+	"geburtstag": "birthday", "geburtsdatum": "birthday",
+	"jahrestag": "anniversary",
+	"adresse":   "address_street", "anschrift": "address_street", "straße": "address_street", "strasse": "address_street",
+	"stadt": "address_city", "ort": "address_city",
+	"bundesland": "address_region",
+	"plz":        "address_postal", "postleitzahl": "address_postal",
+	"land":       "address_country",
+	"geschlecht": "gender",
+	"firma":      "organization", "unternehmen": "organization",
+	"abteilung": "department",
+	"beruf":     "work_information", "arbeit": "work_information",
+	"kreise": "circles", "gruppen": "circles",
+}
+
+// indexedHeaderRe matches Google-style grouped columns, e.g. "E-mail 1 - Value",
+// "Phone 2 - Label", "Address 1 - Postal Code".
+var indexedHeaderRe = regexp.MustCompile(`^(.+?)\s+(\d+)\s*-\s*(.+)$`)
+
+func suggestGroupedMapping(header string) (field string, group int, ok bool) {
+	m := indexedHeaderRe.FindStringSubmatch(strings.TrimSpace(header))
+	if m == nil {
+		return "", 0, false
+	}
+	base := strings.ToLower(strings.TrimSpace(m[1]))
+	idx, err := strconv.Atoi(m[2])
+	if err != nil || idx < 1 {
+		return "", 0, false
+	}
+	attr := strings.ToLower(strings.TrimSpace(m[3]))
+
+	// Identify the value family.
+	var family string
+	switch {
+	case base == "e-mail" || base == "email":
+		family = "email"
+	case base == "phone" || base == "telephone" || base == "tel":
+		family = "phone"
+	case base == "website" || base == "web site" || base == "url":
+		family = "url"
+	case base == "im" || base == "instant message" || base == "instant messaging":
+		family = "impp"
+	case base == "address":
+		family = "address"
+	default:
+		return "", 0, false
+	}
+
+	switch family {
+	case "address":
+		switch attr {
+		case "street", "formatted", "po box", "extended address", "address":
+			field = "address_street"
+		case "city", "locality":
+			field = "address_city"
+		case "region", "state", "province":
+			field = "address_region"
+		case "postal code", "zip", "zip code", "postcode":
+			field = "address_postal"
+		case "country":
+			field = "address_country"
+		case "label", "type":
+			field = "address_label"
+		default:
+			return "", 0, false
+		}
+	default:
+		switch attr {
+		case "value", "address", "uri":
+			field = family
+		case "label", "type":
+			field = family + "_label"
+		default:
+			return "", 0, false
+		}
+	}
+
+	return field, idx - 1, true
+}
+
 // SuggestColumnMappings guesses mappings based on CSV header names
 func SuggestColumnMappings(headers []string) []models.ColumnMapping {
 	mappings := make([]models.ColumnMapping, len(headers))
 
-	// Mapping rules (case-insensitive, supports common variations)
-	headerToField := map[string]string{
-		// English
-		"firstname": "firstname", "first name": "firstname", "first": "firstname", "given name": "firstname",
-		"lastname": "lastname", "last name": "lastname", "last": "lastname", "surname": "lastname", "family name": "lastname",
-		"nickname": "nickname", "nick": "nickname", "alias": "nickname",
-		"email": "email", "e-mail": "email", "mail": "email", "email address": "email",
-		"phone": "phone", "telephone": "phone", "tel": "phone", "mobile": "phone", "cell": "phone", "phone number": "phone",
-		"birthday": "birthday", "birth date": "birthday", "birthdate": "birthday", "dob": "birthday", "date of birth": "birthday",
-		"address": "address", "street address": "address", "home address": "address",
-		"gender": "gender", "sex": "gender",
-		"how we met": "how_we_met", "how_we_met": "how_we_met", "notes": "how_we_met", "how i met": "how_we_met",
-		"food": "food_preference", "food preference": "food_preference", "food_preference": "food_preference", "dietary": "food_preference", "diet": "food_preference",
-		"work": "work_information", "work_information": "work_information", "job": "work_information", "company": "work_information", "occupation": "work_information", "employer": "work_information",
-		"contact information": "contact_information", "contact_information": "contact_information", "other contact": "contact_information",
-		"circles": "circles", "groups": "circles", "tags": "circles", "category": "circles", "categories": "circles",
-		// German
-		"vorname":  "firstname",
-		"nachname": "lastname", "familienname": "lastname",
-		"spitzname": "nickname",
-		"telefon":   "phone", "handy": "phone", "mobiltelefon": "phone",
-		"geburtstag": "birthday", "geburtsdatum": "birthday",
-		"adresse": "address", "anschrift": "address",
-		"geschlecht": "gender",
-		"beruf":      "work_information", "arbeit": "work_information", "firma": "work_information",
-		"kreise": "circles", "gruppen": "circles",
-	}
-
 	for i, header := range headers {
+		// indexed columns (e.g. "E-mail 1 - Value") take priority
+		if field, group, ok := suggestGroupedMapping(header); ok {
+			mappings[i] = models.ColumnMapping{CSVColumn: header, ContactField: field, Group: group}
+			continue
+		}
+
 		normalized := strings.ToLower(strings.TrimSpace(header))
 		if field, ok := headerToField[normalized]; ok {
 			mappings[i] = models.ColumnMapping{CSVColumn: header, ContactField: field}
@@ -192,62 +286,31 @@ func SuggestColumnMappings(headers []string) []models.ColumnMapping {
 	return mappings
 }
 
-// GenerateCSVPreview applies mappings to CSV rows and returns preview with duplicate detection
-func GenerateCSVPreview(db *gorm.DB, userID uint, rows [][]string, headers []string, mappings []models.ColumnMapping) ([]models.ImportRowPreview, ImportStats) {
-	// Build column index map from mappings
-	columnIndex := make(map[string]int)
-	for i, header := range headers {
-		columnIndex[header] = i
-	}
-
-	fieldToColumnIndex := make(map[string]int)
-	for _, mapping := range mappings {
-		if mapping.ContactField != "" {
-			if idx, ok := columnIndex[mapping.CSVColumn]; ok {
-				fieldToColumnIndex[mapping.ContactField] = idx
-			}
-		}
-	}
-
+// GenerateCSVPreview applies mappings to CSV rows
+func GenerateCSVPreview(db *gorm.DB, userID uint, rows [][]string, headers []string, mappings []models.ColumnMapping) ([]models.Contact, []models.ImportRowPreview, ImportStats) {
+	contacts := make([]models.Contact, len(rows))
 	var previews []models.ImportRowPreview
 	var stats ImportStats
 
 	for rowIdx, row := range rows {
+		contact := BuildContactFromRow(userID, headers, row, mappings)
+		contacts[rowIdx] = contact
+
 		preview := models.ImportRowPreview{
 			RowIndex:         rowIdx,
-			ParsedContact:    make(map[string]interface{}),
-			ValidationErrors: make([]string, 0),
+			ParsedContact:    ContactToPreviewMap(&contact),
+			ValidationErrors: ValidateImportedContact(&contact),
 			SuggestedAction:  "add",
 		}
 
-		// Parse fields from row
-		for field, colIdx := range fieldToColumnIndex {
-			if colIdx < len(row) {
-				value := strings.TrimSpace(row[colIdx])
-				if value != "" {
-					preview.ParsedContact[field] = value
-				}
-			}
-		}
-
-		// Get key fields for validation and duplicate detection
-		firstname := GetStringField(preview.ParsedContact, "firstname")
-		lastname := GetStringField(preview.ParsedContact, "lastname")
-		email := GetStringField(preview.ParsedContact, "email")
-		phone := GetStringField(preview.ParsedContact, "phone")
-
-		// Validate row
-		validationErrors := ValidateImportRow(preview.ParsedContact)
-		preview.ValidationErrors = validationErrors
-
-		if len(validationErrors) > 0 {
+		if len(preview.ValidationErrors) > 0 {
 			stats.ErrorCount++
 			preview.SuggestedAction = "skip"
 		} else {
 			stats.ValidCount++
 
-			// Detect duplicates
-			duplicate := DetectDuplicate(db, userID, firstname, lastname, email, phone)
+			// Detect duplicates using the denormalized primary scalars.
+			duplicate := DetectDuplicate(db, userID, contact.Firstname, contact.Lastname, contact.Email, contact.Phone)
 			if duplicate != nil {
 				preview.DuplicateMatch = duplicate
 				preview.SuggestedAction = "update"
@@ -258,102 +321,71 @@ func GenerateCSVPreview(db *gorm.DB, userID uint, rows [][]string, headers []str
 		previews = append(previews, preview)
 	}
 
-	return previews, stats
+	return contacts, previews, stats
 }
 
-// ContactToPreviewMap converts a Contact to a preview map for display
+// ContactToPreviewMap converts a Contact to a preview map used for display in the
+// wizard and for diffing in merge notes. It carries the denormalized primary scalars
+// plus the new structured fields; multi-value arrays are summarized by their primary.
 func ContactToPreviewMap(contact *models.Contact) map[string]interface{} {
 	preview := make(map[string]interface{})
-	if contact.Firstname != "" {
-		preview["firstname"] = contact.Firstname
+	set := func(key, value string) {
+		if value != "" {
+			preview[key] = value
+		}
 	}
-	if contact.Lastname != "" {
-		preview["lastname"] = contact.Lastname
-	}
-	if contact.Nickname != "" {
-		preview["nickname"] = contact.Nickname
-	}
-	if contact.Email != "" {
-		preview["email"] = contact.Email
-	}
-	if contact.Phone != "" {
-		preview["phone"] = contact.Phone
-	}
-	if contact.Birthday != "" {
-		preview["birthday"] = contact.Birthday
-	}
-	if contact.Address != "" {
-		preview["address"] = contact.Address
-	}
-	if contact.Gender != "" {
-		preview["gender"] = contact.Gender
-	}
-	if contact.WorkInformation != "" {
-		preview["work_information"] = contact.WorkInformation
-	}
+	set("firstname", contact.Firstname)
+	set("lastname", contact.Lastname)
+	set("middle_name", contact.MiddleName)
+	set("prefix", contact.Prefix)
+	set("suffix", contact.Suffix)
+	set("nickname", contact.Nickname)
+	set("email", contact.Email)
+	set("phone", contact.Phone)
+	set("birthday", contact.Birthday)
+	set("anniversary", contact.Anniversary)
+	set("address", contact.Address)
+	set("gender", contact.Gender)
+	set("organization", contact.Organization)
+	set("department", contact.Department)
+	set("job_title", contact.JobTitle)
+	set("role", contact.Role)
+	set("work_information", contact.WorkInformation)
 	if len(contact.Circles) > 0 {
 		preview["circles"] = strings.Join(contact.Circles, ", ")
 	}
 	return preview
 }
 
-// ValidateVCFContact validates a contact parsed from VCF
-func ValidateVCFContact(contact *models.Contact) []string {
+// ValidateImportedContact validates a contact built from either CSV or VCF and returns
+// human-readable errors. Used by both import preview paths.
+func ValidateImportedContact(contact *models.Contact) []string {
 	errors := make([]string, 0)
 
 	if contact.Firstname == "" {
 		errors = append(errors, "First name is required")
 	}
 
-	if contact.Email != "" && !middleware.ValidateEmail(contact.Email) {
-		errors = append(errors, "Invalid email format")
+	for _, e := range contact.Emails {
+		if e.Value != "" && !middleware.ValidateEmail(e.Value) {
+			errors = append(errors, "Invalid email format")
+			break
+		}
+	}
+
+	for _, p := range contact.Phones {
+		if p.Value != "" && !IsValidPhone(p.Value) {
+			errors = append(errors, "Invalid phone format")
+			break
+		}
 	}
 
 	if contact.Birthday != "" && !IsValidBirthdayFormat(contact.Birthday) {
-		errors = append(errors, "Invalid birthday format")
+		errors = append(errors, "Invalid birthday format (expected YYYY-MM-DD or --MM-DD)")
 	}
 
-	return errors
-}
-
-// ValidateImportRow validates a parsed row and returns errors
-func ValidateImportRow(row map[string]interface{}) []string {
-	errors := make([]string, 0)
-
-	// Firstname is required
-	firstname := GetStringField(row, "firstname")
-	if firstname == "" {
-		errors = append(errors, "First name is required")
-	}
-
-	// Email format validation
-	if email := GetStringField(row, "email"); email != "" {
-		if !middleware.ValidateEmail(email) {
-			errors = append(errors, "Invalid email format")
-		}
-	}
-
-	// Birthday format validation (YYYY-MM-DD or --MM-DD) - normalize first
-	if birthday := GetStringField(row, "birthday"); birthday != "" {
-		normalized := NormalizeBirthday(birthday)
-		if !IsValidBirthdayFormat(normalized) {
-			errors = append(errors, "Invalid birthday format (expected YYYY-MM-DD or --MM-DD)")
-		}
-	}
-
-	// Gender validation
-	if gender := GetStringField(row, "gender"); gender != "" {
-		normalized := NormalizeGender(gender)
-		if normalized == "" {
-			errors = append(errors, "Invalid gender value")
-		}
-	}
-
-	// Phone validation
-	if phone := GetStringField(row, "phone"); phone != "" {
-		if !IsValidPhone(phone) {
-			errors = append(errors, "Invalid phone format")
-		}
+	if contact.Anniversary != "" && !IsValidBirthdayFormat(contact.Anniversary) {
+		errors = append(errors, "Invalid anniversary format (expected YYYY-MM-DD or --MM-DD)")
 	}
 
 	return errors
@@ -517,206 +549,339 @@ func DetectDuplicate(db *gorm.DB, userID uint, firstname, lastname, email, phone
 	return nil
 }
 
-// ParseCircles parses circles from comma or semicolon separated string
+// ParseCircles parses circles from a separated string
 func ParseCircles(input string) []string {
 	if input == "" {
 		return nil
 	}
 
+	// Normalize ":::" separator to a comma so the splitter below handles it.
+	normalized := strings.ReplaceAll(input, ":::", ",")
+
 	var circles []string
-	parts := strings.FieldsFunc(input, func(r rune) bool {
+	parts := strings.FieldsFunc(normalized, func(r rune) bool {
 		return r == ',' || r == ';'
 	})
 
 	for _, part := range parts {
 		trimmed := strings.TrimSpace(part)
-		if trimmed != "" {
-			circles = append(circles, trimmed)
+		if trimmed == "" || strings.HasPrefix(trimmed, "*") {
+			continue
 		}
+		circles = append(circles, trimmed)
 	}
 
 	return circles
 }
 
-// BuildContactFromParsed creates a new Contact from parsed import data
-func BuildContactFromParsed(userID uint, parsed map[string]interface{}) models.Contact {
-	contact := models.Contact{
-		UserID: userID,
+// addrEntry accumulates the components of one structured address while building a row.
+type addrEntry struct {
+	label   string
+	street  string
+	city    string
+	region  string
+	postal  string
+	country string
+}
+
+func (a addrEntry) isEmpty() bool {
+	return strings.TrimSpace(a.street+a.city+a.region+a.postal+a.country) == ""
+}
+
+// BuildContactFromRow assembles a full multi-value Contact from a single CSV row using
+// the column mappings. Scalars are set directly; value/label/part columns sharing a
+// (family, Group) assemble into one ContactEmail/Phone/Address/URL/IMPP entry.
+func BuildContactFromRow(userID uint, headers []string, row []string, mappings []models.ColumnMapping) models.Contact {
+	columnIndex := make(map[string]int, len(headers))
+	for i, header := range headers {
+		columnIndex[header] = i
 	}
 
-	if v := GetStringField(parsed, "firstname"); v != "" {
-		contact.Firstname = v
+	// cellValue returns the trimmed value for a mapped column, or "" when out of range.
+	cellValue := func(m models.ColumnMapping) string {
+		idx, ok := columnIndex[m.CSVColumn]
+		if !ok || idx >= len(row) {
+			return ""
+		}
+		return strings.TrimSpace(row[idx])
 	}
-	if v := GetStringField(parsed, "lastname"); v != "" {
-		contact.Lastname = v
+
+	contact := models.Contact{UserID: userID}
+
+	// Multi-value accumulators keyed by group index. Ordered slices preserve appearance.
+	emailVals := map[int]string{}
+	emailLabels := map[int]string{}
+	phoneVals := map[int]string{}
+	phoneLabels := map[int]string{}
+	urlVals := map[int]string{}
+	urlLabels := map[int]string{}
+	imppVals := map[int]string{}
+	imppLabels := map[int]string{}
+	addrs := map[int]*addrEntry{}
+	var emailGroups, phoneGroups, urlGroups, imppGroups, addrGroups []int
+
+	addrFor := func(g int) *addrEntry {
+		if a, ok := addrs[g]; ok {
+			return a
+		}
+		a := &addrEntry{}
+		addrs[g] = a
+		addrGroups = append(addrGroups, g)
+		return a
 	}
-	if v := GetStringField(parsed, "nickname"); v != "" {
-		contact.Nickname = v
+	// if two columns manually mapped to same value like "Email", it bumps to the
+	// next free group so both values survive rather than overwriting
+	putValue := func(vals map[int]string, order *[]int, g int, v string) {
+		if v == "" {
+			return
+		}
+		if cur, ok := vals[g]; ok && cur != "" {
+			for {
+				g++
+				if _, taken := vals[g]; !taken {
+					break
+				}
+			}
+		}
+		if _, seen := vals[g]; !seen {
+			*order = append(*order, g)
+		}
+		vals[g] = v
 	}
-	if v := GetStringField(parsed, "email"); v != "" {
-		contact.Email = v
-		contact.Emails = []models.ContactEmail{{Type: "home", Value: v}}
+
+	for _, m := range mappings {
+		if m.ContactField == "" {
+			continue
+		}
+		v := cellValue(m)
+		switch m.ContactField {
+		case "firstname":
+			contact.Firstname = v
+		case "lastname":
+			contact.Lastname = v
+		case "middle_name":
+			contact.MiddleName = v
+		case "prefix":
+			contact.Prefix = v
+		case "suffix":
+			contact.Suffix = v
+		case "nickname":
+			contact.Nickname = v
+		case "gender":
+			if v != "" {
+				contact.Gender = NormalizeGender(v)
+			}
+		case "birthday":
+			if v != "" {
+				contact.Birthday = NormalizeBirthday(v)
+			}
+		case "anniversary":
+			if v != "" {
+				contact.Anniversary = NormalizeBirthday(v)
+			}
+		case "organization":
+			contact.Organization = v
+		case "department":
+			contact.Department = v
+		case "job_title":
+			contact.JobTitle = v
+		case "role":
+			contact.Role = v
+		case "how_we_met":
+			contact.HowWeMet = v
+		case "food_preference":
+			contact.FoodPreference = v
+		case "work_information":
+			contact.WorkInformation = v
+		case "contact_information":
+			contact.ContactInformation = v
+		case "circles":
+			if v != "" {
+				contact.Circles = ParseCircles(v)
+			}
+		case "email":
+			putValue(emailVals, &emailGroups, m.Group, v)
+		case "email_label":
+			emailLabels[m.Group] = v
+		case "phone":
+			putValue(phoneVals, &phoneGroups, m.Group, v)
+		case "phone_label":
+			phoneLabels[m.Group] = v
+		case "url":
+			putValue(urlVals, &urlGroups, m.Group, v)
+		case "url_label":
+			urlLabels[m.Group] = v
+		case "impp":
+			putValue(imppVals, &imppGroups, m.Group, v)
+		case "impp_label":
+			imppLabels[m.Group] = v
+		case "address_street":
+			addrFor(m.Group).street = v
+		case "address_city":
+			addrFor(m.Group).city = v
+		case "address_region":
+			addrFor(m.Group).region = v
+		case "address_postal":
+			addrFor(m.Group).postal = v
+		case "address_country":
+			addrFor(m.Group).country = v
+		case "address_label":
+			addrFor(m.Group).label = v
+		}
 	}
-	if v := GetStringField(parsed, "phone"); v != "" {
-		contact.Phone = v
-		contact.Phones = []models.ContactPhone{{Type: "cell", Value: v}}
+
+	for _, g := range emailGroups {
+		if v := emailVals[g]; v != "" {
+			contact.Emails = append(contact.Emails, models.ContactEmail{Type: normalizeImportType(emailLabels[g], "home"), Value: v})
+		}
 	}
-	if v := GetStringField(parsed, "birthday"); v != "" {
-		contact.Birthday = NormalizeBirthday(v)
+	for _, g := range phoneGroups {
+		if v := phoneVals[g]; v != "" {
+			contact.Phones = append(contact.Phones, models.ContactPhone{Type: normalizeImportType(phoneLabels[g], "cell"), Value: v})
+		}
 	}
-	if v := GetStringField(parsed, "address"); v != "" {
-		contact.Address = v
-		contact.Addresses = []models.ContactAddress{{Type: "home", Street: v}}
+	for _, g := range urlGroups {
+		if v := urlVals[g]; v != "" {
+			contact.URLs = append(contact.URLs, models.ContactURL{Type: normalizeImportType(urlLabels[g], "home"), Value: v})
+		}
 	}
-	if v := GetStringField(parsed, "gender"); v != "" {
-		contact.Gender = NormalizeGender(v)
+	for _, g := range imppGroups {
+		if v := imppVals[g]; v != "" {
+			contact.IMPPs = append(contact.IMPPs, models.ContactIMPP{Type: normalizeImportType(imppLabels[g], ""), Value: v})
+		}
 	}
-	if v := GetStringField(parsed, "how_we_met"); v != "" {
-		contact.HowWeMet = v
+	for _, g := range addrGroups {
+		a := addrs[g]
+		if a.isEmpty() {
+			continue
+		}
+		contact.Addresses = append(contact.Addresses, models.ContactAddress{
+			Type:    normalizeImportType(a.label, "home"),
+			Street:  a.street,
+			City:    a.city,
+			Region:  a.region,
+			Postal:  a.postal,
+			Country: a.country,
+		})
 	}
-	if v := GetStringField(parsed, "food_preference"); v != "" {
-		contact.FoodPreference = v
+
+	// Mirror the primary entries into the denormalized scalars so duplicate detection works
+	if len(contact.Emails) > 0 {
+		contact.Email = contact.Emails[0].Value
 	}
-	if v := GetStringField(parsed, "work_information"); v != "" {
-		contact.WorkInformation = v
+	if len(contact.Phones) > 0 {
+		contact.Phone = contact.Phones[0].Value
 	}
-	if v := GetStringField(parsed, "contact_information"); v != "" {
-		contact.ContactInformation = v
-	}
-	if v := GetStringField(parsed, "circles"); v != "" {
-		contact.Circles = ParseCircles(v)
+	if len(contact.Addresses) > 0 {
+		contact.Address = models.FormatAddress(contact.Addresses[0])
 	}
 
 	return contact
 }
 
-// UpdateContactFromParsed updates an existing contact with parsed import data
-func UpdateContactFromParsed(contact *models.Contact, parsed map[string]interface{}) {
-	if v := GetStringField(parsed, "firstname"); v != "" {
-		contact.Firstname = v
-	}
-	if v := GetStringField(parsed, "lastname"); v != "" {
-		contact.Lastname = v
-	}
-	if v := GetStringField(parsed, "nickname"); v != "" {
-		contact.Nickname = v
-	}
-	if v := GetStringField(parsed, "email"); v != "" {
-		contact.Email = v
-		contact.Emails = []models.ContactEmail{{Type: "home", Value: v}}
-	}
-	if v := GetStringField(parsed, "phone"); v != "" {
-		contact.Phone = v
-		contact.Phones = []models.ContactPhone{{Type: "cell", Value: v}}
-	}
-	if v := GetStringField(parsed, "birthday"); v != "" {
-		contact.Birthday = NormalizeBirthday(v)
-	}
-	if v := GetStringField(parsed, "address"); v != "" {
-		contact.Address = v
-		contact.Addresses = []models.ContactAddress{{Type: "home", Street: v}}
-	}
-	if v := GetStringField(parsed, "gender"); v != "" {
-		contact.Gender = NormalizeGender(v)
-	}
-	if v := GetStringField(parsed, "how_we_met"); v != "" {
-		contact.HowWeMet = v
-	}
-	if v := GetStringField(parsed, "food_preference"); v != "" {
-		contact.FoodPreference = v
-	}
-	if v := GetStringField(parsed, "work_information"); v != "" {
-		contact.WorkInformation = v
-	}
-	if v := GetStringField(parsed, "contact_information"); v != "" {
-		contact.ContactInformation = v
-	}
-	if v := GetStringField(parsed, "circles"); v != "" {
-		contact.Circles = ParseCircles(v)
+// clean up a type/label token (e.g. Google's "* Home")
+func normalizeImportType(label, def string) string {
+	t := strings.ToLower(strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(label), "*")))
+	switch t {
+	case "":
+		return def
+	case "mobile":
+		return "cell"
+	default:
+		return t
 	}
 }
 
-// UpdateContactFromVCF updates an existing contact with VCF contact data
-func UpdateContactFromVCF(existing *models.Contact, vcf *models.Contact) {
-	if vcf.Firstname != "" {
-		existing.Firstname = vcf.Firstname
+// merges fields from an imported contact into an existing one, overwriting only non-empty incoming values
+func MergeImportedContact(existing *models.Contact, incoming *models.Contact) {
+	if incoming.Firstname != "" {
+		existing.Firstname = incoming.Firstname
 	}
-	if vcf.Lastname != "" {
-		existing.Lastname = vcf.Lastname
+	if incoming.Lastname != "" {
+		existing.Lastname = incoming.Lastname
 	}
-	if vcf.Nickname != "" {
-		existing.Nickname = vcf.Nickname
+	if incoming.Nickname != "" {
+		existing.Nickname = incoming.Nickname
 	}
-	if vcf.Email != "" {
-		existing.Email = vcf.Email
+	if incoming.Email != "" {
+		existing.Email = incoming.Email
 	}
-	if vcf.Phone != "" {
-		existing.Phone = vcf.Phone
+	if incoming.Phone != "" {
+		existing.Phone = incoming.Phone
 	}
-	if vcf.Birthday != "" {
-		existing.Birthday = vcf.Birthday
+	if incoming.Birthday != "" {
+		existing.Birthday = incoming.Birthday
 	}
-	if vcf.Address != "" {
-		existing.Address = vcf.Address
+	if incoming.Address != "" {
+		existing.Address = incoming.Address
 	}
-	if vcf.Gender != "" {
-		existing.Gender = vcf.Gender
+	if incoming.Gender != "" {
+		existing.Gender = incoming.Gender
 	}
-	if vcf.WorkInformation != "" {
-		existing.WorkInformation = vcf.WorkInformation
+	if incoming.WorkInformation != "" {
+		existing.WorkInformation = incoming.WorkInformation
 	}
-	if len(vcf.Circles) > 0 {
-		existing.Circles = vcf.Circles
+	if incoming.HowWeMet != "" {
+		existing.HowWeMet = incoming.HowWeMet
+	}
+	if incoming.FoodPreference != "" {
+		existing.FoodPreference = incoming.FoodPreference
+	}
+	if incoming.ContactInformation != "" {
+		existing.ContactInformation = incoming.ContactInformation
+	}
+	if len(incoming.Circles) > 0 {
+		existing.Circles = incoming.Circles
 	}
 	// Multi-valued and structured vCard fields
-	if len(vcf.Emails) > 0 {
-		existing.Emails = vcf.Emails
+	if len(incoming.Emails) > 0 {
+		existing.Emails = incoming.Emails
 	}
-	if len(vcf.Phones) > 0 {
-		existing.Phones = vcf.Phones
+	if len(incoming.Phones) > 0 {
+		existing.Phones = incoming.Phones
 	}
-	if len(vcf.Addresses) > 0 {
-		existing.Addresses = vcf.Addresses
+	if len(incoming.Addresses) > 0 {
+		existing.Addresses = incoming.Addresses
 	}
-	if len(vcf.URLs) > 0 {
-		existing.URLs = vcf.URLs
+	if len(incoming.URLs) > 0 {
+		existing.URLs = incoming.URLs
 	}
-	if len(vcf.IMPPs) > 0 {
-		existing.IMPPs = vcf.IMPPs
+	if len(incoming.IMPPs) > 0 {
+		existing.IMPPs = incoming.IMPPs
 	}
-	if vcf.MiddleName != "" {
-		existing.MiddleName = vcf.MiddleName
+	if incoming.MiddleName != "" {
+		existing.MiddleName = incoming.MiddleName
 	}
-	if vcf.Prefix != "" {
-		existing.Prefix = vcf.Prefix
+	if incoming.Prefix != "" {
+		existing.Prefix = incoming.Prefix
 	}
-	if vcf.Suffix != "" {
-		existing.Suffix = vcf.Suffix
+	if incoming.Suffix != "" {
+		existing.Suffix = incoming.Suffix
 	}
-	if vcf.Organization != "" {
-		existing.Organization = vcf.Organization
+	if incoming.Organization != "" {
+		existing.Organization = incoming.Organization
 	}
-	if vcf.Department != "" {
-		existing.Department = vcf.Department
+	if incoming.Department != "" {
+		existing.Department = incoming.Department
 	}
-	if vcf.JobTitle != "" {
-		existing.JobTitle = vcf.JobTitle
+	if incoming.JobTitle != "" {
+		existing.JobTitle = incoming.JobTitle
 	}
-	if vcf.Role != "" {
-		existing.Role = vcf.Role
+	if incoming.Role != "" {
+		existing.Role = incoming.Role
 	}
-	if vcf.Anniversary != "" {
-		existing.Anniversary = vcf.Anniversary
+	if incoming.Anniversary != "" {
+		existing.Anniversary = incoming.Anniversary
 	}
-	if vcf.VCardExtra != "" {
-		existing.VCardExtra = vcf.VCardExtra
+	if incoming.VCardExtra != "" {
+		existing.VCardExtra = incoming.VCardExtra
 	}
-	if vcf.VCardUID != "" {
-		existing.VCardUID = vcf.VCardUID
+	if incoming.VCardUID != "" {
+		existing.VCardUID = incoming.VCardUID
 	}
 }
 
-// CreateMergeNote creates a note documenting what was changed during import
+// creates a note documenting what was changed during import
 func CreateMergeNote(db *gorm.DB, userID uint, contactID uint, original *models.Contact, newValues map[string]interface{}, importType string) error {
 	var changes []string
 
@@ -726,12 +891,20 @@ func CreateMergeNote(db *gorm.DB, userID uint, contactID uint, original *models.
 	}{
 		"firstname":           {"First Name", original.Firstname},
 		"lastname":            {"Last Name", original.Lastname},
+		"middle_name":         {"Middle Name", original.MiddleName},
+		"prefix":              {"Prefix", original.Prefix},
+		"suffix":              {"Suffix", original.Suffix},
 		"nickname":            {"Nickname", original.Nickname},
 		"email":               {"Email", original.Email},
 		"phone":               {"Phone", original.Phone},
 		"birthday":            {"Birthday", original.Birthday},
+		"anniversary":         {"Anniversary", original.Anniversary},
 		"address":             {"Address", original.Address},
 		"gender":              {"Gender", original.Gender},
+		"organization":        {"Organization", original.Organization},
+		"department":          {"Department", original.Department},
+		"job_title":           {"Job Title", original.JobTitle},
+		"role":                {"Role", original.Role},
 		"how_we_met":          {"How We Met", original.HowWeMet},
 		"food_preference":     {"Food Preferences", original.FoodPreference},
 		"work_information":    {"Work Information", original.WorkInformation},

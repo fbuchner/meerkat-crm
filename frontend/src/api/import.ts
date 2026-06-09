@@ -4,6 +4,9 @@ import { apiFetch, API_BASE_URL, getAuthHeaders, parseErrorResponse } from './cl
 export interface ColumnMapping {
   csv_column: string;
   contact_field: string;
+  // Multi-value entry index (0-based). Ties a value column to its label/parts within the
+  // same logical entry (e.g. "E-mail 1 - Value" + "E-mail 1 - Label")
+  group: number;
 }
 
 // Response from CSV upload
@@ -58,16 +61,42 @@ export interface ImportResult {
   errors: string[];
 }
 
-// Contact fields that can be imported
+// Contact fields that can be imported (mirrors backend models.ImportableContactFields)
 export const IMPORTABLE_CONTACT_FIELDS = [
+  // Name
   'firstname',
   'lastname',
+  'middle_name',
+  'prefix',
+  'suffix',
   'nickname',
   'gender',
-  'email',
-  'phone',
+  // Dates
   'birthday',
-  'address',
+  'anniversary',
+  // Multi-value: email / phone
+  'email',
+  'email_label',
+  'phone',
+  'phone_label',
+  // Multi-value: address parts
+  'address_street',
+  'address_city',
+  'address_region',
+  'address_postal',
+  'address_country',
+  'address_label',
+  // Multi-value: web / IM
+  'url',
+  'url_label',
+  'impp',
+  'impp_label',
+  // Organization
+  'organization',
+  'department',
+  'job_title',
+  'role',
+  // Free-text
   'how_we_met',
   'food_preference',
   'work_information',
@@ -75,16 +104,37 @@ export const IMPORTABLE_CONTACT_FIELDS = [
   'circles',
 ] as const;
 
+export const REPEATABLE_VALUE_FIELDS = new Set<string>(['email', 'phone', 'url', 'impp']);
+
 // Human-readable labels for contact fields
 export const CONTACT_FIELD_LABELS: Record<string, string> = {
   firstname: 'First Name',
   lastname: 'Last Name',
+  middle_name: 'Middle Name',
+  prefix: 'Name Prefix',
+  suffix: 'Name Suffix',
   nickname: 'Nickname',
   gender: 'Gender',
-  email: 'Email',
-  phone: 'Phone',
   birthday: 'Birthday',
-  address: 'Address',
+  anniversary: 'Anniversary',
+  email: 'Email',
+  email_label: 'Email – Type',
+  phone: 'Phone',
+  phone_label: 'Phone – Type',
+  address_street: 'Address – Street',
+  address_city: 'Address – City',
+  address_region: 'Address – Region/State',
+  address_postal: 'Address – Postal Code',
+  address_country: 'Address – Country',
+  address_label: 'Address – Type',
+  url: 'Website',
+  url_label: 'Website – Type',
+  impp: 'IM / Social',
+  impp_label: 'IM / Social – Type',
+  organization: 'Organization',
+  department: 'Department',
+  job_title: 'Job Title',
+  role: 'Role',
   how_we_met: 'How We Met',
   food_preference: 'Food Preferences',
   work_information: 'Work Information',

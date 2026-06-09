@@ -155,7 +155,9 @@
         "csvColumn": "CSV Column",
         "mapsTo": "Maps To",
         "sampleData": "Sample",
-        "ignore": "-- Ignore --"
+        "ignore": "-- Ignore --",
+        "duplicateWarning": "These single-value fields are mapped to more than one column; only the last column will be used: {{fields}}",
+        "duplicateField": "Mapped more than once"
       },
       "steps": {
         "upload": "Upload",

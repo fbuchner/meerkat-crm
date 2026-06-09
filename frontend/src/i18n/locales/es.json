@@ -15,7 +15,8 @@
     "profile": "Perfil",
     "users": "Usuarios",
     "apiTokens": "Tokens API",
-    "integrations": "Integraciones"
+    "integrations": "Integraciones",
+    "data": "Datos"
   },
   "dashboard": {
     "welcome": "Bienvenido al Panel de Meerkat CRM",
@@ -154,7 +155,9 @@
         "csvColumn": "Columna CSV",
         "mapsTo": "Se asigna a",
         "sampleData": "Muestra",
-        "ignore": "-- Ignorar --"
+        "ignore": "-- Ignorar --",
+        "duplicateWarning": "Estos campos de valor único están asignados a más de una columna; solo se usará la última columna: {{fields}}",
+        "duplicateField": "Asignado más de una vez"
       },
       "steps": {
         "upload": "Subir",
@@ -199,6 +202,31 @@
         "previewFailed": "Error al generar la vista previa. Inténtalo de nuevo.",
         "importFailed": "Error en la importación. Inténtalo de nuevo."
       }
+    },
+    "urls": "Sitios Web",
+    "impps": "Mensajería Instantánea",
+    "prefix": "Prefijo",
+    "middleName": "Segundo Nombre",
+    "suffix": "Sufijo",
+    "organization": "Organización",
+    "department": "Departamento",
+    "jobTitle": "Cargo",
+    "role": "Rol",
+    "anniversary": "Aniversario",
+    "fieldType": "Tipo",
+    "types": {
+      "home": "Casa",
+      "work": "Trabajo",
+      "cell": "Móvil",
+      "fax": "Fax",
+      "other": "Otro"
+    },
+    "addressFields": {
+      "street": "Calle",
+      "city": "Ciudad",
+      "region": "Estado / Región",
+      "postal": "Código Postal",
+      "country": "País"
     }
   },
   "timeline": {
@@ -345,7 +373,8 @@
     "delete": "Eliminar",
     "close": "Cerrar",
     "back": "Atrás",
-    "continue": "Continuar"
+    "continue": "Continuar",
+    "add": "Agregar"
   },
   "profilePicture": {
     "title": "Subir Foto de Perfil",
@@ -495,6 +524,23 @@
         "cancel": "Cancelar",
         "confirm": "Eliminar"
       }
+    },
+    "contactFields": {
+      "title": "Campos de Contacto",
+      "description": "Elige qué campos extendidos aparecen en el formulario de contacto. Los campos desactivados se ocultan, pero sus datos se conservan y se siguen sincronizando.",
+      "loading": "Cargando…",
+      "loadError": "No se pudo cargar la configuración de los campos de contacto.",
+      "saveError": "No se pudo guardar la configuración de los campos de contacto.",
+      "groups": {
+        "communication": "Comunicación",
+        "name": "Nombre",
+        "work": "Trabajo",
+        "personal": "Personal",
+        "meerkat": "Notas"
+      }
+    },
+    "data": {
+      "title": "Datos"
     }
   },
   "pages": {

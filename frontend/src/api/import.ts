@@ -104,6 +104,8 @@ export const IMPORTABLE_CONTACT_FIELDS = [
   'circles',
 ] as const;
 
+export const REPEATABLE_VALUE_FIELDS = new Set<string>(['email', 'phone', 'url', 'impp']);
+
 // Human-readable labels for contact fields
 export const CONTACT_FIELD_LABELS: Record<string, string> = {
   firstname: 'First Name',

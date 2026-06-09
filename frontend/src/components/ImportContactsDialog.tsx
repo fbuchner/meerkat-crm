@@ -20,6 +20,7 @@ import {
   Select,
   MenuItem,
   FormControl,
+  FormHelperText,
   Chip,
   Alert,
   LinearProgress,
@@ -47,6 +48,7 @@ import {
   ImportResult,
   IMPORTABLE_CONTACT_FIELDS,
   CONTACT_FIELD_LABELS,
+  REPEATABLE_VALUE_FIELDS,
 } from '../api/import';
 
 interface ImportContactsDialogProps {
@@ -339,6 +341,28 @@ export default function ImportContactsDialog({
   const renderMappingStep = () => {
     if (!uploadResponse) return null;
 
+    // "field#group" keys of single-slot targets mapped by more than one column. Repeatable
+    // multi-value fields (email/phone/website/IM) are excluded — multiple columns there
+    // legitimately become separate entries.
+    const slotCounts = new Map<string, number>();
+    mappings.forEach((m) => {
+      if (!m.contact_field || REPEATABLE_VALUE_FIELDS.has(m.contact_field)) return;
+      const key = `${m.contact_field}#${m.group}`;
+      slotCounts.set(key, (slotCounts.get(key) ?? 0) + 1);
+    });
+    const conflictKeys = new Set<string>();
+    slotCounts.forEach((count, key) => {
+      if (count > 1) conflictKeys.add(key);
+    });
+    const mappingKey = (m: ColumnMapping) => `${m.contact_field}#${m.group}`;
+    const conflictLabels = Array.from(
+      new Set(
+        mappings
+          .filter((m) => m.contact_field && conflictKeys.has(mappingKey(m)))
+          .map((m) => CONTACT_FIELD_LABELS[m.contact_field] || m.contact_field)
+      )
+    );
+
     return (
       <Box>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -347,6 +371,15 @@ export default function ImportContactsDialog({
             "Match your CSV columns to contact fields. Columns marked 'Ignore' will not be imported."
           )}
         </Typography>
+        {conflictLabels.length > 0 && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            {t(
+              'contacts.import.mapping.duplicateWarning',
+              'These single-value fields are mapped to more than one column; only the last column will be used: {{fields}}',
+              { fields: conflictLabels.join(', ') }
+            )}
+          </Alert>
+        )}
         <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
           <Table stickyHeader size="small">
             <TableHead>
@@ -357,38 +390,47 @@ export default function ImportContactsDialog({
               </TableRow>
             </TableHead>
             <TableBody>
-              {mappings.map((mapping, index) => (
-                <TableRow key={index}>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight="medium">
-                      {mapping.csv_column}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 150 }}>
-                      {uploadResponse.sample_data[0]?.[index] || '-'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <FormControl size="small" sx={{ minWidth: 180 }}>
-                      <Select
-                        value={mapping.contact_field}
-                        onChange={(e) => handleMappingChange(index, e.target.value)}
-                        displayEmpty
-                      >
-                        <MenuItem value="">
-                          <em>{t('contacts.import.mapping.ignore', '-- Ignore --')}</em>
-                        </MenuItem>
-                        {IMPORTABLE_CONTACT_FIELDS.map((field) => (
-                          <MenuItem key={field} value={field}>
-                            {CONTACT_FIELD_LABELS[field] || field}
+              {mappings.map((mapping, index) => {
+                const isConflict =
+                  !!mapping.contact_field && conflictKeys.has(mappingKey(mapping));
+                return (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight="medium">
+                        {mapping.csv_column}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 150 }}>
+                        {uploadResponse.sample_data[0]?.[index] || '-'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <FormControl size="small" sx={{ minWidth: 180 }} error={isConflict}>
+                        <Select
+                          value={mapping.contact_field}
+                          onChange={(e) => handleMappingChange(index, e.target.value)}
+                          displayEmpty
+                        >
+                          <MenuItem value="">
+                            <em>{t('contacts.import.mapping.ignore', '-- Ignore --')}</em>
                           </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </TableCell>
-                </TableRow>
-              ))}
+                          {IMPORTABLE_CONTACT_FIELDS.map((field) => (
+                            <MenuItem key={field} value={field}>
+                              {CONTACT_FIELD_LABELS[field] || field}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        {isConflict && (
+                          <FormHelperText>
+                            {t('contacts.import.mapping.duplicateField', 'Mapped more than once')}
+                          </FormHelperText>
+                        )}
+                      </FormControl>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>

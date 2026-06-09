@@ -629,10 +629,24 @@ func BuildContactFromRow(userID uint, headers []string, row []string, mappings [
 		addrGroups = append(addrGroups, g)
 		return a
 	}
-	recordGroup := func(groups *[]int, m map[int]string, g int) {
-		if _, seen := m[g]; !seen {
-			*groups = append(*groups, g)
+	// if two columns manually mapped to same value like "Email", it bumps to the
+	// next free group so both values survive rather than overwriting
+	putValue := func(vals map[int]string, order *[]int, g int, v string) {
+		if v == "" {
+			return
 		}
+		if cur, ok := vals[g]; ok && cur != "" {
+			for {
+				g++
+				if _, taken := vals[g]; !taken {
+					break
+				}
+			}
+		}
+		if _, seen := vals[g]; !seen {
+			*order = append(*order, g)
+		}
+		vals[g] = v
 	}
 
 	for _, m := range mappings {
@@ -686,23 +700,19 @@ func BuildContactFromRow(userID uint, headers []string, row []string, mappings [
 				contact.Circles = ParseCircles(v)
 			}
 		case "email":
-			recordGroup(&emailGroups, emailVals, m.Group)
-			emailVals[m.Group] = v
+			putValue(emailVals, &emailGroups, m.Group, v)
 		case "email_label":
 			emailLabels[m.Group] = v
 		case "phone":
-			recordGroup(&phoneGroups, phoneVals, m.Group)
-			phoneVals[m.Group] = v
+			putValue(phoneVals, &phoneGroups, m.Group, v)
 		case "phone_label":
 			phoneLabels[m.Group] = v
 		case "url":
-			recordGroup(&urlGroups, urlVals, m.Group)
-			urlVals[m.Group] = v
+			putValue(urlVals, &urlGroups, m.Group, v)
 		case "url_label":
 			urlLabels[m.Group] = v
 		case "impp":
-			recordGroup(&imppGroups, imppVals, m.Group)
-			imppVals[m.Group] = v
+			putValue(imppVals, &imppGroups, m.Group, v)
 		case "impp_label":
 			imppLabels[m.Group] = v
 		case "address_street":

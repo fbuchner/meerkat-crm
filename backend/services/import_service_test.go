@@ -146,6 +146,24 @@ func TestBuildContactFromRow_FlatSingleValue(t *testing.T) {
 	assert.Equal(t, "1 Main St", c.Address)
 }
 
+func TestBuildContactFromRow_DuplicateValueColumnsBump(t *testing.T) {
+	// Two distinct columns manually mapped to "email" both default to group 0; the
+	// builder bumps the second to a new group so both values survive.
+	headers := []string{"First Name", "Personal Email", "Work Email"}
+	row := []string{"Carol", "carol@a.example", "carol@b.example"}
+	mappings := []models.ColumnMapping{
+		{CSVColumn: "First Name", ContactField: "firstname"},
+		{CSVColumn: "Personal Email", ContactField: "email", Group: 0},
+		{CSVColumn: "Work Email", ContactField: "email", Group: 0},
+	}
+
+	c := BuildContactFromRow(1, headers, row, mappings)
+
+	assert.Len(t, c.Emails, 2)
+	assert.Equal(t, "carol@a.example", c.Emails[0].Value)
+	assert.Equal(t, "carol@b.example", c.Emails[1].Value)
+}
+
 func TestValidateImportedContact(t *testing.T) {
 	// Missing first name.
 	assert.Contains(t, ValidateImportedContact(&models.Contact{}), "First name is required")

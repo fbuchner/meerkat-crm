@@ -155,7 +155,9 @@
         "csvColumn": "CSV-Spalte",
         "mapsTo": "Zuordnung",
         "sampleData": "Beispiel",
-        "ignore": "-- Ignorieren --"
+        "ignore": "-- Ignorieren --",
+        "duplicateWarning": "Diese einwertigen Felder sind mehreren Spalten zugeordnet; nur die letzte Spalte wird verwendet: {{fields}}",
+        "duplicateField": "Mehrfach zugeordnet"
       },
       "steps": {
         "upload": "Hochladen",

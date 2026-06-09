@@ -31,6 +31,7 @@ type importSessionData struct {
 	rows        [][]string                // CSV rows (nil for VCF imports)
 	importType  string                    // "csv" or "vcf"
 	vcfContacts []services.VCFContactData // VCF parsed contacts (nil for CSV imports)
+	csvContacts []models.Contact          // CSV contacts built during preview (nil for VCF imports)
 }
 
 const sessionExpiry = 15 * time.Minute
@@ -276,14 +277,15 @@ func PreviewImport(c *gin.Context) {
 	}
 
 	// Generate preview using service
-	previews, stats := services.GenerateCSVPreview(db, userID, sessionData.rows, sessionData.session.Headers, request.Mappings)
+	contacts, previews, stats := services.GenerateCSVPreview(db, userID, sessionData.rows, sessionData.session.Headers, request.Mappings)
 
-	// Cache preview data in session for confirm step
+	// Cache preview data and built contacts in session for confirm step
 	importSessionsLock.Lock()
 	if sd, exists := importSessions[request.SessionID]; exists {
 		sd.session.Mappings = request.Mappings
 		sd.session.PreviewRows = previews
 		sd.session.PreviewCached = true
+		sd.csvContacts = contacts
 	}
 	importSessionsLock.Unlock()
 
@@ -358,10 +360,10 @@ func ConfirmImport(c *gin.Context) {
 				var contact models.Contact
 				if isVCFImport {
 					contact = *sessionData.vcfContacts[preview.RowIndex].Contact
-					contact.UserID = userID
 				} else {
-					contact = services.BuildContactFromParsed(userID, preview.ParsedContact)
+					contact = sessionData.csvContacts[preview.RowIndex]
 				}
+				contact.UserID = userID
 
 				if err := tx.Create(&contact).Error; err != nil {
 					result.Errors = append(result.Errors, fmt.Sprintf("Row %d: Failed to create contact: %v", preview.RowIndex+1, err))
@@ -396,9 +398,10 @@ func ConfirmImport(c *gin.Context) {
 				}
 
 				if isVCFImport {
-					services.UpdateContactFromVCF(&existing, sessionData.vcfContacts[preview.RowIndex].Contact)
+					services.MergeImportedContact(&existing, sessionData.vcfContacts[preview.RowIndex].Contact)
 				} else {
-					services.UpdateContactFromParsed(&existing, preview.ParsedContact)
+					csvContact := sessionData.csvContacts[preview.RowIndex]
+					services.MergeImportedContact(&existing, &csvContact)
 				}
 
 				if err := tx.Save(&existing).Error; err != nil {
@@ -538,7 +541,7 @@ func ConfirmVCFImport(c *gin.Context, cfg *config.Config) {
 					log.Warn().Err(err).Uint("contact_id", existing.ID).Msg("Failed to create merge note")
 				}
 
-				services.UpdateContactFromVCF(&existing, vcfData.Contact)
+				services.MergeImportedContact(&existing, vcfData.Contact)
 
 				if err := tx.Save(&existing).Error; err != nil {
 					result.Errors = append(result.Errors, fmt.Sprintf("Row %d: Failed to update contact: %v", preview.RowIndex+1, err))

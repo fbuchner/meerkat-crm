@@ -69,6 +69,13 @@ coverage/
 frontend/playwright-report/
 frontend/test-results/
 frontend/playwright/.auth/
+# Playwright artifacts regardless of where they get written from
+playwright-report/
+test-results/
+.last-run.json
+
+# TypeScript incremental build info (e.g. from `tsc -b` on the e2e project)
+*.tsbuildinfo
 
 # Temporary files
 *.tmp

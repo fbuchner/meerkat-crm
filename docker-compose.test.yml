@@ -21,6 +21,7 @@ services:
       - PROFILE_PHOTO_DIR=/app/static/photos
       - FRONTEND_URL=http://localhost:7300
       - PORT=8080
+      - DISABLE_REGISTRATION=false
     volumes:
       - test-data:/app/data
       - test-photos:/app/static/photos

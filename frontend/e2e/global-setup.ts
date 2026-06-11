@@ -105,15 +105,29 @@ async function registerTestUser(): Promise<void> {
 
     if (response.ok) {
       console.log('Test user registered');
-    } else {
-      const data = await response.json();
-      // User might already exist from previous run
-      if (data.error?.code === 'USER_EXISTS' || response.status === 409) {
-        console.log('Test user already exists');
-      } else {
-        console.log('Registration response:', data);
-      }
+      return;
     }
+
+    const data = await response.json().catch(() => ({}));
+
+    // User already exists from a previous run — fine.
+    if (data.error?.code === 'USER_EXISTS' || response.status === 409) {
+      console.log('Test user already exists');
+      return;
+    }
+
+    // E2E suite registers the seeded user and a second user
+    if (data.error?.code === 'registration_disabled') {
+      console.warn(
+        '\n⚠️  Registration is DISABLED on this backend (DISABLE_REGISTRATION=true).\n' +
+        '   The E2E suite needs it enabled to seed users and to exercise the\n' +
+        '   registration/isolation specs. Set DISABLE_REGISTRATION=false, or run\n' +
+        '   against the docker-compose.test.yml stack which already does.\n'
+      );
+      return;
+    }
+
+    console.log('Registration response:', data);
   } catch (error) {
     console.log('Registration error (user may already exist):', error);
   }
@@ -132,32 +146,44 @@ async function loginAndCreateContacts(context: BrowserContext): Promise<void> {
 
   if (!loginResponse.ok()) {
     const body = await loginResponse.text();
-    throw new Error(`Login failed: ${loginResponse.status()} - ${body}`);
+    throw new Error(
+      `Login as the seeded test user failed: ${loginResponse.status()} - ${body}\n` +
+      'On a fresh backend this usually means registration is disabled, so the test ' +
+      'user was never created. Set DISABLE_REGISTRATION=false (the ' +
+      'docker-compose.test.yml stack already does) and retry.'
+    );
   }
 
   console.log('Logged in successfully');
 
-  // Check if contacts already exist
-  const existingResponse = await context.request.get(`${API_BASE_URL}/contacts?limit=1`);
+  // Remove data left behind by previous runs so the suite starts clean
+  await cleanupLeftoverTestData(context);
 
-  if (existingResponse.ok()) {
-    const existing = await existingResponse.json();
-    if (existing.total > 0) {
-      console.log(`info: ${existing.total} contacts already exist, skipping creation`);
-      return;
-    }
-  }
-
-  console.log('Creating sample contacts...');
+  // Ensure each sample contact exists exactly once (idempotent upsert by name).
+  console.log('Ensuring sample contacts exist...');
 
   for (const contact of SAMPLE_CONTACTS) {
     try {
+      const search = `${contact.firstname} ${contact.lastname}`;
+      const lookup = await context.request.get(
+        `${API_BASE_URL}/contacts?search=${encodeURIComponent(search)}&limit=1`
+      );
+      if (lookup.ok()) {
+        const found = await lookup.json();
+        if ((found.contacts || []).some(
+          (c: any) => c.firstname === contact.firstname && c.lastname === contact.lastname
+        )) {
+          console.log(`  Exists: ${search}`);
+          continue;
+        }
+      }
+
       const response = await context.request.post(`${API_BASE_URL}/contacts`, {
         data: contact,
       });
 
       if (response.ok()) {
-        console.log(`  Created contact: ${contact.firstname} ${contact.lastname}`);
+        console.log(`  Created contact: ${search}`);
       } else {
         const error = await response.json();
         console.log(`  Failed to create ${contact.firstname}: ${error.error?.message}`);
@@ -167,7 +193,34 @@ async function loginAndCreateContacts(context: BrowserContext): Promise<void> {
     }
   }
 
-  console.log('Sample contacts created');
+  console.log('Sample contacts ready');
+}
+
+// Deletes contacts created by previous E2E runs. 
+export const E2E_CONTACT_PREFIX = 'E2EFixture';
+
+async function cleanupLeftoverTestData(context: BrowserContext): Promise<void> {
+  try {
+    const response = await context.request.get(
+      `${API_BASE_URL}/contacts?search=${encodeURIComponent(E2E_CONTACT_PREFIX)}&limit=200`
+    );
+    if (!response.ok()) return;
+
+    const data = await response.json();
+    const stale = (data.contacts || []).filter((c: any) =>
+      (c.firstname || '').startsWith(E2E_CONTACT_PREFIX)
+    );
+
+    for (const contact of stale) {
+      await context.request.delete(`${API_BASE_URL}/contacts/${contact.ID}`).catch(() => {});
+    }
+
+    if (stale.length > 0) {
+      console.log(`Cleaned up ${stale.length} leftover E2E contact(s)`);
+    }
+  } catch (error) {
+    console.log('Cleanup of leftover test data failed (non-fatal):', error);
+  }
 }
 
 export default globalSetup;

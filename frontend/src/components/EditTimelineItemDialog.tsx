@@ -13,22 +13,24 @@ import {
 import AppDialog from './AppDialog';
 import DeleteIcon from '@mui/icons-material/Delete';
 
+export interface TimelineItemValues {
+  noteContent?: string;
+  noteDate?: string;
+  activityTitle?: string;
+  activityDescription?: string;
+  activityLocation?: string;
+  activityDate?: string;
+  activityContacts?: { ID: number; firstname: string; lastname: string; nickname?: string }[];
+}
+
 interface EditTimelineItemDialogProps {
   open: boolean;
   onClose: () => void;
   onSave: () => void;
   onDelete: () => void;
   type: 'note' | 'activity';
-  values: {
-    noteContent?: string;
-    noteDate?: string;
-    activityTitle?: string;
-    activityDescription?: string;
-    activityLocation?: string;
-    activityDate?: string;
-    activityContacts?: { ID: number; firstname: string; lastname: string; nickname?: string }[];
-  };
-  onChange: (values: any) => void;
+  values: TimelineItemValues;
+  onChange: (values: TimelineItemValues) => void;
   allContacts: { ID: number; firstname: string; lastname: string; nickname?: string }[];
 }
 

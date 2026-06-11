@@ -1,94 +1,106 @@
 import { test, expect } from './fixtures';
-import { loginUser, waitForLoading } from './fixtures';
+import { waitForLoading, searchContact, createTestContact, deleteTestContact } from './fixtures';
 import { API_BASE_URL } from './global-setup';
 
+// Authenticated via the shared storageState (see playwright.config.ts) — no
+// per-test login needed.
 test.describe('Contacts', () => {
-  test.beforeEach(async ({ page }) => {
-    await loginUser(page);
-  });
-
   test('should display contacts page with filter controls', async ({ page }) => {
     await page.goto('/contacts');
-    
-    // Should show contacts heading
+
     await expect(page.getByRole('heading', { name: /contacts/i })).toBeVisible();
-    
-    // Should show filter and sort controls
     await expect(page.getByLabel(/filter by circle/i)).toBeVisible();
     await expect(page.getByLabel(/sort by/i)).toBeVisible();
-    
-    // Should show Add Contact button
     await expect(page.getByRole('button', { name: /add/i })).toBeVisible();
   });
 
-  test('should display seeded contacts', async ({ page }) => {
+  test('should find seeded contacts via search', async ({ page }) => {
     await page.goto('/contacts');
     await waitForLoading(page);
-    
-    // Use search to find seeded contacts (they may be below the fold due to accumulated test data)
-    const searchInput = page.locator('input[placeholder*="earch"]').first();
-    await searchInput.fill('Alice');
-    await searchInput.press('Enter');
-    await page.waitForTimeout(500);
+
+    await searchContact(page, 'Alice');
     await expect(page.getByText('Alice Johnson')).toBeVisible();
-    
-    // Search for Bob
-    await searchInput.clear();
-    await searchInput.fill('Bob');
-    await searchInput.press('Enter');
-    await page.waitForTimeout(500);
+
+    await searchContact(page, 'Bob');
     await expect(page.getByText('Bob Smith')).toBeVisible();
   });
 
   test('should navigate to contact detail', async ({ page }) => {
     await page.goto('/contacts');
     await waitForLoading(page);
-    
-    // Use search to find Alice (may be below fold due to accumulated test data)
-    const searchInput = page.locator('input[placeholder*="earch"]').first();
-    await searchInput.fill('Alice');
-    await searchInput.press('Enter');
-    await page.waitForTimeout(500);
-    
-    // Click on a contact
+
+    await searchContact(page, 'Alice');
     await page.getByText('Alice Johnson').click();
-    
-    // Should navigate to contact detail
+
     await expect(page).toHaveURL(/\/contacts\/\d+/);
-    
-    // Should show contact info
     await expect(page.getByText('alice@example.com')).toBeVisible();
   });
 
   test('should create a new contact', async ({ page }) => {
-    // Use a unique name per run so repeated runs don't accumulate duplicates
-    const firstname = `E2ETest${Date.now()}`;
+    // Unique name per run so repeated runs don't accumulate duplicates.
+    const firstname = `E2EFixture${Date.now()}`;
     const lastname = 'Contact';
 
     await page.goto('/contacts');
-
-    // Click Add Contact button
     await page.getByRole('button', { name: /add/i }).click();
-
-    // Should show dialog
     await expect(page.getByRole('dialog')).toBeVisible();
 
-    // Fill in minimal contact details
     await page.getByLabel(/first.*name/i).fill(firstname);
     await page.getByLabel(/last.*name/i).fill(lastname);
-
-    // Submit the form
     await page.getByRole('button', { name: /create/i }).click();
 
-    // Should navigate to the new contact's detail page
+    // Lands on the new contact's detail page.
     await expect(page).toHaveURL(/\/contacts\/\d+/);
-    // Target the detail page header specifically (avoids matching list cards)
     await expect(page.getByRole('heading', { name: `${firstname} ${lastname}` })).toBeVisible();
 
-    // Clean up the created contact so runs stay idempotent
+    // Clean up so runs stay idempotent.
     const contactId = page.url().match(/\/contacts\/(\d+)/)?.[1];
     if (contactId) {
-      await page.request.delete(`${API_BASE_URL}/contacts/${contactId}`);
+      await deleteTestContact(page.request, contactId);
     }
+  });
+
+  test('should edit a contact name', async ({ page }) => {
+    const contact = await createTestContact(page.request, { lastname: 'Before' });
+
+    try {
+      await page.goto(`/contacts/${contact.ID}`);
+      await expect(page.getByRole('heading', { name: `${contact.firstname} Before` })).toBeVisible();
+
+      // Enter profile edit mode via the (hover-revealed) pencil next to the
+      // name. Use the .edit-icon class — MUI strips icon data-testids from
+      // production builds, but className survives. The name pencil is first.
+      await page.locator('.edit-icon').first().click();
+
+      const lastName = page.getByLabel('Last Name', { exact: true });
+      await lastName.fill('After');
+      // Save is the only primary-coloured icon button in the header card.
+      await page.locator('.MuiCard-root').first().locator('.MuiIconButton-colorPrimary').click();
+
+      await expect(page.getByRole('heading', { name: `${contact.firstname} After` })).toBeVisible();
+    } finally {
+      await deleteTestContact(page.request, contact.ID);
+    }
+  });
+
+  test('should delete a contact from the detail page', async ({ page }) => {
+    const contact = await createTestContact(page.request, { lastname: 'ToDelete' });
+
+    await page.goto(`/contacts/${contact.ID}`);
+    await expect(page.getByRole('heading', { name: `${contact.firstname} ToDelete` })).toBeVisible();
+
+    // Deletion is confirmed via a native confirm() dialog.
+    page.once('dialog', (dialog) => dialog.accept());
+
+    // The delete button only appears inside profile edit mode (entered via the
+    // name pencil). The delete button itself has a title, so it's role-addressable.
+    await page.locator('.edit-icon').first().click();
+    await page.getByRole('button', { name: /delete contact/i }).click();
+
+    // Redirects back to the list, and the contact is gone.
+    await expect(page).toHaveURL(/\/contacts$/);
+
+    const lookup = await page.request.get(`${API_BASE_URL}/contacts/${contact.ID}`);
+    expect(lookup.status()).toBe(404);
   });
 });

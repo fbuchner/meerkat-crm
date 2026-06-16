@@ -1,6 +1,6 @@
 import { ReactNode, createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
 
-export type DateFormat = "eu" | "us";
+export type DateFormat = "eu" | "us" | "iso";
 
 interface DateFormatContextValue {
   dateFormat: DateFormat;

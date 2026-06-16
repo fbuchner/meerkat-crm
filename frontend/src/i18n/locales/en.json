@@ -404,6 +404,7 @@
       "description": "Choose how dates are displayed throughout the application.",
       "options": {
         "eu": "European (DD.MM.YYYY)",
+        "iso": "ISO (YYYY-MM-DD)",
         "us": "US (MM/DD/YYYY)"
       }
     },

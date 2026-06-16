@@ -303,6 +303,8 @@ func formatDateForUser(t time.Time, dateFormat string) string {
 	switch dateFormat {
 	case "us":
 		return t.Format("01/02/2006") // MM/DD/YYYY
+	case "iso":
+		return t.Format("2006-01-02") // YYYY-MM-DD
 	default:
 		return t.Format("02.01.2006") // DD.MM.YYYY (EU default)
 	}

@@ -403,8 +403,9 @@
       "label": "Formato de Fecha",
       "description": "Elige cómo se muestran las fechas en toda la aplicación.",
       "options": {
-        "eu": "Europeo (DD.MM.AAAA)",
-        "us": "EE.UU. (MM/DD/AAAA)"
+        "eu":  "Europeo (DD.MM.AAAA)",
+        "us":  "EE.UU. (MM/DD/AAAA)",
+        "iso": "ISO (AAAA-MM-DD)"
       }
     },
     "theme": {

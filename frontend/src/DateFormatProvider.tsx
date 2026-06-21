@@ -25,8 +25,9 @@ export function initializeDateFormatFromBackend(dateFormat: string | undefined):
   if (typeof window === "undefined") {
     return;
   }
-  if (dateFormat === "eu" || dateFormat === "us") {
-    window.localStorage.setItem(DATE_FORMAT_STORAGE_KEY, dateFormat);
+  const supportedDateFormats: DateFormat[] = ["eu", "us", "iso"];
+  if (dateFormat && supportedDateFormats.includes(dateFormat as DateFormat)) {
+    window.localStorage.setItem(DATE_FORMAT_STORAGE_KEY, dateFormat as DateFormat);
   }
 }
 
@@ -36,8 +37,9 @@ const getStoredFormat = (): DateFormat => {
   }
 
   const storedValue = window.localStorage.getItem(DATE_FORMAT_STORAGE_KEY);
-  if (storedValue === "eu" || storedValue === "us") {
-    return storedValue;
+  const supportedDateFormats: DateFormat[] = ["eu", "us", "iso"];
+  if (storedValue && supportedDateFormats.includes(storedValue as DateFormat)) {
+    return storedValue as DateFormat;
   }
 
   return "eu";
@@ -93,10 +95,13 @@ function formatDateWithFormat(dateString: string, format: DateFormat): string {
   const month = String(date.getUTCMonth() + 1).padStart(2, '0');
   const year = date.getUTCFullYear();
   
-  if (format === "eu") {
-    return `${day}.${month}.${year}`;
-  } else {
-    return `${month}/${day}/${year}`;
+  switch (format) {
+    case 'eu':
+      return `${day}.${month}.${year}`;
+    case 'iso':
+      return `${year}-${month}-${day}`;
+    default: // us
+      return `${month}/${day}/${year}`;
   }
 }
 
@@ -113,11 +118,15 @@ function formatBirthdayWithFormat(birthday: string, format: DateFormat, includeA
     const month = birthday.substring(2, 4);
     const day = birthday.substring(5, 7);
     
-    if (format === "eu") {
-      return `${day}.${month}.`;
-    } else {
-      return `${month}/${day}`;
-    }
+    switch (format) {
+      case 'eu':
+        return `${day}.${month}`;
+      case 'iso':
+        return `${month}-${day}`;
+      default: // us
+
+        return `${month}/${day}`;
+    }    
   }
 
   // YYYY-MM-DD format
@@ -128,12 +137,16 @@ function formatBirthdayWithFormat(birthday: string, format: DateFormat, includeA
     const day = parts[2];
     
     let dateStr: string;
-    if (format === "eu") {
-      dateStr = `${day}.${month}.${year}`;
-    } else {
-      dateStr = `${month}/${day}/${year}`;
+
+    switch (format) {
+      case 'eu':
+        dateStr = `${day}.${month}.${year}`; break;
+      case 'iso':
+        dateStr = `${year}-${month}-${day}`; break;
+      default: // us
+        dateStr = `${month}/${day}/${year}`;
     }
-    
+
     // Calculate age if requested and year is valid
     if (includeAge && year && year.length === 4) {
       const birthYear = parseInt(year, 10);
@@ -170,11 +183,14 @@ function formatBirthdayForInputWithFormat(birthday: string, format: DateFormat):
     const month = birthday.substring(2, 4);
     const day = birthday.substring(5, 7);
     
-    if (format === "eu") {
-      return `${day}.${month}.`;
-    } else {
-      return `${month}/${day}`;
-    }
+    switch (format) {
+      case 'eu':
+        return `${day}.${month}`;
+      case 'iso':
+        return `${month}-${day}`;
+      default:
+        return `${month}/${day}`;
+    }    
   }
 
   // YYYY-MM-DD format
@@ -184,11 +200,14 @@ function formatBirthdayForInputWithFormat(birthday: string, format: DateFormat):
     const month = parts[1];
     const day = parts[2];
     
-    if (format === "eu") {
-      return `${day}.${month}.${year}`;
-    } else {
-      return `${month}/${day}/${year}`;
-    }
+    switch (format) {
+      case "eu":
+        return `${day}.${month}.${year}`;
+      case "iso":
+        return `${year}-${month}-${day}`;
+      default:
+        return `${month}/${day}/${year}`;
+    }    
   }
 
   return birthday;
@@ -263,8 +282,8 @@ function parseBirthdayInputWithFormat(input: string, format: DateFormat): string
       return `${year}-${month}-${day}`;
     }
     
-    // Year-less format: MM/DD
-    const usYearlessMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})$/);
+    // Year-less format: us MM/DD or iso MM-DD
+    const usYearlessMatch = trimmed.match(/^(\d{1,2})[-/](\d{1,2})$/);
     if (usYearlessMatch) {
       const month = usYearlessMatch[1].padStart(2, '0');
       const day = usYearlessMatch[2].padStart(2, '0');
@@ -286,24 +305,38 @@ function parseBirthdayInputWithFormat(input: string, format: DateFormat): string
 function autoFormatBirthdayInputWithFormat(newValue: string, prevValue: string, format: DateFormat): string {
   const newDigits = newValue.replace(/[^0-9]/g, '');
   const prevDigits = prevValue.replace(/[^0-9]/g, '');
-  const sep = format === 'eu' ? '.' : '/';
+  let sep: string;
 
+  switch (format) {
+    case 'eu': 
+      sep = '.'; break;
+    case 'iso':
+      sep = '-'; break;
+    default: // us
+      sep = '/';
+  }
 
   const formatDigits = (digits: string): string => {
     if (digits.length <= 2) return digits;
     if (digits.length <= 4) return digits.slice(0, 2) + sep + digits.slice(2);
-    return digits.slice(0, 2) + sep + digits.slice(2, 4) + sep + digits.slice(4, 8);
+    if (format === 'iso') {
+      // year first for ISO
+      return digits.slice(0, 4) + sep + digits.slice(4, 6) + sep + digits.slice(6, 8);
+    } else {
+      // year last for EU and US
+      return digits.slice(0, 2) + sep + digits.slice(2, 4) + sep + digits.slice(4, 8);
+    }
   };
 
   if (newDigits.length < prevDigits.length) {
     // Digit deleted, so strip leftover trailing separator
-    return newValue.replace(/[./]+$/, '');
+    return newValue.replace(/[-./]+$/, '');
   }
 
   if (newDigits.length === prevDigits.length) {
-const formatted = formatDigits(newDigits);
+    const formatted = formatDigits(newDigits);
     const atBoundary = newDigits.length === 2 || newDigits.length === 4;
-    const endsWithSep = /[./]$/.test(newValue);
+    const endsWithSep = /[-./]$/.test(newValue);
     if (atBoundary && newValue.length > prevValue.length && endsWithSep) {
       return formatted + sep;
     }
@@ -350,22 +383,38 @@ export function DateFormatProvider({ children }: { children: ReactNode }) {
     [dateFormat]
   );
 
-  const getBirthdayPlaceholder = useCallback(
-    () => dateFormat === "eu" ? "DD.MM.YYYY" : "MM/DD/YYYY",
-    [dateFormat]
-  );
+  const getBirthdayPlaceholder = useCallback(() => {
+    switch (dateFormat) {
+      case "eu":
+        return "DD.MM.YYYY";
+      case "iso":
+        return "YYYY-MM-DD";
+      default: // us
+        return "MM/DD/YYYY";
+    }
+  }, [dateFormat]);
 
-  const getBirthdayFormatHint = useCallback(
-    () => dateFormat === "eu"
-      ? "DD.MM.YYYY (year optional, e.g., 30.04.1990 or 30.04.)"
-      : "MM/DD/YYYY (year optional, e.g., 04/30/1990 or 04/30)",
-    [dateFormat]
-  );
+  const getBirthdayFormatHint = useCallback(() => {
+    switch (dateFormat) {
+      case "eu":
+        return "DD.MM.YYYY (year optional, e.g., 30.04.1990 or 30.04.)";
+      case "iso":
+        return "YYYY-MM-DD (year optional, e.g., 1990-04-30 or --04-30 or 04-30)";
+      default: // us
+        return "MM/DD/YYYY (year optional, e.g., 04/30/1990 or 04/30)";
+    }
+  }, [dateFormat]);
 
-  const getDatePlaceholder = useCallback(
-    () => dateFormat === "eu" ? "DD.MM.YYYY" : "MM/DD/YYYY",
-    [dateFormat]
-  );
+  const getDatePlaceholder = useCallback(() => {
+    switch (dateFormat) {
+      case "eu":
+        return "DD.MM.YYYY";
+      case "iso":
+        return "YYYY-MM-DD";
+      default: // us
+        return "MM/DD/YYYY";
+    }
+  }, [dateFormat]);
 
   const calculateAge = useCallback(
     (birthday: string) => calculateAgeFromBirthday(birthday),

@@ -370,7 +370,7 @@ type UpdateLanguageInput struct {
 
 // UpdateDateFormatInput represents the request body for updating user date format
 type UpdateDateFormatInput struct {
-	DateFormat string `json:"date_format" validate:"required,oneof=eu us"`
+	DateFormat string `json:"date_format" validate:"required,oneof=eu us iso"`
 }
 
 // UpdateLanguage updates the authenticated user's language preference
@@ -436,8 +436,8 @@ func UpdateDateFormat(context *gin.Context) {
 	}
 
 	// Validate date format is supported
-	if input.DateFormat != "eu" && input.DateFormat != "us" {
-		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("date_format", "Unsupported date format. Supported: eu, us"))
+	if input.DateFormat != "eu" && input.DateFormat != "us" && input.DateFormat != "iso" {
+		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("date_format", "Unsupported date format. Supported: eu, us, iso"))
 		return
 	}
 

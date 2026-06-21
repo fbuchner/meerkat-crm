@@ -197,8 +197,9 @@ export default function SettingsPage() {
               label={t('settings.dateFormat.label')}
               onChange={handleDateFormatChange}
             >
-              <MenuItem value="eu">{t('settings.dateFormat.options.eu')}</MenuItem>
-              <MenuItem value="us">{t('settings.dateFormat.options.us')}</MenuItem>
+              <MenuItem value="eu" >{t('settings.dateFormat.options.eu' )}</MenuItem>
+              <MenuItem value="us" >{t('settings.dateFormat.options.us' )}</MenuItem>
+              <MenuItem value="iso">{t('settings.dateFormat.options.iso')}</MenuItem>
             </Select>
           </FormControl>
 

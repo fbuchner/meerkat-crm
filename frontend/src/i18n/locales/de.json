@@ -403,8 +403,9 @@
       "label": "Datumsformat",
       "description": "Wählen Sie, wie Daten in der Anwendung angezeigt werden.",
       "options": {
-        "eu": "Europäisch (TT.MM.JJJJ)",
-        "us": "US (MM/TT/JJJJ)"
+        "eu":  "Europäisch (TT.MM.JJJJ)",
+        "us":  "US (MM/TT/JJJJ)",
+        "iso": "ISO (JJJJ-MM-TT)"
       }
     },
     "theme": {

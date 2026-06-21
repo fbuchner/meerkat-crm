@@ -321,10 +321,14 @@ func formatBirthdayForUser(birthday string, dateFormat string) string {
 		if len(birthday) >= 7 {
 			month := birthday[2:4]
 			day := birthday[5:7]
-			if dateFormat == "us" {
+			switch dateFormat {
+			case "us":
 				return month + "/" + day
+			case "iso":
+				return month + "-" + day
+			default:
+				return day + "." + month + "."
 			}
-			return day + "." + month + "."
 		}
 		return birthday
 	}
@@ -334,10 +338,15 @@ func formatBirthdayForUser(birthday string, dateFormat string) string {
 		year := birthday[0:4]
 		month := birthday[5:7]
 		day := birthday[8:10]
-		if dateFormat == "us" {
+
+		switch dateFormat {
+		case "us":
 			return month + "/" + day + "/" + year
+		case "iso":
+			return year + "-" + month + "-" + day
+		default:
+			return day + "." + month + "." + year
 		}
-		return day + "." + month + "." + year
 	}
 
 	return birthday

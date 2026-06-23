@@ -4,7 +4,7 @@ import {
   Typography,
   Stack,
   TextField,
-  MenuItem,
+  Autocomplete,
   IconButton,
   Button,
   Paper,
@@ -58,20 +58,22 @@ export default function AddressFields({ label, value, onChange }: AddressFieldsP
           <Paper key={rowKeys.keyAt(index)} variant="outlined" sx={{ p: 1.5 }}>
             <Stack spacing={1}>
               <Stack direction="row" spacing={1} alignItems="center">
-                <TextField
-                  select
-                  label={t('contacts.fieldType')}
-                  size="small"
-                  value={CONTACT_TYPE_OPTIONS.includes(addr.type as never) ? addr.type : 'other'}
-                  onChange={(e) => updateAddr(index, { type: e.target.value })}
-                  sx={{ minWidth: 120 }}
-                >
-                  {CONTACT_TYPE_OPTIONS.map((opt) => (
-                    <MenuItem key={opt} value={opt}>
-                      {t(`contacts.types.${opt}`, opt)}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                {/* Free-solo: pick a standard type or type a custom label.
+                    Custom labels export as vCard X-ABLabel and round-trip via CardDAV. */}
+                <Autocomplete
+                  freeSolo
+                  options={CONTACT_TYPE_OPTIONS as readonly string[]}
+                  value={addr.type}
+                  getOptionLabel={(opt) => t(`contacts.types.${opt}`, opt)}
+                  onChange={(_, newValue) => updateAddr(index, { type: (newValue ?? '').trim() })}
+                  onInputChange={(_, newInput, reason) => {
+                    if (reason === 'input') updateAddr(index, { type: newInput });
+                  }}
+                  sx={{ minWidth: 140 }}
+                  renderInput={(params) => (
+                    <TextField {...params} label={t('contacts.fieldType')} size="small" />
+                  )}
+                />
                 <Box sx={{ flexGrow: 1 }} />
                 <IconButton
                   size="small"

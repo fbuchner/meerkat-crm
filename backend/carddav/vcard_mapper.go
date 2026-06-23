@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"image"
 	"image/jpeg"
 	"image/png"
@@ -39,6 +40,14 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 	}
 	card.SetValue(vcard.FieldUID, uid)
 
+	// Apple-style custom labels (X-ABLabel) are emitted in their own property
+	// group (item1, item2, ...). Allocate group names lazily as needed.
+	groupCounter := 0
+	nextGroup := func() string {
+		groupCounter++
+		return fmt.Sprintf("item%d", groupCounter)
+	}
+
 	// FN (formatted name) - required
 	fn := strings.TrimSpace(contact.Firstname + " " + contact.Lastname)
 	if fn == "" {
@@ -68,10 +77,8 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 		if e.Value == "" {
 			continue
 		}
-		card.Add(vcard.FieldEmail, &vcard.Field{
-			Value:  e.Value,
-			Params: emailParams(e.Type),
-		})
+		// EMAIL always carries INTERNET (vCard 3.0) regardless of label.
+		addTypedField(card, vcard.FieldEmail, &vcard.Field{Value: e.Value}, e.Type, nextGroup, "INTERNET")
 	}
 
 	// TEL (phone) - emit every entry; fall back to the legacy scalar if the array is empty
@@ -83,10 +90,7 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 		if p.Value == "" {
 			continue
 		}
-		card.Add(vcard.FieldTelephone, &vcard.Field{
-			Value:  p.Value,
-			Params: typeParams(p.Type),
-		})
+		addTypedField(card, vcard.FieldTelephone, &vcard.Field{Value: p.Value}, p.Type, nextGroup)
 	}
 
 	// ADR (address) - structured: POBox;Extended;Street;Locality;Region;Postal;Country
@@ -103,10 +107,7 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 		for i := range comps {
 			comps[i] = escapeComponent(comps[i])
 		}
-		card.Add(vcard.FieldAddress, &vcard.Field{
-			Value:  strings.Join(comps, ";"),
-			Params: typeParams(a.Type),
-		})
+		addTypedField(card, vcard.FieldAddress, &vcard.Field{Value: strings.Join(comps, ";")}, a.Type, nextGroup)
 	}
 
 	// URL (websites)
@@ -114,10 +115,7 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 		if u.Value == "" {
 			continue
 		}
-		card.Add(vcard.FieldURL, &vcard.Field{
-			Value:  u.Value,
-			Params: typeParams(u.Type),
-		})
+		addTypedField(card, vcard.FieldURL, &vcard.Field{Value: u.Value}, u.Type, nextGroup)
 	}
 
 	// IMPP (instant messaging / social handles) - service goes in the X-SERVICE-TYPE param
@@ -253,7 +251,7 @@ func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact,
 				continue
 			}
 			contact.Emails = append(contact.Emails, models.ContactEmail{
-				Type:  typeFromField(f),
+				Type:  typeForField(card, f),
 				Value: f.Value,
 			})
 		}
@@ -270,7 +268,7 @@ func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact,
 				continue
 			}
 			contact.Phones = append(contact.Phones, models.ContactPhone{
-				Type:  typeFromField(f),
+				Type:  typeForField(card, f),
 				Value: f.Value,
 			})
 		}
@@ -288,7 +286,7 @@ func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact,
 			// ADR components: POBox;Extended;Street;Locality;Region;Postal;Country
 			comps := splitComponents(f.Value)
 			ca := models.ContactAddress{
-				Type:    typeFromField(f),
+				Type:    typeForField(card, f),
 				Street:  strings.TrimSpace(strings.Join(nonEmpty(component(comps, 2), component(comps, 1)), " ")),
 				City:    component(comps, 3),
 				Region:  component(comps, 4),
@@ -312,7 +310,7 @@ func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact,
 				continue
 			}
 			contact.URLs = append(contact.URLs, models.ContactURL{
-				Type:  typeFromField(f),
+				Type:  typeForField(card, f),
 				Value: f.Value,
 			})
 		}
@@ -629,19 +627,87 @@ func typeTokens(t string) []string {
 	}
 }
 
-// typeParams builds a vCard Params containing the TYPE for a value, or nil if untyped.
-func typeParams(t string) vcard.Params {
-	tokens := typeTokens(t)
-	if len(tokens) == 0 {
-		return nil
-	}
-	return vcard.Params{vcard.ParamType: tokens}
+// fieldABLabel is the (non-standard but ubiquitous) property Apple Contacts and
+// most CardDAV clients use to carry a human-readable custom label for a value,
+// linked to that value via a shared property group (e.g. item1.X-ABLabel).
+const fieldABLabel = "X-ABLabel"
+
+// standardTypeTokens are the type values we round-trip as a vCard TYPE parameter.
+// Any other (user-defined) label is emitted as a grouped X-ABLabel instead, which
+// is how most CardDAV clients represent custom labels (RFC 2426).
+var standardTypeTokens = map[string]bool{
+	"home":   true,
+	"work":   true,
+	"cell":   true,
+	"mobile": true,
+	"fax":    true,
+	"voice":  true,
+	"pager":  true,
+	"other":  true,
 }
 
-// emailParams builds TYPE params for an EMAIL, always including INTERNET (vCard 3.0).
-func emailParams(t string) vcard.Params {
-	tokens := append([]string{"INTERNET"}, typeTokens(t)...)
-	return vcard.Params{vcard.ParamType: tokens}
+// reports whether t is a user-defined label rather than one of the standard vCard TYPE tokens.
+func isCustomType(t string) bool {
+	t = strings.ToLower(strings.TrimSpace(t))
+	return t != "" && !standardTypeTokens[t]
+}
+
+// addTypedField adds field to the card under fieldName, encoding the internal
+// type token. Standard tokens become a vCard TYPE parameter; a custom label is
+// emitted as a grouped X-ABLabel (Apple convention) so it survives round-trips
+// and renders as a named label. baseTypeTokens are TYPE values
+// always present regardless of the label (e.g. INTERNET for EMAIL).
+func addTypedField(card vcard.Card, fieldName string, field *vcard.Field, t string, nextGroup func() string, baseTypeTokens ...string) {
+	if isCustomType(t) {
+		group := nextGroup()
+		field.Group = group
+		if len(baseTypeTokens) > 0 {
+			field.Params = vcard.Params{vcard.ParamType: append([]string(nil), baseTypeTokens...)}
+		}
+		card.Add(fieldName, field)
+		card.Add(fieldABLabel, &vcard.Field{Group: group, Value: strings.TrimSpace(t)})
+		return
+	}
+	tokens := append(append([]string(nil), baseTypeTokens...), typeTokens(t)...)
+	if len(tokens) > 0 {
+		field.Params = vcard.Params{vcard.ParamType: tokens}
+	}
+	card.Add(fieldName, field)
+}
+
+// typeForField resolves the internal type token for an imported field, preferring
+// a grouped X-ABLabel (custom or Apple pseudo-label) over the TYPE parameter.
+func typeForField(card vcard.Card, field *vcard.Field) string {
+	if label := labelFromGroup(card, field); label != "" {
+		return normalizeLabel(label)
+	}
+	return typeFromField(field)
+}
+
+// labelFromGroup returns the X-ABLabel value attached to the field's property group.
+func labelFromGroup(card vcard.Card, field *vcard.Field) string {
+	if field.Group == "" {
+		return ""
+	}
+	for _, lf := range card[fieldABLabel] {
+		if strings.EqualFold(lf.Group, field.Group) {
+			return strings.TrimSpace(lf.Value)
+		}
+	}
+	return ""
+}
+
+// normalizeLabel maps Apple's pseudo-labels (e.g. "_$!<Home>!$_") back to our
+// standard tokens; any other label is returned unchanged.
+func normalizeLabel(label string) string {
+	if strings.HasPrefix(label, "_$!<") && strings.HasSuffix(label, ">!$_") {
+		inner := strings.ToLower(label[len("_$!<") : len(label)-len(">!$_")])
+		if inner == "mobile" {
+			return "cell"
+		}
+		return inner
+	}
+	return label
 }
 
 // typeFromField extracts our internal lowercase type token from a vCard field's
@@ -787,6 +853,7 @@ func mappedVCardFields() map[string]bool {
 		vcard.FieldTitle:         true,
 		vcard.FieldRole:          true,
 		vcard.FieldAnniversary:   true,
+		fieldABLabel:             true,
 	}
 }
 

@@ -75,10 +75,8 @@ func LoadConfig() *Config {
 		ReminderTimezone:        getEnv("REMINDER_TIMEZONE", "UTC"),
 		FrontendURL:             getEnv("FRONTEND_URL", "*"),
 		Port:                    getEnv("PORT", "8080"),
-		UseResend:               true,
 		ResendAPIKey:            getEnv("RESEND_API_KEY", ""),
 		ResendFromEmail:         getEnv("RESEND_FROM_EMAIL", ""),
-		UseSMTP:                 true,
 		SMTPHost:                getEnv("SMTP_HOST", ""),
 		SMTPPort:                getIntEnv("SMTP_PORT", 587),
 		SMTPUsername:            getEnv("SMTP_USERNAME", ""),
@@ -99,13 +97,9 @@ func LoadConfig() *Config {
 		WebhookBlockPrivateURLs: getBoolEnv("WEBHOOK_BLOCK_PRIVATE_URLS", false),
 	}
 
-	if cfg.ResendAPIKey == "" || cfg.ResendFromEmail == "" {
-		cfg.UseResend = false
-	}
-
-	if cfg.SMTPHost == "" || cfg.SMTPFromEmail == "" {
-		cfg.UseSMTP = false
-	}
+	// An email channel is enabled only when it is fully configured
+	cfg.UseResend = cfg.ResendAPIKey != "" && cfg.ResendFromEmail != ""
+	cfg.UseSMTP = cfg.SMTPHost != "" && cfg.SMTPFromEmail != ""
 
 	oidcProviderURL := getEnv("OIDC_PROVIDER_URL", "")
 	oidcClientID := getEnv("OIDC_CLIENT_ID", "")

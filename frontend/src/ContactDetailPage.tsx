@@ -486,7 +486,7 @@ export default function ContactDetailPage() {
 
   const handleSaveProfile = async () => {
     if (!contact || !profileValues.firstname.trim()) {
-      alert('First name is required');
+      alert(t('contactDetail.firstNameRequired'));
       return;
     }
 

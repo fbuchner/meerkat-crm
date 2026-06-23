@@ -274,6 +274,7 @@
     "confirmDeleteContact": "¿Estás seguro de que quieres eliminar a {{name}}? Esta acción no se puede deshacer y también eliminará todas las notas, actividades y recordatorios asociados con este contacto.",
     "deleteContactError": "Error al eliminar el contacto. Inténtalo de nuevo.",
     "updateError": "Error al actualizar el contacto. Verifica tu entrada e inténtalo de nuevo.",
+    "firstNameRequired": "El nombre es obligatorio",
     "stayInTouch": "Mantente en Contacto",
     "catchUpWith": "Ponerse al día con {{name}}",
     "archive": "Archivar",
@@ -288,7 +289,8 @@
     "date": "Fecha",
     "cancel": "Cancelar",
     "save": "Guardar",
-    "required": "El contenido es obligatorio"
+    "required": "El contenido es obligatorio",
+    "saveError": "Error al guardar la nota"
   },
   "activityDialog": {
     "title": "Agregar Actividad",

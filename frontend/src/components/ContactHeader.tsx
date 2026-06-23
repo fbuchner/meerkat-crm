@@ -11,6 +11,16 @@ import UnarchiveIcon from '@mui/icons-material/Unarchive';
 import { useTranslation } from 'react-i18next';
 import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
 
+export interface ProfileValues {
+  prefix: string;
+  firstname: string;
+  middle_name: string;
+  lastname: string;
+  suffix: string;
+  nickname: string;
+  gender: string;
+}
+
 interface ContactHeaderProps {
   contact: {
     ID: number;
@@ -26,15 +36,7 @@ interface ContactHeaderProps {
   };
   profilePic: string;
   editingProfile: boolean;
-  profileValues: {
-    prefix: string;
-    firstname: string;
-    middle_name: string;
-    lastname: string;
-    suffix: string;
-    nickname: string;
-    gender: string;
-  };
+  profileValues: ProfileValues;
   enabledFields?: Set<ContactFieldKey>;
   editingCircles: boolean;
   newCircleName: string;
@@ -43,7 +45,7 @@ interface ContactHeaderProps {
   onCancelEditProfile: () => void;
   onSaveProfile: () => void;
   onDeleteContact: () => void;
-  onProfileValueChange: (values: any) => void;
+  onProfileValueChange: (values: ProfileValues) => void;
   onToggleEditCircles: () => void;
   onAddCircle: (circleName?: string) => void;
   onDeleteCircle: (circle: string) => void;

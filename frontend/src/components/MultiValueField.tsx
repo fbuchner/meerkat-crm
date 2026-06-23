@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Box, Typography, Stack, TextField, MenuItem, IconButton, Button } from '@mui/material';
+import { Box, Typography, Stack, TextField, Autocomplete, IconButton, Button } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { ContactValue } from '../api/contacts';
@@ -63,20 +63,24 @@ export default function MultiValueField({
                 sx={{ minWidth: 120 }}
               />
             ) : (
-              <TextField
-                select
-                label={t('contacts.fieldType')}
-                size="small"
-                value={typeOptions.includes(row.type as never) ? row.type : 'other'}
-                onChange={(e) => updateRow(index, { type: e.target.value })}
-                sx={{ minWidth: 120 }}
-              >
-                {typeOptions.map((opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    {t(`contacts.types.${opt}`, opt)}
-                  </MenuItem>
-                ))}
-              </TextField>
+              // Free-solo: pick a standard type or type a custom label. Selecting a
+              // standard option stores its token (e.g. "home") for proper i18n;
+              // typing a custom label stores the text verbatim. Custom labels are
+              // exported as vCard X-ABLabel and round-trip via CardDAV.
+              <Autocomplete
+                freeSolo
+                options={typeOptions as readonly string[]}
+                value={row.type}
+                getOptionLabel={(opt) => t(`contacts.types.${opt}`, opt)}
+                onChange={(_, newValue) => updateRow(index, { type: (newValue ?? '').trim() })}
+                onInputChange={(_, newInput, reason) => {
+                  if (reason === 'input') updateRow(index, { type: newInput });
+                }}
+                sx={{ minWidth: 140 }}
+                renderInput={(params) => (
+                  <TextField {...params} label={t('contacts.fieldType')} size="small" />
+                )}
+              />
             )}
             <TextField
               label={label}

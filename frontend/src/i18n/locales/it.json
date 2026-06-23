@@ -274,6 +274,7 @@
     "confirmDeleteContact": "Sei sicuro di voler eliminare {{name}}? Questa azione non può essere annullata ed eliminerà anche tutte le note, attività e promemoria associati a questo contatto.",
     "deleteContactError": "Impossibile eliminare il contatto. Riprova.",
     "updateError": "Impossibile aggiornare il contatto. Controlla i dati inseriti e riprova.",
+    "firstNameRequired": "Il nome è obbligatorio",
     "stayInTouch": "Resta in Contatto",
     "catchUpWith": "Aggiornamento con {{name}}",
     "archive": "Archivia",
@@ -288,7 +289,8 @@
     "date": "Data",
     "cancel": "Annulla",
     "save": "Salva",
-    "required": "Il contenuto è obbligatorio"
+    "required": "Il contenuto è obbligatorio",
+    "saveError": "Impossibile salvare la nota"
   },
   "activityDialog": {
     "title": "Aggiungi Attività",

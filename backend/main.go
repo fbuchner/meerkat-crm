@@ -107,6 +107,9 @@ func main() {
 
 	r.Use(cors.New(corsConfig))
 
+	// Add security headers (HSTS only when serving over HTTPS, signaled by COOKIE_SECURE)
+	r.Use(middleware.SecurityHeadersMiddleware(cfg.CookieSecure))
+
 	// Add request body size limit middleware (10MB default) to prevent DoS
 	r.Use(middleware.DefaultBodySizeLimitMiddleware())
 

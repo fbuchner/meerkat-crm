@@ -13,6 +13,15 @@ import (
 	"gorm.io/gorm"
 )
 
+// equalize response time for non-existing user by using dummy bcrypt value
+var dummyBcryptHash = func() []byte {
+	hash, err := bcrypt.GenerateFromPassword([]byte("meerkat-timing-equalizer"), bcrypt.DefaultCost)
+	if err != nil {
+		panic(err)
+	}
+	return hash
+}()
+
 // BasicAuthMiddleware provides HTTP Basic Authentication for CardDAV
 // It supports both username and email as the login identifier
 // Includes account-based rate limiting to prevent brute force attacks
@@ -48,6 +57,8 @@ func BasicAuthMiddleware() gin.HandlerFunc {
 		// Try to find user by username or email
 		err := db.Where("username = ? OR email = ?", identifier, identifier).First(&user).Error
 		if err != nil {
+			// Burn the same bcrypt cost as a real comparison to not reveal if an account exists
+			_ = bcrypt.CompareHashAndPassword(dummyBcryptHash, []byte(password))
 			// Record failed attempt even for non-existent users to prevent enumeration
 			accountLimiter.RecordFailedAttempt(identifier)
 			logger.Warn().

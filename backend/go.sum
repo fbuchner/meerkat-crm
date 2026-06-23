@@ -25,8 +25,8 @@ github.com/emersion/go-webdav v0.7.0 h1:cp6aBWXBf8Sjzguka9VJarr4XTkGc2IHxXI1Gq3T
 github.com/emersion/go-webdav v0.7.0/go.mod h1:mI8iBx3RAODwX7PJJ7qzsKAKs/vY429YfS2/9wKnDbQ=
 github.com/gabriel-vasile/mimetype v1.4.13 h1:46nXokslUBsAJE/wMsp5gtO500a4F3Nkz9Ufpk2AcUM=
 github.com/gabriel-vasile/mimetype v1.4.13/go.mod h1:d+9Oxyo1wTzWdyVUPMmXFvp4F9tea18J8ufA774AB3s=
-github.com/gen2brain/heic v0.4.9 h1:sHM7kjMV2+AlrSfYNsJiD0NrqAJqIMWAOqMSZ0HXrU8=
-github.com/gen2brain/heic v0.4.9/go.mod h1:0/0SrVQnUhOA3ekFY5/lApZYniF/DsgS3g9COWe83dM=
+github.com/gen2brain/heic v0.5.0 h1:lb1AwWMx1EfLuCPYPYd9Y18syQaI0KSOkx8eTxcX6DI=
+github.com/gen2brain/heic v0.5.0/go.mod h1:l5hHOEffIX5GAr/L0EEsIVnDXdrS/efDk2mtby5UvI8=
 github.com/gin-contrib/cors v1.7.7 h1:Oh9joP463x7Mw72vhvJ61YQm8ODh9b04YR7vsOErD0Q=
 github.com/gin-contrib/cors v1.7.7/go.mod h1:K5tW0RkzJtWSiOdikXloy8VEZlgdVNpHNw8FpjUPNrE=
 github.com/gin-contrib/sse v1.1.1 h1:uGYpNwTacv5R68bSGMapo62iLTRa9l5zxGCps4hK6ko=
@@ -136,8 +136,6 @@ github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/teambition/rrule-go v1.8.2/go.mod h1:Ieq5AbrKGciP1V//Wq8ktsTXwSwJHDD5mD/wLBGl3p4=
-github.com/tetratelabs/wazero v1.12.0 h1:DuWcpNu/FzgEXgGBDp8J1Spc+CWOvvtvVyjKlaZopYU=
-github.com/tetratelabs/wazero v1.12.0/go.mod h1:LvKtzl2RqO4gyF27BiXU+nKAjcV8f38U+kP/q2vgxh0=
 github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS4MhqMhdFk5YI=
 github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2+aY1QWCk3Cedj/Gdt08=
 github.com/ugorji/go/codec v1.3.1 h1:waO7eEiFDwidsBN6agj1vJQ4AG7lh2yqXyOXqhgQuyY=

@@ -120,11 +120,10 @@ export function formatBirthdayWithFormat(birthday: string, format: DateFormat, i
     
     switch (format) {
       case 'eu':
-        return `${day}.${month}`;
+        return `${day}.${month}.`;
       case 'iso':
         return `${month}-${day}`;
       default: // us
-
         return `${month}/${day}`;
     }    
   }
@@ -185,7 +184,7 @@ export function formatBirthdayForInputWithFormat(birthday: string, format: DateF
     
     switch (format) {
       case 'eu':
-        return `${day}.${month}`;
+        return `${day}.${month}.`;
       case 'iso':
         return `${month}-${day}`;
       default:

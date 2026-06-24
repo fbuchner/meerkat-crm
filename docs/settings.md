@@ -13,7 +13,7 @@ Currently you can choose between **English** and **Deutsch** (German) for the ap
 
 ## Date Format
 
-You can choose between the European (DD.MM.YYYY) and US (MM/DD/YYYY) date format. This affects all date displays and also determines the expected input format when entering dates like birthdays.
+You can choose between the European (DD.MM.YYYY), US (MM/DD/YYYY), and ISO (YYYY-MM-DD) date format. This affects all date displays and also determines the expected input format when entering dates like birthdays.
 
 
 ## Appearance

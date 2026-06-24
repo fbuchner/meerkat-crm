@@ -405,8 +405,9 @@
       "label": "Formato Data",
       "description": "Scegli come visualizzare le date nell'applicazione.",
       "options": {
-        "eu": "Europeo (GG.MM.AAAA)",
-        "us": "Americano (MM/GG/AAAA)"
+        "eu":  "Europeo (GG.MM.AAAA)",
+        "us":  "Americano (MM/GG/AAAA)",
+        "iso": "ISO (AAAA-MM-GG)"
       }
     },
     "theme": {

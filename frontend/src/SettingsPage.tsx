@@ -39,7 +39,7 @@ export default function SettingsPage() {
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
 
-  const handleLanguageChange = async (event: any) => {
+  const handleLanguageChange = async (event: SelectChangeEvent) => {
     const newLang = event.target.value;
     // Update frontend i18n immediately for responsive UI
     i18n.changeLanguage(newLang);

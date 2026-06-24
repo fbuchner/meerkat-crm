@@ -274,6 +274,7 @@
     "confirmDeleteContact": "Are you sure you want to delete {{name}}? This action cannot be undone and will also delete all notes, activities, and reminders associated with this contact.",
     "deleteContactError": "Failed to delete contact. Please try again.",
     "updateError": "Failed to update contact. Please check your input and try again.",
+    "firstNameRequired": "First name is required",
     "stayInTouch": "Stay in Touch",
     "catchUpWith": "Catch-up with {{name}}",
     "archive": "Archive",
@@ -288,7 +289,8 @@
     "date": "Date",
     "cancel": "Cancel",
     "save": "Save",
-    "required": "Content is required"
+    "required": "Content is required",
+    "saveError": "Failed to save note"
   },
   "activityDialog": {
     "title": "Add Activity",

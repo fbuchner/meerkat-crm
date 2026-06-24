@@ -40,7 +40,7 @@ export function extractDetailMessage(details: ErrorDetails): string | null {
 
 export async function handleResponse(response: Response, fallback: string): Promise<Record<string, any>> {
   const raw = await response.text();
-  let data: any = null;
+  let data: unknown = null;
 
   if (raw) {
     try {
@@ -55,7 +55,7 @@ export async function handleResponse(response: Response, fallback: string): Prom
       return {};
     }
 
-    return typeof data === 'object' ? data : { message: data };
+    return typeof data === 'object' ? (data as Record<string, any>) : { message: data };
   }
 
   let message = fallback;
@@ -76,8 +76,11 @@ export async function handleResponse(response: Response, fallback: string): Prom
     } else if (typeof errorDetail === 'string' && errorDetail.trim().length > 0) {
       // Handle simple string error format: {"error": "message"}
       message = errorDetail.trim();
-    } else if (typeof data.message === 'string' && data.message.trim().length > 0) {
-      message = data.message.trim();
+    } else {
+      const topLevelMessage = (data as { message?: unknown }).message;
+      if (typeof topLevelMessage === 'string' && topLevelMessage.trim().length > 0) {
+        message = topLevelMessage.trim();
+      }
     }
   } else if (typeof data === 'string' && data.trim().length > 0) {
     message = data.trim();

@@ -274,6 +274,7 @@
     "confirmDeleteContact": "Möchten Sie {{name}} wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden und löscht auch alle Notizen, Aktivitäten und Erinnerungen, die mit diesem Kontakt verbunden sind.",
     "deleteContactError": "Kontakt konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
     "updateError": "Kontakt konnte nicht aktualisiert werden. Bitte überprüfen Sie Ihre Eingabe und versuchen Sie es erneut.",
+    "firstNameRequired": "Vorname ist erforderlich",
     "stayInTouch": "In Kontakt bleiben",
     "catchUpWith": "Treffen mit {{name}}",
     "archive": "Archivieren",
@@ -288,7 +289,8 @@
     "date": "Datum",
     "cancel": "Abbrechen",
     "save": "Speichern",
-    "required": "Inhalt ist erforderlich"
+    "required": "Inhalt ist erforderlich",
+    "saveError": "Notiz konnte nicht gespeichert werden"
   },
   "activityDialog": {
     "title": "Aktivität hinzufügen",

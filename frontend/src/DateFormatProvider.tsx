@@ -49,7 +49,7 @@ const getStoredFormat = (): DateFormat => {
  * Calculate age from a birthday string (YYYY-MM-DD or --MM-DD)
  * Returns null if no year is provided or if the format is invalid
  */
-function calculateAgeFromBirthday(birthday: string): number | null {
+export function calculateAgeFromBirthday(birthday: string): number | null {
   if (!birthday || birthday.startsWith('--')) {
     return null;
   }
@@ -85,7 +85,7 @@ function calculateAgeFromBirthday(birthday: string): number | null {
 /**
  * Format a standard date (ISO format) to the user's preferred display format
  */
-function formatDateWithFormat(dateString: string, format: DateFormat): string {
+export function formatDateWithFormat(dateString: string, format: DateFormat): string {
   if (!dateString) return '';
   
   const date = new Date(dateString);
@@ -109,7 +109,7 @@ function formatDateWithFormat(dateString: string, format: DateFormat): string {
  * Format a birthday (YYYY-MM-DD or --MM-DD) to the user's preferred display format
  * Optionally includes age calculation
  */
-function formatBirthdayWithFormat(birthday: string, format: DateFormat, includeAge: boolean = false): string {
+export function formatBirthdayWithFormat(birthday: string, format: DateFormat, includeAge: boolean = false): string {
   if (!birthday) return '';
   
   // Check if it's a year-less birthday (starts with --)
@@ -175,7 +175,7 @@ function formatBirthdayWithFormat(birthday: string, format: DateFormat, includeA
 /**
  * Format a birthday for editing (convert ISO to display format)
  */
-function formatBirthdayForInputWithFormat(birthday: string, format: DateFormat): string {
+export function formatBirthdayForInputWithFormat(birthday: string, format: DateFormat): string {
   if (!birthday) return '';
   
   // Check if it's a year-less birthday (starts with --)
@@ -217,7 +217,7 @@ function formatBirthdayForInputWithFormat(birthday: string, format: DateFormat):
  * Parse user input in display format back to ISO format for storage
  * Returns null if input is invalid
  */
-function parseBirthdayInputWithFormat(input: string, format: DateFormat): string | null {
+export function parseBirthdayInputWithFormat(input: string, format: DateFormat): string | null {
   if (!input || input.trim() === '') return '';
   
   const trimmed = input.trim();
@@ -302,7 +302,7 @@ function parseBirthdayInputWithFormat(input: string, format: DateFormat): string
   return null;
 }
 
-function autoFormatBirthdayInputWithFormat(newValue: string, prevValue: string, format: DateFormat): string {
+export function autoFormatBirthdayInputWithFormat(newValue: string, prevValue: string, format: DateFormat): string {
   const newDigits = newValue.replace(/[^0-9]/g, '');
   const prevDigits = prevValue.replace(/[^0-9]/g, '');
   let sep: string;

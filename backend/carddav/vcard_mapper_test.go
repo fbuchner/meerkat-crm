@@ -196,3 +196,61 @@ func TestComponentBackslashRoundTrip(t *testing.T) {
 		t.Errorf("backslash corrupted: got %q", got.Organization)
 	}
 }
+
+// TestCustomLabelRoundTrip verifies that a user-defined label (not a standard
+// vCard TYPE token) is emitted as a grouped X-ABLabel and read back intact.
+func TestCustomLabelRoundTrip(t *testing.T) {
+	original := &models.Contact{
+		Firstname: "Custom",
+		Lastname:  "Label",
+		Emails:    []models.ContactEmail{{Type: "School", Value: "c@school.example"}},
+		Phones:    []models.ContactPhone{{Type: "Ski Cabin", Value: "+15550000000"}},
+		Addresses: []models.ContactAddress{{Type: "Holiday Home", Street: "1 Beach Rd", City: "Nice"}},
+	}
+
+	card := ContactToVCard(original, "")
+
+	// The custom label must travel as a grouped X-ABLabel, not a TYPE token.
+	emailField := card[vcard.FieldEmail][0]
+	if emailField.Group == "" {
+		t.Fatalf("custom-labelled email was not assigned a property group")
+	}
+	if emailField.Params.Get(vcard.ParamType) != "INTERNET" {
+		t.Errorf("email base TYPE should remain INTERNET, got %q", emailField.Params.Get(vcard.ParamType))
+	}
+	labels := card[fieldABLabel]
+	if len(labels) != 3 {
+		t.Fatalf("expected 3 X-ABLabel entries, got %d", len(labels))
+	}
+
+	got, _, _, _ := VCardToContact(card, nil)
+	if len(got.Emails) != 1 || got.Emails[0].Type != "School" {
+		t.Errorf("custom email label lost: %+v", got.Emails)
+	}
+	if len(got.Phones) != 1 || got.Phones[0].Type != "Ski Cabin" {
+		t.Errorf("custom phone label lost: %+v", got.Phones)
+	}
+	if len(got.Addresses) != 1 || got.Addresses[0].Type != "Holiday Home" {
+		t.Errorf("custom address label lost: %+v", got.Addresses)
+	}
+
+	// X-ABLabel is a mapped field, so it must not leak into VCardExtra (which
+	// would duplicate / orphan it on the next export).
+	if got.VCardExtra != "" {
+		t.Errorf("X-ABLabel should not be stored in VCardExtra, got %q", got.VCardExtra)
+	}
+}
+
+// TestApplePseudoLabelImport verifies that Apple's "_$!<...>!$_" pseudo-labels
+// are normalized back to our standard tokens on import.
+func TestApplePseudoLabelImport(t *testing.T) {
+	card := vcard.Card{}
+	card.SetValue(vcard.FieldFormattedName, "Apple User")
+	card.Add(vcard.FieldTelephone, &vcard.Field{Group: "item1", Value: "+15551112222"})
+	card.Add(fieldABLabel, &vcard.Field{Group: "item1", Value: "_$!<Mobile>!$_"})
+
+	got, _, _, _ := VCardToContact(card, nil)
+	if len(got.Phones) != 1 || got.Phones[0].Type != "cell" {
+		t.Errorf("apple pseudo-label not normalized to cell: %+v", got.Phones)
+	}
+}

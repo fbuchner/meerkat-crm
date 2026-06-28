@@ -5,6 +5,7 @@ import enTranslations from './locales/en.json';
 import deTranslations from './locales/de.json';
 import itTranslations from './locales/it.json';
 import esTranslations from './locales/es.json';
+import frTranslations from './locales/fr.json';
 
 // Suppress i18next's promotional console message (hardcoded since v23)
 const noop = () => {};
@@ -26,6 +27,9 @@ i18n
       },
       es: {
         translation: esTranslations
+      },
+      fr: {
+        translation: frTranslations
       }
     },
     fallbackLng: 'en',

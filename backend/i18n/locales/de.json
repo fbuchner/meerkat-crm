@@ -17,5 +17,8 @@
       "instruction": "Verwenden Sie diesen Token, um das Zurücksetzen innerhalb von 60 Minuten abzuschließen:",
       "ignore": "Falls Sie dieses Zurücksetzen nicht angefordert haben, können Sie diese E-Mail ignorieren."
     }
+  },
+  "calendar": {
+    "untitledEvent": "Unbenannter Termin"
   }
 }

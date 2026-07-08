@@ -17,5 +17,8 @@
       "instruction": "Utilisez ce jeton pour finaliser la réinitialisation dans les 60 minutes :",
       "ignore": "Si vous n'avez pas demandé cette réinitialisation, vous pouvez ignorer cet e-mail."
     }
+  },
+  "calendar": {
+    "untitledEvent": "Événement de calendrier sans titre"
   }
 }

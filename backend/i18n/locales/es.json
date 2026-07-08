@@ -17,5 +17,8 @@
       "instruction": "Usa este token para completar el restablecimiento en 60 minutos:",
       "ignore": "Si no solicitaste este restablecimiento, puedes ignorar este correo."
     }
+  },
+  "calendar": {
+    "untitledEvent": "Evento de calendario sin título"
   }
 }

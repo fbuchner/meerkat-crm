@@ -17,5 +17,8 @@
       "instruction": "Usa questo token per completare il ripristino entro 60 minuti:",
       "ignore": "Se non hai richiesto questo ripristino, puoi ignorare questa email."
     }
+  },
+  "calendar": {
+    "untitledEvent": "Evento del calendario senza titolo"
   }
 }

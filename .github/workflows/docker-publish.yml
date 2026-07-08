@@ -26,6 +26,13 @@ jobs:
           body: |
 
             ## Docker Images
+
+            All-in-one image (frontend + backend in one container):
+            ```
+            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ```
+
+            Separate images:
             ```
             ghcr.io/${{ github.repository }}-backend:${{ github.ref_name }}
             ghcr.io/${{ github.repository }}-frontend:${{ github.ref_name }}
@@ -41,9 +48,14 @@ jobs:
       matrix:
         include:
           - context: ./backend
-            image: backend
+            file: ./backend/Dockerfile
+            suffix: -backend
           - context: ./frontend
-            image: frontend
+            file: ./frontend/Dockerfile
+            suffix: -frontend
+          - context: .
+            file: ./Dockerfile
+            suffix: ""
 
     steps:
       - name: Checkout repository
@@ -63,7 +75,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.image }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ matrix.suffix }}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -73,6 +85,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}

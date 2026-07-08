@@ -72,7 +72,7 @@ type UserRegistrationInput struct {
 	Username string `json:"username" validate:"required,min=1,max=50,no_at_sign"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8,strong_password"`
-	Language string `json:"language" validate:"omitempty,oneof=en de"`
+	Language string `json:"language" validate:"omitempty,oneof=en de it es fr"`
 }
 
 // PasswordResetRequestInput captures email for initiating password reset

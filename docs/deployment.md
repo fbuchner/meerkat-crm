@@ -10,9 +10,9 @@ For initial setup see [Getting Started](getting-started.html). This page covers 
 
 ## How the Docker Setup Works
 
-The frontend container runs nginx, which both serves the React SPA and proxies all `/api/`, `/carddav/`, and `/.well-known/carddav` requests to the backend container. The backend is not port-mapped to the host — it is only reachable within the Docker network. Leave `REACT_APP_API_URL` empty in `.env.docker` to use this built-in proxy.
+Meerkat CRM runs as a single all-in-one container. Inside it, nginx serves the React SPA and proxies all `/api/`, `/carddav/`, and `/.well-known/carddav` requests to the Go backend on `127.0.0.1:8080`; the backend is never exposed to the host directly. Only the nginx port is published (default `7300`). This same-origin proxy is built in, so nothing extra is required.
 
-You only need an external reverse proxy for TLS termination. Point it at the frontend container port (default `7300`):
+You only need an external reverse proxy for TLS termination. Point it at the published port (default `7300`):
 
 ```nginx
 server {
@@ -29,7 +29,7 @@ server {
 
 ## Production Environment
 
-Set these variables in `.env.docker` when running over HTTPS:
+Set these variables in `.env` when running over HTTPS:
 
 | Variable | Value |
 |---|---|

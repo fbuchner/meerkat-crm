@@ -1,0 +1,42 @@
+# Meerkat CRM Docker Compose - Production
+#
+# Pulls pre-built images from GitHub Container Registry.
+#
+# USAGE:
+#   docker compose up -d
+#
+# To build locally instead, use docker-compose.build.yml:
+#   docker compose -f docker-compose.build.yml up -d --build
+
+services:
+  backend:
+    image: ghcr.io/fbuchner/meerkat-crm-backend:${IMAGE_TAG:-latest}
+    container_name: meerkat-backend
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    environment:
+    # Set PUID/PGID values through host env variables (.env, not .env.docker) in case required  
+      - PUID=${PUID:-1001}
+      - PGID=${PGID:-1001}
+    volumes:
+      - ${DATA_PATH:-./data}:/app/data
+      - ${PHOTOS_PATH:-./photos}:/app/static/photos
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    image: ghcr.io/fbuchner/meerkat-crm-frontend:${IMAGE_TAG:-latest}
+    container_name: meerkat-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-7300}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy

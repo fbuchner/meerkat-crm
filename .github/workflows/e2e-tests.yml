@@ -22,35 +22,23 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build backend image
+      - name: Build all-in-one image
         uses: docker/build-push-action@v6
         with:
-          context: ./backend
+          context: .
           push: false
           load: true
-          tags: meerkat-crm-backend-test:latest
-          cache-from: type=gha,scope=backend
-          cache-to: type=gha,scope=backend,mode=max
-
-      - name: Build frontend image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./frontend
-          push: false
-          load: true
-          tags: meerkat-crm-frontend-test:latest
-          cache-from: type=gha,scope=frontend
-          cache-to: type=gha,scope=frontend,mode=max
+          tags: meerkat-crm-test:latest
+          cache-from: type=gha,scope=combined
+          cache-to: type=gha,scope=combined,mode=max
 
       - name: Start services
         run: |
           docker compose -f docker-compose.test.yml up -d
-          # Wait for services to be ready
+          # Wait for the app to be ready (frontend + same-origin /api on 7300)
           echo "Waiting for services to be ready..."
-          timeout 120 bash -c 'until curl -s http://localhost:8080/health > /dev/null 2>&1; do sleep 2; done'
-          echo "Backend is ready"
-          timeout 60 bash -c 'until curl -s http://localhost:7300 > /dev/null 2>&1; do sleep 2; done'
-          echo "Frontend is ready"
+          timeout 120 bash -c 'until curl -s http://localhost:7300/health > /dev/null 2>&1; do sleep 2; done'
+          echo "App is ready"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -98,10 +86,8 @@ jobs:
       - name: Show container logs on failure
         if: failure()
         run: |
-          echo "=== Backend logs ==="
-          docker compose -f docker-compose.test.yml logs backend
-          echo "=== Frontend logs ==="
-          docker compose -f docker-compose.test.yml logs frontend
+          echo "=== Meerkat logs (nginx + backend under supervisord) ==="
+          docker compose -f docker-compose.test.yml logs meerkat
 
       - name: Stop services
         if: always()

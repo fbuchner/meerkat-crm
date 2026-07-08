@@ -9,6 +9,7 @@ import (
 
 	"meerkat/config"
 	apperrors "meerkat/errors"
+	"meerkat/i18n"
 	"meerkat/logger"
 	"meerkat/middleware"
 	"meerkat/models"
@@ -365,7 +366,7 @@ func ConfirmPasswordReset(context *gin.Context) {
 // ChangePassword lets authenticated users rotate their password.
 // UpdateLanguageInput represents the request body for updating user language
 type UpdateLanguageInput struct {
-	Language string `json:"language" validate:"required,oneof=en de"`
+	Language string `json:"language" validate:"required,oneof=en de it es fr"`
 }
 
 // UpdateDateFormatInput represents the request body for updating user date format
@@ -384,8 +385,8 @@ func UpdateLanguage(context *gin.Context) {
 	}
 
 	// Validate language is supported
-	if input.Language != "en" && input.Language != "de" {
-		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("language", "Unsupported language. Supported: en, de"))
+	if !i18n.IsValidLanguage(input.Language) {
+		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("language", "Unsupported language. Supported: "+strings.Join(i18n.SupportedLanguages, ", ")))
 		return
 	}
 

@@ -447,6 +447,37 @@
       "success": "Vos contacts ont été exportés avec succès.",
       "error": "Échec de l'exportation des contacts. Veuillez réessayer."
     },
+    "calendarSync": {
+      "title": "Synchronisation de calendrier",
+      "description": "Importez des événements depuis des calendriers CalDAV ou iCalendar (.ics) comme activités. Les participants dont l'adresse e-mail correspond à vos contacts sont liés automatiquement.",
+      "dialogInfo": "Les événements sont associés à vos contacts via les adresses e-mail des participants. Les calendriers se synchronisent automatiquement toutes les 6 heures (par défaut) ; vous pouvez aussi synchroniser manuellement à tout moment. Remarque : si un événement à venir est modifié dans votre calendrier, il peut parfois être importé à nouveau en tant qu'activité en double.",
+      "add": "Ajouter un calendrier",
+      "empty": "Aucun calendrier connecté pour le moment.",
+      "loadError": "Impossible de charger les abonnements de calendrier.",
+      "saveError": "Impossible d'enregistrer l'abonnement de calendrier.",
+      "deleteError": "Impossible de supprimer l'abonnement de calendrier.",
+      "syncError": "Échec de la synchronisation. Vérifiez l'URL et les identifiants.",
+      "syncSuccess": "Synchronisation terminée : {{created}} créés, {{updated}} mis à jour, {{skipped}} inchangés.",
+      "neverSynced": "Jamais synchronisé",
+      "lastSynced": "Dernière synchronisation {{date}}",
+      "syncNow": "Synchroniser maintenant",
+      "disabled": "Désactivé",
+      "syncFailed": "Échec de la synchronisation",
+      "addTitle": "Ajouter un calendrier",
+      "editTitle": "Modifier le calendrier",
+      "name": "Nom",
+      "url": "URL du calendrier",
+      "urlHelp": "URL d'une collection CalDAV ou lien direct vers un fichier .ics (webcal:// fonctionne aussi).",
+      "username": "Nom d'utilisateur",
+      "password": "Mot de passe",
+      "credentialsOptional": "Facultatif, uniquement pour les calendriers protégés",
+      "passwordKeep": "Laisser vide pour conserver le mot de passe enregistré",
+      "pastDays": "Jours dans le passé",
+      "futureDays": "Jours à venir",
+      "autoSync": "Synchroniser automatiquement",
+      "deleteTitle": "Supprimer le calendrier ?",
+      "deleteConfirm": "Supprimer « {{name}} » ? Les activités déjà importées seront conservées."
+    },
     "about": {
       "title": "À propos de Meerkat CRM",
       "description": "Meerkat CRM est une application de CRM personnelle open source conçue pour vous aider à gérer vos contacts et vos relations.",
@@ -635,7 +666,8 @@
     },
     "createDialog": {
       "title": "Créer un jeton API",
-      "nameLabel": "Nom du jeton"
+      "nameLabel": "Nom du jeton",
+      "createButton": "Créer"
     },
     "createdDialog": {
       "title": "Jeton créé",

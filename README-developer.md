@@ -25,11 +25,11 @@
 
 **Docker (All-in-one Image)**
 - The whole app ships as a single container built from the root [Dockerfile](Dockerfile): the React bundle and the Go backend served together by nginx (which proxies `/api` same-origin), managed by supervisord.
-- Copy `.env.docker.example` to `.env.docker` and configure `JWT_SECRET_KEY`, `FRONTEND_URL`, and optionally `DATA_PATH`/`PHOTOS_PATH` for volume locations.
-- Deploy using the pre-built image from GHCR: `docker compose up -d`. Set `IMAGE_TAG` in `.env.docker` to pin a specific version (default: `latest`).
+- Copy `.env.example` to `.env` and configure `JWT_SECRET_KEY`, `FRONTEND_URL`, and optionally `DATA_PATH`/`PHOTOS_PATH` for volume locations.
+- Deploy using the pre-built image from GHCR: `docker compose up -d`. Set `IMAGE_TAG` in `.env` to pin a specific version (default: `latest`).
 - Build and run locally instead: uncomment the `build: .` line in [docker-compose.yml](docker-compose.yml), then `docker compose up -d --build` (or plain `docker build -t meerkat-crm .`).
-- Container defaults (`PORT`, `SQLITE_DB_PATH`, `PROFILE_PHOTO_DIR`) are set in the root [Dockerfile](Dockerfile); override via `.env.docker` if needed.
-- The frontend bundle is built with an empty `REACT_APP_API_URL` so it calls the API on relative paths; nginx (see [docker/nginx.conf](docker/nginx.conf)) proxies `/api`, `/health`, and `/carddav` to the backend on `127.0.0.1:8080`.
+- Container defaults (`PORT`, `SQLITE_DB_PATH`, `PROFILE_PHOTO_DIR`) are set in the root [Dockerfile](Dockerfile); override via `.env` if needed. `PORT` is the backend's internal bind port (8081) — nginx listens on 8080, which is what's actually exposed from the container.
+- The frontend bundle is built with an empty `REACT_APP_API_URL` so it calls the API on relative paths; nginx (see [docker/nginx.conf](docker/nginx.conf)) proxies `/api`, `/health`, and `/carddav` to the backend on `127.0.0.1:8081`.
 
 **Testing**
 - Backend Go tests (`go test ./...` or `make test`) spin up in-memory SQLite in helpers like [backend/controllers/activity_controller_test.go](backend/controllers/activity_controller_test.go); mirror that pattern for new suites.
@@ -68,4 +68,4 @@
 - Create a tag using semantic versioning: `git tag v1.5.3`
 - Push the tag to GitHub: `git push origin v1.5.3`
 - This triggers a GitHub Actions workflow that automatically builds and publishes Docker images to GHCR
-- Users can then deploy the new version by setting `IMAGE_TAG=v1.5.3` (or by just using `:latest`) in their `.env.docker` and running `docker compose up -d`
+- Users can then deploy the new version by setting `IMAGE_TAG=v1.5.3` (or by just using `:latest`) in their `.env` and running `docker compose up -d`

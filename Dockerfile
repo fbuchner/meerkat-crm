@@ -86,7 +86,9 @@ COPY docker/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 # Default environment
-ENV PORT=8080
+# PORT is the backend's internal bind port - nginx listens on 8080 (below) and
+# proxies to it, so it must not collide with nginx's own port.
+ENV PORT=8081
 ENV SQLITE_DB_PATH=/app/data/meerkat.db
 ENV PROFILE_PHOTO_DIR=/app/static/photos
 ENV GIN_MODE=release

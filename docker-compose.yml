@@ -3,6 +3,7 @@
 # Single-container with bundled frontend and backend (+ nginx)
 #
 # USAGE:
+#   cp .env.example .env && edit .env, then:
 #   docker compose up -d
 #
 # To build the image locally instead of pulling it:
@@ -15,9 +16,8 @@ services:
     container_name: meerkat
     restart: unless-stopped
     env_file:
-      - .env.docker
+      - .env
     environment:
-      # Set PUID/PGID through host env variables (.env, not .env.docker) if needed
       - PUID=${PUID:-1001}
       - PGID=${PGID:-1001}
     volumes:

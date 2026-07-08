@@ -53,21 +53,21 @@ it is with Docker Compose:
 1. **Download the Docker Compose file:**
     ```sh
     curl -O https://raw.githubusercontent.com/fbuchner/meerkat-crm/main/docker-compose.yml
-    curl -O https://raw.githubusercontent.com/fbuchner/meerkat-crm/main/.env.docker.example
+    curl -O https://raw.githubusercontent.com/fbuchner/meerkat-crm/main/.env.example
     ```
 
 2. **Configure environment:**
     ```sh
-    # Copy the Docker environment template
-    cp .env.docker.example .env.docker
+    # Copy the environment template
+    cp .env.example .env
 
     # Edit with your settings
-    nano .env.docker
+    nano .env
     ```
 
 3. **Start the container:**
     ```sh
-    docker compose --env-file .env.docker up -d
+    docker compose up -d
     ```
 
 4. **Access the application:**

@@ -29,7 +29,7 @@ server {
 
 ## Production Environment
 
-Set these variables in `.env.docker` when running over HTTPS:
+Set these variables in `.env` when running over HTTPS:
 
 | Variable | Value |
 |---|---|

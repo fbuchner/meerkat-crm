@@ -15,6 +15,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import { exportDataAsCsv, exportContactsAsVcf } from './api/export';
 import CustomFieldsSettings from './components/CustomFieldsSettings';
 import ContactFieldSettings from './components/ContactFieldSettings';
+import CalendarSyncSettings from './components/CalendarSyncSettings';
 
 export default function DataSettingsPage() {
   const { t } = useTranslation();
@@ -66,6 +67,8 @@ export default function DataSettingsPage() {
       <ContactFieldSettings />
 
       <CustomFieldsSettings />
+
+      <CalendarSyncSettings />
 
       <Card sx={{ mb: 2 }}>
         <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>

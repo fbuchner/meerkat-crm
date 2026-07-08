@@ -112,7 +112,7 @@ type ContactResponse struct {
 type Birthday struct {
 	Type                  string `json:"type"`                              // "contact" or "relationship"
 	Name                  string `json:"name"`                              // Unified display name
-	Birthday              string `json:"birthday"`                          // Birthday in DD.MM.YYYY or DD.MM. format
+	Birthday              string `json:"birthday"`                          // Birthday in YYYY-MM-DD format
 	PhotoThumbnail        string `json:"photo_thumbnail,omitempty"`         // Profile picture thumbnail (base64)
 	ContactID             uint   `json:"contact_id"`                        // Contact ID (the person or parent contact for relationships)
 	RelationshipType      string `json:"relationship_type,omitempty"`       // Relationship type (empty for contacts)

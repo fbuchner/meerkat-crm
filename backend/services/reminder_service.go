@@ -303,6 +303,8 @@ func formatDateForUser(t time.Time, dateFormat string) string {
 	switch dateFormat {
 	case "us":
 		return t.Format("01/02/2006") // MM/DD/YYYY
+	case "iso":
+		return t.Format("2006-01-02") // YYYY-MM-DD
 	default:
 		return t.Format("02.01.2006") // DD.MM.YYYY (EU default)
 	}
@@ -319,10 +321,14 @@ func formatBirthdayForUser(birthday string, dateFormat string) string {
 		if len(birthday) >= 7 {
 			month := birthday[2:4]
 			day := birthday[5:7]
-			if dateFormat == "us" {
+			switch dateFormat {
+			case "us":
 				return month + "/" + day
+			case "iso":
+				return month + "-" + day
+			default:
+				return day + "." + month + "."
 			}
-			return day + "." + month + "."
 		}
 		return birthday
 	}
@@ -332,10 +338,15 @@ func formatBirthdayForUser(birthday string, dateFormat string) string {
 		year := birthday[0:4]
 		month := birthday[5:7]
 		day := birthday[8:10]
-		if dateFormat == "us" {
+
+		switch dateFormat {
+		case "us":
 			return month + "/" + day + "/" + year
+		case "iso":
+			return year + "-" + month + "-" + day
+		default:
+			return day + "." + month + "." + year
 		}
-		return day + "." + month + "." + year
 	}
 
 	return birthday

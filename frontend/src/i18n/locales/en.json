@@ -405,8 +405,9 @@
       "label": "Date Format",
       "description": "Choose how dates are displayed throughout the application.",
       "options": {
-        "eu": "European (DD.MM.YYYY)",
-        "us": "US (MM/DD/YYYY)"
+        "eu":  "European (DD.MM.YYYY)",
+        "us":  "US (MM/DD/YYYY)",
+        "iso": "ISO (YYYY-MM-DD)"
       }
     },
     "theme": {

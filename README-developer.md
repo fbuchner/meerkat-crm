@@ -23,17 +23,13 @@
 - Logs use zerolog via [backend/logger/logger.go](backend/logger/logger.go); set LOG_LEVEL and LOG_PRETTY for debugging, and rely on request IDs threaded through middleware.
 - Rate limiting is IP-based via [backend/middleware/rate_limiter.go](backend/middleware/rate_limiter.go); respect separate auth/general buckets when adding endpoints.
 
-**Docker Build (Local)**
+**Docker (All-in-one Image)**
+- The whole app ships as a single container built from the root [Dockerfile](Dockerfile): the React bundle and the Go backend served together by nginx (which proxies `/api` same-origin), managed by supervisord.
 - Copy `.env.docker.example` to `.env.docker` and configure `JWT_SECRET_KEY`, `FRONTEND_URL`, and optionally `DATA_PATH`/`PHOTOS_PATH` for volume locations.
-- Build and run locally: `docker compose -f docker-compose.build.yml up -d --build`
-- Push images to GHCR: `docker compose -f docker-compose.build.yml push`
-- Container defaults (`PORT`, `SQLITE_DB_PATH`, `PROFILE_PHOTO_DIR`) are set in [backend/Dockerfile](backend/Dockerfile); override via `.env.docker` if needed.
-- The frontend Dockerfile builds a static bundle served by nginx; the API URL is baked in at build time via `REACT_APP_API_URL` (only relevant when frontend and backend are served via different URLs).
-
-**Docker Deploy (Pre-built Images)**
-- Copy `.env.docker.example` to `.env.docker` and configure `JWT_SECRET_KEY`, `FRONTEND_URL`, and optionally `DATA_PATH`/`PHOTOS_PATH` for volume locations.
-- Deploy using pre-built images from GHCR: `docker compose up -d`
-- Set `IMAGE_TAG` in `.env.docker` to pin a specific version (default: `latest`).
+- Deploy using the pre-built image from GHCR: `docker compose up -d`. Set `IMAGE_TAG` in `.env.docker` to pin a specific version (default: `latest`).
+- Build and run locally instead: uncomment the `build: .` line in [docker-compose.yml](docker-compose.yml), then `docker compose up -d --build` (or plain `docker build -t meerkat-crm .`).
+- Container defaults (`PORT`, `SQLITE_DB_PATH`, `PROFILE_PHOTO_DIR`) are set in the root [Dockerfile](Dockerfile); override via `.env.docker` if needed.
+- The frontend bundle is built with an empty `REACT_APP_API_URL` so it calls the API on relative paths; nginx (see [docker/nginx.conf](docker/nginx.conf)) proxies `/api`, `/health`, and `/carddav` to the backend on `127.0.0.1:8080`.
 
 **Testing**
 - Backend Go tests (`go test ./...` or `make test`) spin up in-memory SQLite in helpers like [backend/controllers/activity_controller_test.go](backend/controllers/activity_controller_test.go); mirror that pattern for new suites.

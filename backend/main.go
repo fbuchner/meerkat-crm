@@ -79,6 +79,12 @@ func main() {
 	s.Every(5).Minutes().Do(func() {
 		services.ProcessWebhookRetries(db, *cfg)
 	})
+	// Sync calendar subscriptions regularly (rate-limited via job lock)
+	calendarSyncTask := func() {
+		services.SyncCalendarsWithRateLimit(db, *cfg)
+	}
+	s.Every(cfg.CalDAVSyncIntervalHours).Hours().Do(calendarSyncTask)
+	go calendarSyncTask() // Run initially once on startup (rate-limited to prevent duplicates)
 	go s.StartBlocking()
 
 	r := gin.Default()

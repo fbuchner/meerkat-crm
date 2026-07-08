@@ -22,4 +22,7 @@ type JobExecution struct {
 const (
 	// JobNameDailyReminders is the job name for the daily reminder email job
 	JobNameDailyReminders = "daily_reminders"
+
+	// JobNameCalendarSync is the job name for the scheduled calendar sync job
+	JobNameCalendarSync = "calendar_sync"
 )

@@ -4,7 +4,8 @@ go 1.25.3
 
 require (
 	github.com/coreos/go-oidc/v3 v3.19.0
-	github.com/gen2brain/heic v0.5.0
+	github.com/emersion/go-ical v0.0.0-20240127095438-fc1c9d8fb2b6
+	github.com/gen2brain/heic v0.7.1
 	github.com/gin-contrib/cors v1.7.7
 	github.com/gin-gonic/gin v1.12.0
 	github.com/glebarez/sqlite v1.11.0
@@ -30,6 +31,8 @@ require (
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
+	github.com/teambition/rrule-go v1.8.2 // indirect
+	github.com/tetratelabs/wazero v1.12.0 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.6.0 // indirect
 	modernc.org/libc v1.72.5 // indirect
 	modernc.org/mathutil v1.7.1 // indirect

@@ -1,6 +1,7 @@
 import { chromium, FullConfig, BrowserContext } from '@playwright/test';
 
-export const API_BASE_URL = 'http://localhost:8080/api/v1';
+export const APP_ORIGIN = 'http://localhost:7300';
+export const API_BASE_URL = `${APP_ORIGIN}/api/v1`;
 
 // Test user credentials
 export const TEST_USER = {
@@ -59,7 +60,7 @@ async function globalSetup(config: FullConfig) {
   // Use a browser context to login and make authenticated API calls
   // (login now uses httpOnly cookies instead of returning a token)
   const browser = await chromium.launch();
-  const context = await browser.newContext({ baseURL: 'http://localhost:8080' });
+  const context = await browser.newContext({ baseURL: APP_ORIGIN });
 
   try {
     await loginAndCreateContacts(context);
@@ -75,7 +76,7 @@ async function waitForBackend(maxRetries = 30): Promise<void> {
 
   for (let i = 0; i < maxRetries; i++) {
     try {
-      const response = await fetch('http://localhost:8080/health');
+      const response = await fetch(`${APP_ORIGIN}/health`);
       if (response.ok) {
         console.log('Backend is ready');
         return;

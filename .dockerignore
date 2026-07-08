@@ -1,0 +1,40 @@
+# Root build context
+# Keep the context small and avoid leaking local data/secrets.
+
+.git
+.github
+.gitignore
+*.md
+
+# Node
+node_modules
+frontend/node_modules
+frontend/build
+frontend/coverage
+
+# Go / backend local artifacts
+backend/meerkat
+backend/tmp
+backend/vendor
+backend/*.db
+backend/*.sqlite*
+backend/**/*_test.go
+
+# Local data / photos (do not bake into the image)
+data
+photos
+backend/static/photos/*
+!backend/static/photos/.gitkeep
+
+# Environment files / secrets
+**/.env
+**/.env.*
+backend/my_environment.env
+
+# Demo-only assets (the demo image builds from demo/Dockerfile)
+demo
+
+# Editor / OS cruft
+.DS_Store
+.idea
+.vscode

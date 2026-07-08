@@ -1,7 +1,8 @@
 # Meerkat CRM Docker Compose - E2E Testing
 #
-# Builds and runs the stack for end-to-end testing with Playwright.
-# Uses a fresh database for each test run.
+# Builds and runs the all-in-one image for end-to-end testing with Playwright.
+# This exercises the same artifact that ships to users (nginx + backend under
+# supervisord, same-origin /api). Uses a fresh database for each test run.
 #
 # USAGE:
 #   docker compose -f docker-compose.test.yml up -d --build --wait
@@ -9,12 +10,12 @@
 #   docker compose -f docker-compose.test.yml down -v
 
 services:
-  backend:
-    image: meerkat-crm-backend-test:latest
+  meerkat:
+    image: meerkat-crm-test:latest
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
-    container_name: meerkat-backend-test
+    container_name: meerkat-test
     environment:
       - SQLITE_DB_PATH=/app/data/test.db
       - JWT_SECRET_KEY=test-secret-key-for-e2e-testing-minimum-32-chars
@@ -26,25 +27,14 @@ services:
       - test-data:/app/data
       - test-photos:/app/static/photos
     ports:
-      - "8080:8080"
+      # Frontend and same-origin /api are both served by nginx on 8080
+      - "7300:8080"
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 2s
       timeout: 5s
       retries: 15
       start_period: 5s
-
-  frontend:
-    image: meerkat-crm-frontend-test:latest
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: meerkat-frontend-test
-    ports:
-      - "7300:8080"
-    depends_on:
-      backend:
-        condition: service_healthy
 
 volumes:
   test-data:

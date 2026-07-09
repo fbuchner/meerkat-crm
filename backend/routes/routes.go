@@ -151,6 +151,13 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			protected.DELETE("/webhooks/:id", controllers.DeleteWebhook)
 			protected.POST("/webhooks/:id/test", controllers.TestWebhook)
 			protected.GET("/webhooks/:id/deliveries", controllers.GetWebhookDeliveries)
+
+			// Calendar subscription routes (CalDAV/iCS activity import)
+			protected.GET("/calendars", controllers.ListCalendarSubscriptions)
+			protected.POST("/calendars", middleware.ValidateJSONMiddleware(&models.CalendarSubscriptionInput{}), controllers.CreateCalendarSubscription)
+			protected.PUT("/calendars/:id", middleware.ValidateJSONMiddleware(&models.CalendarSubscriptionInput{}), controllers.UpdateCalendarSubscription)
+			protected.DELETE("/calendars/:id", controllers.DeleteCalendarSubscription)
+			protected.POST("/calendars/:id/sync", controllers.SyncCalendarSubscription)
 		}
 
 		// Admin routes (admin authentication required)

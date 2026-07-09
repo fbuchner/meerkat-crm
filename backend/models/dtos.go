@@ -11,6 +11,36 @@ type ActivityInput struct {
 	ContactIDs  []uint    `json:"contact_ids"` // Accept an array of contact IDs for many-to-many association
 }
 
+// CalendarSubscriptionInput is the DTO for creating/updating a calendar subscription.
+// Credentials are optional (public/unprotected calendars). On update, an empty
+// password keeps the stored one; set ClearPassword to remove it.
+type CalendarSubscriptionInput struct {
+	Name          string `json:"name" validate:"required,min=1,max=100"`
+	URL           string `json:"url" validate:"required,url,max=2048"`
+	Username      string `json:"username" validate:"omitempty,max=200"`
+	Password      string `json:"password" validate:"omitempty,max=500"`
+	ClearPassword bool   `json:"clear_password"`
+	SyncEnabled   *bool  `json:"sync_enabled"`
+	PastDays      *int   `json:"past_days" validate:"omitempty,min=0,max=3650"`
+	FutureDays    *int   `json:"future_days" validate:"omitempty,min=0,max=3650"`
+}
+
+// CalendarSubscriptionResponse is the DTO returned for a calendar subscription (no password)
+type CalendarSubscriptionResponse struct {
+	ID             uint       `json:"id"`
+	Name           string     `json:"name"`
+	URL            string     `json:"url"`
+	Username       string     `json:"username"`
+	HasPassword    bool       `json:"has_password"`
+	SyncEnabled    bool       `json:"sync_enabled"`
+	PastDays       int        `json:"past_days"`
+	FutureDays     int        `json:"future_days"`
+	LastSyncedAt   *time.Time `json:"last_synced_at"`
+	LastSyncStatus string     `json:"last_sync_status"`
+	LastSyncError  string     `json:"last_sync_error"`
+	CreatedAt      time.Time  `json:"created_at"`
+}
+
 // NoteInput represents the DTO for creating/updating notes
 type NoteInput struct {
 	Content   string    `json:"content" validate:"required,min=1,max=5000"`

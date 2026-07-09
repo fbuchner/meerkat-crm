@@ -17,5 +17,8 @@
       "instruction": "Use this token to complete the reset within 60 minutes:",
       "ignore": "If you did not request this reset, you can ignore this email."
     }
+  },
+  "calendar": {
+    "untitledEvent": "Untitled calendar event"
   }
 }

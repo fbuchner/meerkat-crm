@@ -52,6 +52,8 @@ type Config struct {
 	CookieDomain            string // Domain for auth cookie (empty = current domain only)
 	RegistrationDisabled    bool   // Disable new user registration
 	WebhookBlockPrivateURLs bool   // Block webhook deliveries to private/loopback addresses (useful for cloud deployments)
+	CalDAVSyncIntervalHours int    // Interval in hours for the scheduled calendar sync job
+	CalDAVBlockPrivateURLs  bool   // Block calendar sync requests to private/loopback addresses (useful for cloud deployments)
 	OIDC                    OIDCConfig
 }
 
@@ -95,6 +97,13 @@ func LoadConfig() *Config {
 		CookieDomain:            getEnv("COOKIE_DOMAIN", ""),
 		RegistrationDisabled:    getBoolEnv("DISABLE_REGISTRATION", false),
 		WebhookBlockPrivateURLs: getBoolEnv("WEBHOOK_BLOCK_PRIVATE_URLS", false),
+		CalDAVSyncIntervalHours: getIntEnv("CALDAV_SYNC_INTERVAL_HOURS", 6),
+		CalDAVBlockPrivateURLs:  getBoolEnv("CALDAV_BLOCK_PRIVATE_URLS", false),
+	}
+
+	if cfg.CalDAVSyncIntervalHours < 1 {
+		log.Println("WARN: CALDAV_SYNC_INTERVAL_HOURS must be at least 1, using 1")
+		cfg.CalDAVSyncIntervalHours = 1
 	}
 
 	// An email channel is enabled only when it is fully configured

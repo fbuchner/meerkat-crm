@@ -166,4 +166,27 @@ describe('autoFormatBirthdayInputWithFormat', () => {
   test('keeps a manually typed separator at a boundary', () => {
     expect(autoFormatBirthdayInputWithFormat('30.', '30', 'eu')).toBe('30.');
   });
+
+  test('leaves an ISO year untouched while it is being typed', () => {
+    expect(autoFormatBirthdayInputWithFormat('1', '', 'iso')).toBe('1');
+    expect(autoFormatBirthdayInputWithFormat('19', '1', 'iso')).toBe('19');
+    expect(autoFormatBirthdayInputWithFormat('199', '19', 'iso')).toBe('199');
+    expect(autoFormatBirthdayInputWithFormat('1990', '199', 'iso')).toBe('1990');
+    expect(autoFormatBirthdayInputWithFormat('19900', '1990', 'iso')).toBe('1990-0');
+    expect(autoFormatBirthdayInputWithFormat('1990-04', '1990-0', 'iso')).toBe('1990-04');
+    expect(autoFormatBirthdayInputWithFormat('1990-043', '1990-04', 'iso')).toBe('1990-04-3');
+    expect(autoFormatBirthdayInputWithFormat('1990-04-30', '1990-04-3', 'iso')).toBe('1990-04-30');
+  });
+
+  test('preserves manually typed ISO separators, including year-less MM-DD', () => {
+    expect(autoFormatBirthdayInputWithFormat('04-', '04', 'iso')).toBe('04-');
+    expect(autoFormatBirthdayInputWithFormat('04-3', '04-', 'iso')).toBe('04-3');
+    expect(autoFormatBirthdayInputWithFormat('04-30', '04-3', 'iso')).toBe('04-30');
+    expect(autoFormatBirthdayInputWithFormat('1990-', '1990', 'iso')).toBe('1990-');
+    expect(autoFormatBirthdayInputWithFormat('1990-04-', '1990-04', 'iso')).toBe('1990-04-');
+  });
+
+  test('strips a trailing ISO separator after deleting a digit', () => {
+    expect(autoFormatBirthdayInputWithFormat('1990-', '1990-0', 'iso')).toBe('1990');
+  });
 });

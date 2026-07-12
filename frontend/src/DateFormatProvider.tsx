@@ -304,38 +304,49 @@ export function parseBirthdayInputWithFormat(input: string, format: DateFormat):
 export function autoFormatBirthdayInputWithFormat(newValue: string, prevValue: string, format: DateFormat): string {
   const newDigits = newValue.replace(/[^0-9]/g, '');
   const prevDigits = prevValue.replace(/[^0-9]/g, '');
-  let sep: string;
 
-  switch (format) {
-    case 'eu': 
-      sep = '.'; break;
-    case 'iso':
-      sep = '-'; break;
-    default: // us
-      sep = '/';
+  if (format === 'iso') {
+    if (newDigits.length < prevDigits.length) {
+      // Digit deleted, so strip leftover trailing separator
+      return newValue.replace(/-+$/, '');
+    }
+    // Up to four digits the input is ambiguous — a year being typed
+    // (1990-04-30) or a year-less MM-DD — so leave it exactly as typed.
+    if (newDigits.length <= 4) {
+      return newValue;
+    }
+    const formatted =
+      newDigits.slice(0, 4) + '-' + newDigits.slice(4, 6) +
+      (newDigits.length > 6 ? '-' + newDigits.slice(6, 8) : '');
+    // Preserve a separator the user just typed after YYYY-MM.
+    if (
+      newDigits.length === 6 &&
+      newDigits.length === prevDigits.length &&
+      newValue.length > prevValue.length &&
+      /-$/.test(newValue)
+    ) {
+      return formatted + '-';
+    }
+    return formatted;
   }
+
+  const sep = format === 'eu' ? '.' : '/';
 
   const formatDigits = (digits: string): string => {
     if (digits.length <= 2) return digits;
     if (digits.length <= 4) return digits.slice(0, 2) + sep + digits.slice(2);
-    if (format === 'iso') {
-      // year first for ISO
-      return digits.slice(0, 4) + sep + digits.slice(4, 6) + sep + digits.slice(6, 8);
-    } else {
-      // year last for EU and US
-      return digits.slice(0, 2) + sep + digits.slice(2, 4) + sep + digits.slice(4, 8);
-    }
+    return digits.slice(0, 2) + sep + digits.slice(2, 4) + sep + digits.slice(4, 8);
   };
 
   if (newDigits.length < prevDigits.length) {
     // Digit deleted, so strip leftover trailing separator
-    return newValue.replace(/[-./]+$/, '');
+    return newValue.replace(/[./]+$/, '');
   }
 
   if (newDigits.length === prevDigits.length) {
     const formatted = formatDigits(newDigits);
     const atBoundary = newDigits.length === 2 || newDigits.length === 4;
-    const endsWithSep = /[-./]$/.test(newValue);
+    const endsWithSep = /[./]$/.test(newValue);
     if (atBoundary && newValue.length > prevValue.length && endsWithSep) {
       return formatted + sep;
     }

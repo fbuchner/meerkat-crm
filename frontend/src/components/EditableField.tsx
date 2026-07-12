@@ -85,7 +85,7 @@ export default function EditableField({
               )}
             </Box>
           ) : (
-            <Typography variant="body1" sx={{ wordBreak: 'break-word' }}>
+            <Typography variant="body1" sx={{ wordBreak: 'break-word', whiteSpace: multiline ? 'pre-wrap' : undefined }}>
               {displayValue}
             </Typography>
           )}

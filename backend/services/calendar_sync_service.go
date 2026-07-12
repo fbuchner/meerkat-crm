@@ -14,7 +14,9 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/emersion/go-ical"
@@ -40,6 +42,7 @@ var (
 const (
 	maxCalendarResponseBytes = 20 * 1024 * 1024
 	maxEventsPerSync         = 500
+	maxOccurrencesPerEvent   = 100
 	calendarRequestTimeout   = 60 * time.Second
 )
 
@@ -60,9 +63,12 @@ type calendarEvent struct {
 }
 
 func (e calendarEvent) contentHash() string {
-	sum := sha256.Sum256([]byte(strings.Join([]string{
-		e.Title, e.Description, e.Location, e.Date.UTC().Format(time.RFC3339),
-	}, "\x1f")))
+	parts := []string{e.Title, e.Description, e.Location, e.Date.UTC().Format(time.RFC3339)}
+	// Attendees are part of the hash so newly invited people get linked as
+	// contacts on the next sync; sorted, since feeds don't order them stably.
+	emails := append([]string(nil), e.AttendeeEmails...)
+	sort.Strings(emails)
+	sum := sha256.Sum256([]byte(strings.Join(append(parts, emails...), "\x1f")))
 	return hex.EncodeToString(sum[:])
 }
 
@@ -144,7 +150,13 @@ type limitedBody struct {
 
 func (b *limitedBody) Read(p []byte) (int, error) {
 	if b.remaining <= 0 {
-		return 0, ErrCalendarTooLarge
+		// The limit was consumed exactly; only fail if more data follows.
+		var probe [1]byte
+		n, err := b.inner.Read(probe[:])
+		if n > 0 {
+			return 0, ErrCalendarTooLarge
+		}
+		return 0, err
 	}
 	if int64(len(p)) > b.remaining {
 		p = p[:b.remaining]
@@ -174,10 +186,18 @@ func NormalizeCalendarURL(rawURL string) (*url.URL, error) {
 	return parsed, nil
 }
 
+var calendarSubscriptionLocks sync.Map // subscription ID → *sync.Mutex
+
 // SyncSubscription fetches the calendar and imports its events as activities.
 // It updates the subscription's last-sync bookkeeping fields in the database.
 func (s *CalendarSyncService) SyncSubscription(ctx context.Context, db *gorm.DB, cfg config.Config, sub *models.CalendarSubscription) (CalendarSyncStats, error) {
+	lock, _ := calendarSubscriptionLocks.LoadOrStore(sub.ID, &sync.Mutex{})
+	mutex := lock.(*sync.Mutex)
+	mutex.Lock()
+	defer mutex.Unlock()
+
 	stats, err := s.syncSubscription(ctx, db, cfg, sub)
+	err = redactURLPassword(err, sub.URL)
 
 	now := time.Now().UTC()
 	sub.LastSyncedAt = &now
@@ -198,6 +218,35 @@ func (s *CalendarSyncService) SyncSubscription(ctx context.Context, db *gorm.DB,
 
 	return stats, err
 }
+
+// removes a password embedded in the subscription URL from error text
+func redactURLPassword(err error, rawURL string) error {
+	if err == nil {
+		return nil
+	}
+	parsed, parseErr := url.Parse(strings.TrimSpace(rawURL))
+	if parseErr != nil {
+		return err
+	}
+	password, hasPassword := parsed.User.Password()
+	if !hasPassword || password == "" {
+		return err
+	}
+	message := strings.ReplaceAll(err.Error(), password, "xxxxx")
+	if message == err.Error() {
+		return err
+	}
+	return &redactedError{message: message, cause: err}
+}
+
+// redactedError preserves errors.Is/As matching while overriding the message.
+type redactedError struct {
+	message string
+	cause   error
+}
+
+func (e *redactedError) Error() string { return e.message }
+func (e *redactedError) Unwrap() error { return e.cause }
 
 func (s *CalendarSyncService) syncSubscription(ctx context.Context, db *gorm.DB, cfg config.Config, sub *models.CalendarSubscription) (CalendarSyncStats, error) {
 	parsedURL, err := NormalizeCalendarURL(sub.URL)
@@ -268,7 +317,7 @@ func (s *CalendarSyncService) fetchEvents(ctx context.Context, calURL *url.URL, 
 		logger.Debug().Err(err).Str("url", calURL.Redacted()).Msg("CalDAV query failed, falling back to plain GET")
 	}
 
-	events, err := s.fetchICS(ctx, httpClient, calURL)
+	events, err := s.fetchICS(ctx, httpClient, calURL, windowStart, windowEnd)
 	if err != nil {
 		return nil, err
 	}
@@ -307,12 +356,12 @@ func (s *CalendarSyncService) queryCalDAV(ctx context.Context, httpClient webdav
 		if object.Data == nil {
 			continue
 		}
-		events = append(events, extractEvents(object.Data)...)
+		events = append(events, extractEvents(object.Data, windowStart, windowEnd)...)
 	}
 	return events, nil
 }
 
-func (s *CalendarSyncService) fetchICS(ctx context.Context, httpClient webdav.HTTPClient, calURL *url.URL) ([]calendarEvent, error) {
+func (s *CalendarSyncService) fetchICS(ctx context.Context, httpClient webdav.HTTPClient, calURL *url.URL, windowStart, windowEnd time.Time) ([]calendarEvent, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, calURL.String(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrCalendarInvalidURL, err)
@@ -350,7 +399,7 @@ func (s *CalendarSyncService) fetchICS(ctx context.Context, httpClient webdav.HT
 			}
 			return nil, fmt.Errorf("%w: %v", ErrCalendarInvalidData, err)
 		}
-		events = append(events, extractEvents(cal)...)
+		events = append(events, extractEvents(cal, windowStart, windowEnd)...)
 	}
 	return events, nil
 }
@@ -361,17 +410,45 @@ func isCalendarSentinel(err error) bool {
 		errors.Is(err, errCalendarQueryUnsupported)
 }
 
-// extractEvents converts parsed iCalendar data to internal events. Events that
-// cannot be interpreted (missing/broken DTSTART) are skipped instead of
-// failing the whole sync; an empty calendar simply yields no events.
-func extractEvents(cal *ical.Calendar) []calendarEvent {
-	var events []calendarEvent
+// extractEvents converts parsed iCalendar data to internal events. Recurring
+// events are expanded into one event per occurrence inside the sync window
+// (masters usually carry a DTSTART far in the past, so they would otherwise
+// never survive the window filter). Recurrence overrides (RECURRENCE-ID)
+// replace their master's occurrence and are imported at their own start time.
+// Events that cannot be interpreted (missing/broken DTSTART) are skipped
+// instead of failing the whole sync; an empty calendar simply yields no events.
+func extractEvents(cal *ical.Calendar, windowStart, windowEnd time.Time) []calendarEvent {
+	// Collect overridden occurrences per UID first, so the master expansion
+	// below skips them (also for cancelled overrides, which delete a single
+	// occurrence).
+	overridden := make(map[string]map[string]struct{})
 	for _, icalEvent := range cal.Events() {
-		// Recurrence override instances share their master's UID; the master
-		// occurrence is imported once, so skip overrides to avoid clashes.
-		if icalEvent.Props.Get(ical.PropRecurrenceID) != nil {
+		ridProp := icalEvent.Props.Get(ical.PropRecurrenceID)
+		if ridProp == nil {
 			continue
 		}
+		rid, err := ridProp.DateTime(time.UTC)
+		if err != nil {
+			continue
+		}
+		uid := propText(icalEvent.Props, ical.PropUID)
+		if overridden[uid] == nil {
+			overridden[uid] = make(map[string]struct{})
+		}
+		overridden[uid][occurrenceKey(rid)] = struct{}{}
+	}
+
+	var events []calendarEvent
+	add := func(event calendarEvent) {
+		if event.UID == "" {
+			// RFC 5545 requires a UID but some exports omit it; derive a
+			// stable pseudo-UID so re-syncs still deduplicate.
+			event.UID = "derived-" + event.contentHash()
+		}
+		events = append(events, event)
+	}
+
+	for _, icalEvent := range cal.Events() {
 		if status, err := icalEvent.Status(); err == nil && status == ical.EventCancelled {
 			continue
 		}
@@ -391,14 +468,57 @@ func extractEvents(cal *ical.Calendar) []calendarEvent {
 			Date:           date.UTC(),
 			AttendeeEmails: extractAttendeeEmails(icalEvent.Props),
 		}
-		if event.UID == "" {
-			// RFC 5545 requires a UID but some exports omit it; derive a
-			// stable pseudo-UID so re-syncs still deduplicate.
-			event.UID = "derived-" + event.contentHash()
+
+		if ridProp := icalEvent.Props.Get(ical.PropRecurrenceID); ridProp != nil {
+			rid, err := ridProp.DateTime(time.UTC)
+			if err != nil {
+				logger.Debug().Err(err).Msg("Skipping recurrence override with unusable RECURRENCE-ID")
+				continue
+			}
+			// Keyed by the occurrence it replaces, so a moved occurrence keeps
+			// updating the same activity across syncs.
+			event.UID = occurrenceUID(uid, rid)
+			add(event)
+			continue
 		}
-		events = append(events, event)
+
+		recurrence, err := icalEvent.RecurrenceSet(time.UTC)
+		if err != nil {
+			logger.Debug().Err(err).Msg("Could not parse recurrence rule, importing the event's first occurrence only")
+		}
+		if recurrence == nil {
+			add(event)
+			continue
+		}
+
+		occurrences := recurrence.Between(windowStart, windowEnd, true)
+		if len(occurrences) > maxOccurrencesPerEvent {
+			occurrences = occurrences[:maxOccurrencesPerEvent]
+		}
+		for _, occurrence := range occurrences {
+			if _, replaced := overridden[uid][occurrenceKey(occurrence)]; replaced {
+				continue
+			}
+			instance := event
+			instance.Date = occurrence.UTC()
+			instance.UID = occurrenceUID(uid, occurrence)
+			add(instance)
+		}
 	}
 	return events
+}
+
+func occurrenceKey(t time.Time) string {
+	return t.UTC().Format("20060102T150405Z")
+}
+
+// occurrenceUID gives each occurrence of a recurring event its own import
+// identity, so every occurrence maps to its own activity.
+func occurrenceUID(uid string, occurrence time.Time) string {
+	if uid == "" {
+		return ""
+	}
+	return uid + "#" + occurrenceKey(occurrence)
 }
 
 func propText(props ical.Props, name string) string {
@@ -460,6 +580,11 @@ func importEvents(db *gorm.DB, sub *models.CalendarSubscription, events []calend
 		return CalendarSyncStats{}, err
 	}
 
+	feedUIDs := make(map[string]struct{}, len(events))
+	for _, event := range events {
+		feedUIDs[event.UID] = struct{}{}
+	}
+
 	var stats CalendarSyncStats
 	err = db.Transaction(func(tx *gorm.DB) error {
 		for _, event := range events {
@@ -471,13 +596,26 @@ func importEvents(db *gorm.DB, sub *models.CalendarSubscription, events []calend
 				// Some feeds regenerate every UID on each request (common for
 				// dynamically generated .ics exports). Match unchanged events
 				// by content and adopt the new UID instead of duplicating them.
-				err = tx.Where("subscription_id = ? AND content_hash = ?", sub.ID, hash).First(&link).Error
-				if err == nil {
-					link.UID = event.UID
-					if err := tx.Save(&link).Error; err != nil {
+				// Links whose UID still appears in the feed belong to another
+				// event that merely has identical content; leave those alone.
+				var candidates []models.CalendarEventLink
+				if err := tx.Where("subscription_id = ? AND content_hash = ?", sub.ID, hash).Order("id").Find(&candidates).Error; err != nil {
+					return err
+				}
+				adopted := false
+				for _, candidate := range candidates {
+					if _, inFeed := feedUIDs[candidate.UID]; inFeed {
+						continue
+					}
+					candidate.UID = event.UID
+					if err := tx.Save(&candidate).Error; err != nil {
 						return err
 					}
 					stats.Skipped++
+					adopted = true
+					break
+				}
+				if adopted {
 					continue
 				}
 			}

@@ -14,8 +14,8 @@ CREATE TABLE IF NOT EXISTS calendar_subscriptions (
     last_sync_error TEXT NOT NULL DEFAULT '',
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
-CREATE INDEX idx_calendar_subscriptions_user_id ON calendar_subscriptions(user_id);
-CREATE INDEX idx_calendar_subscriptions_deleted_at ON calendar_subscriptions(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_calendar_subscriptions_user_id ON calendar_subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_calendar_subscriptions_deleted_at ON calendar_subscriptions(deleted_at);
 
 CREATE TABLE IF NOT EXISTS calendar_event_links (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,6 +27,6 @@ CREATE TABLE IF NOT EXISTS calendar_event_links (
     content_hash TEXT NOT NULL,
     FOREIGN KEY (subscription_id) REFERENCES calendar_subscriptions(id) ON DELETE CASCADE
 );
-CREATE UNIQUE INDEX idx_calendar_event_links_sub_uid ON calendar_event_links(subscription_id, uid);
-CREATE INDEX idx_calendar_event_links_user_id ON calendar_event_links(user_id);
-CREATE INDEX idx_calendar_event_links_activity_id ON calendar_event_links(activity_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_calendar_event_links_sub_uid ON calendar_event_links(subscription_id, uid);
+CREATE INDEX IF NOT EXISTS idx_calendar_event_links_user_id ON calendar_event_links(user_id);
+CREATE INDEX IF NOT EXISTS idx_calendar_event_links_activity_id ON calendar_event_links(activity_id);

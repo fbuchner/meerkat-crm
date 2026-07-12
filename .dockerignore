@@ -20,19 +20,16 @@ backend/*.db
 backend/*.sqlite*
 backend/**/*_test.go
 
-# Local data / photos (do not bake into the image)
+# Local data (do not bake into the image). backend/static/photos and
+# backend/static/meerkat.db stay in the context: the production Dockerfile
+# never copies them, and demo/Dockerfile bakes them into the demo image.
 data
 photos
-backend/static/photos/*
-!backend/static/photos/.gitkeep
 
 # Environment files / secrets
 **/.env
 **/.env.*
 backend/my_environment.env
-
-# Demo-only assets (the demo image builds from demo/Dockerfile)
-demo
 
 # Editor / OS cruft
 .DS_Store

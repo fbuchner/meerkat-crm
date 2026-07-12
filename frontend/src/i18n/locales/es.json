@@ -469,6 +469,7 @@
       "name": "Nombre",
       "url": "URL del calendario",
       "urlHelp": "URL de una colección CalDAV o enlace directo a un archivo .ics (webcal:// también funciona).",
+      "insecureUrlWarning": "Este calendario usa una URL http:// sin cifrar, por lo que el nombre de usuario y la contraseña se envían en texto plano. Úselo solo en una red de confianza.",
       "username": "Nombre de usuario",
       "password": "Contraseña",
       "credentialsOptional": "Opcional, solo para calendarios protegidos",

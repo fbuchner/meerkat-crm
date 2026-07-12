@@ -406,7 +406,8 @@
       "description": "Choisissez comment les dates sont affichées dans l'application.",
       "options": {
         "eu": "Européen (JJ.MM.AAAA)",
-        "us": "États-Unis (MM/JJ/AAAA)"
+        "us": "États-Unis (MM/JJ/AAAA)",
+        "iso": "ISO (AAAA-MM-JJ)"
       }
     },
     "theme": {
@@ -468,6 +469,7 @@
       "name": "Nom",
       "url": "URL du calendrier",
       "urlHelp": "URL d'une collection CalDAV ou lien direct vers un fichier .ics (webcal:// fonctionne aussi).",
+      "insecureUrlWarning": "Ce calendrier utilise une URL http:// non chiffrée : le nom d'utilisateur et le mot de passe sont transmis en clair. À n'utiliser que sur un réseau de confiance.",
       "username": "Nom d'utilisateur",
       "password": "Mot de passe",
       "credentialsOptional": "Facultatif, uniquement pour les calendriers protégés",

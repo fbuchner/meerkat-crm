@@ -69,6 +69,7 @@ export default function CalendarSyncSettings() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingHasPassword, setEditingHasPassword] = useState(false);
+  const [editingUsername, setEditingUsername] = useState('');
   const [form, setForm] = useState<CalendarFormState>(emptyForm());
   const [saving, setSaving] = useState(false);
 
@@ -97,6 +98,7 @@ export default function CalendarSyncSettings() {
   const openCreate = () => {
     setEditingId(null);
     setEditingHasPassword(false);
+    setEditingUsername('');
     setForm(emptyForm());
     setDialogOpen(true);
   };
@@ -104,6 +106,7 @@ export default function CalendarSyncSettings() {
   const openEdit = (cal: CalendarSubscription) => {
     setEditingId(cal.id);
     setEditingHasPassword(cal.has_password);
+    setEditingUsername(cal.username);
     setForm({
       name: cal.name,
       url: cal.url,
@@ -131,9 +134,14 @@ export default function CalendarSyncSettings() {
       username: form.username.trim(),
       password: form.password,
       // Clear a stored password when the user removed the username of a
-      // previously protected calendar and left the password empty.
+      // previously protected calendar and left the password empty. Calendars
+      // that never had a username (password-only auth) are not affected.
       clear_password:
-        editingId !== null && editingHasPassword && form.username.trim() === '' && form.password === '',
+        editingId !== null &&
+        editingHasPassword &&
+        editingUsername !== '' &&
+        form.username.trim() === '' &&
+        form.password === '',
       sync_enabled: form.sync_enabled,
       past_days: parseDays(form.past_days, 5),
       future_days: parseDays(form.future_days, 10),
@@ -329,6 +337,12 @@ export default function CalendarSyncSettings() {
               placeholder="https://cloud.example.com/remote.php/dav/calendars/user/personal/"
               helperText={t('settings.calendarSync.urlHelp')}
             />
+            {form.url.trim().toLowerCase().startsWith('http://') &&
+              (form.username.trim() !== '' || form.password !== '' || editingHasPassword) && (
+                <Alert severity="warning" sx={{ py: 0.5 }}>
+                  {t('settings.calendarSync.insecureUrlWarning')}
+                </Alert>
+              )}
             <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
               <TextField
                 label={t('settings.calendarSync.username')}

@@ -29,7 +29,7 @@ services:
       # Frontend and same-origin /api are both served by nginx on 8080
       - "7300:8080"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/health"]
       interval: 2s
       timeout: 5s
       retries: 15

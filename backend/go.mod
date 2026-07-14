@@ -3,7 +3,7 @@ module meerkat
 go 1.25.3
 
 require (
-	github.com/coreos/go-oidc/v3 v3.19.0
+	github.com/coreos/go-oidc/v3 v3.20.0
 	github.com/emersion/go-ical v0.0.0-20240127095438-fc1c9d8fb2b6
 	github.com/gen2brain/heic v0.7.1
 	github.com/gin-contrib/cors v1.7.7

@@ -61,7 +61,8 @@ RUN apk add --no-cache \
     tzdata \
     nginx \
     supervisor \
-    shadow
+    shadow \
+    libc6-compat
 
 WORKDIR /app
 

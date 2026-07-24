@@ -53,7 +53,7 @@ type ContactInput struct {
 	Firstname          string            `json:"firstname" validate:"required,min=1,max=100"`
 	Lastname           string            `json:"lastname" validate:"max=100"`
 	Nickname           string            `json:"nickname" validate:"max=50"`
-	Gender             string            `json:"gender" validate:"omitempty,oneof=male female other prefer_not_to_say"`
+	Gender             string            `json:"gender" validate:"omitempty,max=50"`
 	Email              string            `json:"email" validate:"omitempty,email"`
 	Phone              string            `json:"phone" validate:"omitempty,phone"`
 	Birthday           string            `json:"birthday" validate:"omitempty,birthday"`
@@ -127,7 +127,7 @@ type ChangePasswordInput struct {
 type RelationshipInput struct {
 	Name             string `json:"name" validate:"required,min=1,max=100"`
 	Type             string `json:"type" validate:"required,min=1,max=50"`
-	Gender           string `json:"gender" validate:"omitempty,oneof=male female other prefer_not_to_say"`
+	Gender           string `json:"gender" validate:"omitempty,max=50"`
 	Birthday         string `json:"birthday" validate:"omitempty,birthday"`
 	RelatedContactID *uint  `json:"related_contact_id"`
 }

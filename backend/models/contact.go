@@ -49,7 +49,7 @@ type Contact struct {
 	Firstname          string         `gorm:"type:text not null COLLATE NOCASE" json:"firstname" validate:"required,min=1,max=100"`
 	Lastname           string         `gorm:"type:text COLLATE NOCASE" json:"lastname" validate:"max=100"`
 	Nickname           string         `gorm:"type:text COLLATE NOCASE" json:"nickname" validate:"max=50"`
-	Gender             string         `json:"gender" validate:"omitempty,oneof=male female other prefer_not_to_say"`
+	Gender             string         `json:"gender" validate:"omitempty,max=50"`
 	Email              string         `gorm:"type:text COLLATE NOCASE" json:"email" validate:"omitempty,email"`
 	Phone              string         `json:"phone" validate:"omitempty,phone"`
 	Birthday           string         `json:"birthday" validate:"omitempty,birthday"`

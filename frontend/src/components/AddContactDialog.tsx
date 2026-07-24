@@ -24,6 +24,14 @@ import { handleError, getErrorMessage } from '../utils/errorHandler';
 import { useDateFormat } from '../DateFormatProvider';
 import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
 
+const GENDER_PRESETS = ['male', 'female', 'other', 'prefer_not_to_say'];
+const GENDER_PRESET_LABEL_KEYS: Record<string, string> = {
+  male: 'contacts.male',
+  female: 'contacts.female',
+  other: 'contacts.other',
+  prefer_not_to_say: 'contacts.preferNotToSay',
+};
+
 interface AddContactDialogProps {
   open: boolean;
   onClose: () => void;
@@ -68,6 +76,7 @@ export default function AddContactDialog({
   const isOn = (key: ContactFieldKey) => enabled.has(key);
 
   const [formData, setFormData] = useState({ ...emptyForm });
+  const [customGender, setCustomGender] = useState('');
   const [emails, setEmails] = useState<ContactValue[]>([]);
   const [phones, setPhones] = useState<ContactValue[]>([]);
   const [addresses, setAddresses] = useState<ContactAddress[]>([]);
@@ -105,6 +114,8 @@ export default function AddContactDialog({
   const handleRemoveCircle = (circle: string) => {
     setSelectedCircles(selectedCircles.filter(c => c !== circle));
   };
+
+  const effectiveGender = () => (formData.gender === 'custom' ? customGender.trim() : formData.gender);
 
   const handleSubmit = async () => {
     if (!formData.firstname.trim()) {
@@ -160,7 +171,7 @@ export default function AddContactDialog({
         middle_name: formData.middle_name,
         suffix: formData.suffix,
         nickname: formData.nickname,
-        gender: formData.gender,
+        gender: effectiveGender(),
         birthday: birthdayISO,
         anniversary: anniversaryISO,
         organization: formData.organization,
@@ -235,6 +246,7 @@ export default function AddContactDialog({
 
   const handleClose = () => {
     setFormData({ ...emptyForm });
+    setCustomGender('');
     setEmails([]);
     setPhones([]);
     setAddresses([]);
@@ -304,12 +316,24 @@ export default function AddContactDialog({
                 onChange={handleChange('gender')}
               >
                 <MenuItem value="">{t('contacts.selectGender')}</MenuItem>
-                <MenuItem value="male">{t('contacts.male')}</MenuItem>
-                <MenuItem value="female">{t('contacts.female')}</MenuItem>
-                <MenuItem value="other">{t('contacts.other')}</MenuItem>
+                {GENDER_PRESETS.map((preset) => (
+                  <MenuItem key={preset} value={preset}>
+                    {t(GENDER_PRESET_LABEL_KEYS[preset])}
+                  </MenuItem>
+                ))}
+                <MenuItem value="custom">{t('contacts.customGender')}</MenuItem>
               </TextField>
             )}
           </Stack>
+          {isOn('gender') && formData.gender === 'custom' && (
+            <TextField
+              label={t('contacts.customGenderLabel')}
+              fullWidth
+              value={customGender}
+              onChange={(e) => setCustomGender(e.target.value)}
+              autoFocus
+            />
+          )}
 
           {isOn('emails') && (
             <MultiValueField label={t('contacts.email')} value={emails} onChange={setEmails} valueType="email" defaultType="home" />

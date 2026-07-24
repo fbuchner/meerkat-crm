@@ -35,6 +35,8 @@ interface AddRelationshipDialogProps {
 
 type EntryMode = 'manual' | 'linked';
 
+const GENDER_PRESETS = ['male', 'female', 'other', 'prefer_not_to_say'];
+
 export default function AddRelationshipDialog({
   open,
   onClose,
@@ -50,6 +52,7 @@ export default function AddRelationshipDialog({
   const [type, setType] = useState('');
   const [customType, setCustomType] = useState('');
   const [gender, setGender] = useState('');
+  const [customGender, setCustomGender] = useState('');
   const [birthday, setBirthday] = useState('');
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -91,7 +94,13 @@ export default function AddRelationshipDialog({
         setType('custom');
         setCustomType(relationship.type || '');
       }
-      setGender(relationship.gender || '');
+      if (relationship.gender && !GENDER_PRESETS.includes(relationship.gender)) {
+        setGender('custom');
+        setCustomGender(relationship.gender);
+      } else {
+        setGender(relationship.gender || '');
+        setCustomGender('');
+      }
       // Format birthday from ISO to display format based on user's date preferences
       setBirthday(relationship.birthday ? formatBirthdayForInput(relationship.birthday) : '');
       if (relationship.related_contact_id) {
@@ -130,6 +139,7 @@ export default function AddRelationshipDialog({
     setType('');
     setCustomType('');
     setGender('');
+    setCustomGender('');
     setBirthday('');
     setSelectedContact(null);
     setSearchInput('');
@@ -160,6 +170,13 @@ export default function AddRelationshipDialog({
       return customType.trim();
     }
     return type;
+  };
+
+  const getEffectiveGender = () => {
+    if (gender === 'custom') {
+      return customGender.trim();
+    }
+    return gender;
   };
 
   const handleSave = async () => {
@@ -199,7 +216,7 @@ export default function AddRelationshipDialog({
           : name.trim(),
         type: effectiveType,
         // Only include gender/birthday for manual mode
-        gender: entryMode === 'manual' ? (gender || undefined) : undefined,
+        gender: entryMode === 'manual' ? (getEffectiveGender() || undefined) : undefined,
         birthday: birthdayISO,
         related_contact_id: entryMode === 'linked' && selectedContact ? selectedContact.ID : null,
       };
@@ -343,8 +360,21 @@ export default function AddRelationshipDialog({
                 <MenuItem value="male">{t('contacts.male')}</MenuItem>
                 <MenuItem value="female">{t('contacts.female')}</MenuItem>
                 <MenuItem value="other">{t('contacts.other')}</MenuItem>
+                <MenuItem value="prefer_not_to_say">{t('contacts.preferNotToSay')}</MenuItem>
+                <MenuItem value="custom">{t('contacts.customGender')}</MenuItem>
               </Select>
             </FormControl>
+          )}
+
+          {/* Custom gender input */}
+          {entryMode === 'manual' && gender === 'custom' && (
+            <TextField
+              label={t('contacts.customGenderLabel')}
+              value={customGender}
+              onChange={(e) => setCustomGender(e.target.value)}
+              fullWidth
+              autoFocus
+            />
           )}
 
           {/* Birthday - only shown for manual entry */}

@@ -462,10 +462,12 @@ func IsValidPhone(phone string) bool {
 	return len(cleaned) >= 5 && len(cleaned) <= 20
 }
 
-// NormalizeGender converts various gender inputs to valid enum values
+// NormalizeGender recognizes common synonyms (including German) for the preset gender
+// values and maps them to the canonical preset. Gender is otherwise free text, so any
+// unrecognized input is passed through unchanged rather than dropped.
 func NormalizeGender(input string) string {
-	lower := strings.ToLower(strings.TrimSpace(input))
-	switch lower {
+	trimmed := strings.TrimSpace(input)
+	switch strings.ToLower(trimmed) {
 	case "m", "male", "mann", "maennlich", "männlich", "masculin":
 		return "male"
 	case "f", "female", "frau", "weiblich", "feminin", "w":
@@ -473,9 +475,9 @@ func NormalizeGender(input string) string {
 	case "o", "other", "andere", "divers", "d":
 		return "other"
 	case "prefer not to say", "prefer_not_to_say", "keine angabe":
-		return "other"
+		return "prefer_not_to_say"
 	default:
-		return ""
+		return trimmed
 	}
 }
 

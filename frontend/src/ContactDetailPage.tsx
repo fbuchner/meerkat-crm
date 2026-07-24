@@ -474,7 +474,7 @@ export default function ContactDetailPage() {
       lastname: contact.lastname || '',
       suffix: contact.suffix || '',
       nickname: contact.nickname || '',
-      gender: contact.gender ? contact.gender.toLowerCase() : ''
+      gender: contact.gender || ''
     });
     setEditingProfile(true);
   };

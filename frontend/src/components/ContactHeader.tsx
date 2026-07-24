@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Box, Card, CardContent, Avatar, Typography, Chip, IconButton, Stack, TextField, Autocomplete, Button } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
@@ -10,6 +11,14 @@ import ArchiveIcon from '@mui/icons-material/Archive';
 import UnarchiveIcon from '@mui/icons-material/Unarchive';
 import { useTranslation } from 'react-i18next';
 import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
+
+const GENDER_PRESETS = ['male', 'female', 'other', 'prefer_not_to_say'];
+const GENDER_PRESET_LABEL_KEYS: Record<string, string> = {
+  male: 'contactDetail.male',
+  female: 'contactDetail.female',
+  other: 'contactDetail.other',
+  prefer_not_to_say: 'contactDetail.preferNotToSay',
+};
 
 export interface ProfileValues {
   prefix: string;
@@ -82,6 +91,15 @@ export default function ContactHeader({
   const { t } = useTranslation();
   const enabled = enabledFields ?? resolveEnabledFields(null);
   const isOn = (key: ContactFieldKey) => enabled.has(key);
+
+  const [customGenderMode, setCustomGenderMode] = useState(false);
+  // Resync whenever an edit session starts, from the value onStartEditProfile seeded.
+  useEffect(() => {
+    if (editingProfile) {
+      setCustomGenderMode(profileValues.gender !== '' && !GENDER_PRESETS.includes(profileValues.gender));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingProfile]);
 
   const displayName = [
     contact.prefix,
@@ -192,8 +210,19 @@ export default function ContactHeader({
                 <TextField
                   select
                   label={t('contactDetail.gender')}
-                  value={profileValues.gender}
-                  onChange={(e) => onProfileValueChange({ ...profileValues, gender: e.target.value })}
+                  value={customGenderMode ? 'custom' : profileValues.gender}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === 'custom') {
+                      setCustomGenderMode(true);
+                      if (GENDER_PRESETS.includes(profileValues.gender)) {
+                        onProfileValueChange({ ...profileValues, gender: '' });
+                      }
+                    } else {
+                      setCustomGenderMode(false);
+                      onProfileValueChange({ ...profileValues, gender: value });
+                    }
+                  }}
                   size="small"
                   SelectProps={{ native: true }}
                 >
@@ -201,7 +230,18 @@ export default function ContactHeader({
                   <option value="male">{t('contactDetail.male')}</option>
                   <option value="female">{t('contactDetail.female')}</option>
                   <option value="other">{t('contactDetail.other')}</option>
+                  <option value="prefer_not_to_say">{t('contactDetail.preferNotToSay')}</option>
+                  <option value="custom">{t('contacts.customGender')}</option>
                 </TextField>
+                {customGenderMode && (
+                  <TextField
+                    label={t('contacts.customGenderLabel')}
+                    value={profileValues.gender}
+                    onChange={(e) => onProfileValueChange({ ...profileValues, gender: e.target.value })}
+                    size="small"
+                    autoFocus
+                  />
+                )}
                 <Box sx={{ display: 'flex', gap: 1, justifyContent: 'space-between' }}>
                   <IconButton
                     size="small"
@@ -303,7 +343,7 @@ export default function ContactHeader({
                 </Box>
                 {contact.gender && (
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-                    {t(`contactDetail.${contact.gender}`)}
+                    {GENDER_PRESET_LABEL_KEYS[contact.gender] ? t(GENDER_PRESET_LABEL_KEYS[contact.gender]) : contact.gender}
                   </Typography>
                 )}
               </>

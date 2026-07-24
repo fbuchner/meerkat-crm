@@ -43,6 +43,7 @@ export default function RelationshipList({
 
   const formatGender = (gender?: string) => {
     if (!gender) return null;
+    if (gender === 'prefer_not_to_say') return t('contacts.preferNotToSay');
     const genderKey = gender.toLowerCase();
     const translationKey = `contacts.${genderKey}`;
     const translated = t(translationKey);

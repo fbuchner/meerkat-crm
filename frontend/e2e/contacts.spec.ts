@@ -103,4 +103,79 @@ test.describe('Contacts', () => {
     const lookup = await page.request.get(`${API_BASE_URL}/contacts/${contact.ID}`);
     expect(lookup.status()).toBe(404);
   });
+
+  test('should select a preset gender, save, and persist it after reload', async ({ page }) => {
+    const contact = await createTestContact(page.request, { lastname: 'GenderPreset' });
+
+    try {
+      await page.goto(`/contacts/${contact.ID}`);
+      await expect(page.getByRole('heading', { name: `${contact.firstname} GenderPreset` })).toBeVisible();
+
+      await page.locator('.edit-icon').first().click();
+      await page.getByLabel(/gender/i).selectOption('female');
+      await page.locator('.MuiCard-root').first().locator('.MuiIconButton-colorPrimary').click();
+
+      await expect(page.getByText('Female', { exact: true })).toBeVisible();
+
+      await page.reload();
+      await expect(page.getByText('Female', { exact: true })).toBeVisible();
+    } finally {
+      await deleteTestContact(page.request, contact.ID);
+    }
+  });
+
+  test('should select "prefer not to say" in the Add Contact dialog and display a real label', async ({ page }) => {
+    const firstname = `E2EFixture${Date.now()}`;
+
+    await page.goto('/contacts');
+    await page.getByRole('button', { name: /add/i }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+
+    await page.getByLabel(/first.*name/i).fill(firstname);
+    await page.getByLabel(/last.*name/i).fill('PreferNotToSay');
+
+    await page.getByLabel('Gender', { exact: true }).click();
+    // Regression check: the MenuItem must show the real translated label, not
+    // the raw i18n key (a mismatched camelCase/snake_case lookup would render
+    // "contacts.prefer_not_to_say" instead of "Prefer not to say").
+    await expect(page.getByRole('option', { name: 'Prefer not to say', exact: true })).toBeVisible();
+    await page.getByRole('option', { name: 'Prefer not to say', exact: true }).click();
+
+    await page.getByRole('button', { name: /create/i }).click();
+    await expect(page).toHaveURL(/\/contacts\/\d+/);
+
+    // Same regression check on the detail-page display (ContactHeader has its
+    // own separate preset->label lookup).
+    await expect(page.getByText('Prefer not to say', { exact: true })).toBeVisible();
+    await expect(page.getByText(/contactDetail\.prefer_not_to_say/)).toHaveCount(0);
+
+    const contactId = page.url().match(/\/contacts\/(\d+)/)?.[1];
+    if (contactId) {
+      await deleteTestContact(page.request, contactId);
+    }
+  });
+
+  test('should enter a custom gender, save, and display the raw value (not a translation key)', async ({ page }) => {
+    const contact = await createTestContact(page.request, { lastname: 'GenderCustom' });
+
+    try {
+      await page.goto(`/contacts/${contact.ID}`);
+      await expect(page.getByRole('heading', { name: `${contact.firstname} GenderCustom` })).toBeVisible();
+
+      await page.locator('.edit-icon').first().click();
+      await page.getByLabel(/gender/i).selectOption('custom');
+      await page.getByLabel(/enter custom gender/i).fill('Non-Binary');
+      await page.locator('.MuiCard-root').first().locator('.MuiIconButton-colorPrimary').click();
+
+      // Regression check for the ContactHeader i18n-key bug: a raw key string
+      // (e.g. "contactDetail.Non-Binary") must never be shown to the user.
+      await expect(page.getByText('Non-Binary', { exact: true })).toBeVisible();
+      await expect(page.getByText(/contactDetail\./)).toHaveCount(0);
+
+      await page.reload();
+      await expect(page.getByText('Non-Binary', { exact: true })).toBeVisible();
+    } finally {
+      await deleteTestContact(page.request, contact.ID);
+    }
+  });
 });

@@ -241,6 +241,30 @@ func TestCustomLabelRoundTrip(t *testing.T) {
 	}
 }
 
+// TestGenderIgnoresFreeTextComponent verifies that the vCard GENDER free-text
+// component (RFC 6350's "sex;text" shape, e.g. "M;Transgender man") is NOT imported
+// as our Gender value - only the sex-component is mapped, deterministically, to one
+// of our presets. The text component isn't spec-constrained and is easy to conflate
+// with a PRONOUNS entry (a genuinely different RFC 9554 field), so we don't trust it.
+func TestGenderIgnoresFreeTextComponent(t *testing.T) {
+	card := make(vcard.Card)
+	card.SetValue(vcard.FieldFormattedName, "Gender Test")
+	card.SetValue(vcard.FieldGender, "M;Transgender man")
+
+	got, _, _, _ := VCardToContact(card, nil)
+	if got.Gender != "male" {
+		t.Errorf("expected only the sex component to be used, got %q", got.Gender)
+	}
+
+	card2 := make(vcard.Card)
+	card2.SetValue(vcard.FieldFormattedName, "Legacy Gender")
+	card2.SetValue(vcard.FieldGender, "M")
+	got2, _, _, _ := VCardToContact(card2, nil)
+	if got2.Gender != "male" {
+		t.Errorf("expected sex-letter mapping to preset, got %q", got2.Gender)
+	}
+}
+
 // TestApplePseudoLabelImport verifies that Apple's "_$!<...>!$_" pseudo-labels
 // are normalized back to our standard tokens on import.
 func TestApplePseudoLabelImport(t *testing.T) {

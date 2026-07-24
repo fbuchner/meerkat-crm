@@ -437,6 +437,33 @@ func TestCreateContactWithAllFields(t *testing.T) {
 	assert.Len(t, circles, 3)
 }
 
+func TestCreateContactWithCustomFreeTextGender(t *testing.T) {
+	_, router := setupRouter()
+
+	router.POST("/contacts", withValidated(func() any { return &models.ContactInput{} }), CreateContact)
+
+	newContact := models.ContactInput{
+		Firstname: "Jamie",
+		Lastname:  "Fields",
+		Gender:    "Non-Binary",
+	}
+
+	jsonValue, _ := json.Marshal(newContact)
+
+	req, _ := http.NewRequest("POST", "/contacts", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	var responseBody map[string]any
+	json.Unmarshal(w.Body.Bytes(), &responseBody)
+	contact := responseBody["contact"].(map[string]any)
+	assert.Equal(t, "Non-Binary", contact["gender"])
+}
+
 func TestCreateContactWithBirthdayVariations(t *testing.T) {
 	_, router := setupRouter()
 

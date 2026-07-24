@@ -186,3 +186,15 @@ func TestValidateImportedContact(t *testing.T) {
 	}
 	assert.Empty(t, ValidateImportedContact(&ok))
 }
+
+func TestNormalizeGender(t *testing.T) {
+	// Recognized synonyms map to the canonical preset.
+	assert.Equal(t, "male", NormalizeGender("Mann"))
+	assert.Equal(t, "female", NormalizeGender("w"))
+	assert.Equal(t, "other", NormalizeGender("divers"))
+	assert.Equal(t, "prefer_not_to_say", NormalizeGender("keine Angabe"))
+
+	// Unrecognized input passes through as free text instead of being dropped.
+	assert.Equal(t, "Non-Binary", NormalizeGender("Non-Binary"))
+	assert.Equal(t, "Genderqueer", NormalizeGender("  Genderqueer  "))
+}

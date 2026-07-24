@@ -790,9 +790,15 @@ func nonEmpty(values ...string) []string {
 	return out
 }
 
-// mapGenderFromVCard converts vCard gender to internal format
+// mapGenderFromVCard converts vCard GENDER to our internal format. RFC 6350's GENDER
+// value is "sex-component;text-component" (e.g. "M;Transgender man"); the text component
+// is meant for a gender-identity description, not a pronoun, and its content isn't
+// constrained by the spec. Rather than trust arbitrary free text as our Gender value
+// (which is easy to conflate with a PRONOUNS entry, a genuinely different RFC 9554
+// field), we only map the sex-component deterministically.
 func mapGenderFromVCard(gender string) string {
-	switch strings.ToUpper(gender) {
+	sex := strings.TrimSpace(splitComponents(gender)[0])
+	switch strings.ToUpper(sex) {
 	case "M":
 		return "male"
 	case "F":

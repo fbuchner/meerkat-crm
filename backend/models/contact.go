@@ -43,6 +43,19 @@ type ContactAddress struct {
 	Country string `json:"country" validate:"max=100"`
 }
 
+// ContactPronoun is a single language-tagged pronoun entry (vCard 4.0 RFC 9554 PRONOUNS).
+type ContactPronoun struct {
+	Language string `json:"language" validate:"max=30"`
+	Value    string `json:"value" validate:"required,max=50"`
+	Pref     int    `json:"pref,omitempty" validate:"omitempty,min=1,max=100"`
+}
+
+// ContactGramGender is a single language-tagged grammatical gender entry (vCard 4.0 RFC 9554 GRAMGENDER).
+type ContactGramGender struct {
+	Language string `json:"language" validate:"max=30"`
+	Value    string `json:"value" validate:"required,oneof=animate common feminine inanimate masculine neuter"`
+}
+
 type Contact struct {
 	gorm.Model
 	UserID             uint           `gorm:"not null;index" json:"-"`
@@ -74,6 +87,11 @@ type Contact struct {
 	Addresses []ContactAddress `gorm:"column:addresses;type:text;serializer:json" json:"addresses"`
 	URLs      []ContactURL     `gorm:"column:urls;type:text;serializer:json" json:"urls"`
 	IMPPs     []ContactIMPP    `gorm:"column:impps;type:text;serializer:json" json:"impps"`
+
+	// Pronouns (vCard PRONOUNS) and grammatical gender (vCard GRAMGENDER), both
+	// language-taggable and repeatable per RFC 9554.
+	Pronouns   []ContactPronoun    `gorm:"column:pronouns;type:text;serializer:json" json:"pronouns"`
+	GramGender []ContactGramGender `gorm:"column:gram_gender;type:text;serializer:json" json:"gram_gender"`
 
 	// Structured name parts (vCard N)
 	Prefix     string `gorm:"type:text" json:"prefix" validate:"max=50"`

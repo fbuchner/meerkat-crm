@@ -241,6 +241,54 @@ func TestCustomLabelRoundTrip(t *testing.T) {
 	}
 }
 
+// TestPronounsGramGenderRoundTrip verifies that multiple PRONOUNS/GRAMGENDER entries
+// with different LANGUAGE/PREF params survive a Contact -> vCard -> Contact round trip.
+func TestPronounsGramGenderRoundTrip(t *testing.T) {
+	original := &models.Contact{
+		Firstname: "Alex",
+		Lastname:  "Muster",
+		Pronouns: []models.ContactPronoun{
+			{Language: "en", Value: "they/them", Pref: 1},
+			{Language: "de", Value: "sie/ihr"},
+		},
+		GramGender: []models.ContactGramGender{
+			{Language: "de", Value: "feminine"},
+			{Language: "en", Value: "common"},
+		},
+	}
+
+	card := ContactToVCard(original, "")
+
+	if got := len(card[fieldPronouns]); got != 2 {
+		t.Fatalf("expected 2 PRONOUNS fields on card, got %d", got)
+	}
+	if got := len(card[fieldGramGender]); got != 2 {
+		t.Fatalf("expected 2 GRAMGENDER fields on card, got %d", got)
+	}
+
+	got, _, _, _ := VCardToContact(card, nil)
+
+	if len(got.Pronouns) != 2 {
+		t.Fatalf("expected 2 pronouns, got %d: %+v", len(got.Pronouns), got.Pronouns)
+	}
+	if got.Pronouns[0].Language != "en" || got.Pronouns[0].Value != "they/them" || got.Pronouns[0].Pref != 1 {
+		t.Errorf("pronoun[0] mismatch: %+v", got.Pronouns[0])
+	}
+	if got.Pronouns[1].Language != "de" || got.Pronouns[1].Value != "sie/ihr" {
+		t.Errorf("pronoun[1] mismatch: %+v", got.Pronouns[1])
+	}
+
+	if len(got.GramGender) != 2 {
+		t.Fatalf("expected 2 gram_gender entries, got %d: %+v", len(got.GramGender), got.GramGender)
+	}
+	if got.GramGender[0].Language != "de" || got.GramGender[0].Value != "feminine" {
+		t.Errorf("gram_gender[0] mismatch: %+v", got.GramGender[0])
+	}
+	if got.GramGender[1].Language != "en" || got.GramGender[1].Value != "common" {
+		t.Errorf("gram_gender[1] mismatch: %+v", got.GramGender[1])
+	}
+}
+
 // TestApplePseudoLabelImport verifies that Apple's "_$!<...>!$_" pseudo-labels
 // are normalized back to our standard tokens on import.
 func TestApplePseudoLabelImport(t *testing.T) {

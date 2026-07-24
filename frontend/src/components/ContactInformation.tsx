@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import { Card, CardContent, Divider, Stack, Box, Tabs, Tab, Button, Typography } from '@mui/material';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
+import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
+import TranslateIcon from '@mui/icons-material/Translate';
 import CakeIcon from '@mui/icons-material/Cake';
 import CelebrationIcon from '@mui/icons-material/Celebration';
 import HomeIcon from '@mui/icons-material/Home';
@@ -22,8 +24,8 @@ import MultiValueField from './MultiValueField';
 import AddressFields from './AddressFields';
 import RelationshipList from './RelationshipList';
 import { Relationship, IncomingRelationship } from '../api/relationships';
-import { Contact, ContactValue, ContactAddress } from '../api/contacts';
-import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
+import { Contact, ContactValue, ContactAddress, ContactPronoun, ContactGramGender } from '../api/contacts';
+import { ContactFieldKey, resolveEnabledFields, GRAM_GENDER_OPTIONS, COMMON_LANGUAGE_OPTIONS } from '../contactFields';
 import { useDateFormat } from '../DateFormatProvider';
 
 interface ContactInformationProps {
@@ -49,6 +51,19 @@ interface ContactInformationProps {
 
 const iconSx = { mr: 1, color: 'text.secondary', fontSize: '1.2rem' };
 const cloneValues = <T extends object>(v: T[]): T[] => v.map((x) => ({ ...x }));
+
+// Pronouns/GramGender share MultiValueField's {type, value} row shape; these adapters
+// translate to/from their {language, value} API shape (pref is not exposed in this UI).
+// Unlike the onSave cleanup below, these must NOT drop empty rows - they run on every
+// keystroke via the live draft, and filtering here would erase an in-progress new row.
+const pronounsToRows = (pronouns: ContactPronoun[]): ContactValue[] =>
+  pronouns.map((p) => ({ type: p.language, value: p.value }));
+const rowsToPronouns = (rows: ContactValue[]): ContactPronoun[] =>
+  rows.map((r) => ({ language: r.type, value: r.value }));
+const gramGenderToRows = (values: ContactGramGender[]): ContactValue[] =>
+  values.map((g) => ({ type: g.language, value: g.value }));
+const rowsToGramGender = (rows: ContactValue[]): ContactGramGender[] =>
+  rows.map((r) => ({ language: r.type, value: r.value }));
 
 export default function ContactInformation({
   contact,
@@ -89,6 +104,36 @@ export default function ContactInformation({
           <Typography key={i} variant="body2">
             {r.value}
             {r.type ? ` (${t(`contacts.types.${r.type}`, r.type)})` : ''}
+          </Typography>
+        ))}
+      </Stack>
+    );
+  };
+
+  const renderPronounList = (rows: ContactPronoun[] | undefined) => {
+    if (!rows || rows.length === 0) return <Typography variant="body2" color="text.disabled">—</Typography>;
+    return (
+      <Stack>
+        {rows.map((r, i) => (
+          <Typography key={i} variant="body2">
+            {r.value}
+            {r.language ? ` (${r.language})` : ''}
+          </Typography>
+        ))}
+      </Stack>
+    );
+  };
+
+  const gramGenderLabel = (value: string) => t(`contacts.gramGender${value.charAt(0).toUpperCase()}${value.slice(1)}`, value);
+
+  const renderGramGenderList = (rows: ContactGramGender[] | undefined) => {
+    if (!rows || rows.length === 0) return <Typography variant="body2" color="text.disabled">—</Typography>;
+    return (
+      <Stack>
+        {rows.map((r, i) => (
+          <Typography key={i} variant="body2">
+            {gramGenderLabel(r.value)}
+            {r.language ? ` (${r.language})` : ''}
           </Typography>
         ))}
       </Stack>
@@ -200,6 +245,52 @@ export default function ContactInformation({
                   <MultiValueField label={t('contacts.impps')} value={draft} onChange={setDraft} defaultType="" freeTextType />
                 )}
                 onSave={(draft) => onUpdateContact({ impps: draft.filter((i) => i.value.trim()) })}
+              />
+            )}
+
+            {isOn('pronouns') && (
+              <EditableArrayField<ContactPronoun[]>
+                icon={<RecordVoiceOverIcon sx={iconSx} />}
+                label={t('contacts.pronouns')}
+                value={contact.pronouns || []}
+                cloneValue={cloneValues}
+                renderDisplay={renderPronounList}
+                renderEditor={(draft, setDraft) => (
+                  <MultiValueField
+                    label={t('contacts.pronouns')}
+                    value={pronounsToRows(draft)}
+                    onChange={(rows) => setDraft(rowsToPronouns(rows))}
+                    defaultType=""
+                    typeOptions={COMMON_LANGUAGE_OPTIONS}
+                    typeLabelKey="contacts.language"
+                    typeIsLanguage
+                  />
+                )}
+                onSave={(draft) => onUpdateContact({ pronouns: draft.filter((p) => p.value.trim()) })}
+              />
+            )}
+
+            {isOn('gram_gender') && (
+              <EditableArrayField<ContactGramGender[]>
+                icon={<TranslateIcon sx={iconSx} />}
+                label={t('contacts.gramGender')}
+                value={contact.gram_gender || []}
+                cloneValue={cloneValues}
+                renderDisplay={renderGramGenderList}
+                renderEditor={(draft, setDraft) => (
+                  <MultiValueField
+                    label={t('contacts.gramGender')}
+                    value={gramGenderToRows(draft)}
+                    onChange={(rows) => setDraft(rowsToGramGender(rows))}
+                    defaultType=""
+                    typeOptions={COMMON_LANGUAGE_OPTIONS}
+                    typeLabelKey="contacts.language"
+                    typeIsLanguage
+                    valueOptions={GRAM_GENDER_OPTIONS}
+                    valueOptionLabel={gramGenderLabel}
+                  />
+                )}
+                onSave={(draft) => onUpdateContact({ gram_gender: draft.filter((g) => g.value.trim()) })}
               />
             )}
 

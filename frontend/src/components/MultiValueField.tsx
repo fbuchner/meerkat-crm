@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Box, Typography, Stack, TextField, Autocomplete, IconButton, Button } from '@mui/material';
+import { Box, Typography, Stack, TextField, Autocomplete, IconButton, Button, MenuItem } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { ContactValue } from '../api/contacts';
@@ -18,6 +18,14 @@ interface MultiValueFieldProps {
   typeOptions?: readonly string[];
   /** When true, the type column is a free-text field (used for IMPP service names) */
   freeTextType?: boolean;
+  /** i18n key for the type/language column label; defaults to 'contacts.fieldType' */
+  typeLabelKey?: string;
+  /** When set, the type column is labelled/translated as a language tag (e.g. Pronouns/GramGender) instead of a vCard TYPE */
+  typeIsLanguage?: boolean;
+  /** When set, the value column becomes a constrained Select of these options instead of free text (e.g. GramGender's enum) */
+  valueOptions?: readonly string[];
+  /** i18n key prefix for translating valueOptions entries, e.g. 'contacts.gramGender' -> 'contacts.gramGenderFeminine' */
+  valueOptionLabel?: (option: string) => string;
 }
 
 export default function MultiValueField({
@@ -28,6 +36,10 @@ export default function MultiValueField({
   defaultType = 'home',
   typeOptions = CONTACT_TYPE_OPTIONS,
   freeTextType = false,
+  typeLabelKey = 'contacts.fieldType',
+  typeIsLanguage = false,
+  valueOptions,
+  valueOptionLabel,
 }: MultiValueFieldProps) {
   const { t } = useTranslation();
   const rowKeys = useRowKeys(value.length);
@@ -56,40 +68,58 @@ export default function MultiValueField({
           <Stack key={rowKeys.keyAt(index)} direction="row" spacing={1} alignItems="center">
             {freeTextType ? (
               <TextField
-                label={t('contacts.fieldType')}
+                label={t(typeLabelKey)}
                 size="small"
                 value={row.type}
                 onChange={(e) => updateRow(index, { type: e.target.value })}
                 sx={{ minWidth: 120 }}
               />
             ) : (
-              // Free-solo: pick a standard type or type a custom label. Selecting a
+              // Free-solo: pick a standard option or type a custom one. Selecting a
               // standard option stores its token (e.g. "home") for proper i18n;
-              // typing a custom label stores the text verbatim. Custom labels are
-              // exported as vCard X-ABLabel and round-trip via CardDAV.
+              // typing a custom value stores the text verbatim. For the vCard TYPE
+              // case, custom labels are exported as X-ABLabel and round-trip via CardDAV.
               <Autocomplete
                 freeSolo
                 options={typeOptions as readonly string[]}
                 value={row.type}
-                getOptionLabel={(opt) => t(`contacts.types.${opt}`, opt)}
+                getOptionLabel={(opt) => (typeIsLanguage ? opt : t(`contacts.types.${opt}`, opt))}
                 onChange={(_, newValue) => updateRow(index, { type: (newValue ?? '').trim() })}
                 onInputChange={(_, newInput, reason) => {
                   if (reason === 'input') updateRow(index, { type: newInput });
                 }}
                 sx={{ minWidth: 140 }}
                 renderInput={(params) => (
-                  <TextField {...params} label={t('contacts.fieldType')} size="small" />
+                  <TextField {...params} label={t(typeLabelKey)} size="small" />
                 )}
               />
             )}
-            <TextField
-              label={label}
-              size="small"
-              type={valueType}
-              fullWidth
-              value={row.value}
-              onChange={(e) => updateRow(index, { value: e.target.value })}
-            />
+            {valueOptions ? (
+              <TextField
+                select
+                label={label}
+                size="small"
+                fullWidth
+                value={row.value}
+                onChange={(e) => updateRow(index, { value: e.target.value })}
+              >
+                <MenuItem value="">&nbsp;</MenuItem>
+                {valueOptions.map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {valueOptionLabel ? valueOptionLabel(opt) : opt}
+                  </MenuItem>
+                ))}
+              </TextField>
+            ) : (
+              <TextField
+                label={label}
+                size="small"
+                type={valueType}
+                fullWidth
+                value={row.value}
+                onChange={(e) => updateRow(index, { value: e.target.value })}
+              />
+            )}
             <IconButton
               size="small"
               color="error"

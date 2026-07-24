@@ -3,6 +3,7 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
+	"meerkat/middleware"
 	"meerkat/models"
 	"net/http"
 	"net/http/httptest"
@@ -435,6 +436,70 @@ func TestCreateContactWithAllFields(t *testing.T) {
 	assert.Equal(t, "Prefers email, available weekdays 9-5", contact["contact_information"])
 	circles := contact["circles"].([]any)
 	assert.Len(t, circles, 3)
+}
+
+func TestCreateContactWithPronounsAndGramGender(t *testing.T) {
+	_, router := setupRouter()
+
+	router.POST("/contacts", withValidated(func() any { return &models.ContactInput{} }), CreateContact)
+
+	newContact := models.ContactInput{
+		Firstname: "Robin",
+		Lastname:  "Voss",
+		Pronouns: []models.ContactPronoun{
+			{Language: "en", Value: "they/them"},
+			{Language: "de", Value: "sie/ihr"},
+		},
+		GramGender: []models.ContactGramGender{
+			{Language: "de", Value: "feminine"},
+		},
+	}
+
+	jsonValue, _ := json.Marshal(newContact)
+
+	req, _ := http.NewRequest("POST", "/contacts", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	var responseBody map[string]any
+	json.Unmarshal(w.Body.Bytes(), &responseBody)
+	contact := responseBody["contact"].(map[string]any)
+
+	pronouns := contact["pronouns"].([]any)
+	assert.Len(t, pronouns, 2)
+	first := pronouns[0].(map[string]any)
+	assert.Equal(t, "en", first["language"])
+	assert.Equal(t, "they/them", first["value"])
+
+	gramGender := contact["gram_gender"].([]any)
+	assert.Len(t, gramGender, 1)
+	assert.Equal(t, "feminine", gramGender[0].(map[string]any)["value"])
+}
+
+func TestCreateContactWithInvalidGramGenderRejected(t *testing.T) {
+	_, router := setupRouter()
+
+	router.POST("/contacts", middleware.ValidateJSONMiddleware(&models.ContactInput{}), CreateContact)
+
+	newContact := models.ContactInput{
+		Firstname:  "Sam",
+		Lastname:   "Ortiz",
+		GramGender: []models.ContactGramGender{{Language: "en", Value: "robot"}},
+	}
+
+	jsonValue, _ := json.Marshal(newContact)
+
+	req, _ := http.NewRequest("POST", "/contacts", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestCreateContactWithBirthdayVariations(t *testing.T) {

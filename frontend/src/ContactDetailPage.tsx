@@ -73,7 +73,7 @@ const CONTACT_FIELDS = [
   'circles', 'photo', 'custom_fields', 'archived',
   'emails', 'phones', 'addresses', 'urls', 'impps',
   'prefix', 'middle_name', 'suffix', 'organization', 'department',
-  'job_title', 'role', 'anniversary'
+  'job_title', 'role', 'anniversary', 'pronouns', 'gram_gender'
 ];
 
 export default function ContactDetailPage() {

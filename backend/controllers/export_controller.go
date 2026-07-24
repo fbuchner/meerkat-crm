@@ -8,6 +8,7 @@ import (
 	apperrors "meerkat/errors"
 	"meerkat/logger"
 	"meerkat/models"
+	"meerkat/services"
 	"net/http"
 	"strings"
 	"time"
@@ -89,7 +90,7 @@ func ExportData(c *gin.Context) {
 	writer.Flush()
 
 	contactHeaders := []string{
-		"ID", "Firstname", "Lastname", "Nickname", "Gender", "Email", "Phone",
+		"ID", "Firstname", "Lastname", "Nickname", "Gender", "Pronouns", "GramGender", "Email", "Phone",
 		"Birthday", "Address", "How We Met", "Food Preference", "Work Information",
 		"Contact Information", "Circles", "Created At", "Updated At",
 	}
@@ -108,6 +109,8 @@ func ExportData(c *gin.Context) {
 			contact.Lastname,
 			contact.Nickname,
 			contact.Gender,
+			services.SerializePronouns(contact.Pronouns),
+			services.SerializeGramGender(contact.GramGender),
 			contact.Email,
 			contact.Phone,
 			contact.Birthday,

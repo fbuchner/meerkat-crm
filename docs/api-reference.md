@@ -168,6 +168,11 @@ Every request and response carries an `X-Request-ID` header created by the middl
 | `GET` | `/export` | Download all data as CSV |
 | `GET` | `/export/vcf` | Download all contacts as VCF (includes photos) |
 
+The multi-entry **Pronouns** and **GramGender** contact fields are serialized in CSV as
+semicolon-delimited `value (language)` pairs, e.g. `they/them (en); sie/ihr (de)`. A missing
+language tag is written/read as a bare value. The same convention is used for both the CSV
+export and CSV import column mapping.
+
 ### Network
 
 | Method | Path | Description |

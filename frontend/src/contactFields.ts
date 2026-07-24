@@ -10,6 +10,8 @@ export type ContactFieldKey =
   | 'impps'
   | 'nickname'
   | 'gender'
+  | 'pronouns'
+  | 'gram_gender'
   | 'birthday'
   | 'anniversary'
   | 'prefix'
@@ -51,6 +53,8 @@ export const CONTACT_FIELDS: ContactFieldDef[] = [
   { key: 'work_information', labelKey: 'contacts.workInformation', group: 'work' },
 
   { key: 'gender', labelKey: 'contacts.gender', group: 'personal' },
+  { key: 'pronouns', labelKey: 'contacts.pronouns', group: 'personal' },
+  { key: 'gram_gender', labelKey: 'contacts.gramGender', group: 'personal' },
   { key: 'birthday', labelKey: 'contacts.birthday', group: 'personal' },
   { key: 'anniversary', labelKey: 'contacts.anniversary', group: 'personal' },
 
@@ -76,6 +80,7 @@ export const DEFAULT_ENABLED_CONTACT_FIELDS: ContactFieldKey[] = [
   'addresses',
   'nickname',
   'gender',
+  'pronouns',
   'birthday',
   'how_we_met',
   'food_preference',
@@ -85,6 +90,12 @@ export const DEFAULT_ENABLED_CONTACT_FIELDS: ContactFieldKey[] = [
 
 // vCard TYPE options for typed multi-value fields (emails/phones/addresses/urls).
 export const CONTACT_TYPE_OPTIONS = ['home', 'work', 'cell', 'fax', 'other'] as const;
+
+// RFC 9554 GRAMGENDER enum - spec-core values only, no iana-token/x-name extensibility.
+export const GRAM_GENDER_OPTIONS = ['animate', 'common', 'feminine', 'inanimate', 'masculine', 'neuter'] as const;
+
+// Common language tags offered as quick picks for Pronouns/GramGender; freeSolo allows any other.
+export const COMMON_LANGUAGE_OPTIONS = ['en', 'de', 'it', 'es', 'fr'] as const;
 
 // Resolves the stored setting (null/undefined => defaults) into a concrete enabled set.
 export function resolveEnabledFields(stored: string[] | null | undefined): Set<ContactFieldKey> {

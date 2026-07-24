@@ -56,6 +56,8 @@ func CreateContact(c *gin.Context) {
 		Addresses:          contactInput.Addresses,
 		URLs:               contactInput.URLs,
 		IMPPs:              contactInput.IMPPs,
+		Pronouns:           contactInput.Pronouns,
+		GramGender:         contactInput.GramGender,
 		Prefix:             contactInput.Prefix,
 		MiddleName:         contactInput.MiddleName,
 		Suffix:             contactInput.Suffix,
@@ -99,7 +101,7 @@ func GetContacts(c *gin.Context) {
 	pagination := GetPaginationParams(c)
 
 	// Define allowed fields and parse requested fields with validation
-	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail", "custom_fields", "archived", "emails", "phones", "addresses", "urls", "impps", "prefix", "middle_name", "suffix", "organization", "department", "job_title", "role", "anniversary"}
+	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail", "custom_fields", "archived", "emails", "phones", "addresses", "urls", "impps", "prefix", "middle_name", "suffix", "organization", "department", "job_title", "role", "anniversary", "pronouns", "gram_gender"}
 	var selectedFields []string
 	fields := c.Query("fields")
 	if fields != "" {
@@ -312,7 +314,7 @@ func GetContact(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
 	// Check for fields query parameter to enable partial fetching
-	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail", "custom_fields", "archived", "emails", "phones", "addresses", "urls", "impps", "prefix", "middle_name", "suffix", "organization", "department", "job_title", "role", "anniversary"}
+	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail", "custom_fields", "archived", "emails", "phones", "addresses", "urls", "impps", "prefix", "middle_name", "suffix", "organization", "department", "job_title", "role", "anniversary", "pronouns", "gram_gender"}
 	var selectedFields []string
 	fields := c.Query("fields")
 	if fields != "" {
@@ -395,6 +397,8 @@ func UpdateContact(c *gin.Context) {
 	contact.Addresses = contactInput.Addresses
 	contact.URLs = contactInput.URLs
 	contact.IMPPs = contactInput.IMPPs
+	contact.Pronouns = contactInput.Pronouns
+	contact.GramGender = contactInput.GramGender
 	contact.Prefix = contactInput.Prefix
 	contact.MiddleName = contactInput.MiddleName
 	contact.Suffix = contactInput.Suffix

@@ -71,6 +71,8 @@ export const IMPORTABLE_CONTACT_FIELDS = [
   'suffix',
   'nickname',
   'gender',
+  'pronouns',
+  'gram_gender',
   // Dates
   'birthday',
   'anniversary',
@@ -115,6 +117,8 @@ export const CONTACT_FIELD_LABELS: Record<string, string> = {
   suffix: 'Name Suffix',
   nickname: 'Nickname',
   gender: 'Gender',
+  pronouns: 'Pronouns',
+  gram_gender: 'Grammatical Gender',
   birthday: 'Birthday',
   anniversary: 'Anniversary',
   email: 'Email',

@@ -33,6 +33,12 @@ func TestExportData(t *testing.T) {
 		WorkInformation:    "Software Engineer",
 		ContactInformation: "Prefers email",
 		Circles:            []string{"Friends", "Work"},
+		Pronouns: []models.ContactPronoun{
+			{Language: "en", Value: "she/her"},
+		},
+		GramGender: []models.ContactGramGender{
+			{Language: "de", Value: "feminine"},
+		},
 	}
 	db.Create(&contact1)
 
@@ -120,6 +126,8 @@ func TestExportData(t *testing.T) {
 	assert.Contains(t, body, "Bob")
 	assert.Contains(t, body, "Smith")
 	assert.Contains(t, body, "Friends; Work")
+	assert.Contains(t, body, "she/her (en)")
+	assert.Contains(t, body, "feminine (de)")
 
 	// Verify relationships section
 	assert.Contains(t, body, "=== RELATIONSHIPS ===")

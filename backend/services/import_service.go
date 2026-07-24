@@ -178,6 +178,8 @@ var headerToField = map[string]string{
 	"work": "work_information", "work_information": "work_information", "job": "work_information", "occupation": "work_information",
 	"contact information": "contact_information", "contact_information": "contact_information", "other contact": "contact_information",
 	"circles": "circles", "groups": "circles", "tags": "circles", "category": "circles", "categories": "circles", "labels": "circles",
+	"pronouns": "pronouns", "pronoun": "pronouns",
+	"gram_gender": "gram_gender", "grammatical gender": "gram_gender", "gramgender": "gram_gender",
 	// German
 	"vorname":  "firstname",
 	"nachname": "lastname", "familienname": "lastname",
@@ -197,6 +199,8 @@ var headerToField = map[string]string{
 	"abteilung": "department",
 	"beruf":     "work_information", "arbeit": "work_information",
 	"kreise": "circles", "gruppen": "circles",
+	"pronomen": "pronouns",
+	"grammatisches geschlecht": "gram_gender", "genus": "gram_gender",
 }
 
 // indexedHeaderRe matches Google-style grouped columns, e.g. "E-mail 1 - Value",
@@ -354,6 +358,8 @@ func ContactToPreviewMap(contact *models.Contact) map[string]interface{} {
 	if len(contact.Circles) > 0 {
 		preview["circles"] = strings.Join(contact.Circles, ", ")
 	}
+	set("pronouns", SerializePronouns(contact.Pronouns))
+	set("gram_gender", SerializeGramGender(contact.GramGender))
 	return preview
 }
 
@@ -386,6 +392,13 @@ func ValidateImportedContact(contact *models.Contact) []string {
 
 	if contact.Anniversary != "" && !IsValidBirthdayFormat(contact.Anniversary) {
 		errors = append(errors, "Invalid anniversary format (expected YYYY-MM-DD or --MM-DD)")
+	}
+
+	for _, g := range contact.GramGender {
+		if !validGramGenderValues[g.Value] {
+			errors = append(errors, fmt.Sprintf("Invalid gram_gender value: %s", g.Value))
+			break
+		}
 	}
 
 	return errors
@@ -574,6 +587,106 @@ func ParseCircles(input string) []string {
 	return circles
 }
 
+// languageTaggedEntry is the minimal shape shared by Pronouns and GramGender entries,
+// used to serialize/parse both to/from the same CSV convention:
+// semicolon-delimited "value (language)" pairs, e.g. "they/them (en); sie/ihr (de)".
+// A missing language is emitted/read as just the bare value.
+type languageTaggedEntry struct {
+	Language string
+	Value    string
+}
+
+func serializeLanguageTagged(entries []languageTaggedEntry) string {
+	parts := make([]string, 0, len(entries))
+	for _, e := range entries {
+		if e.Value == "" {
+			continue
+		}
+		if e.Language != "" {
+			parts = append(parts, fmt.Sprintf("%s (%s)", e.Value, e.Language))
+		} else {
+			parts = append(parts, e.Value)
+		}
+	}
+	return strings.Join(parts, "; ")
+}
+
+func parseLanguageTagged(input string) []languageTaggedEntry {
+	if strings.TrimSpace(input) == "" {
+		return nil
+	}
+	var entries []languageTaggedEntry
+	for _, part := range strings.Split(input, ";") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		value := part
+		language := ""
+		if strings.HasSuffix(part, ")") {
+			if idx := strings.LastIndex(part, "("); idx != -1 {
+				language = strings.TrimSpace(part[idx+1 : len(part)-1])
+				value = strings.TrimSpace(part[:idx])
+			}
+		}
+		if value == "" {
+			continue
+		}
+		entries = append(entries, languageTaggedEntry{Language: language, Value: value})
+	}
+	return entries
+}
+
+// SerializePronouns renders Pronouns as CSV text: semicolon-delimited "value (language)" pairs.
+func SerializePronouns(pronouns []models.ContactPronoun) string {
+	entries := make([]languageTaggedEntry, len(pronouns))
+	for i, p := range pronouns {
+		entries[i] = languageTaggedEntry{Language: p.Language, Value: p.Value}
+	}
+	return serializeLanguageTagged(entries)
+}
+
+// ParsePronouns parses the CSV Pronouns convention back into structured entries.
+func ParsePronouns(input string) []models.ContactPronoun {
+	entries := parseLanguageTagged(input)
+	if len(entries) == 0 {
+		return nil
+	}
+	pronouns := make([]models.ContactPronoun, len(entries))
+	for i, e := range entries {
+		pronouns[i] = models.ContactPronoun{Language: e.Language, Value: e.Value}
+	}
+	return pronouns
+}
+
+// SerializeGramGender renders GramGender as CSV text using the same convention as Pronouns.
+func SerializeGramGender(values []models.ContactGramGender) string {
+	entries := make([]languageTaggedEntry, len(values))
+	for i, g := range values {
+		entries[i] = languageTaggedEntry{Language: g.Language, Value: g.Value}
+	}
+	return serializeLanguageTagged(entries)
+}
+
+// ParseGramGender parses the CSV GramGender convention back into structured entries.
+// Invalid enum values are passed through as-is; ValidateImportedContact flags them.
+func ParseGramGender(input string) []models.ContactGramGender {
+	entries := parseLanguageTagged(input)
+	if len(entries) == 0 {
+		return nil
+	}
+	values := make([]models.ContactGramGender, len(entries))
+	for i, e := range entries {
+		values[i] = models.ContactGramGender{Language: e.Language, Value: e.Value}
+	}
+	return values
+}
+
+var validGramGenderValues = map[string]bool{
+	"animate": true, "common": true, "feminine": true,
+	"inanimate": true, "masculine": true, "neuter": true,
+}
+
 // addrEntry accumulates the components of one structured address while building a row.
 type addrEntry struct {
 	label   string
@@ -698,6 +811,14 @@ func BuildContactFromRow(userID uint, headers []string, row []string, mappings [
 		case "circles":
 			if v != "" {
 				contact.Circles = ParseCircles(v)
+			}
+		case "pronouns":
+			if v != "" {
+				contact.Pronouns = ParsePronouns(v)
+			}
+		case "gram_gender":
+			if v != "" {
+				contact.GramGender = ParseGramGender(v)
 			}
 		case "email":
 			putValue(emailVals, &emailGroups, m.Group, v)
@@ -849,6 +970,12 @@ func MergeImportedContact(existing *models.Contact, incoming *models.Contact) {
 	if len(incoming.IMPPs) > 0 {
 		existing.IMPPs = incoming.IMPPs
 	}
+	if len(incoming.Pronouns) > 0 {
+		existing.Pronouns = incoming.Pronouns
+	}
+	if len(incoming.GramGender) > 0 {
+		existing.GramGender = incoming.GramGender
+	}
 	if incoming.MiddleName != "" {
 		existing.MiddleName = incoming.MiddleName
 	}
@@ -909,6 +1036,8 @@ func CreateMergeNote(db *gorm.DB, userID uint, contactID uint, original *models.
 		"food_preference":     {"Food Preferences", original.FoodPreference},
 		"work_information":    {"Work Information", original.WorkInformation},
 		"contact_information": {"Contact Information", original.ContactInformation},
+		"pronouns":            {"Pronouns", SerializePronouns(original.Pronouns)},
+		"gram_gender":         {"Grammatical Gender", SerializeGramGender(original.GramGender)},
 	}
 
 	for field, info := range fieldLabels {

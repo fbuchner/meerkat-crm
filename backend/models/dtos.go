@@ -72,6 +72,10 @@ type ContactInput struct {
 	URLs      []ContactURL     `json:"urls" validate:"omitempty,max=25,dive"`
 	IMPPs     []ContactIMPP    `json:"impps" validate:"omitempty,max=25,dive"`
 
+	// Pronouns (vCard PRONOUNS) and grammatical gender (vCard GRAMGENDER)
+	Pronouns   []ContactPronoun    `json:"pronouns" validate:"omitempty,max=25,dive"`
+	GramGender []ContactGramGender `json:"gram_gender" validate:"omitempty,max=25,dive"`
+
 	// Structured name parts
 	Prefix     string `json:"prefix" validate:"max=50"`
 	MiddleName string `json:"middle_name" validate:"max=100"`

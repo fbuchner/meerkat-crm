@@ -15,6 +15,17 @@ export interface ContactAddress {
   country: string;
 }
 
+export interface ContactPronoun {
+  language: string;
+  value: string;
+  pref?: number;
+}
+
+export interface ContactGramGender {
+  language: string;
+  value: string;
+}
+
 export interface Contact {
   ID: number;
   firstname: string;
@@ -40,6 +51,8 @@ export interface Contact {
   addresses?: ContactAddress[];
   urls?: ContactValue[];
   impps?: ContactValue[];
+  pronouns?: ContactPronoun[];
+  gram_gender?: ContactGramGender[];
   // Structured name parts
   prefix?: string;
   middle_name?: string;

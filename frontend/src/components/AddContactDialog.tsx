@@ -17,12 +17,20 @@ import {
 import AppDialog from './AppDialog';
 import MultiValueField from './MultiValueField';
 import AddressFields from './AddressFields';
-import { createContact, ContactValue, ContactAddress } from '../api/contacts';
+import { createContact, ContactValue, ContactAddress, ContactPronoun, ContactGramGender } from '../api/contacts';
 import { createReminder } from '../api/reminders';
 import { useSnackbar } from '../context/SnackbarContext';
 import { handleError, getErrorMessage } from '../utils/errorHandler';
 import { useDateFormat } from '../DateFormatProvider';
-import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
+import { ContactFieldKey, resolveEnabledFields, GRAM_GENDER_OPTIONS, COMMON_LANGUAGE_OPTIONS } from '../contactFields';
+
+// Pronouns/GramGender edit as MultiValueField's {type, value} rows (type holds the
+// language tag); these adapters convert the cleaned rows to their {language, value}
+// API shape on submit (pref is not exposed in this UI).
+const rowsToPronouns = (rows: ContactValue[]): ContactPronoun[] =>
+  rows.filter((r) => r.value.trim()).map((r) => ({ language: r.type, value: r.value }));
+const rowsToGramGender = (rows: ContactValue[]): ContactGramGender[] =>
+  rows.filter((r) => r.value.trim()).map((r) => ({ language: r.type, value: r.value }));
 
 interface AddContactDialogProps {
   open: boolean;
@@ -73,6 +81,8 @@ export default function AddContactDialog({
   const [addresses, setAddresses] = useState<ContactAddress[]>([]);
   const [urls, setUrls] = useState<ContactValue[]>([]);
   const [impps, setImpps] = useState<ContactValue[]>([]);
+  const [pronouns, setPronouns] = useState<ContactValue[]>([]);
+  const [gramGender, setGramGender] = useState<ContactValue[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [selectedCircles, setSelectedCircles] = useState<string[]>([]);
   const [newCircle, setNewCircle] = useState('');
@@ -176,6 +186,8 @@ export default function AddContactDialog({
         addresses: cleanAddresses,
         urls: cleanUrls,
         impps: cleanImpps,
+        pronouns: rowsToPronouns(pronouns),
+        gram_gender: rowsToGramGender(gramGender),
         // Derived primary scalars keep search/list and the backend in sync
         email: cleanEmails[0]?.value || '',
         phone: cleanPhones[0]?.value || '',
@@ -240,6 +252,8 @@ export default function AddContactDialog({
     setAddresses([]);
     setUrls([]);
     setImpps([]);
+    setPronouns([]);
+    setGramGender([]);
     setCustomFieldValues({});
     setSelectedCircles([]);
     setNewCircle('');
@@ -310,6 +324,31 @@ export default function AddContactDialog({
               </TextField>
             )}
           </Stack>
+
+          {isOn('pronouns') && (
+            <MultiValueField
+              label={t('contacts.pronouns')}
+              value={pronouns}
+              onChange={setPronouns}
+              defaultType=""
+              typeOptions={COMMON_LANGUAGE_OPTIONS}
+              typeLabelKey="contacts.language"
+              typeIsLanguage
+            />
+          )}
+          {isOn('gram_gender') && (
+            <MultiValueField
+              label={t('contacts.gramGender')}
+              value={gramGender}
+              onChange={setGramGender}
+              defaultType=""
+              typeOptions={COMMON_LANGUAGE_OPTIONS}
+              typeLabelKey="contacts.language"
+              typeIsLanguage
+              valueOptions={GRAM_GENDER_OPTIONS}
+              valueOptionLabel={(opt) => t(`contacts.gramGender${opt.charAt(0).toUpperCase()}${opt.slice(1)}`)}
+            />
+          )}
 
           {isOn('emails') && (
             <MultiValueField label={t('contacts.email')} value={emails} onChange={setEmails} valueType="email" defaultType="home" />

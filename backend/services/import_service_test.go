@@ -185,4 +185,45 @@ func TestValidateImportedContact(t *testing.T) {
 		Birthday:  "1958-06-29",
 	}
 	assert.Empty(t, ValidateImportedContact(&ok))
+
+	// An invalid gram_gender enum value is flagged.
+	badGramGender := models.Contact{
+		Firstname:  "Ada",
+		GramGender: []models.ContactGramGender{{Language: "en", Value: "robot"}},
+	}
+	assert.Contains(t, ValidateImportedContact(&badGramGender), "Invalid gram_gender value: robot")
+}
+
+func TestPronounsGramGenderCSVRoundTrip(t *testing.T) {
+	pronouns := []models.ContactPronoun{
+		{Language: "en", Value: "they/them"},
+		{Value: "xe/xem"}, // no language tag
+	}
+	csv := SerializePronouns(pronouns)
+	assert.Equal(t, "they/them (en); xe/xem", csv)
+	assert.Equal(t, pronouns, ParsePronouns(csv))
+
+	gramGender := []models.ContactGramGender{
+		{Language: "de", Value: "feminine"},
+		{Language: "en", Value: "common"},
+	}
+	csv2 := SerializeGramGender(gramGender)
+	assert.Equal(t, "feminine (de); common (en)", csv2)
+	assert.Equal(t, gramGender, ParseGramGender(csv2))
+}
+
+func TestBuildContactFromRow_PronounsGramGender(t *testing.T) {
+	headers := []string{"First Name", "Pronouns", "GramGender"}
+	row := []string{"Alex", "they/them (en); sie/ihr (de)", "feminine (de)"}
+	mappings := SuggestColumnMappings(headers)
+
+	c := BuildContactFromRow(1, headers, row, mappings)
+
+	assert.Equal(t, []models.ContactPronoun{
+		{Language: "en", Value: "they/them"},
+		{Language: "de", Value: "sie/ihr"},
+	}, c.Pronouns)
+	assert.Equal(t, []models.ContactGramGender{
+		{Language: "de", Value: "feminine"},
+	}, c.GramGender)
 }

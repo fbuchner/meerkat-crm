@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/emersion/go-vcard"
@@ -128,6 +129,33 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 			params["X-SERVICE-TYPE"] = []string{im.Type}
 		}
 		card.Add(vcard.FieldIMPP, &vcard.Field{Value: im.Value, Params: params})
+	}
+
+	// PRONOUNS (RFC 9554) - repeatable, language-taggable
+	for _, p := range contact.Pronouns {
+		if p.Value == "" {
+			continue
+		}
+		params := vcard.Params{}
+		if p.Language != "" {
+			params[vcard.ParamLanguage] = []string{p.Language}
+		}
+		if p.Pref > 0 {
+			params[vcard.ParamPreferred] = []string{fmt.Sprintf("%d", p.Pref)}
+		}
+		card.Add(fieldPronouns, &vcard.Field{Value: p.Value, Params: params})
+	}
+
+	// GRAMGENDER (RFC 9554) - repeatable, language-taggable
+	for _, g := range contact.GramGender {
+		if g.Value == "" {
+			continue
+		}
+		params := vcard.Params{}
+		if g.Language != "" {
+			params[vcard.ParamLanguage] = []string{g.Language}
+		}
+		card.Add(fieldGramGender, &vcard.Field{Value: g.Value, Params: params})
 	}
 
 	// BDAY (birthday) - vCard 3.0 uses YYYY-MM-DD; store as-is (--MM-DD is also accepted)
@@ -342,6 +370,41 @@ func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact,
 	// GENDER
 	if gender := card.Value(vcard.FieldGender); gender != "" {
 		contact.Gender = mapGenderFromVCard(gender)
+	}
+
+	// PRONOUNS (RFC 9554) - import every entry
+	if fields := card[fieldPronouns]; len(fields) > 0 {
+		contact.Pronouns = contact.Pronouns[:0]
+		for _, f := range fields {
+			if f.Value == "" {
+				continue
+			}
+			pref := 0
+			if p := f.Params.Get(vcard.ParamPreferred); p != "" {
+				if n, err := strconv.Atoi(p); err == nil {
+					pref = n
+				}
+			}
+			contact.Pronouns = append(contact.Pronouns, models.ContactPronoun{
+				Language: f.Params.Get(vcard.ParamLanguage),
+				Value:    f.Value,
+				Pref:     pref,
+			})
+		}
+	}
+
+	// GRAMGENDER (RFC 9554) - import every entry
+	if fields := card[fieldGramGender]; len(fields) > 0 {
+		contact.GramGender = contact.GramGender[:0]
+		for _, f := range fields {
+			if f.Value == "" {
+				continue
+			}
+			contact.GramGender = append(contact.GramGender, models.ContactGramGender{
+				Language: f.Params.Get(vcard.ParamLanguage),
+				Value:    f.Value,
+			})
+		}
 	}
 
 	// CATEGORIES -> Circles
@@ -632,6 +695,13 @@ func typeTokens(t string) []string {
 // linked to that value via a shared property group (e.g. item1.X-ABLabel).
 const fieldABLabel = "X-ABLabel"
 
+// go-vcard has no constants for these RFC 9554 properties, so they are read/written
+// via the generic field-access API using raw property names.
+const (
+	fieldPronouns   = "PRONOUNS"
+	fieldGramGender = "GRAMGENDER"
+)
+
 // standardTypeTokens are the type values we round-trip as a vCard TYPE parameter.
 // Any other (user-defined) label is emitted as a grouped X-ABLabel instead, which
 // is how most CardDAV clients represent custom labels (RFC 2426).
@@ -854,6 +924,8 @@ func mappedVCardFields() map[string]bool {
 		vcard.FieldRole:          true,
 		vcard.FieldAnniversary:   true,
 		fieldABLabel:             true,
+		fieldPronouns:            true,
+		fieldGramGender:          true,
 	}
 }
 

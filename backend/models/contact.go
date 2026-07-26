@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"meerkat/contactmodel"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -98,6 +100,26 @@ type Contact struct {
 	CustomFields map[string]string `gorm:"type:text;serializer:json" json:"custom_fields"`
 
 	Archived bool `gorm:"default:false" json:"archived"`
+
+	// Neutral RFC 9553/9554/9555 representation (WP-70, P1 — see
+	// docs/fork-plan/50-integration-and-rebrand.md). This is a second,
+	// parallel representation of the same data already held in the legacy
+	// flat/array fields above: purely additive, nothing existing is removed,
+	// renamed, or stops being populated. Populated by RecordFromContact (see
+	// contact_record.go) via BeforeSave on every save, and by the one-shot
+	// cmd/backfill-contact-records tool for rows that predate this WP.
+	// Nothing else reads these fields yet (hence json:"-": exposing them on
+	// the wire is P2's job, per WP-71's API/DTO rewrite), so adding them
+	// carries no compile or behavior risk to any other package.
+	Card        contactmodel.Card        `gorm:"column:card;type:text;serializer:json" json:"-"`
+	CRM         contactmodel.CRMEnvelope `gorm:"column:crm;type:text;serializer:json" json:"-"`
+	Passthrough contactmodel.Passthrough `gorm:"column:passthrough;type:text;serializer:json" json:"-"`
+
+	// Derived projection scalars with no existing legacy analog
+	// (contactmodel.Projection.FN / .Org). Populated the same way as
+	// Firstname/Lastname/Email/Phone/Birthday below, via DeriveProjection.
+	FN  string `gorm:"column:fn" json:"-"`
+	Org string `gorm:"column:org" json:"-"`
 }
 
 // renders a structured address as a single human-readable line, used to keep the legacy Address scalar in sync for search/list views.
@@ -112,7 +134,29 @@ func FormatAddress(a ContactAddress) string {
 }
 
 // BeforeSave keeps the denormalized primary scalars (Email/Phone/Address) in sync
-// with the first entry of their respective JSON arrays. Runs on both create and update
+// with the first entry of their respective JSON arrays, and keeps the neutral
+// Card/CRM/Passthrough representation (and its own derived projection
+// scalars) in sync with the legacy fields on every create/update.
+//
+// RecordFromContact + contactmodel.DeriveProjection is now the single source
+// of truth for Firstname/Lastname/Email/Phone/Birthday/FN/Org: the old
+// ad-hoc "first array entry wins" logic for Email/Phone is superseded by
+// DeriveProjection's own (equivalent, Pref-aware) primary-value selection,
+// so there is one derivation path, not two competing ones (see
+// docs/fork-plan/50-integration-and-rebrand.md WP-70). Address has no
+// neutral projection field (Address stays a free-text legacy scalar), so its
+// ad-hoc sync from the first Addresses[] entry is kept as-is.
+//
+// Projection values only overwrite their legacy scalar when non-empty, the
+// same "only sync when there's something to sync" semantics the original
+// Email/Phone logic had (`if len(c.Emails) > 0 { ... }`) — this matters
+// because some existing contacts only ever had the scalar Email/Phone set
+// directly, without ever populating the Emails/Phones arrays; DeriveProjection
+// on those rows also lands back on the same scalar value (RecordFromContact
+// falls back to the scalar when its array is empty — see contact_record.go),
+// so this is a no-op for them, not a silent blank-out. FN and Org are new
+// columns with no prior value and no back-compat concern, so they are always
+// assigned directly.
 func (c *Contact) BeforeSave(tx *gorm.DB) error {
 	if len(c.Emails) > 0 {
 		c.Email = c.Emails[0].Value
@@ -123,6 +167,31 @@ func (c *Contact) BeforeSave(tx *gorm.DB) error {
 	if len(c.Addresses) > 0 {
 		c.Address = FormatAddress(c.Addresses[0])
 	}
+
+	record := RecordFromContact(c)
+	c.Card = record.Card
+	c.CRM = record.Envelope
+	c.Passthrough = record.Passthrough
+
+	proj := contactmodel.DeriveProjection(record)
+	if proj.Firstname != "" {
+		c.Firstname = proj.Firstname
+	}
+	if proj.Lastname != "" {
+		c.Lastname = proj.Lastname
+	}
+	if proj.PrimaryEmail != "" {
+		c.Email = proj.PrimaryEmail
+	}
+	if proj.PrimaryPhone != "" {
+		c.Phone = proj.PrimaryPhone
+	}
+	if proj.Birthday != "" {
+		c.Birthday = proj.Birthday
+	}
+	c.FN = proj.FN
+	c.Org = proj.Org
+
 	return nil
 }
 

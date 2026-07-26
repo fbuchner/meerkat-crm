@@ -239,6 +239,57 @@ Go handlers compile.
 - **Optional** — revive the dead `CardDAVSync` sync-token table (`backend/models/carddav.go`) for
   efficient collection sync; today only ETag+If-Match exists.
 
+## WP-73b · CardDAV *client* (sync contacts in from an external server)  (effort M/L)
+
+**Why this exists.** Upstream (`fbuchner/meerkat-crm`) is adding "the option to run Meerkat as a CardDAV
+client" in an upcoming, not-yet-public release (per maintainer comment, PR #195:
+https://github.com/fbuchner/meerkat-crm/pull/195#issuecomment-5083383141 — confirmed via `gh api`, no
+branch/PR visible yet as of this writing). This is the *opposite* direction from WP-73 above: instead of
+other apps connecting to Meerkat's address book, Meerkat connects *out* to a user's existing CardDAV
+server (Nextcloud, Fastmail, iCloud, etc.) and pulls their contacts in.
+
+**Do not wait for or plan to merge upstream's implementation.** The maintainer's own stated concern for
+reviewing PR #195 is whether "the new classes" (from the pronouns/gramgender work) "interfere with"
+their CardDAV-client code — meaning it touches the same area (`models/contact.go` and/or
+`carddav/vcard_mapper.go`) this fork has already substantially diverged from (P0 replaced vCard parsing
+entirely; P1 restructured the model; WP-71 is replacing the legacy mapper on the REST path). Per the
+hard-fork decision (`90` D2), this is expected: build our own version using this fork's own architecture,
+and only look at upstream's shipped code afterward for implementation ideas (real-world server quirks
+they had to handle) — not as something to pull in directly.
+
+**Decided: synced contacts are real `Contact` rows**, not `ExternalIdentity` references (per `91.12`'s
+distinction — this is "we own this data going forward," unlike Immich-style "the other app owns it").
+
+**Architecture — mirrors the existing CalDAV-client pattern exactly** (`services/calendar_sync_service.go`
++ `models.CalendarSubscription` + `calendar_event_links`), which already solves the same shape of problem
+for calendars: subscription config, per-subscription sync-mutex, encrypted credentials
+(`services/credential_crypto.go`, already exists, directly reusable), UID→local-record link table for
+idempotent re-sync, content-hash change detection, sync status/error bookkeeping.
+
+- `backend/models/contact_subscription.go` (new) — `ContactSubscription{UserID, Name, URL, Username,
+  PasswordEncrypted, SyncEnabled, LastSyncedAt, LastSyncStatus, LastSyncError}`, same shape as
+  `CalendarSubscription`.
+- `backend/services/contact_sync_service.go` (new) — the sync loop: CardDAV discovery (or a
+  direct-address-book-URL shortcut as a v1, discovery as a fast-follow), `sync-collection` REPORT with a
+  stored sync-token where the server supports it (RFC 6578), falling back to full
+  PROPFIND+`addressbook-multiget` otherwise. **Parse each fetched vCard via the existing `vcard4`/`vcard3`
+  adapters** (sniff `VERSION`, same as WP-71's import path) into a `contactmodel.Record`, then **reuse
+  WP-71's `ApplyRecordToContact`** to turn it into a real `Contact` row — do not write a third, divergent
+  `Record`→`Contact` mapping. ETag per resource stored in the link table for conflict detection on any
+  future push-back.
+- `contact_sync_links` table (new, mirrors `calendar_event_links`): `subscription_id, user_id,
+  href/uid, contact_id, etag, content_hash`. Deletions (sync-collection reports a 404 for a removed
+  resource) reconcile as removing/archiving the linked `Contact` — decide archive-vs-hard-delete at
+  implementation time, consistent with how `Contact.Archived` is already used elsewhere.
+- One-way (server→Meerkat) is the v1 target, matching CalDAV's current one-way-in shape. Two-way (push
+  local edits back) is a later increment, same phasing logic as WP-88 for calendars.
+- Multiple address-book collections per subscription: v1 may sync a single, user-specified collection
+  URL (simplest); full discovery-and-choose-which-collections is a fast-follow, not required for v1.
+
+**Sequencing:** depends on WP-71 (`ApplyRecordToContact` must exist first) — otherwise no dependency on
+P3/P4/P5+; could run in parallel with WP-73 (our own server upgrade) or P5's relationship-graph work
+once WP-71 lands.
+
 ## WP-74 · Rebrand (effort S/M, do last)
 
 **Name direction: mycelium.** The chosen brand direction is mycelium-themed, reflecting the project's
@@ -261,7 +312,8 @@ branding moment, not strictly last — but it remains non-blocking; sequencing l
 ## Sequencing & gates
 
 `P0 (WP-10..60) green, app untouched` → `WP-70 (+dry-run migration verified)` →
-`WP-71 & WP-72 coordinated (API contract flips with the UI)` → `WP-73` → `WP-74`.
+`WP-71 & WP-72 coordinated (API contract flips with the UI)` → `WP-73` (+ `WP-73b`, parallel-eligible
+once WP-71's `ApplyRecordToContact` lands) → `WP-74`.
 Each WP: `go build ./... && go test ./...` (backend) and `npm run build && npx tsc --noEmit` +
 Playwright e2e (frontend) green before merge. Full-stack smoke via
 `docker compose -f docker-compose.test.yml up -d --build --wait` then import a v4 vCard and a

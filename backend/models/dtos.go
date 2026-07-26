@@ -41,6 +41,36 @@ type CalendarSubscriptionResponse struct {
 	CreatedAt      time.Time  `json:"created_at"`
 }
 
+// ContactSubscriptionInput is the DTO for creating/updating a CardDAV
+// contact subscription (WP-73b). Credentials are optional (some servers
+// allow anonymous/public read). On update, an empty password keeps the
+// stored one; set ClearPassword to remove it. Mirrors
+// CalendarSubscriptionInput's shape, minus PastDays/FutureDays (no contacts
+// analog).
+type ContactSubscriptionInput struct {
+	Name          string `json:"name" validate:"required,min=1,max=100"`
+	URL           string `json:"url" validate:"required,url,max=2048"`
+	Username      string `json:"username" validate:"omitempty,max=200"`
+	Password      string `json:"password" validate:"omitempty,max=500"`
+	ClearPassword bool   `json:"clear_password"`
+	SyncEnabled   *bool  `json:"sync_enabled"`
+}
+
+// ContactSubscriptionResponse is the DTO returned for a contact subscription
+// (no password, no sync token).
+type ContactSubscriptionResponse struct {
+	ID             uint       `json:"id"`
+	Name           string     `json:"name"`
+	URL            string     `json:"url"`
+	Username       string     `json:"username"`
+	HasPassword    bool       `json:"has_password"`
+	SyncEnabled    bool       `json:"sync_enabled"`
+	LastSyncedAt   *time.Time `json:"last_synced_at"`
+	LastSyncStatus string     `json:"last_sync_status"`
+	LastSyncError  string     `json:"last_sync_error"`
+	CreatedAt      time.Time  `json:"created_at"`
+}
+
 // NoteInput represents the DTO for creating/updating notes
 type NoteInput struct {
 	Content   string    `json:"content" validate:"required,min=1,max=5000"`

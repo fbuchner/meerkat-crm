@@ -2,8 +2,11 @@ package vcard3
 
 import "testing"
 
-// Concept covered (coverage_test.go): email.
+// Concept covered: email.
 // Fixture value from docs/specs/rfc2426-v3-baseline.md §1 (RFC 2426 §7 example).
+func init() {
+	registerImportCoverage("email")
+}
 
 const emailImportVCF = "BEGIN:VCARD\n" +
 	"VERSION:3.0\n" +

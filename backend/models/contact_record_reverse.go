@@ -1,6 +1,10 @@
 package models
 
-import "meerkat/contactmodel"
+import (
+	"meerkat/contactmodel"
+	"meerkat/logger"
+	"meerkat/photostore"
+)
 
 // ApplyRecordToContact is the single, shared mapping from the neutral
 // contactmodel.Record shape back onto a *Contact's legacy flat/array fields
@@ -18,12 +22,12 @@ import "meerkat/contactmodel"
 // 20-correspondence.md concept_id/row, same convention as RecordFromContact.
 // ApplyRecordToContact never panics, including when c or r is nil.
 //
-// Two things every caller must know:
+// Three things every caller must know:
 //
 //  1. c.Card / c.CRM / c.Passthrough are set directly from r (the "authoritative
 //     full-fidelity copy" — WP-71's own words): whatever richer data r carries
 //     that has no flat-field home (SpeakToAs, PersonalInfo, SocialProfiles,
-//     OtherOnlineServices, Keywords, Media, extra Organizations/Titles, extra
+//     OtherOnlineServices, Keywords, extra Organizations/Titles, extra
 //     name components, RelatedTo, Members, Localizations, ...) is preserved
 //     there even though it isn't mirrored into a flat scalar/array below. The
 //     flat-field population is for backward-compat readers only (WP-70's "old
@@ -34,7 +38,20 @@ import "meerkat/contactmodel"
 //     (necessarily lossy) flat fields on the next save — see the
 //     cardSetDirectly field doc on Contact in contact.go for why that guard
 //     exists and what would break without it.
-func ApplyRecordToContact(c *Contact, r *contactmodel.Record) {
+//  3. photoDir gates photo persistence (see applyMedia below): pass the
+//     configured profile-photo directory (config.Config.ProfilePhotoDir) for
+//     callers that want an incoming Card.Media{Kind:"photo"} entry written to
+//     disk and mirrored onto Contact.Photo/PhotoThumbnail immediately (the
+//     REST API's CreateContact/UpdateContact, and CardDAV's PutAddressObject).
+//     Pass "" to skip photo persistence entirely — this is deliberate, not an
+//     oversight, for callers with their own deferred/preview photo pipeline
+//     (services/import_service.go's ParseVCF/ParseJSContact: the imported
+//     Contact is only a preview at that point, not yet confirmed by the user,
+//     and photo persistence there is already handled at confirm-time by
+//     import_session.go's ConfirmVCF via extractPhotoFromRecord + this same
+//     photostore package — persisting here too would write an orphaned photo
+//     file for every previewed-but-never-confirmed contact).
+func ApplyRecordToContact(c *Contact, r *contactmodel.Record, photoDir string) {
 	if c == nil || r == nil {
 		return
 	}
@@ -52,6 +69,7 @@ func ApplyRecordToContact(c *Contact, r *contactmodel.Record) {
 	applyLinks(c, card)
 	applyAddresses(c, card)
 	applyAnniversaries(c, card, proj)
+	applyMedia(c, card, photoDir)
 
 	// CRM envelope -> flat CRM fields (direct 1:1 copy, mirroring
 	// RecordFromContact's forward direction exactly).
@@ -300,4 +318,53 @@ func applyAnniversaries(c *Contact, card contactmodel.Card, proj contactmodel.Pr
 			break
 		}
 	}
+}
+
+// applyMedia is the inverse of buildMedia (contact_record.go): the first
+// Card.Media entry with Kind=="photo" is decoded and persisted to disk via
+// photostore, mirroring the pre-existing carddav.PutAddressObject photo
+// handling (embedded data or a remote URL, both supported) so a photo synced
+// in via the REST API or CardDAV round-trips the same way a photo synced in
+// via the legacy vcard_mapper.go path always has.
+//
+// A no-op, by design, when photoDir == "" — see the photoDir doc on
+// ApplyRecordToContact above for which callers deliberately pass "" and why.
+// Never returns an error: persistence failures are logged and otherwise
+// swallowed, same as the legacy carddav.PutAddressObject handling this
+// replaces (a bad/corrupt photo must not fail the whole contact save).
+func applyMedia(c *Contact, card contactmodel.Card, photoDir string) {
+	if photoDir == "" {
+		return
+	}
+	var photo *contactmodel.Resource
+	for i := range card.Media {
+		if card.Media[i].Kind == "photo" {
+			photo = &card.Media[i]
+			break
+		}
+	}
+	if photo == nil || photo.URI == "" {
+		return
+	}
+
+	data, mediaType, photoURL := photostore.DecodePhotoURI(photo.URI, photo.MediaType)
+	if len(data) == 0 && photoURL != "" {
+		fetched, fetchedMediaType, err := photostore.FetchPhotoFromURL(photoURL)
+		if err != nil {
+			logger.Warn().Err(err).Str("photo_url", photoURL).Msg("ApplyRecordToContact: failed to fetch photo from URL")
+			return
+		}
+		data, mediaType = fetched, fetchedMediaType
+	}
+	if len(data) == 0 {
+		return
+	}
+
+	photoPath, thumbnailBase64, err := photostore.SaveContactPhoto(data, mediaType, photoDir)
+	if err != nil {
+		logger.Warn().Err(err).Str("media_type", mediaType).Int("photo_size", len(data)).Msg("ApplyRecordToContact: failed to save contact photo")
+		return
+	}
+	c.Photo = photoPath
+	c.PhotoThumbnail = thumbnailBase64
 }

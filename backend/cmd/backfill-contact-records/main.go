@@ -39,6 +39,7 @@ func main() {
 	dbPath := flag.String("db", "meerkat.db", "path to the SQLite database file")
 	write := flag.Bool("write", false, "actually persist changes (default: dry run, report only, zero writes)")
 	force := flag.Bool("force", false, "reprocess rows even if their card column is already populated")
+	photoDir := flag.String("photo-dir", "", "profile photo directory (config.Config.ProfilePhotoDir), used to bridge Contact.Photo into Card.Media (WP-73); optional, degrades gracefully to the PhotoThumbnail fallback (or no photo) if omitted")
 	flag.Parse()
 
 	db, err := gorm.Open(sqlite.Open(*dbPath), &gorm.Config{
@@ -69,7 +70,7 @@ func main() {
 			continue
 		}
 
-		record := models.RecordFromContact(c)
+		record := models.RecordFromContact(c, *photoDir)
 		proj := contactmodel.DeriveProjection(record)
 
 		action := "PLAN "

@@ -7,7 +7,10 @@ import (
 	"meerkat/internal/rfctest"
 )
 
-// Concept covered (coverage_test.go): nickname.
+// Concept covered: nickname.
+func init() {
+	registerExportCoverage("nickname")
+}
 
 func TestExport_Nickname(t *testing.T) {
 	rec := &contactmodel.Record{Card: contactmodel.Card{

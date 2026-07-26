@@ -1,7 +1,10 @@
 package models
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"meerkat/contactmodel"
@@ -12,12 +15,19 @@ import (
 // onto a fresh Contact, and assert the result matches the original closely
 // enough that nothing was silently lost in a way the doc doesn't already
 // call out as an accepted, documented lossy case.
+//
+// Also exercises WP-73's photo-bridging prerequisite end-to-end: original
+// (fullyPopulatedContact) carries a PhotoThumbnail, which RecordFromContact
+// bridges into record.Card.Media, which ApplyRecordToContact (given a real
+// photoDir) then decodes and persists back to disk — proving the photo
+// round-trips through Card.Media in both directions, not just one.
 func TestApplyRecordToContact_RoundTrip(t *testing.T) {
 	original := fullyPopulatedContact()
-	record := RecordFromContact(original)
+	photoDir := t.TempDir()
+	record := RecordFromContact(original, photoDir)
 
 	got := &Contact{}
-	ApplyRecordToContact(got, record)
+	ApplyRecordToContact(got, record, photoDir)
 
 	// Card/CRM/Passthrough are the authoritative full-fidelity copy: exact,
 	// byte-for-byte (deep-equal) match required.
@@ -136,6 +146,20 @@ func TestApplyRecordToContact_RoundTrip(t *testing.T) {
 		t.Errorf("got.VCardExtra = %q, want \"\" (Passthrough is not re-serialized back into the legacy VCardExtra column)", got.VCardExtra)
 	}
 
+	// WP-73 photo-bridging prerequisite: the photo bridged into
+	// record.Card.Media by RecordFromContact (from original.PhotoThumbnail,
+	// since original.Photo has no on-disk file) round-trips through
+	// ApplyRecordToContact back onto disk and onto got.Photo/PhotoThumbnail.
+	if got.Photo == "" {
+		t.Error("got.Photo is empty, want a saved photo filename (the Card.Media photo entry should have been persisted to disk)")
+	}
+	if !strings.HasPrefix(got.PhotoThumbnail, "data:image/jpeg;base64,") {
+		t.Errorf("got.PhotoThumbnail = %q, want a data:image/jpeg;base64,... thumbnail", got.PhotoThumbnail)
+	}
+	if _, err := os.Stat(filepath.Join(photoDir, got.Photo)); err != nil {
+		t.Errorf("saved photo file not found on disk at %q: %v", filepath.Join(photoDir, got.Photo), err)
+	}
+
 	// The cardSetDirectly guard must be set so a subsequent BeforeSave
 	// doesn't clobber the Card/CRM/Passthrough we just asserted above.
 	if !got.cardSetDirectly {
@@ -156,7 +180,7 @@ func TestApplyRecordToContact_AddressFullOnlyFallback(t *testing.T) {
 	}
 
 	got := &Contact{}
-	ApplyRecordToContact(got, record)
+	ApplyRecordToContact(got, record, "")
 
 	if len(got.Addresses) != 1 {
 		t.Fatalf("Addresses = %+v, want 1 (blank-but-present) entry", got.Addresses)
@@ -174,8 +198,8 @@ func TestApplyRecordToContact_AddressFullOnlyFallback(t *testing.T) {
 // nil-safety test: ApplyRecordToContact must not panic on a nil Contact or a
 // nil Record.
 func TestApplyRecordToContact_NilSafety(t *testing.T) {
-	ApplyRecordToContact(nil, &contactmodel.Record{})
-	ApplyRecordToContact(&Contact{}, nil)
+	ApplyRecordToContact(nil, &contactmodel.Record{}, "")
+	ApplyRecordToContact(&Contact{}, nil, "")
 }
 
 // TestApplyRecordToContact_PreservesUnmappedCardData asserts the central
@@ -196,7 +220,7 @@ func TestApplyRecordToContact_PreservesUnmappedCardData(t *testing.T) {
 	}
 
 	c := &Contact{}
-	ApplyRecordToContact(c, record)
+	ApplyRecordToContact(c, record, "")
 
 	if c.Card.SpeakToAs == nil || len(c.Card.SpeakToAs.Pronouns) != 1 || c.Card.SpeakToAs.Pronouns[0].Pronouns != "she/her" {
 		t.Fatalf("c.Card.SpeakToAs = %+v, want the SpeakToAs from the input Record preserved", c.Card.SpeakToAs)

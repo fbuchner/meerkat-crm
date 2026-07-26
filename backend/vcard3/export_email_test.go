@@ -7,7 +7,10 @@ import (
 	"meerkat/internal/rfctest"
 )
 
-// Concept covered (coverage_test.go): email.
+// Concept covered: email.
+func init() {
+	registerExportCoverage("email")
+}
 
 func TestExport_Email(t *testing.T) {
 	pref := 1

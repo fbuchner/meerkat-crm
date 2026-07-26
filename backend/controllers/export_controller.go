@@ -343,26 +343,26 @@ func ExportData(c *gin.Context) {
 // ExportContactsAsVCF exports all user contacts as a VCF (vCard) file.
 //
 // Per docs/fork-plan/50-integration-and-rebrand.md WP-71 Gap 4, this now
-// routes through the vcard4/vcard3 adapters (contactmodel.Record built via
-// RecordFromContact — the same single shared mapping function BeforeSave and
-// the migration tool use) instead of the legacy carddav.ContactToVCard
-// mapper. ?version=3 (or "3.0") selects vCard 3.0; anything else (including
-// absent) defaults to 4.0, per the "advertise 4.0 by default" precedent this
-// WP sets.
+// routes through the vcard4/vcard3 adapters instead of the legacy
+// carddav.ContactToVCard mapper. ?version=3 (or "3.0") selects vCard 3.0;
+// anything else (including absent) defaults to 4.0, per the "advertise 4.0
+// by default" precedent this WP sets.
 //
-// photoDir is currently unused by this path: RecordFromContact (WP-70,
-// existing/unmodified) does not populate Card.Media from Contact.Photo at
-// all — Photo has no neutral-model home yet, the same documented gap as
-// Contact.Gender. This means the new adapter-based VCF export does not
-// currently embed contact photos, unlike the legacy carddav.ContactToVCard
-// path did. This is a real, known limitation inherited from a file outside
-// this WP's editable scope (contact_record.go's existing RecordFromContact,
-// which this WP must not modify) — flagged here and in the final report, not
-// silently swept under the rug. The parameter is kept (rather than removed)
-// so routes.go's call site and a future photo-in-Card fix don't require an
-// additional signature change.
+// contactmodel.Record is built via models.RecordForContact, not
+// RecordFromContact directly — the persisted contact.Card already carries
+// any data with no flat-field home (SpeakToAs, PersonalInfo, ...); calling
+// RecordFromContact fresh here would silently drop it from the export. See
+// RecordForContact's doc comment; this was a real bug found and fixed
+// across three call sites while auditing WP-73's work.
+//
+// photoDir (config.Config.ProfilePhotoDir, from routes.go's call site) is
+// forwarded through RecordForContact: per
+// docs/fork-plan/50-integration-and-rebrand.md WP-73's photo-bridging
+// prerequisite, Contact.Photo/PhotoThumbnail bridges into a
+// Card.Media{Kind:"photo"} entry, which the vcard4/vcard3 adapters encode
+// as an embedded PHOTO property — closing WP-71's previously-documented
+// "VCF export doesn't embed photos" gap.
 func ExportContactsAsVCF(c *gin.Context, photoDir string) {
-	_ = photoDir
 	db := c.MustGet("db").(*gorm.DB)
 	log := logger.FromContext(c)
 
@@ -392,7 +392,7 @@ func ExportContactsAsVCF(c *gin.Context, photoDir string) {
 	// (the standard shape for a multi-contact .vcf file).
 	var buf bytes.Buffer
 	for _, contact := range contacts {
-		record := models.RecordFromContact(&contact)
+		record := models.RecordForContact(&contact, photoDir)
 		data, diags, err := exporter.Export(record)
 		if err != nil {
 			log.Error().Err(err).Uint("contact_id", contact.ID).Msg("Failed to encode contact as vCard")
@@ -427,9 +427,16 @@ func ExportContactsAsVCF(c *gin.Context, photoDir string) {
 // contact) — the "Card set" option from WP-71's task list, chosen over a
 // single merged document since each contact is an independent Card with its
 // own @type/uid, not sub-objects of one another.
+//
+// Reads photoDir from currentConfig(c).ProfilePhotoDir directly (rather than
+// as an explicit parameter, unlike ExportContactsAsVCF) since this handler is
+// registered directly in routes.go with the plain gin.HandlerFunc signature,
+// not via a photoDir-carrying closure; this avoids a routes.go signature
+// change for a one-line lookup this handler can already make itself.
 func ExportContactsAsJSContact(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 	log := logger.FromContext(c)
+	photoDir := currentConfig(c).ProfilePhotoDir
 
 	userID, ok := currentUserID(c)
 	if !ok {
@@ -448,7 +455,7 @@ func ExportContactsAsJSContact(c *gin.Context) {
 	adapter := jscontact.Adapter{}
 	cards := make([]json.RawMessage, 0, len(contacts))
 	for _, contact := range contacts {
-		record := models.RecordFromContact(&contact)
+		record := models.RecordForContact(&contact, photoDir)
 		data, diags, err := adapter.Export(record)
 		if err != nil {
 			log.Error().Err(err).Uint("contact_id", contact.ID).Msg("Failed to encode contact as JSContact")

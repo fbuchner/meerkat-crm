@@ -2,8 +2,14 @@ package vcard3
 
 import "testing"
 
-// Concepts covered (coverage_test.go): photo, logo, sound, calendar,
-// freebusy, caladruri, key, source, link.
+// Concepts covered: photo, logo, sound, calendar, freebusy, caladruri, key,
+// source, link.
+func init() {
+	registerImportCoverage(
+		"photo", "logo", "sound", "calendar", "freebusy", "caladruri",
+		"key", "source", "link",
+	)
+}
 
 const resourcesImportVCF = "BEGIN:VCARD\n" +
 	"VERSION:3.0\n" +

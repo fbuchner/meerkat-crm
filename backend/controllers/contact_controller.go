@@ -48,7 +48,7 @@ func CreateContact(c *gin.Context) {
 	}
 
 	contact := models.Contact{UserID: userID, Gender: input.Gender}
-	models.ApplyRecordToContact(&contact, input.ToRecord())
+	models.ApplyRecordToContact(&contact, input.ToRecord(), currentConfig(c).ProfilePhotoDir)
 
 	// Firstname is checked here (not via a struct tag on the nested input —
 	// see ContactRecordInput's doc comment for why) because it's an
@@ -70,7 +70,7 @@ func CreateContact(c *gin.Context) {
 	}
 
 	go services.TriggerWebhooks(db, currentConfig(c), userID, "contact.created", contact)
-	c.JSON(http.StatusCreated, gin.H{"message": "Contact created successfully", "contact": models.NewContactRecordResponse(&contact)})
+	c.JSON(http.StatusCreated, gin.H{"message": "Contact created successfully", "contact": models.NewContactRecordResponse(&contact, currentConfig(c).ProfilePhotoDir)})
 }
 
 // filters a contacts query by a free-text term
@@ -342,7 +342,7 @@ func GetContact(c *gin.Context) {
 		}
 		return
 	}
-	c.JSON(http.StatusOK, models.NewContactRecordResponse(&contact))
+	c.JSON(http.StatusOK, models.NewContactRecordResponse(&contact, currentConfig(c).ProfilePhotoDir))
 }
 
 func UpdateContact(c *gin.Context) {
@@ -373,7 +373,7 @@ func UpdateContact(c *gin.Context) {
 	}
 
 	contact.Gender = input.Gender
-	models.ApplyRecordToContact(&contact, input.ToRecord())
+	models.ApplyRecordToContact(&contact, input.ToRecord(), currentConfig(c).ProfilePhotoDir)
 
 	if contact.Firstname == "" {
 		apperrors.AbortWithError(c, apperrors.ErrValidation("Request validation failed").WithDetails("card.name", "at least one name component (kind=given) or name.full is required"))
@@ -386,7 +386,7 @@ func UpdateContact(c *gin.Context) {
 	}
 
 	go services.TriggerWebhooks(db, currentConfig(c), userID, "contact.updated", contact)
-	c.JSON(http.StatusOK, models.NewContactRecordResponse(&contact))
+	c.JSON(http.StatusOK, models.NewContactRecordResponse(&contact, currentConfig(c).ProfilePhotoDir))
 }
 
 func DeleteContact(c *gin.Context) {

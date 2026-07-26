@@ -2,7 +2,10 @@ package vcard3
 
 import "testing"
 
-// Concept covered (coverage_test.go): nickname.
+// Concept covered: nickname.
+func init() {
+	registerImportCoverage("nickname")
+}
 
 const nicknameImportVCF = "BEGIN:VCARD\n" +
 	"VERSION:3.0\n" +

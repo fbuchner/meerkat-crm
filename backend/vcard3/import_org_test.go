@@ -2,7 +2,10 @@ package vcard3
 
 import "testing"
 
-// Concepts covered (coverage_test.go): org, org.unit.
+// Concepts covered: org, org.unit.
+func init() {
+	registerImportCoverage("org", "org.unit")
+}
 
 const orgImportVCF = "BEGIN:VCARD\n" +
 	"VERSION:3.0\n" +

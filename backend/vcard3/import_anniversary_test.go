@@ -2,7 +2,10 @@ package vcard3
 
 import "testing"
 
-// Concept covered (coverage_test.go): anniversary.birth.
+// Concept covered: anniversary.birth.
+func init() {
+	registerImportCoverage("anniversary.birth")
+}
 
 const anniversaryBirthImportVCF = "BEGIN:VCARD\n" +
 	"VERSION:3.0\n" +

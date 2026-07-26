@@ -1,10 +1,28 @@
 package models
 
 import (
+	"bytes"
+	"encoding/base64"
+	"image"
+	"image/jpeg"
+	"strings"
 	"testing"
 
 	"meerkat/contactmodel"
 )
+
+// testJPEGDataURL returns a "data:image/jpeg;base64,..." URI wrapping a
+// minimal, valid 2x2 JPEG — usable wherever a test needs
+// Contact.PhotoThumbnail (or any decodable photo payload, e.g. for
+// photostore.SaveContactPhoto) without caring about actual pixel content.
+func testJPEGDataURL() string {
+	img := image.NewRGBA(image.Rect(0, 0, 2, 2))
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, img, nil); err != nil {
+		panic(err)
+	}
+	return "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(buf.Bytes())
+}
 
 // fullyPopulatedContact builds a *Contact with every field RecordFromContact
 // maps populated, so tests can assert each lands in its correct neutral
@@ -49,6 +67,7 @@ func fullyPopulatedContact() *Contact {
 		CustomFields:       map[string]string{"favorite_color": "blue"},
 		VCardUID:           "uid-1234",
 		VCardExtra:         `{"properties":{"X-CUSTOM":[{"Value":"keep","Params":{"TYPE":["home"]},"Group":""}]}}`,
+		PhotoThumbnail:     testJPEGDataURL(),
 	}
 }
 
@@ -56,7 +75,7 @@ func fullyPopulatedContact() *Contact {
 // lands in the neutral home documented by 20-correspondence.md.
 func TestRecordFromContact_FullyPopulated(t *testing.T) {
 	c := fullyPopulatedContact()
-	record := RecordFromContact(c)
+	record := RecordFromContact(c, "")
 	card := record.Card
 
 	// "uid" row: Card.UID <- VCardUID
@@ -213,6 +232,25 @@ func TestRecordFromContact_FullyPopulated(t *testing.T) {
 		t.Errorf("Record.Envelope.CustomFields = %+v, want favorite_color=blue", env.CustomFields)
 	}
 
+	// WP-73 photo-bridging prerequisite: Contact.PhotoThumbnail (there is no
+	// Contact.Photo/on-disk file in this test, so ReadContactPhoto falls back
+	// to the thumbnail) bridges into a single Card.Media{Kind:"photo"} entry,
+	// encoded as the same "data:<mediaType>;base64,<data>" URI convention the
+	// vcard4/vcard3 adapters already use for an embedded PHOTO value.
+	if len(card.Media) != 1 {
+		t.Fatalf("Card.Media = %+v, want 1 photo entry bridged from PhotoThumbnail", card.Media)
+	}
+	photo := card.Media[0]
+	if photo.Kind != "photo" {
+		t.Errorf("Card.Media[0].Kind = %q, want photo", photo.Kind)
+	}
+	if photo.MediaType != "image/jpeg" {
+		t.Errorf("Card.Media[0].MediaType = %q, want image/jpeg", photo.MediaType)
+	}
+	if !strings.HasPrefix(photo.URI, "data:image/jpeg;base64,") {
+		t.Errorf("Card.Media[0].URI = %q, want a data:image/jpeg;base64,... URI", photo.URI)
+	}
+
 	// "pt.vcard" row (best-effort): Passthrough.VCard <- VCardExtra
 	if len(record.Passthrough.VCard) != 1 {
 		t.Fatalf("Record.Passthrough.VCard = %+v, want 1 entry from VCardExtra", record.Passthrough.VCard)
@@ -233,9 +271,9 @@ func TestRecordFromContact_FullyPopulated(t *testing.T) {
 // an empty Contact or a nil receiver, per this WP's explicit requirement
 // (needed for BeforeSave on a brand-new, mostly-empty contact being created).
 func TestRecordFromContact_ZeroValue(t *testing.T) {
-	record := RecordFromContact(&Contact{})
+	record := RecordFromContact(&Contact{}, "")
 	if record == nil {
-		t.Fatal("RecordFromContact(&Contact{}) returned nil")
+		t.Fatal("RecordFromContact(&Contact{}, \"\") returned nil")
 	}
 	if record.Card.Name != nil {
 		t.Errorf("zero-value Contact produced non-nil Card.Name: %+v", record.Card.Name)
@@ -243,10 +281,13 @@ func TestRecordFromContact_ZeroValue(t *testing.T) {
 	if len(record.Card.Emails) != 0 || len(record.Card.Phones) != 0 || len(record.Card.Addresses) != 0 {
 		t.Errorf("zero-value Contact produced non-empty collections: %+v", record.Card)
 	}
+	if len(record.Card.Media) != 0 {
+		t.Errorf("zero-value Contact produced non-empty Card.Media: %+v", record.Card.Media)
+	}
 
-	nilRecord := RecordFromContact(nil)
+	nilRecord := RecordFromContact(nil, "")
 	if nilRecord == nil {
-		t.Fatal("RecordFromContact(nil) returned nil, want a safe empty *Record")
+		t.Fatal("RecordFromContact(nil, \"\") returned nil, want a safe empty *Record")
 	}
 }
 
@@ -262,7 +303,7 @@ func TestRecordFromContact_ScalarOnlyFallback(t *testing.T) {
 		Phone:     "+15550001111",
 		Address:   "42 Wallaby Way, Sydney",
 	}
-	record := RecordFromContact(c)
+	record := RecordFromContact(c, "")
 
 	if len(record.Card.Emails) != 1 || record.Card.Emails[0].Address != "alice@example.com" {
 		t.Errorf("Card.Emails = %+v, want scalar-fallback entry alice@example.com", record.Card.Emails)
@@ -280,6 +321,51 @@ func TestRecordFromContact_ScalarOnlyFallback(t *testing.T) {
 	}
 	if proj.PrimaryPhone != "+15550001111" {
 		t.Errorf("DeriveProjection PrimaryPhone = %q, want +15550001111", proj.PrimaryPhone)
+	}
+}
+
+// TestRecordForContact_PrefersPersistedCardOverFreshDerivation is the
+// regression test for a real, live bug found while auditing WP-73's work:
+// three call sites (CardDAV export, the REST API's detail/write response,
+// and VCF/JSContact export) each independently called RecordFromContact a
+// second time on a contact whose Card was already persisted, which silently
+// discards any data with no flat-field home (SpeakToAs here) — exactly the
+// data a nested REST POST/PUT or a CardDAV PUT of a modern vCard would have
+// set. RecordForContact must return the persisted Card as-is instead of
+// re-deriving it from the (necessarily lossy) flat fields.
+func TestRecordForContact_PrefersPersistedCardOverFreshDerivation(t *testing.T) {
+	c := &Contact{
+		Firstname: "Ada",
+		Card: contactmodel.Card{
+			Name: &contactmodel.Name{Components: []contactmodel.NameComponent{{Kind: "given", Value: "Ada"}}},
+			SpeakToAs: &contactmodel.SpeakToAs{
+				Pronouns: []contactmodel.Pronouns{{Pronouns: "she/her"}},
+			},
+		},
+	}
+
+	record := RecordForContact(c, "")
+
+	if record.Card.SpeakToAs == nil || len(record.Card.SpeakToAs.Pronouns) != 1 || record.Card.SpeakToAs.Pronouns[0].Pronouns != "she/her" {
+		t.Errorf("RecordForContact's Card.SpeakToAs = %+v, want the persisted she/her preserved (a fresh RecordFromContact call would drop it — no flat field holds pronouns)", record.Card.SpeakToAs)
+	}
+}
+
+// TestRecordForContact_FallsBackWhenCardIsZeroValue covers the other half of
+// RecordForContact: a contact whose Card has never been populated at all
+// (e.g. a pre-migration row that predates cmd/backfill-contact-records, or a
+// Contact built directly in a test without going through BeforeSave) must
+// still fall back to deriving from the flat fields — not return an empty Card.
+func TestRecordForContact_FallsBackWhenCardIsZeroValue(t *testing.T) {
+	c := &Contact{
+		Firstname: "Bob",
+		Email:     "bob@example.com",
+	}
+
+	record := RecordForContact(c, "")
+
+	if len(record.Card.Emails) != 1 || record.Card.Emails[0].Address != "bob@example.com" {
+		t.Errorf("RecordForContact's Card.Emails = %+v, want a fallback-derived entry for bob@example.com (Card was zero-value, should behave like RecordFromContact)", record.Card.Emails)
 	}
 }
 
@@ -369,13 +455,13 @@ func TestRoundTrip_ProjectionStable(t *testing.T) {
 		if err := c.BeforeSave(nil); err != nil {
 			t.Fatalf("BeforeSave returned error for %q: %v", c.Firstname, err)
 		}
-		firstProj := contactmodel.DeriveProjection(RecordFromContact(c))
+		firstProj := contactmodel.DeriveProjection(RecordFromContact(c, ""))
 
 		// Simulate a second migration/save pass over the now-migrated row.
 		if err := c.BeforeSave(nil); err != nil {
 			t.Fatalf("second BeforeSave returned error for %q: %v", c.Firstname, err)
 		}
-		secondProj := contactmodel.DeriveProjection(RecordFromContact(c))
+		secondProj := contactmodel.DeriveProjection(RecordFromContact(c, ""))
 
 		if firstProj != secondProj {
 			t.Errorf("projection for %q drifted across a second pass: first=%+v second=%+v", c.Firstname, firstProj, secondProj)

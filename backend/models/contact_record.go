@@ -2,12 +2,51 @@ package models
 
 import (
 	"encoding/json"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"meerkat/contactmodel"
+	"meerkat/photostore"
 )
+
+// RecordForContact returns the authoritative Record for a Contact that is
+// about to be READ (served over CardDAV, returned from the REST API, or
+// exported as VCF/JSContact) — as opposed to RecordFromContact, which
+// derives one FRESH from the flat legacy fields only.
+//
+// The distinction matters: BeforeSave/ApplyRecordToContact already keep
+// c.Card/c.CRM/c.Passthrough in sync as the full-fidelity representation,
+// including data with no flat-field home at all (SpeakToAs, PersonalInfo,
+// SocialProfiles, extra name components, ...). Calling RecordFromContact
+// again on a read path silently discards all of that, reconstructing only
+// what the (necessarily lossy) flat fields can represent — this was a real,
+// live bug found three times independently: once during WP-73 (CardDAV
+// export, fixed as this function's prototype), and twice more here (REST
+// API detail/write responses in contact_summary.go, and VCF/JSContact
+// export in export_controller.go) while auditing WP-73's work. All three
+// call sites now go through this one function instead of guessing at the
+// same fix independently — see docs/fork-plan/50-integration-and-rebrand.md
+// WP-70's "Shared mapping function" note; the same discipline applies here.
+//
+// Falls back to a fresh RecordFromContact derivation only when c.Card is
+// still the zero value — i.e. a pre-migration row that hasn't been through
+// cmd/backfill-contact-records yet, or a Contact that was never saved (so
+// BeforeSave never ran). This protects those cases from exporting/serving a
+// near-empty Card instead of the best-effort flat-field reconstruction.
+func RecordForContact(c *Contact, photoDir string) *contactmodel.Record {
+	if c != nil && !reflect.DeepEqual(c.Card, contactmodel.Card{}) {
+		return &contactmodel.Record{
+			UID:         c.VCardUID,
+			ETag:        c.ETag,
+			Card:        c.Card,
+			Envelope:    c.CRM,
+			Passthrough: c.Passthrough,
+		}
+	}
+	return RecordFromContact(c, photoDir)
+}
 
 // RecordFromContact is the single, shared mapping from a *Contact's current,
 // legacy flat/array fields into the neutral contactmodel.Record shape. Both
@@ -21,7 +60,17 @@ import (
 // Field-by-field mapping decisions cite the corresponding
 // docs/fork-plan/20-correspondence.md concept_id/row. RecordFromContact
 // never panics, including on a nil receiver or a zero-value *Contact.
-func RecordFromContact(c *Contact) *contactmodel.Record {
+//
+// photoDir is the configured profile-photo directory (config.Config.
+// ProfilePhotoDir), needed to bridge Contact.Photo (a filename on disk,
+// relative to photoDir) into a self-contained Card.Media{Kind:"photo"} entry
+// — see buildMedia below and docs/fork-plan/50-integration-and-rebrand.md
+// WP-73's photo-bridging prerequisite. Pass "" when the disk-backed photo is
+// genuinely unavailable/irrelevant to the caller (e.g. a context with no
+// filesystem access): buildMedia still falls back to the base64
+// PhotoThumbnail in that case, so photo data is only fully lost if neither
+// Photo nor PhotoThumbnail is set.
+func RecordFromContact(c *Contact, photoDir string) *contactmodel.Record {
 	record := &contactmodel.Record{}
 	if c == nil {
 		return record
@@ -42,6 +91,7 @@ func RecordFromContact(c *Contact) *contactmodel.Record {
 		Addresses:     buildAddresses(c),
 		Anniversaries: buildAnniversaries(c),
 		Links:         buildLinks(c),
+		Media:         buildMedia(c, photoDir),
 	}
 
 	record.Envelope = contactmodel.CRMEnvelope{
@@ -209,6 +259,31 @@ func buildLinks(c *Contact) []contactmodel.Resource {
 		out = append(out, contactmodel.Resource{URI: u.Value, Label: u.Type})
 	}
 	return out
+}
+
+// buildMedia bridges the disk-based Contact.Photo/PhotoThumbnail into a
+// single Card.Media{Kind:"photo"} entry, per
+// docs/fork-plan/50-integration-and-rebrand.md WP-73's photo-bridging
+// prerequisite: without this, retiring carddav's legacy mapper for the live
+// CardDAV server (and, before that, WP-71's VCF/JSContact export) would
+// silently stop serving contact photos, since neither RecordFromContact nor
+// ApplyRecordToContact touched Photo/PhotoThumbnail <-> Card.Media at all
+// until now.
+//
+// Encodes the photo as a "data:<mediaType>;base64,<data>" URI — the same
+// convention the vcard4/vcard3 adapters already use for an embedded PHOTO
+// value (see vcard3/adapter.go's parseDataURI/exportMediaField and
+// vcard4/adapter.go's resource import/export) — so this Card.Media entry
+// round-trips through either adapter unchanged. photostore.ReadContactPhoto
+// prefers the full-resolution file on disk (photoDir/c.Photo) and falls back
+// to the base64 PhotoThumbnail, so a photo still round-trips even when
+// photoDir is "" (disk access unavailable) as long as a thumbnail exists.
+func buildMedia(c *Contact, photoDir string) []contactmodel.Resource {
+	uri, mediaType := photostore.ReadContactPhotoDataURI(c.Photo, c.PhotoThumbnail, photoDir)
+	if uri == "" {
+		return nil
+	}
+	return []contactmodel.Resource{{Kind: "photo", URI: uri, MediaType: mediaType}}
 }
 
 // buildAddresses maps Addresses[] onto the "adr" row (Card.Addresses[]),

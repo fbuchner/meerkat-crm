@@ -7,7 +7,10 @@ import (
 	"meerkat/internal/rfctest"
 )
 
-// Concepts covered (coverage_test.go): uid, prodid, updated.
+// Concepts covered: uid, prodid, updated.
+func init() {
+	registerExportCoverage("uid", "prodid", "updated")
+}
 
 func TestExport_UID(t *testing.T) {
 	rec := &contactmodel.Record{Card: contactmodel.Card{UID: "frank-dawson-uid-1"}}

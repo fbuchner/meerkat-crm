@@ -2,7 +2,10 @@ package vcard3
 
 import "testing"
 
-// Concepts covered (coverage_test.go): impp, social.
+// Concepts covered: impp, social.
+func init() {
+	registerImportCoverage("impp", "social")
+}
 
 const imppImportVCF = "BEGIN:VCARD\n" +
 	"VERSION:3.0\n" +

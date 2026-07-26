@@ -158,11 +158,18 @@ type ContactRecordResponse struct {
 }
 
 // NewContactRecordResponse builds the full detail-view response from a
-// Contact, deriving Card/CRM/Passthrough/UID via RecordFromContact — the
-// same single shared mapping function BeforeSave and the migration tool
-// use, so this response can never drift from what's actually persisted.
-func NewContactRecordResponse(c *Contact) ContactRecordResponse {
-	record := RecordFromContact(c)
+// Contact, deriving Card/CRM/Passthrough/UID via RecordForContact (not
+// RecordFromContact directly) so the response reflects what's actually
+// persisted, including data with no flat-field home (SpeakToAs,
+// PersonalInfo, ...) — calling RecordFromContact fresh here was a real,
+// live bug (found while auditing WP-73's work): it silently dropped exactly
+// that data from GET/POST/PUT responses. See RecordForContact's doc
+// comment. photoDir (config.Config.ProfilePhotoDir) is forwarded through it
+// so the response's Card.Media carries the contact's photo (WP-73's
+// photo-bridging prerequisite) in addition to the existing top-level
+// Photo/PhotoThumbnail fields below.
+func NewContactRecordResponse(c *Contact, photoDir string) ContactRecordResponse {
+	record := RecordForContact(c, photoDir)
 	return ContactRecordResponse{
 		ID:             c.ID,
 		UID:            record.UID,

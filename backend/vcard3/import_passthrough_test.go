@@ -5,7 +5,10 @@ import (
 	"testing"
 )
 
-// Concept covered (coverage_test.go): pt.vcard.
+// Concept covered: pt.vcard.
+func init() {
+	registerImportCoverage("pt.vcard")
+}
 
 const passthroughImportVCF = "BEGIN:VCARD\n" +
 	"VERSION:3.0\n" +

@@ -165,6 +165,14 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			protected.PUT("/calendars/:id", middleware.ValidateJSONMiddleware(&models.CalendarSubscriptionInput{}), controllers.UpdateCalendarSubscription)
 			protected.DELETE("/calendars/:id", controllers.DeleteCalendarSubscription)
 			protected.POST("/calendars/:id/sync", controllers.SyncCalendarSubscription)
+
+			// Contact subscription routes (CardDAV client: sync contacts in
+			// from an external address book, WP-73b)
+			protected.GET("/contact-subscriptions", controllers.ListContactSubscriptions)
+			protected.POST("/contact-subscriptions", middleware.ValidateJSONMiddleware(&models.ContactSubscriptionInput{}), controllers.CreateContactSubscription)
+			protected.PUT("/contact-subscriptions/:id", middleware.ValidateJSONMiddleware(&models.ContactSubscriptionInput{}), controllers.UpdateContactSubscription)
+			protected.DELETE("/contact-subscriptions/:id", controllers.DeleteContactSubscription)
+			protected.POST("/contact-subscriptions/:id/sync", controllers.SyncContactSubscription)
 		}
 
 		// Admin routes (admin authentication required)

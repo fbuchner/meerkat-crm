@@ -7,8 +7,14 @@ import (
 	"meerkat/internal/rfctest"
 )
 
-// Concepts covered (coverage_test.go): name.full, name.surname, name.given,
-// name.given2, name.title, name.credential.
+// Concepts covered: name.full, name.surname, name.given, name.given2,
+// name.title, name.credential.
+func init() {
+	registerExportCoverage(
+		"name.full", "name.surname", "name.given", "name.given2",
+		"name.title", "name.credential",
+	)
+}
 
 func nameRecord() *contactmodel.Record {
 	return &contactmodel.Record{Card: contactmodel.Card{

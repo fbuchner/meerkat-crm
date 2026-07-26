@@ -2,8 +2,11 @@ package vcard3
 
 import "testing"
 
-// Concept covered (coverage_test.go): phone.
+// Concept covered: phone.
 // Fixture value from docs/specs/rfc2426-v3-baseline.md §1 (RFC 2426 §7 example).
+func init() {
+	registerImportCoverage("phone")
+}
 
 const phoneImportVCF = "BEGIN:VCARD\n" +
 	"VERSION:3.0\n" +

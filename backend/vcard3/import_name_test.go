@@ -2,11 +2,17 @@ package vcard3
 
 import "testing"
 
-// Concepts covered (coverage_test.go): name.full, name.surname, name.given,
-// name.given2, name.title, name.credential.
+// Concepts covered: name.full, name.surname, name.given, name.given2,
+// name.title, name.credential.
 //
 // Fixture value from docs/specs/rfc2426-v3-baseline.md §2's N example:
 // N:Public;John;Quinlan;Mr.;Esq.
+func init() {
+	registerImportCoverage(
+		"name.full", "name.surname", "name.given", "name.given2",
+		"name.title", "name.credential",
+	)
+}
 
 const nameImportVCF = "BEGIN:VCARD\n" +
 	"VERSION:3.0\n" +

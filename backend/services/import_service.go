@@ -1,7 +1,6 @@
 package services
 
 import (
-	"encoding/base64"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -10,6 +9,7 @@ import (
 	"meerkat/jscontact"
 	"meerkat/middleware"
 	"meerkat/models"
+	"meerkat/photostore"
 	"meerkat/vcard3"
 	"meerkat/vcard4"
 	"regexp"
@@ -123,13 +123,13 @@ func diagnosticsToStrings(diags []contactmodel.Diagnostic) []string {
 }
 
 // extractPhotoFromRecord extracts binary/URL photo data from the first
-// Card.Media entry with Kind=="photo", mirroring carddav's (unexported)
-// extractPhotoData logic closely enough to preserve the existing VCF-import
+// Card.Media entry with Kind=="photo", to preserve the existing VCF-import
 // photo-processing UX (ConfirmVCF in import_session.go) now that parsing
 // goes through the vcard4/vcard3/jscontact adapters instead of
-// carddav.VCardToContact. Kept independent rather than calling into carddav
-// since it operates on contactmodel.Resource.URI (a plain string), not a
-// raw *vcard.Field, and services cannot reach carddav's unexported helpers.
+// carddav.VCardToContact. Delegates the actual decoding to
+// photostore.DecodePhotoURI (the same helper backend/models uses to bridge
+// Card.Media <-> Contact.Photo/PhotoThumbnail, per WP-73's photo-bridging
+// prerequisite) so there is one decode implementation, not two.
 func extractPhotoFromRecord(rec *contactmodel.Record) (data []byte, mediaType string, url string) {
 	if rec == nil {
 		return nil, "", ""
@@ -144,38 +144,7 @@ func extractPhotoFromRecord(rec *contactmodel.Record) (data []byte, mediaType st
 	if photo == nil || photo.URI == "" {
 		return nil, "", ""
 	}
-
-	mediaType = photo.MediaType
-	value := photo.URI
-
-	cleanValue := strings.ReplaceAll(value, " ", "")
-	cleanValue = strings.ReplaceAll(cleanValue, "\n", "")
-	cleanValue = strings.ReplaceAll(cleanValue, "\r", "")
-	if strings.HasPrefix(cleanValue, "http://") || strings.HasPrefix(cleanValue, "https://") {
-		return nil, mediaType, cleanValue
-	}
-
-	if strings.HasPrefix(value, "data:") {
-		parts := strings.SplitN(value, ",", 2)
-		if len(parts) == 2 {
-			if mediaType == "" && strings.Contains(parts[0], "image/") {
-				start := strings.Index(parts[0], "image/")
-				end := strings.Index(parts[0][start:], ";")
-				if end == -1 {
-					mediaType = parts[0][start:]
-				} else {
-					mediaType = parts[0][start : start+end]
-				}
-			}
-			value = parts[1]
-		}
-	}
-
-	decoded, decodeErr := base64.StdEncoding.DecodeString(value)
-	if decodeErr != nil {
-		return nil, "", ""
-	}
-	return decoded, mediaType, ""
+	return photostore.DecodePhotoURI(photo.URI, photo.MediaType)
 }
 
 // ParseVCF reads and parses a VCF file, returning contact data and previews.
@@ -224,7 +193,11 @@ func ParseVCF(reader io.Reader, db *gorm.DB, userID uint) (contacts []VCFContact
 		}
 
 		contact := &models.Contact{}
-		models.ApplyRecordToContact(contact, record)
+		// photoDir is deliberately "" here: this is only a preview, not yet
+		// confirmed by the user (see ApplyRecordToContact's photoDir doc
+		// comment) — photo persistence happens later, at confirm time, via
+		// extractPhotoFromRecord below + import_session.go's ConfirmVCF.
+		models.ApplyRecordToContact(contact, record, "")
 
 		// Generate UUID for contacts without one to avoid unique constraint violation
 		if contact.VCardUID == "" {
@@ -320,7 +293,11 @@ func ParseJSContact(reader io.Reader, db *gorm.DB, userID uint) (contacts []VCFC
 		}
 
 		contact := &models.Contact{}
-		models.ApplyRecordToContact(contact, record)
+		// photoDir is deliberately "" here: this is only a preview, not yet
+		// confirmed by the user (see ApplyRecordToContact's photoDir doc
+		// comment) — photo persistence happens later, at confirm time, via
+		// extractPhotoFromRecord below + import_session.go's ConfirmVCF.
+		models.ApplyRecordToContact(contact, record, "")
 		if contact.VCardUID == "" {
 			contact.VCardUID = uuid.New().String()
 		}

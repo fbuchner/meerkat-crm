@@ -1,24 +1,14 @@
 package carddav
 
 import (
-	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"image"
-	"image/jpeg"
-	"image/png"
-	"meerkat/httputil"
 	"meerkat/models"
-	"net/http"
-	"os"
-	"path/filepath"
+	"meerkat/photostore"
 	"strings"
 
 	"github.com/emersion/go-vcard"
-	"github.com/gen2brain/heic"
 	"github.com/google/uuid"
-	"github.com/nfnt/resize"
 )
 
 // for unmapped vCard properties
@@ -171,7 +161,7 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 	// Include both vCard 3.0 and 4.0 parameters for maximum compatibility:
 	// - ENCODING=b and TYPE=JPEG for vCard 3.0 (required by iOS)
 	// - MEDIATYPE=image/jpeg for vCard 4.0
-	photoData, mediaType := readContactPhoto(contact, photoDir)
+	photoData, mediaType := photostore.ReadContactPhoto(contact.Photo, contact.PhotoThumbnail, photoDir)
 	if photoData != "" {
 		// Extract just the image type (e.g., "JPEG" from "image/jpeg")
 		imageType := "JPEG"
@@ -379,7 +369,7 @@ func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact,
 	var photoMediaType string
 	var photoURL string
 	if photoField := card.Get(vcard.FieldPhoto); photoField != nil {
-		photoData, photoMediaType, photoURL = extractPhotoData(photoField)
+		photoData, photoMediaType, photoURL = photostore.ExtractPhotoData(photoField)
 	}
 
 	// Store unmapped properties in VCardExtra
@@ -390,222 +380,6 @@ func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact,
 	}
 
 	return contact, photoData, photoMediaType, photoURL
-}
-
-// SaveContactPhoto saves photo data to disk and generates thumbnail
-// Returns the photo filename and base64 thumbnail data URL
-func SaveContactPhoto(photoData []byte, mediaType string, photoDir string) (string, string, error) {
-	if len(photoData) == 0 {
-		return "", "", nil
-	}
-
-	// Detect content type if not provided
-	if mediaType == "" {
-		mediaType = http.DetectContentType(photoData)
-	}
-
-	// Decode the image
-	var img image.Image
-	var err error
-
-	reader := bytes.NewReader(photoData)
-	switch {
-	case strings.Contains(mediaType, "jpeg") || strings.Contains(mediaType, "jpg"):
-		img, err = jpeg.Decode(reader)
-	case strings.Contains(mediaType, "png"):
-		img, err = png.Decode(reader)
-	case strings.Contains(mediaType, "heic") || strings.Contains(mediaType, "heif"):
-		img, err = heic.Decode(reader)
-	default:
-		// Check for HEIC magic bytes if media type is unknown
-		// HEIC files have "ftyp" followed by "heic", "heix", "hevc", "hevx", or "mif1" at byte 4
-		if len(photoData) >= 12 && string(photoData[4:8]) == "ftyp" {
-			brand := string(photoData[8:12])
-			if brand == "heic" || brand == "heix" || brand == "hevc" || brand == "hevx" || brand == "mif1" {
-				img, err = heic.Decode(reader)
-			}
-		}
-		// Try to decode as JPEG first, then PNG, then HEIC
-		if img == nil {
-			img, err = jpeg.Decode(reader)
-			if err != nil {
-				reader.Seek(0, 0)
-				img, err = png.Decode(reader)
-				if err != nil {
-					reader.Seek(0, 0)
-					img, err = heic.Decode(reader)
-				}
-			}
-		}
-	}
-	if err != nil {
-		return "", "", err
-	}
-
-	// Crop to centered square if rectangular
-	img = cropToSquare(img)
-
-	// Generate unique filename
-	baseFilename := uuid.New().String()
-	photoPath := baseFilename + "_photo.jpg"
-
-	// Ensure directory exists
-	if err := os.MkdirAll(photoDir, os.ModePerm); err != nil {
-		return "", "", err
-	}
-
-	// Save photo (max 400x400, only downscale - smaller images keep their size)
-	const maxPhotoSize = 400
-	bounds := img.Bounds()
-	photoImg := img
-	if bounds.Dx() > maxPhotoSize || bounds.Dy() > maxPhotoSize {
-		photoImg = resize.Resize(maxPhotoSize, maxPhotoSize, img, resize.Lanczos3)
-	}
-	fullPhotoPath := filepath.Join(photoDir, photoPath)
-	outFile, err := os.Create(fullPhotoPath)
-	if err != nil {
-		return "", "", err
-	}
-	defer outFile.Close()
-
-	if err := jpeg.Encode(outFile, photoImg, &jpeg.Options{Quality: 85}); err != nil {
-		return "", "", err
-	}
-
-	// Create thumbnail and encode as base64 data URL (48x48)
-	thumbnail := resize.Resize(48, 48, img, resize.Lanczos3)
-	var thumbnailBuf bytes.Buffer
-	if err := jpeg.Encode(&thumbnailBuf, thumbnail, &jpeg.Options{Quality: 85}); err != nil {
-		return "", "", err
-	}
-	thumbnailBase64 := "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(thumbnailBuf.Bytes())
-
-	return photoPath, thumbnailBase64, nil
-}
-
-// cropToSquare crops an image to a centered square
-// If the image is already square, it returns the original image unchanged
-func cropToSquare(img image.Image) image.Image {
-	bounds := img.Bounds()
-	width := bounds.Dx()
-	height := bounds.Dy()
-
-	// Already square, return as-is
-	if width == height {
-		return img
-	}
-
-	// Calculate the size of the square (use the smaller dimension)
-	size := width
-	if height < width {
-		size = height
-	}
-
-	// Calculate crop offset to center the square
-	offsetX := (width - size) / 2
-	offsetY := (height - size) / 2
-
-	// Create a new RGBA image for the cropped result
-	cropped := image.NewRGBA(image.Rect(0, 0, size, size))
-
-	// Copy the centered square region
-	for y := 0; y < size; y++ {
-		for x := 0; x < size; x++ {
-			cropped.Set(x, y, img.At(bounds.Min.X+offsetX+x, bounds.Min.Y+offsetY+y))
-		}
-	}
-
-	return cropped
-}
-
-// FetchPhotoFromURL fetches a photo from a URL with SSRF protection
-// Returns the photo data, media type, and any error
-func FetchPhotoFromURL(photoURL string) ([]byte, string, error) {
-	return httputil.FetchImageFromURL(photoURL)
-}
-
-// readContactPhoto reads photo from disk or falls back to thumbnail
-func readContactPhoto(contact *models.Contact, photoDir string) (string, string) {
-	// Try to read full photo from disk
-	if contact.Photo != "" && photoDir != "" {
-		photoPath := filepath.Join(photoDir, contact.Photo)
-		data, err := os.ReadFile(photoPath)
-		if err == nil {
-			mediaType := http.DetectContentType(data)
-			return base64.StdEncoding.EncodeToString(data), mediaType
-		}
-	}
-
-	// Fall back to thumbnail (already base64)
-	if contact.PhotoThumbnail != "" && strings.HasPrefix(contact.PhotoThumbnail, "data:") {
-		// Parse data URL: data:image/jpeg;base64,<data>
-		parts := strings.SplitN(contact.PhotoThumbnail, ",", 2)
-		if len(parts) == 2 {
-			// Extract media type from first part
-			mediaType := "image/jpeg"
-			if strings.Contains(parts[0], "image/png") {
-				mediaType = "image/png"
-			}
-			return parts[1], mediaType
-		}
-	}
-
-	return "", ""
-}
-
-// extractPhotoData extracts binary photo data from a vCard PHOTO field
-// Returns: photoData (bytes), mediaType (string), photoURL (string if URL-based photo)
-func extractPhotoData(field *vcard.Field) ([]byte, string, string) {
-	if field == nil || field.Value == "" {
-		return nil, "", ""
-	}
-
-	value := field.Value
-	mediaType := ""
-
-	// Check for MEDIATYPE or TYPE parameter
-	if mt := field.Params.Get("MEDIATYPE"); mt != "" {
-		mediaType = mt
-	} else if t := field.Params.Get("TYPE"); t != "" {
-		mediaType = "image/" + strings.ToLower(t)
-	}
-
-	// Check if it's a URL (http/https)
-	// Google VCF format may have spaces in URLs that need to be removed
-	cleanValue := strings.ReplaceAll(value, " ", "")
-	cleanValue = strings.ReplaceAll(cleanValue, "\n", "")
-	cleanValue = strings.ReplaceAll(cleanValue, "\r", "")
-
-	if strings.HasPrefix(cleanValue, "http://") || strings.HasPrefix(cleanValue, "https://") {
-		// It's a URL-based photo, return the URL for later fetching
-		return nil, mediaType, cleanValue
-	}
-
-	// Check if it's a data URI
-	if strings.HasPrefix(value, "data:") {
-		parts := strings.SplitN(value, ",", 2)
-		if len(parts) == 2 {
-			if mediaType == "" && strings.Contains(parts[0], "image/") {
-				// Extract media type from data URI
-				start := strings.Index(parts[0], "image/")
-				end := strings.Index(parts[0][start:], ";")
-				if end == -1 {
-					mediaType = parts[0][start:]
-				} else {
-					mediaType = parts[0][start : start+end]
-				}
-			}
-			value = parts[1]
-		}
-	}
-
-	// Decode base64
-	data, err := base64.StdEncoding.DecodeString(value)
-	if err != nil {
-		return nil, "", ""
-	}
-
-	return data, mediaType, ""
 }
 
 // generateUID creates a UID for a contact

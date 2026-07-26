@@ -7,8 +7,14 @@ import (
 	"meerkat/internal/rfctest"
 )
 
-// Concepts covered (coverage_test.go): photo, logo, sound, calendar,
-// freebusy, caladruri, key, source, link.
+// Concepts covered: photo, logo, sound, calendar, freebusy, caladruri, key,
+// source, link.
+func init() {
+	registerExportCoverage(
+		"photo", "logo", "sound", "calendar", "freebusy", "caladruri",
+		"key", "source", "link",
+	)
+}
 
 func TestExport_Photo(t *testing.T) {
 	rec := &contactmodel.Record{Card: contactmodel.Card{

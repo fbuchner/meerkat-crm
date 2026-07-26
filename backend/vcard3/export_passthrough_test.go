@@ -8,7 +8,10 @@ import (
 	"meerkat/internal/rfctest"
 )
 
-// Concept covered (coverage_test.go): pt.vcard.
+// Concept covered: pt.vcard.
+func init() {
+	registerExportCoverage("pt.vcard")
+}
 
 func TestExport_PassthroughVCard(t *testing.T) {
 	val, _ := json.Marshal("hello")

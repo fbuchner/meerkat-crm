@@ -2,7 +2,10 @@ package vcard3
 
 import "testing"
 
-// Concepts covered (coverage_test.go): title, role.
+// Concepts covered: title, role.
+func init() {
+	registerImportCoverage("title", "role")
+}
 
 const titlesImportVCF = "BEGIN:VCARD\n" +
 	"VERSION:3.0\n" +

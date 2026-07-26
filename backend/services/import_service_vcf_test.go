@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -145,6 +146,34 @@ func TestParseVCF_DuplicateDetectionAndMerge(t *testing.T) {
 
 // TestParseVCF_MalformedBlockSkipped asserts a malformed block is skipped
 // (reported as an error preview row) without aborting the whole file.
+func TestParseVCF_ReadError(t *testing.T) {
+	db, _ := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	r := &errReader{err: fmt.Errorf("simulated read failure")}
+	_, _, _, err := ParseVCF(r, db, user.ID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to read VCF file")
+}
+
+// TestParseVCF_TooManyContacts asserts the MaxVCFContacts guard applies to
+// VCF imports.
+func TestParseVCF_TooManyContacts(t *testing.T) {
+	db, _ := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	var buf strings.Builder
+	for i := 0; i <= MaxVCFContacts; i++ {
+		buf.WriteString("BEGIN:VCARD\r\nVERSION:4.0\r\nFN:X\r\nEND:VCARD\r\n")
+	}
+
+	_, _, _, err := ParseVCF(strings.NewReader(buf.String()), db, user.ID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "too many contacts")
+}
+
 func TestParseVCF_MalformedBlockSkipped(t *testing.T) {
 	db, _ := setupRouter()
 	var user models.User
@@ -214,4 +243,118 @@ func TestParseJSContact_ArrayForm(t *testing.T) {
 	assert.Equal(t, 2, stats.ValidCount)
 	assert.Equal(t, "Alice", contacts[0].Contact.Firstname)
 	assert.Equal(t, "Bob", contacts[1].Contact.Firstname)
+}
+
+func TestParseJSContact_ReadError(t *testing.T) {
+	db, _ := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	r := &errReader{err: fmt.Errorf("simulated read failure")}
+	_, _, _, err := ParseJSContact(r, db, user.ID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to read JSContact file")
+}
+
+func TestParseJSContact_EmptyArray_Errors(t *testing.T) {
+	db, _ := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	_, _, _, err := ParseJSContact(strings.NewReader("[]"), db, user.ID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no cards")
+}
+
+// TestParseJSContact_MalformedCardInArray asserts one bad card in an array
+// doesn't abort the whole import — it's recorded as a per-row error preview
+// (SuggestedAction "skip") and the rest of the batch still parses.
+func TestParseJSContact_MalformedCardInArray(t *testing.T) {
+	db, _ := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	good := &contactmodel.Record{Card: contactmodel.Card{Name: &contactmodel.Name{Components: []contactmodel.NameComponent{{Kind: "given", Value: "Carol"}}}}}
+	goodRaw, _, err := jscontact.Adapter{}.Export(good)
+	require.NoError(t, err)
+
+	badRaw := json.RawMessage(`{"@type":"Card","version":"1.0","name":{"full":123}}`)
+
+	arr, err := json.Marshal([]json.RawMessage{badRaw, goodRaw})
+	require.NoError(t, err)
+
+	contacts, previews, stats, err := ParseJSContact(strings.NewReader(string(arr)), db, user.ID)
+	require.NoError(t, err)
+	require.Len(t, contacts, 1, "the malformed card should be skipped, not abort the batch")
+	require.Len(t, previews, 2)
+	assert.Equal(t, 1, stats.ErrorCount)
+	assert.Equal(t, "skip", previews[0].SuggestedAction)
+	assert.NotEmpty(t, previews[0].ValidationErrors)
+	assert.Equal(t, "Carol", contacts[0].Contact.Firstname)
+}
+
+// TestParseJSContact_AllCardsFail_ReturnsNoValidContactsError asserts the
+// final "JSContact file contains no valid contacts" branch when every card
+// in the file fails to parse.
+func TestParseJSContact_AllCardsFail_ReturnsNoValidContactsError(t *testing.T) {
+	db, _ := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	badRaw := json.RawMessage(`{"@type":"Card","version":"1.0","name":{"full":123}}`)
+	arr, err := json.Marshal([]json.RawMessage{badRaw})
+	require.NoError(t, err)
+
+	_, _, _, err = ParseJSContact(strings.NewReader(string(arr)), db, user.ID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no valid contacts")
+}
+
+// TestParseJSContact_DuplicateDetected asserts the duplicate-detection
+// branch (mirrors ParseVCF's own duplicate handling) fires for JSContact
+// import too: an existing contact matching by email is flagged as an
+// "update" suggestion rather than "add".
+func TestParseJSContact_DuplicateDetected(t *testing.T) {
+	db, _ := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	existing := models.Contact{UserID: user.ID, Firstname: "Dana", Email: "dana@example.com"}
+	require.NoError(t, db.Create(&existing).Error)
+
+	rec := &contactmodel.Record{Card: contactmodel.Card{
+		Name:   &contactmodel.Name{Components: []contactmodel.NameComponent{{Kind: "given", Value: "Dana"}}},
+		Emails: []contactmodel.Email{{Address: "dana@example.com"}},
+	}}
+	raw, _, err := jscontact.Adapter{}.Export(rec)
+	require.NoError(t, err)
+
+	_, previews, stats, err := ParseJSContact(strings.NewReader(string(raw)), db, user.ID)
+	require.NoError(t, err)
+	require.Len(t, previews, 1)
+	assert.Equal(t, 1, stats.DuplicateCount)
+	assert.Equal(t, "update", previews[0].SuggestedAction)
+	require.NotNil(t, previews[0].DuplicateMatch)
+}
+
+// TestParseJSContact_TooManyContacts asserts the MaxVCFContacts guard (shared
+// with ParseVCF) applies to JSContact imports too.
+func TestParseJSContact_TooManyContacts(t *testing.T) {
+	db, _ := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	raws := make([]json.RawMessage, 0, MaxVCFContacts+1)
+	for i := 0; i <= MaxVCFContacts; i++ {
+		rec := &contactmodel.Record{Card: contactmodel.Card{Name: &contactmodel.Name{Components: []contactmodel.NameComponent{{Kind: "given", Value: "X"}}}}}
+		raw, _, err := jscontact.Adapter{}.Export(rec)
+		require.NoError(t, err)
+		raws = append(raws, raw)
+	}
+	arr, err := json.Marshal(raws)
+	require.NoError(t, err)
+
+	_, _, _, err = ParseJSContact(strings.NewReader(string(arr)), db, user.ID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "too many contacts")
 }

@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"meerkat/contactmodel"
@@ -9,6 +10,26 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+// DefaultPhotoDir is the configured profile-photo directory
+// (config.Config.ProfilePhotoDir), read directly from the PROFILE_PHOTO_DIR
+// environment variable (the same variable config.LoadConfig() reads) rather
+// than threaded in from main.go: BeforeSave is a GORM hook with a fixed
+// signature (tx *gorm.DB) error — it has no per-call parameter to receive a
+// photoDir through, unlike RecordFromContact/ApplyRecordToContact's own
+// explicit photoDir parameter (added for WP-73's photo-bridging
+// prerequisite, docs/fork-plan/50-integration-and-rebrand.md). A
+// package-level var populated at process-init time is the least-invasive way
+// to give BeforeSave the same capability without changing its signature or
+// reaching into files outside backend/models' WP-73 file scope (this WP does
+// not touch main.go). Environment variables are already present in the OS
+// process environment before the Go binary starts (this codebase does not
+// load a .env file itself — see config/config.go), so reading it here at var-
+// init time is equivalent to config.LoadConfig() reading it moments later in
+// main(). Empty ("") is a safe default: RecordFromContact's photo bridging
+// degrades gracefully to the base64 PhotoThumbnail fallback (or is skipped
+// entirely if neither Photo nor PhotoThumbnail is set), never panics.
+var DefaultPhotoDir = os.Getenv("PROFILE_PHOTO_DIR")
 
 // ContactEmail is a single typed email address (vCard EMAIL).
 type ContactEmail struct {
@@ -129,9 +150,9 @@ type Contact struct {
 	// from the flat legacy fields on this save."
 	//
 	// Without this, BeforeSave's original (WP-70/P1) unconditional
-	// `c.Card = RecordFromContact(c).Card` would silently discard any
-	// Card-only data with no flat-field home (SpeakToAs, PersonalInfo,
-	// SocialProfiles, OtherOnlineServices, Keywords, Media, extra name
+	// `c.Card = RecordFromContact(c, photoDir).Card` would silently discard
+	// any Card-only data with no flat-field home (SpeakToAs, PersonalInfo,
+	// SocialProfiles, OtherOnlineServices, Keywords, extra name
 	// components, additional Organizations/Titles, RelatedTo, Members,
 	// Localizations, ...) on every single save of a contact created/updated
 	// through the new nested REST API or the VCF/JSContact import path —
@@ -203,7 +224,7 @@ func (c *Contact) BeforeSave(tx *gorm.DB) error {
 		record = &contactmodel.Record{Card: c.Card, Envelope: c.CRM, Passthrough: c.Passthrough}
 		c.cardSetDirectly = false // one-shot: only guards the save that immediately follows ApplyRecordToContact
 	} else {
-		record = RecordFromContact(c)
+		record = RecordFromContact(c, DefaultPhotoDir)
 		c.Card = record.Card
 		c.CRM = record.Envelope
 		c.Passthrough = record.Passthrough

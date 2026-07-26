@@ -7,7 +7,10 @@ import (
 	"meerkat/internal/rfctest"
 )
 
-// Concept covered (coverage_test.go): keywords.
+// Concept covered: keywords.
+func init() {
+	registerExportCoverage("keywords")
+}
 
 func TestExport_Keywords(t *testing.T) {
 	rec := &contactmodel.Record{Card: contactmodel.Card{Keywords: []string{"Family", "Friends"}}}

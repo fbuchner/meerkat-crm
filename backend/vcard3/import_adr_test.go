@@ -2,9 +2,12 @@ package vcard3
 
 import "testing"
 
-// Concept covered (coverage_test.go): adr.
+// Concept covered: adr.
 // Fixture value from docs/specs/rfc2426-v3-baseline.md §1 (RFC 2426 §7 example),
 // folded to a single unfolded line (folding itself is go-vcard's concern, not ours).
+func init() {
+	registerImportCoverage("adr")
+}
 
 const adrImportVCF = "BEGIN:VCARD\n" +
 	"VERSION:3.0\n" +

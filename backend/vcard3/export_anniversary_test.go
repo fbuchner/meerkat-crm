@@ -7,7 +7,10 @@ import (
 	"meerkat/internal/rfctest"
 )
 
-// Concept covered (coverage_test.go): anniversary.birth.
+// Concept covered: anniversary.birth.
+func init() {
+	registerExportCoverage("anniversary.birth")
+}
 
 func TestExport_AnniversaryBirth(t *testing.T) {
 	year, month, day := 1996, 4, 15

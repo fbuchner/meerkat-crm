@@ -2,7 +2,10 @@ package vcard3
 
 import "testing"
 
-// Concepts covered (coverage_test.go): uid, prodid, updated.
+// Concepts covered: uid, prodid, updated.
+func init() {
+	registerImportCoverage("uid", "prodid", "updated")
+}
 
 const identityImportVCF = "BEGIN:VCARD\n" +
 	"VERSION:3.0\n" +

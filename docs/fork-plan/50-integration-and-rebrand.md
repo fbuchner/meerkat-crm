@@ -85,6 +85,68 @@ compilation risk to other packages by construction, since nothing else reference
 
 ## WP-71 · P2 — API + import/export  (effort M)
 
+**Pre-implementation review (binding — resolved before implementation, not after).** A review of the
+*actual* current controllers/services against this section found five real gaps between what this doc
+said and what exists, resolved below before any code is written (same discipline as WP-70's scope
+correction). **Scope for this pass: WP-71 only.** The plan's own sequencing note already says WP-71 and
+WP-72 (frontend) should be *coordinated* because this WP's contract change breaks the current frontend —
+that break is accepted and deliberate for this pass (the frontend currently parses a flat `Contact`
+shape; it will not build/run correctly against these endpoints until WP-72 lands separately, which should
+follow reasonably soon, not be indefinitely deferred).
+
+**Gap 1 — reverse mapping is required and was missing from this doc.** WP-70 built
+`RecordFromContact` (flat `Contact` → neutral `Record`) for `BeforeSave`/migration — read-direction only.
+`CreateContact`/`UpdateContact` today construct/mutate the flat `Contact` struct directly from the flat
+`ContactInput` DTO; there is no code anywhere going `Record`/`Card` → flat fields. Since these endpoints
+must now *accept* the neutral shape, the reverse mapping is required. **Binding: write it once** —
+`func ApplyRecordToContact(c *Contact, r *contactmodel.Record)` (mirroring `RecordFromContact`'s
+placement in `backend/models/`) — populating every flat legacy field from the equivalent `Record`/`Card`
+field, so `BeforeSave`'s existing sync logic, `carddav`, and every other reader of the flat fields keep
+working unmodified during this transitional period. `CreateContact` and `UpdateContact` both call this
+one function — do not let either grow its own `Record`→`Contact` mapping (the exact anti-pattern WP-70
+avoided on the read side, applied here to the write side). **This function is also the natural point of
+reuse for Gap 4's VCF-import merge path** (see below) — a second reason it must be one shared function.
+
+**Gap 2 — `GET /contacts` (list) already has a feature set this doc didn't mention; preserve it.**
+The current `GetContacts` has offset pagination (`page`/`limit`/`total`), multi-field free-text search
+(including into JSON array columns), sort (`firstname`/`lastname`/`id`/`random`), archive filtering,
+circle filtering, and an `includes=` param preloading `notes`/`activities`/`relationships`/`reminders`.
+**Binding: keep every existing query parameter and mechanic exactly as-is — only the per-item JSON shape
+changes**, from flat `Contact`/`ContactResponse` to `ContactSummary`. For `includes=`: since `ContactSummary`
+has no room for full sub-resource arrays, when `includes` is requested the response item is an
+*extended* summary — `ContactSummary` plus the requested `notes`/`activities`/`relationships`/`reminders`
+arrays as additional optional fields — not a full `Card`. Do not drop search/sort/filter/pagination/includes
+to simplify the list endpoint.
+
+**Gap 3 — the `fields=` partial-projection param is deprecated, not silently broken.** Both
+`GET /contacts` and `GET /contacts/:id` support `fields=` today (operating on flat column names), and the
+current frontend calls it (`frontend/src/api/contacts.ts`). **Binding: remove `fields=` handling from
+both endpoints in this WP** — the fixed `ContactSummary` (list) / full `Card` (detail) shapes now serve
+the reason `fields=` existed (avoiding over-fetch on a list view). This is a deliberate, documented
+removal, not an oversight; the frontend must stop calling it (coordinate with WP-72, per the accepted
+scope above).
+
+**Gap 4 — VCF import: swap the parser, preserve the merge/duplicate-detection UX.** VCF import currently
+routes through the legacy `carddav.VCardToContact` (confirmed by reading `services/import_service.go`'s
+`ParseVCF`), with real UX on top: `DetectDuplicate`, `MergeImportedContact`, `CreateMergeNote`,
+`ContactToPreviewMap`/`ValidateImportedContact`. **Binding: swap the parser to the `vcard4`/`vcard3`
+adapters (sniffing `VERSION`, per this doc's original ask), and adapt the merge/duplicate-detection
+functions to operate on the resulting `contactmodel.Record` fields instead of flat `Contact` fields** —
+do not leave a second, divergent VCF-import path on the legacy mapper. Concretely: an imported `Record`
+is turned into a candidate `Contact` via `ApplyRecordToContact` (Gap 1's function) applied to a fresh/
+existing `Contact`, and duplicate-detection/merge logic reads from the resulting flat fields as it does
+today (or from the `Record` directly where that's cleaner — implementer's judgment, but do not fork the
+mapping). **CSV import needs no equivalent change** — it already builds a flat `Contact` via
+`BuildContactFromRow` and `db.Create`/`db.Save`, which already populates `Card`/`CRM`/`Passthrough` for
+free via WP-70's `BeforeSave` hook.
+Note this creates an intentional, temporary divergence: REST import/export (this WP) uses the new
+adapters while the live CardDAV server (`carddav/backend.go`) still uses the legacy mapper until WP-73 —
+expected, not a conflict, given the phasing.
+
+**Gap 5 — none; noted for completeness.** `GET /contacts/circles` (`GetCircles`) reads the flat `Circles`
+field today and is correctly out of scope until WP-84 (P5, already deferred) splits Circle/Tag — not a
+WP-71 concern, just confirmed not forgotten.
+
 **API versioning — binding decision.** Today's `/api/v1/contacts` serves the flat, pre-neutral-model
 DTO. This WP changes that shape (nested `Card` instead of flat fields) — a breaking wire change. Decided:
 **take the break under the existing `/api/v1` path, now, while the only consumer is the frontend being
@@ -105,7 +167,11 @@ itself:
   new controller-layer DTO built *from* `Projection`, not `Projection` reused verbatim as a wire type
   (`Projection` stays an internal persistence-projection helper, not a public API shape). This is the
   endpoint a mobile contact-list screen calls; it must not require fetching every contact's full nested
-  `Card` to render a scrollable list.
+  `Card` to render a scrollable list. **Per Gap 2/3 above: every existing query mechanic
+  (`page`/`limit`, `search`, `sort`/`order`, `include_archived`/`archived`, `circle`, `includes=`) is
+  preserved unchanged — only the per-item shape changes.** `includes=` extends `ContactSummary` with the
+  requested `notes`/`activities`/`relationships`/`reminders` arrays rather than upgrading to a full
+  `Card`. `fields=` is removed (Gap 3), not preserved.
 - `GET /api/v1/contacts/{id}` (detail) — returns the full neutral `Record`/`Card` (nested names,
   addresses, emails, phones, organizations, personalInfo, pronouns, everything) — the endpoint a
   detail/edit screen calls.
@@ -133,8 +199,12 @@ Go handlers compile.
   registry enums; graceful, non-strict on unknowns).
 - Tests: controller round-trips (`POST` neutral → `GET vcf?version=4` contains expected lines);
   `GET /contacts` (list) asserts the response is the slim `ContactSummary` shape, not a full `Card`, and
-  omits fields a mobile list view wouldn't need; OpenAPI spec validates and its schemas match the actual
-  controller request/response shapes (a spec that silently drifts from the handlers is worse than none).
+  omits fields a mobile list view wouldn't need; **and** asserts pagination/search/sort/archive/circle
+  filtering and `includes=` still work exactly as before against the new item shape (Gap 2), and that
+  `fields=` is gone (Gap 3); `ApplyRecordToContact`/`RecordFromContact` round-trip test (write a Record,
+  read it back, get the same Record) exercising Gap 1; VCF-import duplicate-detection/merge test against
+  the new adapter path (Gap 4); OpenAPI spec validates and its schemas match the actual controller
+  request/response shapes (a spec that silently drifts from the handlers is worse than none).
 
 ## WP-72 · P3 — Frontend remodel  (effort L/XL)
 

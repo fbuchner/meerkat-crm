@@ -1,17 +1,21 @@
 package services
 
 import (
+	"encoding/base64"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io"
-	"meerkat/carddav"
+	"meerkat/contactmodel"
+	"meerkat/jscontact"
 	"meerkat/middleware"
 	"meerkat/models"
+	"meerkat/vcard3"
+	"meerkat/vcard4"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/emersion/go-vcard"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -65,38 +69,169 @@ func ParseCSV(reader io.Reader) (headers []string, rows [][]string, err error) {
 	return headers, rows, nil
 }
 
-// ParseVCF reads and parses a VCF file, returning contact data and previews
-func ParseVCF(reader io.Reader, db *gorm.DB, userID uint) (contacts []VCFContactData, previews []models.ImportRowPreview, stats ImportStats, err error) {
-	decoder := vcard.NewDecoder(reader)
+// vcardBlockRE splits a multi-contact .vcf file into individual
+// "BEGIN:VCARD ... END:VCARD" blocks, each fed independently to the
+// vcard4/vcard3 adapters below (WP-71 Gap 4): those adapters' Import
+// functions each parse exactly one card (see vcard4/vcard3's own Import doc
+// comments), so a file containing several concatenated vCards — the normal
+// shape of a .vcf export — has to be split before each block is handed to
+// Import. (?is) makes it case-insensitive (vCard's BEGIN/END/VERSION tokens
+// are case-insensitive per RFC 6350/2426) and lets "." match newlines so a
+// block's interior properties aren't excluded.
+var vcardBlockRE = regexp.MustCompile(`(?is)BEGIN:VCARD.*?END:VCARD\s*`)
 
-	for rowIdx := 0; ; rowIdx++ {
-		card, decodeErr := decoder.Decode()
-		if decodeErr == io.EOF {
+// vcardVersionRE sniffs the VERSION property within one block, per this
+// WP's explicit ask ("sniffing VERSION (4.0 vs 3.0)").
+var vcardVersionRE = regexp.MustCompile(`(?im)^VERSION:\s*([0-9.]+)\s*$`)
+
+// splitVCardBlocks splits raw multi-contact VCF bytes into individual
+// per-card blocks (each including its own BEGIN:VCARD/END:VCARD framing).
+func splitVCardBlocks(data []byte) [][]byte {
+	return vcardBlockRE.FindAll(data, -1)
+}
+
+// sniffVCardVersion returns "3.0" if the block's VERSION property starts
+// with "3", otherwise "4.0" (the default for a missing/unrecognized
+// VERSION, matching this WP's "advertise 4.0 by default" precedent).
+func sniffVCardVersion(block []byte) string {
+	m := vcardVersionRE.FindSubmatch(block)
+	if m == nil {
+		return "4.0"
+	}
+	if strings.HasPrefix(strings.TrimSpace(string(m[1])), "3") {
+		return "3.0"
+	}
+	return "4.0"
+}
+
+// diagnosticsToStrings renders adapter Diagnostics (docs/fork-plan/
+// 00-overview.md §0.5's degradation policy) as human-readable strings for
+// models.ImportRowPreview.Diagnostics.
+func diagnosticsToStrings(diags []contactmodel.Diagnostic) []string {
+	if len(diags) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(diags))
+	for _, d := range diags {
+		if d.Concept != "" {
+			out = append(out, fmt.Sprintf("[%s] %s: %s", d.Severity, d.Concept, d.Message))
+		} else {
+			out = append(out, fmt.Sprintf("[%s] %s", d.Severity, d.Message))
+		}
+	}
+	return out
+}
+
+// extractPhotoFromRecord extracts binary/URL photo data from the first
+// Card.Media entry with Kind=="photo", mirroring carddav's (unexported)
+// extractPhotoData logic closely enough to preserve the existing VCF-import
+// photo-processing UX (ConfirmVCF in import_session.go) now that parsing
+// goes through the vcard4/vcard3/jscontact adapters instead of
+// carddav.VCardToContact. Kept independent rather than calling into carddav
+// since it operates on contactmodel.Resource.URI (a plain string), not a
+// raw *vcard.Field, and services cannot reach carddav's unexported helpers.
+func extractPhotoFromRecord(rec *contactmodel.Record) (data []byte, mediaType string, url string) {
+	if rec == nil {
+		return nil, "", ""
+	}
+	var photo *contactmodel.Resource
+	for i := range rec.Card.Media {
+		if rec.Card.Media[i].Kind == "photo" {
+			photo = &rec.Card.Media[i]
 			break
 		}
-		if decodeErr != nil {
+	}
+	if photo == nil || photo.URI == "" {
+		return nil, "", ""
+	}
+
+	mediaType = photo.MediaType
+	value := photo.URI
+
+	cleanValue := strings.ReplaceAll(value, " ", "")
+	cleanValue = strings.ReplaceAll(cleanValue, "\n", "")
+	cleanValue = strings.ReplaceAll(cleanValue, "\r", "")
+	if strings.HasPrefix(cleanValue, "http://") || strings.HasPrefix(cleanValue, "https://") {
+		return nil, mediaType, cleanValue
+	}
+
+	if strings.HasPrefix(value, "data:") {
+		parts := strings.SplitN(value, ",", 2)
+		if len(parts) == 2 {
+			if mediaType == "" && strings.Contains(parts[0], "image/") {
+				start := strings.Index(parts[0], "image/")
+				end := strings.Index(parts[0][start:], ";")
+				if end == -1 {
+					mediaType = parts[0][start:]
+				} else {
+					mediaType = parts[0][start : start+end]
+				}
+			}
+			value = parts[1]
+		}
+	}
+
+	decoded, decodeErr := base64.StdEncoding.DecodeString(value)
+	if decodeErr != nil {
+		return nil, "", ""
+	}
+	return decoded, mediaType, ""
+}
+
+// ParseVCF reads and parses a VCF file, returning contact data and previews.
+//
+// Per docs/fork-plan/50-integration-and-rebrand.md WP-71 Gap 4, this now
+// splits the file into per-card blocks, sniffs each block's VERSION, and
+// routes it through the vcard4/vcard3 adapter accordingly — replacing the
+// legacy carddav.VCardToContact mapper — then turns the resulting
+// contactmodel.Record into a candidate *models.Contact via
+// models.ApplyRecordToContact (Gap 1's shared Record->Contact mapping).
+// DetectDuplicate/MergeImportedContact/CreateMergeNote/ContactToPreviewMap/
+// ValidateImportedContact are all unchanged: they already operate on the
+// resulting flat Contact fields, which ApplyRecordToContact populates.
+func ParseVCF(reader io.Reader, db *gorm.DB, userID uint) (contacts []VCFContactData, previews []models.ImportRowPreview, stats ImportStats, err error) {
+	data, readErr := io.ReadAll(reader)
+	if readErr != nil {
+		return nil, nil, stats, fmt.Errorf("failed to read VCF file: %w", readErr)
+	}
+
+	blocks := splitVCardBlocks(data)
+	if len(blocks) == 0 {
+		return nil, nil, stats, fmt.Errorf("VCF file contains no valid vCards")
+	}
+
+	for rowIdx, block := range blocks {
+		if rowIdx >= MaxVCFContacts {
+			return nil, nil, stats, fmt.Errorf("too many contacts: maximum is %d contacts", MaxVCFContacts)
+		}
+
+		var adapter contactmodel.Importer = vcard4.Adapter{}
+		if sniffVCardVersion(block) == "3.0" {
+			adapter = vcard3.Adapter{}
+		}
+
+		record, diags, importErr := adapter.Import(block)
+		if importErr != nil {
 			// Skip malformed vCards but continue parsing
 			previews = append(previews, models.ImportRowPreview{
 				RowIndex:         rowIdx,
 				ParsedContact:    make(map[string]interface{}),
-				ValidationErrors: []string{fmt.Sprintf("Failed to parse vCard: %v", decodeErr)},
+				ValidationErrors: []string{fmt.Sprintf("Failed to parse vCard: %v", importErr)},
 				SuggestedAction:  "skip",
 			})
 			stats.ErrorCount++
 			continue
 		}
 
-		if rowIdx >= MaxVCFContacts {
-			return nil, nil, stats, fmt.Errorf("too many contacts: maximum is %d contacts", MaxVCFContacts)
-		}
-
-		// Convert vCard to Contact using existing carddav mapper
-		contact, photoData, photoMediaType, photoURL := carddav.VCardToContact(card, nil)
+		contact := &models.Contact{}
+		models.ApplyRecordToContact(contact, record)
 
 		// Generate UUID for contacts without one to avoid unique constraint violation
 		if contact.VCardUID == "" {
 			contact.VCardUID = uuid.New().String()
 		}
+
+		photoData, photoMediaType, photoURL := extractPhotoFromRecord(record)
 
 		contacts = append(contacts, VCFContactData{
 			Contact:        contact,
@@ -110,6 +245,7 @@ func ParseVCF(reader io.Reader, db *gorm.DB, userID uint) (contacts []VCFContact
 			RowIndex:         rowIdx,
 			ParsedContact:    ContactToPreviewMap(contact),
 			ValidationErrors: make([]string, 0),
+			Diagnostics:      diagnosticsToStrings(diags),
 			SuggestedAction:  "add",
 		}
 
@@ -137,6 +273,96 @@ func ParseVCF(reader io.Reader, db *gorm.DB, userID uint) (contacts []VCFContact
 
 	if len(contacts) == 0 {
 		return nil, nil, stats, fmt.Errorf("VCF file contains no valid contacts")
+	}
+
+	return contacts, previews, stats, nil
+}
+
+// ParseJSContact reads and parses a JSContact JSON import (WP-71 Gap 4
+// extension: this import path is new, there is no legacy equivalent to
+// replace). The file may be a single JSContact Card object, or a JSON array
+// of Card objects (the same "Card set" shape ExportContactsAsJSContact
+// produces) — array form is tried first, falling back to treating the whole
+// payload as one Card. Mirrors ParseVCF's structure/UX (duplicate detection,
+// validation, VCFContactData reuse so the existing ConfirmVCF confirmation
+// pipeline — including photo processing — handles JSContact-imported
+// contacts identically to VCF-imported ones without any changes there).
+func ParseJSContact(reader io.Reader, db *gorm.DB, userID uint) (contacts []VCFContactData, previews []models.ImportRowPreview, stats ImportStats, err error) {
+	data, readErr := io.ReadAll(reader)
+	if readErr != nil {
+		return nil, nil, stats, fmt.Errorf("failed to read JSContact file: %w", readErr)
+	}
+
+	var rawCards []json.RawMessage
+	if jsonErr := json.Unmarshal(data, &rawCards); jsonErr != nil {
+		rawCards = []json.RawMessage{json.RawMessage(data)}
+	}
+	if len(rawCards) == 0 {
+		return nil, nil, stats, fmt.Errorf("JSContact file contains no cards")
+	}
+
+	adapter := jscontact.Adapter{}
+	for rowIdx, raw := range rawCards {
+		if rowIdx >= MaxVCFContacts {
+			return nil, nil, stats, fmt.Errorf("too many contacts: maximum is %d contacts", MaxVCFContacts)
+		}
+
+		record, diags, importErr := adapter.Import(raw)
+		if importErr != nil {
+			previews = append(previews, models.ImportRowPreview{
+				RowIndex:         rowIdx,
+				ParsedContact:    make(map[string]interface{}),
+				ValidationErrors: []string{fmt.Sprintf("Failed to parse JSContact card: %v", importErr)},
+				SuggestedAction:  "skip",
+			})
+			stats.ErrorCount++
+			continue
+		}
+
+		contact := &models.Contact{}
+		models.ApplyRecordToContact(contact, record)
+		if contact.VCardUID == "" {
+			contact.VCardUID = uuid.New().String()
+		}
+
+		photoData, photoMediaType, photoURL := extractPhotoFromRecord(record)
+
+		contacts = append(contacts, VCFContactData{
+			Contact:        contact,
+			PhotoData:      photoData,
+			PhotoMediaType: photoMediaType,
+			PhotoURL:       photoURL,
+		})
+
+		preview := models.ImportRowPreview{
+			RowIndex:         rowIdx,
+			ParsedContact:    ContactToPreviewMap(contact),
+			ValidationErrors: make([]string, 0),
+			Diagnostics:      diagnosticsToStrings(diags),
+			SuggestedAction:  "add",
+		}
+
+		validationErrors := ValidateImportedContact(contact)
+		preview.ValidationErrors = validationErrors
+
+		if len(validationErrors) > 0 {
+			stats.ErrorCount++
+			preview.SuggestedAction = "skip"
+		} else {
+			stats.ValidCount++
+			duplicate := DetectDuplicate(db, userID, contact.Firstname, contact.Lastname, contact.Email, contact.Phone)
+			if duplicate != nil {
+				preview.DuplicateMatch = duplicate
+				preview.SuggestedAction = "update"
+				stats.DuplicateCount++
+			}
+		}
+
+		previews = append(previews, preview)
+	}
+
+	if len(contacts) == 0 {
+		return nil, nil, stats, fmt.Errorf("JSContact file contains no valid contacts")
 	}
 
 	return contacts, previews, stats, nil

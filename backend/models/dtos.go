@@ -48,44 +48,6 @@ type NoteInput struct {
 	ContactID *uint     `json:"contact_id" validate:"omitempty,gt=0"`
 }
 
-// ContactInput represents the DTO for creating/updating contacts
-type ContactInput struct {
-	Firstname          string            `json:"firstname" validate:"required,min=1,max=100"`
-	Lastname           string            `json:"lastname" validate:"max=100"`
-	Nickname           string            `json:"nickname" validate:"max=50"`
-	Gender             string            `json:"gender" validate:"omitempty,oneof=male female other prefer_not_to_say"`
-	Email              string            `json:"email" validate:"omitempty,email"`
-	Phone              string            `json:"phone" validate:"omitempty,phone"`
-	Birthday           string            `json:"birthday" validate:"omitempty,birthday"`
-	Address            string            `json:"address" validate:"max=500"`
-	HowWeMet           string            `json:"how_we_met" validate:"max=1000"`
-	FoodPreference     string            `json:"food_preference" validate:"max=500"`
-	WorkInformation    string            `json:"work_information" validate:"max=1000"`
-	ContactInformation string            `json:"contact_information" validate:"max=1000"`
-	Circles            []string          `json:"circles" validate:"unique_circles"`
-	CustomFields       map[string]string `json:"custom_fields"`
-
-	// Multi-valued vCard fields
-	Emails    []ContactEmail   `json:"emails" validate:"omitempty,max=25,dive"`
-	Phones    []ContactPhone   `json:"phones" validate:"omitempty,max=25,dive"`
-	Addresses []ContactAddress `json:"addresses" validate:"omitempty,max=25,dive"`
-	URLs      []ContactURL     `json:"urls" validate:"omitempty,max=25,dive"`
-	IMPPs     []ContactIMPP    `json:"impps" validate:"omitempty,max=25,dive"`
-
-	// Structured name parts
-	Prefix     string `json:"prefix" validate:"max=50"`
-	MiddleName string `json:"middle_name" validate:"max=100"`
-	Suffix     string `json:"suffix" validate:"max=50"`
-
-	// Organizational fields
-	Organization string `json:"organization" validate:"max=200"`
-	Department   string `json:"department" validate:"max=200"`
-	JobTitle     string `json:"job_title" validate:"max=200"`
-	Role         string `json:"role" validate:"max=200"`
-
-	Anniversary string `json:"anniversary" validate:"omitempty,birthday"`
-}
-
 // CustomFieldNamesInput represents the DTO for updating user's custom field definitions
 type CustomFieldNamesInput struct {
 	Names []string `json:"names" validate:"dive,max=100"`

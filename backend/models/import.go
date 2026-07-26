@@ -54,6 +54,14 @@ type ImportRowPreview struct {
 	ValidationErrors []string               `json:"validation_errors"` // Any validation issues
 	DuplicateMatch   *DuplicateMatch        `json:"duplicate_match"`   // Potential duplicate, if any
 	SuggestedAction  string                 `json:"suggested_action"`  // "add", "skip", or "update"
+
+	// Diagnostics surfaces contactmodel.Diagnostic events (WP-71 Gap 4) from
+	// the vcard4/vcard3/jscontact adapter that parsed this row — e.g. a
+	// gracefully-dropped, no-target-home field (docs/fork-plan/00-overview.md
+	// §0.5's degradation policy). Empty for CSV-import rows (which don't go
+	// through an adapter at all). Additive: existing preview consumers that
+	// don't know about this field are unaffected.
+	Diagnostics []string `json:"diagnostics,omitempty"`
 }
 
 // ImportPreviewResponse contains the full preview data

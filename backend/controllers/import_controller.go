@@ -155,6 +155,80 @@ func UploadVCFForImport(c *gin.Context, cfg *config.Config) {
 	})
 }
 
+// UploadJSContactForImport handles a JSContact JSON file upload and returns a
+// preview directly, mirroring UploadVCFForImport (WP-71 Gap 4 extension: a
+// new import path, no legacy equivalent). Content sniffing here is by file
+// extension (.json) rather than a shared upload endpoint that inspects
+// Content-Type/body — kept as a separate route for simplicity, matching the
+// existing separate CSV/VCF upload endpoints. Confirmation reuses the
+// existing POST /contacts/import/vcf/confirm endpoint: the session is
+// created the same way CreateVCFSession does (format-agnostic once it's a
+// []VCFContactData), so ConfirmVCF's photo-processing pipeline handles
+// JSContact-imported contacts identically to VCF-imported ones.
+func UploadJSContactForImport(c *gin.Context) {
+	log := logger.FromContext(c)
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	db := c.MustGet("db").(*gorm.DB)
+
+	go importSessions.CleanupExpired()
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		log.Warn().Err(err).Msg("No file uploaded")
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("file", "No file uploaded"))
+		return
+	}
+
+	if file.Size > services.MaxVCFSize {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("file", fmt.Sprintf("File too large. Maximum size is %d MB", services.MaxVCFSize/(1024*1024))))
+		return
+	}
+
+	if !strings.HasSuffix(strings.ToLower(file.Filename), ".json") {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("file", "File must be a JSON (JSContact) file"))
+		return
+	}
+
+	f, err := file.Open()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to open uploaded file")
+		apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to process file"))
+		return
+	}
+	defer f.Close()
+
+	contacts, previews, stats, err := services.ParseJSContact(f, db, userID)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to parse JSContact file")
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("file", err.Error()))
+		return
+	}
+
+	sessionID := importSessions.CreateVCFSession(userID, contacts, previews)
+
+	log.Info().
+		Str("session_id", sessionID).
+		Int("contacts", len(contacts)).
+		Int("valid", stats.ValidCount).
+		Int("duplicates", stats.DuplicateCount).
+		Int("errors", stats.ErrorCount).
+		Msg("JSContact file uploaded and parsed successfully")
+
+	c.JSON(http.StatusOK, models.ImportPreviewResponse{
+		SessionID:      sessionID,
+		Rows:           previews,
+		TotalRows:      len(previews),
+		ValidRows:      stats.ValidCount,
+		DuplicateCount: stats.DuplicateCount,
+		ErrorCount:     stats.ErrorCount,
+	})
+}
+
 // PreviewImport applies mappings and returns preview with duplicate detection
 func PreviewImport(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)

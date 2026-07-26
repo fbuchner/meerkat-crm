@@ -120,6 +120,29 @@ type Contact struct {
 	// Firstname/Lastname/Email/Phone/Birthday below, via DeriveProjection.
 	FN  string `gorm:"column:fn" json:"-"`
 	Org string `gorm:"column:org" json:"-"`
+
+	// cardSetDirectly is a transient, in-memory-only marker (unexported, so
+	// GORM ignores it entirely — no column, nothing to tag) set by
+	// ApplyRecordToContact (contact_record_reverse.go, WP-71/P2) to tell
+	// BeforeSave below "Card/CRM/Passthrough were just set directly from an
+	// authoritative contactmodel.Record — do not re-derive and overwrite them
+	// from the flat legacy fields on this save."
+	//
+	// Without this, BeforeSave's original (WP-70/P1) unconditional
+	// `c.Card = RecordFromContact(c).Card` would silently discard any
+	// Card-only data with no flat-field home (SpeakToAs, PersonalInfo,
+	// SocialProfiles, OtherOnlineServices, Keywords, Media, extra name
+	// components, additional Organizations/Titles, RelatedTo, Members,
+	// Localizations, ...) on every single save of a contact created/updated
+	// through the new nested REST API or the VCF/JSContact import path —
+	// defeating the entire point of WP-71 accepting/returning the full
+	// neutral Record. Flat-field-only writers (CSV import's
+	// BuildContactFromRow, MergeImportedContact's merge-by-flat-fields path,
+	// and anything else that never calls ApplyRecordToContact) never set
+	// this flag, so BeforeSave's original flat->Card derivation keeps running
+	// for them exactly as it did in WP-70 — this is what keeps their Card
+	// column in sync at all, since they have no other way to populate it.
+	cardSetDirectly bool
 }
 
 // renders a structured address as a single human-readable line, used to keep the legacy Address scalar in sync for search/list views.
@@ -168,10 +191,23 @@ func (c *Contact) BeforeSave(tx *gorm.DB) error {
 		c.Address = FormatAddress(c.Addresses[0])
 	}
 
-	record := RecordFromContact(c)
-	c.Card = record.Card
-	c.CRM = record.Envelope
-	c.Passthrough = record.Passthrough
+	var record *contactmodel.Record
+	if c.cardSetDirectly {
+		// Card/CRM/Passthrough were just set directly by ApplyRecordToContact
+		// from an authoritative Record (new nested REST input, or a VCF/
+		// JSContact import) — use that Record's own values for the derived
+		// projection below, but leave c.Card/c.CRM/c.Passthrough untouched
+		// rather than truncating them back down to what the (necessarily
+		// lossy) flat fields alone could reconstruct. See the cardSetDirectly
+		// field doc above.
+		record = &contactmodel.Record{Card: c.Card, Envelope: c.CRM, Passthrough: c.Passthrough}
+		c.cardSetDirectly = false // one-shot: only guards the save that immediately follows ApplyRecordToContact
+	} else {
+		record = RecordFromContact(c)
+		c.Card = record.Card
+		c.CRM = record.Envelope
+		c.Passthrough = record.Passthrough
+	}
 
 	proj := contactmodel.DeriveProjection(record)
 	if proj.Firstname != "" {

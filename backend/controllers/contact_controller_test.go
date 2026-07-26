@@ -3,6 +3,7 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
+	"meerkat/contactmodel"
 	"meerkat/models"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +15,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+func intPtr(v int) *int { return &v }
 
 func TestGetContacts(t *testing.T) {
 	db, router := setupRouter()
@@ -151,12 +154,26 @@ func TestGetContact(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var responseBody models.Contact
+	// GET /contacts/:id now returns the full neutral ContactRecordResponse
+	// (Card/CRM/Passthrough nested), not a flat models.Contact (Gap 3/item 2).
+	var responseBody models.ContactRecordResponse
 	json.Unmarshal(w.Body.Bytes(), &responseBody)
-	assert.Equal(t, contact.Firstname, responseBody.Firstname)
+	assert.Equal(t, contact.ID, responseBody.ID)
+	if assert.NotNil(t, responseBody.Card.Name) {
+		var gotFirst string
+		for _, comp := range responseBody.Card.Name.Components {
+			if comp.Kind == "given" {
+				gotFirst = comp.Value
+			}
+		}
+		assert.Equal(t, contact.Firstname, gotFirst)
+	}
 }
 
-func TestGetContactWithFieldSelection(t *testing.T) {
+// TestGetContactsFieldsParamIgnored asserts fields= is gone (Gap 3): passing
+// it no longer restricts or alters the response shape, which is always the
+// fixed ContactSummary regardless of what (if anything) fields= requests.
+func TestGetContactsFieldsParamIgnored(t *testing.T) {
 	db, router := setupRouter()
 
 	var user models.User
@@ -164,7 +181,6 @@ func TestGetContactWithFieldSelection(t *testing.T) {
 
 	router.GET("/contacts", GetContacts)
 
-	// Create a contact with multiple fields
 	contact := models.Contact{
 		UserID:          user.ID,
 		Firstname:       "Jane",
@@ -176,7 +192,8 @@ func TestGetContactWithFieldSelection(t *testing.T) {
 	}
 	db.Create(&contact)
 
-	// Request specific fields only (firstname, email)
+	// fields=firstname,email would once have restricted the response to just
+	// those columns; it must now have no effect at all.
 	req, _ := http.NewRequest("GET", "/contacts?fields=firstname,email", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -191,10 +208,10 @@ func TestGetContactWithFieldSelection(t *testing.T) {
 
 	contactData := contacts[0].(map[string]any)
 	assert.Equal(t, "Jane", contactData["firstname"])
-	assert.Equal(t, "jane@example.com", contactData["email"])
-	// Fields not requested should be empty/zero values
-	assert.Empty(t, contactData["lastname"])
-	assert.Empty(t, contactData["phone"])
+	assert.Equal(t, "jane@example.com", contactData["primary_email"])
+	// lastname was NOT in fields=, but the slim ContactSummary shape is
+	// returned unconditionally now, so it's still present.
+	assert.Equal(t, "Doe", contactData["lastname"])
 }
 
 func TestGetContactWithRelationships(t *testing.T) {
@@ -283,6 +300,60 @@ func TestGetContactWithRelationships(t *testing.T) {
 	assert.Len(t, reminders, 1)
 }
 
+// TestGetContactsArchiveAndCircleFiltering asserts Gap 2's binding
+// preservation of the archive-filtering and circle-filtering mechanics
+// against the new ContactSummary item shape.
+func TestGetContactsArchiveAndCircleFiltering(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+
+	router.GET("/contacts", GetContacts)
+
+	active := models.Contact{UserID: user.ID, Firstname: "Active", Lastname: "One", Circles: []string{"friends"}}
+	archived := models.Contact{UserID: user.ID, Firstname: "Archived", Lastname: "One", Circles: []string{"work"}, Archived: true}
+	db.Create(&active)
+	db.Create(&archived)
+
+	// Default: archived excluded.
+	req, _ := http.NewRequest("GET", "/contacts", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var body map[string]any
+	json.Unmarshal(w.Body.Bytes(), &body)
+	assert.Equal(t, float64(1), body["total"])
+
+	// include_archived=true: both returned.
+	req, _ = http.NewRequest("GET", "/contacts?include_archived=true", nil)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	json.Unmarshal(w.Body.Bytes(), &body)
+	assert.Equal(t, float64(2), body["total"])
+
+	// archived=true (without include_archived): only the archived one.
+	req, _ = http.NewRequest("GET", "/contacts?archived=true", nil)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	json.Unmarshal(w.Body.Bytes(), &body)
+	assert.Equal(t, float64(1), body["total"])
+	contacts := body["contacts"].([]any)
+	assert.Equal(t, "Archived", contacts[0].(map[string]any)["firstname"])
+
+	// circle= filters by circle membership.
+	req, _ = http.NewRequest("GET", "/contacts?circle=friends", nil)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	json.Unmarshal(w.Body.Bytes(), &body)
+	contacts = body["contacts"].([]any)
+	assert.Len(t, contacts, 1)
+	assert.Equal(t, "Active", contacts[0].(map[string]any)["firstname"])
+}
+
 func TestGetContactsWithSearchCriteria(t *testing.T) {
 	db, router := setupRouter()
 
@@ -358,14 +429,18 @@ func TestGetContactsWithSearchCriteria(t *testing.T) {
 func TestCreateContact(t *testing.T) {
 	_, router := setupRouter()
 
-	router.POST("/contacts", withValidated(func() any { return &models.ContactInput{} }), CreateContact)
+	router.POST("/contacts", withValidated(func() any { return &models.ContactRecordInput{} }), CreateContact)
 
-	// Create a contact with basic fields
-	newContact := models.ContactInput{
-		Firstname: "Alice",
-		Lastname:  "Johnson",
-		Email:     "alice@example.com",
-		Phone:     "1234567890",
+	// Create a contact with basic fields, using the new nested Card shape.
+	newContact := models.ContactRecordInput{
+		Card: contactmodel.Card{
+			Name: &contactmodel.Name{Components: []contactmodel.NameComponent{
+				{Kind: "given", Value: "Alice"},
+				{Kind: "surname", Value: "Johnson"},
+			}},
+			Emails: []contactmodel.Email{{Address: "alice@example.com"}},
+			Phones: []contactmodel.Phone{{Number: "1234567890"}},
+		},
 	}
 
 	jsonValue, _ := json.Marshal(newContact)
@@ -386,23 +461,34 @@ func TestCreateContact(t *testing.T) {
 func TestCreateContactWithAllFields(t *testing.T) {
 	_, router := setupRouter()
 
-	router.POST("/contacts", withValidated(func() any { return &models.ContactInput{} }), CreateContact)
+	router.POST("/contacts", withValidated(func() any { return &models.ContactRecordInput{} }), CreateContact)
 
-	// Create a contact with all fields filled out
-	fullContact := models.ContactInput{
-		Firstname:          "Robert",
-		Lastname:           "Anderson",
-		Nickname:           "Bob",
-		Gender:             "male",
-		Email:              "robert.anderson@example.com",
-		Phone:              "+1-555-123-4567",
-		Birthday:           "15-03-1985",
-		Address:            "456 Oak Avenue, Springfield, IL 62701",
-		HowWeMet:           "Met at a tech conference in 2020",
-		FoodPreference:     "Vegetarian, loves Italian cuisine",
-		WorkInformation:    "Senior Software Engineer at TechCorp Inc.",
-		ContactInformation: "Prefers email, available weekdays 9-5",
-		Circles:            []string{"Friends", "Work", "Tech Community"},
+	// Create a contact with all fields filled out, via the nested Card/CRM
+	// shape (Gender rides alongside, per ContactRecordInput's doc comment).
+	fullContact := models.ContactRecordInput{
+		Gender: "male",
+		Card: contactmodel.Card{
+			Name: &contactmodel.Name{Components: []contactmodel.NameComponent{
+				{Kind: "given", Value: "Robert"},
+				{Kind: "surname", Value: "Anderson"},
+			}},
+			Nicknames: []contactmodel.Nickname{{Name: "Bob"}},
+			Emails:    []contactmodel.Email{{Address: "robert.anderson@example.com"}},
+			Phones:    []contactmodel.Phone{{Number: "+1-555-123-4567"}},
+			Anniversaries: []contactmodel.Anniversary{
+				{Kind: "birth", Date: contactmodel.AnniversaryDate{Partial: &contactmodel.PartialDate{
+					Year: intPtr(1985), Month: intPtr(3), Day: intPtr(15),
+				}}},
+			},
+			Addresses: []contactmodel.Address{{Full: "456 Oak Avenue, Springfield, IL 62701"}},
+		},
+		CRM: contactmodel.CRMEnvelope{
+			HowWeMet:           "Met at a tech conference in 2020",
+			FoodPreference:     "Vegetarian, loves Italian cuisine",
+			WorkInformation:    "Senior Software Engineer at TechCorp Inc.",
+			ContactInformation: "Prefers email, available weekdays 9-5",
+			Circles:            []string{"Friends", "Work", "Tech Community"},
+		},
 	}
 
 	jsonValue, _ := json.Marshal(fullContact)
@@ -419,65 +505,60 @@ func TestCreateContactWithAllFields(t *testing.T) {
 	json.Unmarshal(w.Body.Bytes(), &responseBody)
 	assert.Equal(t, "Contact created successfully", responseBody["message"])
 
-	// Verify all fields are returned correctly
+	// Verify all fields are returned correctly in the nested
+	// ContactRecordResponse shape.
 	contact := responseBody["contact"].(map[string]any)
-	assert.Equal(t, "Robert", contact["firstname"])
-	assert.Equal(t, "Anderson", contact["lastname"])
-	assert.Equal(t, "Bob", contact["nickname"])
 	assert.Equal(t, "male", contact["gender"])
-	assert.Equal(t, "robert.anderson@example.com", contact["email"])
-	assert.Equal(t, "+1-555-123-4567", contact["phone"])
-	assert.Equal(t, "15-03-1985", contact["birthday"])
-	assert.Equal(t, "456 Oak Avenue, Springfield, IL 62701", contact["address"])
-	assert.Equal(t, "Met at a tech conference in 2020", contact["how_we_met"])
-	assert.Equal(t, "Vegetarian, loves Italian cuisine", contact["food_preference"])
-	assert.Equal(t, "Senior Software Engineer at TechCorp Inc.", contact["work_information"])
-	assert.Equal(t, "Prefers email, available weekdays 9-5", contact["contact_information"])
-	circles := contact["circles"].([]any)
+
+	crm := contact["crm"].(map[string]any)
+	assert.Equal(t, "Met at a tech conference in 2020", crm["how_we_met"])
+	assert.Equal(t, "Vegetarian, loves Italian cuisine", crm["food_preference"])
+	assert.Equal(t, "Senior Software Engineer at TechCorp Inc.", crm["work_information"])
+	assert.Equal(t, "Prefers email, available weekdays 9-5", crm["contact_information"])
+	circles := crm["circles"].([]any)
 	assert.Len(t, circles, 3)
+
+	card := contact["card"].(map[string]any)
+	nicknames := card["nicknames"].([]any)
+	assert.Equal(t, "Bob", nicknames[0].(map[string]any)["name"])
+	emails := card["emails"].([]any)
+	assert.Equal(t, "robert.anderson@example.com", emails[0].(map[string]any)["address"])
 }
 
-func TestCreateContactWithBirthdayVariations(t *testing.T) {
+// TestCreateContactBirthdayPartialDates replaces the old flat-scalar
+// birthday-format test: the new nested input carries a birthday as a
+// structured Card.Anniversaries[kind=birth].Date.Partial (year/month/day),
+// not a raw formatted string, so this exercises the equivalent
+// full-date/year-less/absent variations against that shape instead.
+func TestCreateContactBirthdayPartialDates(t *testing.T) {
 	_, router := setupRouter()
 
-	router.POST("/contacts", withValidated(func() any { return &models.ContactInput{} }), CreateContact)
+	router.POST("/contacts", withValidated(func() any { return &models.ContactRecordInput{} }), CreateContact)
 
 	tests := []struct {
-		name     string
-		birthday string
-		desc     string
+		name  string
+		date  *contactmodel.PartialDate
+		count int // expected len(card.anniversaries)
 	}{
-		{
-			name:     "Fully known birthday",
-			birthday: "25-12-1990",
-			desc:     "Day, month, and year known",
-		},
-		{
-			name:     "Birthday without year",
-			birthday: "25-12",
-			desc:     "Day and month known, year unknown",
-		},
-		{
-			name:     "Birthday with only month and year",
-			birthday: "00-12-1990",
-			desc:     "Month and year known, day unknown",
-		},
-		{
-			name:     "Unknown birthday",
-			birthday: "",
-			desc:     "Birthday completely unknown",
-		},
+		{"Fully known birthday", &contactmodel.PartialDate{Year: intPtr(1990), Month: intPtr(12), Day: intPtr(25)}, 1},
+		{"Birthday without year", &contactmodel.PartialDate{Month: intPtr(12), Day: intPtr(25)}, 1},
+		{"Unknown birthday", nil, 0},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			contact := models.ContactInput{
-				Firstname: "Test",
-				Lastname:  tt.name,
-				Birthday:  tt.birthday,
+			input := models.ContactRecordInput{
+				Card: contactmodel.Card{
+					Name: &contactmodel.Name{Components: []contactmodel.NameComponent{{Kind: "given", Value: "Test"}}},
+				},
+			}
+			if tt.date != nil {
+				input.Card.Anniversaries = []contactmodel.Anniversary{
+					{Kind: "birth", Date: contactmodel.AnniversaryDate{Partial: tt.date}},
+				}
 			}
 
-			jsonValue, _ := json.Marshal(contact)
+			jsonValue, _ := json.Marshal(input)
 
 			req, _ := http.NewRequest("POST", "/contacts", bytes.NewBuffer(jsonValue))
 			req.Header.Set("Content-Type", "application/json")
@@ -485,14 +566,16 @@ func TestCreateContactWithBirthdayVariations(t *testing.T) {
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, req)
 
-			assert.Equal(t, http.StatusCreated, w.Code, "Failed for: %s", tt.desc)
+			assert.Equal(t, http.StatusCreated, w.Code)
 
 			var responseBody map[string]any
 			json.Unmarshal(w.Body.Bytes(), &responseBody)
 			assert.Equal(t, "Contact created successfully", responseBody["message"])
 
 			contactResp := responseBody["contact"].(map[string]any)
-			assert.Equal(t, tt.birthday, contactResp["birthday"])
+			card := contactResp["card"].(map[string]any)
+			anniversaries, _ := card["anniversaries"].([]any)
+			assert.Len(t, anniversaries, tt.count)
 		})
 	}
 }
@@ -503,7 +586,7 @@ func TestUpdateContact(t *testing.T) {
 	var user models.User
 	db.First(&user)
 
-	router.PUT("/contacts/:id", withValidated(func() any { return &models.ContactInput{} }), UpdateContact)
+	router.PUT("/contacts/:id", withValidated(func() any { return &models.ContactRecordInput{} }), UpdateContact)
 
 	// Create a contact
 	contact := models.Contact{
@@ -513,10 +596,14 @@ func TestUpdateContact(t *testing.T) {
 	}
 	db.Create(&contact)
 
-	// Update the contact
-	updatedContact := models.ContactInput{
-		Firstname: "Alice Updated",
-		Lastname:  "Johnson Updated",
+	// Update the contact via the new nested shape
+	updatedContact := models.ContactRecordInput{
+		Card: contactmodel.Card{
+			Name: &contactmodel.Name{Components: []contactmodel.NameComponent{
+				{Kind: "given", Value: "Alice Updated"},
+				{Kind: "surname", Value: "Johnson Updated"},
+			}},
+		},
 	}
 	jsonValue, _ := json.Marshal(updatedContact)
 
@@ -527,9 +614,18 @@ func TestUpdateContact(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var responseBody models.Contact
+	var responseBody models.ContactRecordResponse
 	json.Unmarshal(w.Body.Bytes(), &responseBody)
-	assert.Equal(t, updatedContact.Firstname, responseBody.Firstname)
+
+	var gotFirst string
+	if responseBody.Card.Name != nil {
+		for _, comp := range responseBody.Card.Name.Components {
+			if comp.Kind == "given" {
+				gotFirst = comp.Value
+			}
+		}
+	}
+	assert.Equal(t, "Alice Updated", gotFirst)
 }
 
 func TestDeleteContact(t *testing.T) {

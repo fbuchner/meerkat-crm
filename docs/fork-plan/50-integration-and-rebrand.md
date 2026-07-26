@@ -229,17 +229,44 @@ Go handlers compile.
 
 ## WP-73 · P4 — CardDAV 3.0/4.0  (effort M/L)
 
+**Pre-implementation review (binding — resolved before implementation, not after).** Same discipline as
+WP-70/71. One real gap found by reading the actual current code, and it must be fixed *before* retiring
+the legacy mapper, not after:
+
+**Prerequisite — photo bridging gap (fix first, in its own small step).** Neither `RecordFromContact` nor
+`ApplyRecordToContact` (WP-70/71) touch `Contact.Photo`/`PhotoThumbnail` (disk-based) ↔ `Card.Media`
+(kind=photo) at all — WP-71 already hit this and documented it as a known, accepted limitation for
+one-off VCF/JSContact export. It cannot stay unfixed here: retiring `vcard_mapper.go` for the **live**
+CardDAV server without this bridge means every synced device silently loses contact photos in both
+directions (export: the server stops serving photos it used to; import: a photo uploaded via CardDAV
+`PUT` parses into `Card.Media` but is never persisted to disk or `Contact.Photo`, so the app's own UI —
+which reads `Contact.Photo`/`PhotoThumbnail` directly, not `Card.Media` — never shows it). This is a much
+larger blast radius than the VCF-export edge case WP-71 accepted.
+The disk-I/O helpers that already do this correctly (`readContactPhoto`, `SaveContactPhoto`,
+`extractPhotoData`, `FetchPhotoFromURL`, all in `carddav/vcard_mapper.go`) cannot simply be called from
+`backend/models/` — `carddav` already imports `models` (confirmed: `carddav/auth.go`, `carddav/backend.go`
+both import `meerkat/models`), so `models` importing `carddav` back would be a real import cycle.
+**Binding: extract these four functions into a new, dependency-free package** (e.g. `backend/photostore/`)
+that `models`, `carddav`, and `services` can all import without a cycle. Then extend `RecordFromContact`
+(add a `photoDir string` parameter; read the on-disk photo, encode as a `data:` URI or file reference into
+one `Card.Media` entry with `Kind:"photo"`) and `ApplyRecordToContact` (same parameter; on the reverse
+path, find the `photo` `Media` entry, persist it via the extracted `SaveContactPhoto`, set
+`Contact.Photo`/`PhotoThumbnail`) to call the new package. This also retroactively closes WP-71's
+documented VCF/JSContact photo-export gap — update `export_controller.go`'s call sites to pass
+`photoDir` once this lands, and remove the "known limitation" comment there since it's no longer true.
+
 - `backend/carddav/backend.go` — the two hardcoded `Version:"3.0"` capability advertisements (~lines
   110, 133) become version-aware; advertise 4.0 (and/or 3.0) per config/negotiation.
 - `backend/carddav/vcard_mapper.go` — retire the 877-line ad-hoc mapper; route
-  `ContactToVCard`/`VCardToContact` through `vcard4`/`vcard3` adapters. Keep the old tests as a 3.0
+  `ContactToVCard`/`VCardToContact` through `vcard4`/`vcard3` adapters (now photo-complete, per the
+  prerequisite above). Keep the old tests as a 3.0
   compatibility guardian until parity is proven, then delete.
 - Content negotiation: emit 4.0 by default, 3.0 for clients that require it (User-Agent / Accept /
   per-address-book config). Optionally serve JSContact (`application/jscontact+json`) where supported.
 - **Optional** — revive the dead `CardDAVSync` sync-token table (`backend/models/carddav.go`) for
   efficient collection sync; today only ETag+If-Match exists.
 
-## WP-73b · CardDAV *client* (sync contacts in from an external server)  (effort M/L)
+## WP-73b · CardDAV *client* (sync contacts in from an external server)  (effort M — revised down from M/L; see library discovery below)
 
 **Why this exists.** Upstream (`fbuchner/meerkat-crm`) is adding "the option to run Meerkat as a CardDAV
 client" in an upcoming, not-yet-public release (per maintainer comment, PR #195:
@@ -266,29 +293,57 @@ for calendars: subscription config, per-subscription sync-mutex, encrypted crede
 (`services/credential_crypto.go`, already exists, directly reusable), UID→local-record link table for
 idempotent re-sync, content-hash change detection, sync status/error bookkeeping.
 
+**Library discovery — this changes the implementation approach, not just an implementation detail.**
+`github.com/emersion/go-webdav` (already a dependency — it's what powers our own CardDAV *server*) ships
+a full CardDAV **client** in its `carddav` subpackage, confirmed by reading the library source directly
+(not assumed): `carddav.DiscoverContextURL` (`.well-known/carddav`), `Client.FindCurrentUserPrincipal`,
+`Client.FindAddressBookHomeSet`, `Client.FindAddressBooks`, `Client.QueryAddressBook`/
+`MultiGetAddressBook`, `Client.GetAddressObject`/`PutAddressObject`, and — critically —
+`Client.SyncCollection`, a **complete RFC 6578 sync-collection implementation already built in**
+(`SyncQuery{SyncToken}` in, `SyncResponse{SyncToken, Updated []AddressObject, Deleted []string}` out —
+`Deleted` already gives the reconciliation list directly). **Binding: use this client directly; do not
+hand-roll WebDAV/XML/PROPFIND/REPORT construction.** This changes WP-73b from "build a CardDAV protocol
+client" to "orchestrate an existing one" — materially lower effort/risk than originally scoped.
+`AddressObject.Card` comes back as an already-parsed `vcard.Card` (the same low-level type our own
+adapters use internally) — bridge to our adapters by re-encoding it to bytes (`vcard.NewEncoder`), then
+sniffing `VERSION` and calling `vcard4`/`vcard3.Adapter{}.Import()` exactly as WP-71's VCF import does;
+do not use `go-webdav`'s own parsed `vcard.Card` fields directly, so there is one vCard-interpretation
+path (the P0 adapters + correspondence table), not two.
+
 - `backend/models/contact_subscription.go` (new) — `ContactSubscription{UserID, Name, URL, Username,
   PasswordEncrypted, SyncEnabled, LastSyncedAt, LastSyncStatus, LastSyncError}`, same shape as
   `CalendarSubscription`.
-- `backend/services/contact_sync_service.go` (new) — the sync loop: CardDAV discovery (or a
-  direct-address-book-URL shortcut as a v1, discovery as a fast-follow), `sync-collection` REPORT with a
-  stored sync-token where the server supports it (RFC 6578), falling back to full
-  PROPFIND+`addressbook-multiget` otherwise. **Parse each fetched vCard via the existing `vcard4`/`vcard3`
-  adapters** (sniff `VERSION`, same as WP-71's import path) into a `contactmodel.Record`, then **reuse
-  WP-71's `ApplyRecordToContact`** to turn it into a real `Contact` row — do not write a third, divergent
-  `Record`→`Contact` mapping. ETag per resource stored in the link table for conflict detection on any
-  future push-back.
+- `backend/services/contact_sync_service.go` (new) — the sync loop, built on `carddav.NewClient` +
+  `webdav.HTTPClientWithBasicAuth` (both already available): construct the client against the
+  subscription's stored URL/credentials; if a stored sync-token exists, call `SyncCollection` directly
+  (v1 may skip full discovery and use a user-supplied direct address-book URL, per below — discovery via
+  `FindCurrentUserPrincipal`/`FindAddressBookHomeSet`/`FindAddressBooks` is a fast-follow); if the server
+  doesn't support `sync-collection` (the library will surface an error/unsupported response — handle this
+  as a fallback trigger), fall back to `FindAddressBooks` + `QueryAddressBook`/`MultiGetAddressBook` for a
+  full refetch. For each `Updated` `AddressObject`: re-encode `.Card` to bytes, sniff `VERSION`, run
+  through the `vcard4`/`vcard3` adapter to get a `contactmodel.Record`, then **reuse WP-71's
+  `ApplyRecordToContact`** to turn it into a real `Contact` row — do not write a third, divergent
+  `Record`→`Contact` mapping. Store each `AddressObject.ETag` in the link table. Persist the returned
+  `SyncResponse.SyncToken` back onto the subscription for the next run.
 - `contact_sync_links` table (new, mirrors `calendar_event_links`): `subscription_id, user_id,
-  href/uid, contact_id, etag, content_hash`. Deletions (sync-collection reports a 404 for a removed
-  resource) reconcile as removing/archiving the linked `Contact` — decide archive-vs-hard-delete at
-  implementation time, consistent with how `Contact.Archived` is already used elsewhere.
+  href/uid, contact_id, etag, content_hash`. For each path in `SyncResponse.Deleted`: look up the link,
+  archive (not hard-delete, consistent with how `Contact.Archived` is already used elsewhere) the linked
+  `Contact`, remove the link row.
 - One-way (server→Meerkat) is the v1 target, matching CalDAV's current one-way-in shape. Two-way (push
-  local edits back) is a later increment, same phasing logic as WP-88 for calendars.
+  local edits back via the already-available `PutAddressObject`) is a later increment, same phasing logic
+  as WP-88 for calendars.
 - Multiple address-book collections per subscription: v1 may sync a single, user-specified collection
-  URL (simplest); full discovery-and-choose-which-collections is a fast-follow, not required for v1.
+  URL (simplest, skips discovery entirely); full discovery-and-choose-which-collections (using
+  `FindAddressBooks`) is a fast-follow, not required for v1.
+- **Depends on WP-73's photo-bridging prerequisite too**: an incoming synced contact's photo needs the
+  same `Card.Media` ↔ `Contact.Photo`/`PhotoThumbnail` bridge in `ApplyRecordToContact` that WP-73 is
+  adding — do not duplicate that fix here.
 
-**Sequencing:** depends on WP-71 (`ApplyRecordToContact` must exist first) — otherwise no dependency on
-P3/P4/P5+; could run in parallel with WP-73 (our own server upgrade) or P5's relationship-graph work
-once WP-71 lands.
+**Sequencing:** depends on WP-71 (`ApplyRecordToContact` must exist — done) **and now also on WP-73's
+photo-bridging prerequisite** (the `backend/photostore/` extraction + `ApplyRecordToContact` photo
+support), since WP-73b needs that same bridge for incoming synced photos — do not duplicate it. Given the
+user's own stated order (server first, since "having a sound server will better inform our client work"),
+run WP-73 (including its prerequisite) to completion first, then WP-73b. No dependency on P3/P5+.
 
 ## WP-74 · Rebrand (effort S/M, do last)
 

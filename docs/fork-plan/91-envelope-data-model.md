@@ -75,6 +75,43 @@ relations without special-casing any of them:
   simultaneously an *edge* (two endpoints) and an *entity* (addressable, metadata-bearing) — this is what
   "relationships as entities themselves" means, and 91.2's shape already provides it.
 
+### Affinity edges (compatibility — who gets along, who clashes)
+
+Distinct from both *structural* relationships (spouse/parent/co-parent) and *social groupings* (circles):
+affinity is **pairwise compatibility** — how well two entities interact. Circles cannot express it (a
+circle has no notion of a *pair* within it clashing, and no negative case at all), so this is a
+relationship-graph edge, not a grouping. Two edge types, same `type=role/metadata=nature` machinery:
+
+- **`gets_along_with`** (positive) — "Sarah and Jeff get along", "Tokyo and Leo are friendly". Overlaps
+  but isn't identical to `friend_of` (a *bond*): two entities can be *compatible* without being friends
+  (colleagues, two pets that coexist peacefully).
+- **`conflicts_with`** (negative) — "Marley and Gimley do not play well together". **The genuinely new
+  expressiveness** — nothing else in the model can say "keep these two apart".
+
+Conventions:
+- **Symmetric by default** (`directional: false`) — compatibility is usually mutual; the graph allows a
+  directional edge for the asymmetric case ("Marley is aggressive toward Gimley specifically").
+- **`strength`** metadata — graded (`mild` friction … `never in the same room`), so a guest-list check
+  can distinguish "seat them apart" from a hard conflict.
+- **`context`** metadata — the qualifier that makes it usable: "fine one-on-one, clash in groups"; "only
+  around food" (pets); `since`/`until` for affinities that changed (a falling-out).
+- **Coexists with structural edges** (multi-edge): siblings who clash = `sibling_of` + `conflicts_with`;
+  amicable exes = `partner_of{until}` + `gets_along_with`. This is *why* affinity is an edge, not a flag
+  on a person — a person isn't "a conflict"; a *pair* is.
+- **Works for pets identically** (entity invariant, `90` D3) — Tokyo/Leo, Marley/Gimley are edges between
+  pet entities.
+- **Sensitivity-aware** (91.13): `conflicts_with` defaults toward `private` — "the CRM thinks X and Y
+  hate each other" must not leak into a shared/exported context.
+
+**Payoff — guest-list / co-presence query (future capability).** Given a candidate set of invitees
+(people and/or pets), the graph flags every `conflicts_with` pair among them (hard warnings), surfaces
+`gets_along_with` pairs as positive signals, and can seed-and-suggest ("who gets along with Sarah and
+conflicts with no one already invited"). This is "who can be invited to a party together, or explicitly
+shouldn't" — a constraint query over affinity edges, especially valuable for pets sharing a space. It
+slots as a capability on the event/interaction model (`92` P10 area) once affinity edges exist (WP-80). A
+curated "safe to invite together" circle may exist as a *derived convenience* on top of these edges, but
+the pairwise edges are the source of truth.
+
 ### Household is a node, not a relationship edge (why they stay separate)
 
 A relationship edge is **dyadic** (two endpoints); a household is **n-ary** (a group of N members incl.

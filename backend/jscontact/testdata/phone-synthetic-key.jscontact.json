@@ -1,0 +1,8 @@
+{
+  "@type": "Card",
+  "version": "1.0",
+  "uid": "phone-synthetic-key-example",
+  "phones": {
+    "": { "@type": "Phone", "number": "+1-555-0100", "features": { "voice": true } }
+  }
+}

@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:note-author-example
+FN:Note Author Example
+NOTE;AUTHOR="mailto:john@example.com";AUTHOR-NAME=John Doe;CREATED=20221122T151823Z:This is some note.
+END:VCARD

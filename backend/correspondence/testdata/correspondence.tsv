@@ -1,0 +1,56 @@
+concept_id	neutral_path	js_ptr	v4_prop	v4_params	v3_prop	v3_params	transform	notes
+uid	Card.UID	/uid	UID	-	UID	-	identity	
+kind	Card.Kind	/kind	KIND	-	-	-	identity	3.0: no KIND → warn-drop
+prodid	Card.ProdID	/prodId	PRODID	-	PRODID	-	identity	
+updated	Card.Updated	/updated	REV	-	REV	-	ts_rfc3339	
+created	Card.Created	/created	CREATED	-	-	-	ts_rfc3339	Corrected (was wrongly -): RFC 9553 SS2.1.3 Card-level UTCDateTime, direct match to RFC 9554 CREATED. 3.0 none.
+language	Card.Language	/language	LANGUAGE	-	-	-	identity	Corrected (was wrongly -): RFC 9554 SS3.3 dedicated vCard4 property, direct match. No v3 home, warn-drop on 3.0 export only.
+name.full	Card.Name.Full	/name/full	FN	DERIVED	FN	-	identity	FN required; if `Full` empty, derive from components and set `DERIVED=TRUE` on v4 FN (RFC 9555 §3.1)
+name.surname	Card.Name.Components[kind=surname].Value	/name/components	N[0]	-	N[0]	-	n_component	family
+name.given	Card.Name.Components[kind=given].Value	/name/components	N[1]	-	N[1]	-	n_component	
+name.given2	Card.Name.Components[kind=given2].Value	/name/components	N[2]	-	N[2]	-	n_component	additional/middle
+name.title	Card.Name.Components[kind=title].Value	/name/components	N[3]	-	N[3]	-	n_component	honorific prefix
+name.credential	Card.Name.Components[kind=credential].Value	/name/components	N[4]	-	N[4]	-	n_component	honorific suffix
+name.surname2	Card.Name.Components[kind=surname2].Value	/name/components	N[5]	-	-	-	n_component	9554; v3 N has only 5 fields → warn-drop
+name.generation	Card.Name.Components[kind=generation].Value	/name/components	N[6]	-	-	-	n_component	9554; v3 → warn-drop
+name.phonetic	Card.Name.PhoneticScript	/name/phoneticScript	N	PHONETIC;SCRIPT;ALTID	-	-	identity	9554 §4.6; paired via ALTID; v3 none
+nickname	Card.Nicknames[].Name	/nicknames/{id}/name	NICKNAME	PREF;TYPE	NICKNAME	TYPE	identity	ctx→TYPE via ctx2type; pref→PREF
+org	Card.Organizations[].Name	/organizations/{id}/name	ORG	-	ORG	-	org_units	ORG = name;unit1;unit2 (units joined)
+org.unit	Card.Organizations[].Units[].Name	/organizations/{id}/units	ORG	-	ORG	-	org_units	
+title	Card.Titles[kind=title].Name	/titles/{id}/name	TITLE	-	TITLE	-	identity	Title.Kind=title
+role	Card.Titles[kind=role].Name	/titles/{id}/name	ROLE	-	ROLE	-	identity	Title.Kind=role
+email	Card.Emails[].Address	/emails/{id}/address	EMAIL	PREF;TYPE	EMAIL	TYPE	identity	v3 EMAIL also carries TYPE=INTERNET; ctx2type; pref→PREF
+phone	Card.Phones[].Number	/phones/{id}/number	TEL	PREF;TYPE	TEL	TYPE	identity	features→TYPE via feat2type; ctx2type; pref→PREF
+impp	Card.ImppAddresses[].URI	/onlineServices/{id}/uri	IMPP	PREF;TYPE;SERVICE-TYPE;USERNAME	IMPP	X-SERVICE-TYPE	identity	Corrected: RFC 9554 SS4.9/4.10 allow SERVICE-TYPE/USERNAME on IMPP too, not just SOCIALPROFILE.
+social	Card.SocialProfiles[].Service	/onlineServices/{id}	SOCIALPROFILE	SERVICE-TYPE;USERNAME	X-SOCIALPROFILE	TYPE	onlineservice	9554 SOCIALPROFILE for 4.0; 3.0 → X-SOCIALPROFILE + X-SERVICE-TYPE. `Service` is the anchor field; the `onlineservice` transform jointly reads/writes the sibling `.User` field on the same element (same convention as the `org`/`org_units` row anchoring on `.Name` while jointly handling `.Units[]`) — `.User` has no separate correspondence row.
+adr	Card.Addresses[]	/addresses/{id}	ADR	LABEL;GEO;TZ;CC;PREF;TYPE	ADR	TYPE	adr_components	ADR value = POBox;Ext;Street;Locality;Region;Postal;Country built from components; 9554 adds JSCOMPS/component params; v3 packs into 7 legacy fields, extra 9554 components → warn-drop. **`addresses[].full` on v3 is NOT an ADR parameter** (RFC 2426 has no ADR `LABEL` param) — it emits/parses as a separate `LABEL` *property*, paired to its ADR by matching `TYPE`. See `docs/specs/rfc2426-v3-baseline.md` §6.
+adr.geo	Card.Addresses[].Coordinates	/addresses/{id}/coordinates	ADR	GEO	-	-	geo_uri	v3: separate GEO property (lat;lon)
+adr.tz	Card.Addresses[].TimeZone	/addresses/{id}/timeZone	ADR	TZ	-	-	identity	v3: separate TZ property
+anniversary.birth	Card.Anniversaries[kind=birth].Date	/anniversaries/{id}/date	BDAY	CALSCALE	BDAY	-	date_partial	
+anniversary.wedding	Card.Anniversaries[kind=wedding].Date	/anniversaries/{id}/date	ANNIVERSARY	CALSCALE	-	-	date_partial	Corrected: RFC 6350 IANA registry groups BDAY/ANNIVERSARY as both taking CALSCALE (doc-only fix, code already correct).
+anniversary.death	Card.Anniversaries[kind=death].Date	/anniversaries/{id}/date	DEATHDATE	VALUE;CALSCALE	-	-	date_partial	RFC 6474 §2.3; cardinality *1; `VALUE=text` variant ("circa 1800") preserved via passthrough since neutral `AnniversaryDate` has no free-text case; 3.0 none
+anniversary.place.birth	Card.Anniversaries[kind=birth].Place	/anniversaries/{id}/place	BIRTHPLACE	VALUE	-	-	place_text	RFC 6474 §2.1. **Type mismatch, not a 1:1 field map**: neutral `Place` is a full `*Address` (matches JSContact `Anniversary.place`, RFC 9553 §2.8.1) but BIRTHPLACE is TEXT-or-URI only. Export: `Address.Full` → TEXT; else `Address.Coordinates` (geo: URI) → `VALUE=uri`; else join components → TEXT (structure lossy, warn). Import: TEXT → `Address{Full}`; `VALUE=uri` geo: → `Address{Coordinates}`; other URI schemes → passthrough. See `docs/specs/rfc6474-birthplace-deathplace.md`.
+anniversary.place.death	Card.Anniversaries[kind=death].Place	/anniversaries/{id}/place	DEATHPLACE	VALUE	-	-	place_text	RFC 6474 §2.2; same transform/type-mismatch handling as `anniversary.place.birth` above.
+gramgender	Card.SpeakToAs.GrammaticalGenders[].Value	/speakToAs/grammaticalGender	GRAMGENDER	LANGUAGE	-	-	enum_lower	Resolved - multi-valued per RFC 9554 SS3.2 cardinality *. GrammaticalGenders is a slice; import stores every occurrence losslessly. Export to JSContact (scalar-only, RFC 9553 SS2.2.4) selects by Card.Language match else first entry. Export to vCard4 re-emits all entries.
+pronouns	Card.SpeakToAs.Pronouns[].Pronouns	/speakToAs/pronouns/{id}/pronouns	PRONOUNS	LANGUAGE;PREF;TYPE	-	-	identity	Corrected: TYPE was missing; Contexts field was never wired to vCard4 TYPE param despite existing in the model.
+expertise	Card.PersonalInfo[kind=expertise]	/personalInfo/{id}	EXPERTISE	LEVEL;INDEX	-	-	personalinfo	6715; level: beginner/average/expert; 3.0 none
+hobby	Card.PersonalInfo[kind=hobby]	/personalInfo/{id}	HOBBY	LEVEL;INDEX	-	-	personalinfo	6715 level high/medium/low
+interest	Card.PersonalInfo[kind=interest]	/personalInfo/{id}	INTEREST	LEVEL;INDEX	-	-	personalinfo	6715
+note	Card.Notes[].Note	/notes/{id}/note	NOTE	AUTHOR;AUTHOR-NAME;CREATED	NOTE	-	identity	author/created params 9554; 3.0 drops params
+keywords	Card.Keywords	/keywords	CATEGORIES	-	CATEGORIES	-	csv_join	comma-joined
+photo	Card.Media[kind=photo].URI	/media/{id}/uri	PHOTO	MEDIATYPE;PREF	PHOTO	ENCODING;TYPE	media_uri	v3 inline uses ENCODING=b + TYPE=JPEG
+logo	Card.Media[kind=logo].URI	/media/{id}/uri	LOGO	MEDIATYPE	LOGO	ENCODING;TYPE	media_uri	
+sound	Card.Media[kind=sound].URI	/media/{id}/uri	SOUND	MEDIATYPE	SOUND	ENCODING;TYPE	media_uri	
+calendar	Card.Calendars[].URI	/calendars/{id}/uri	CALURI	PREF	CALURI	-	identity	
+freebusy	Card.FreeBusyURLs[].URI	/calendars/{id}/uri	FBURL	PREF	FBURL	-	identity	
+caladruri	Card.SchedulingAddresses[].URI	/schedulingAddresses/{id}/uri	CALADRURI	PREF	CALADRURI	-	identity	
+key	Card.CryptoKeys[].URI	/cryptoKeys/{id}/uri	KEY	MEDIATYPE	KEY	ENCODING;TYPE	identity	
+directory	Card.Directories[kind=directory].URI	/directories/{id}/uri	ORG-DIRECTORY	PREF;INDEX	-	-	identity	6715; 3.0 none
+source	Card.Directories[kind=entry].URI	/directories/{id}/uri	SOURCE	PREF	SOURCE	-	identity	
+link	Card.Links[].URI	/links/{id}/uri	URL	PREF;TYPE	URL	TYPE	identity	
+contacturi	Card.ContactURIs[].URI	/links/{id}/uri	CONTACT-URI	PREF	-	-	identity	8605; 3.0 none
+lang	Card.PreferredLanguages[].Language	/preferredLanguages/{id}/language	LANG	PREF;TYPE	-	-	identity	3.0: no LANG → warn-drop
+related	Card.RelatedTo[]	/relatedTo/{target}	RELATED	TYPE	-	-	related	TYPE = relation tokens; 3.0: no RELATED → AGENT/warn
+member	Card.Members	/members	MEMBER	-	-	-	identity	group kind only; 3.0 none
+pt.vcard	Passthrough.VCard	/vCardProps	*verbatim*	*verbatim*	*verbatim*	*verbatim*	passthrough_vcard	re-emit stored jCard props on vCard export (skip any now-mapped name)
+pt.jscontact	Passthrough.JSContact	(pointer keys)	JSPROP	JSPTR	-	-	passthrough_js	JSContact-only unknowns; on vCard4 export become JSPROP+JSPTR (9555); 3.0 warn-drop

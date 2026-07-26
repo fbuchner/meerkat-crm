@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:adr-tz-example
+FN:Adr Tz Example
+ADR;TZ=America/New_York:;;123 Main Street;Raleigh;NC;27601;U.S.A.
+END:VCARD

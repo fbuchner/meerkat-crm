@@ -1,0 +1,12 @@
+{
+  "@type": "Card",
+  "version": "1.0",
+  "uid": "title-role-example",
+  "titles": {
+    "TITLE-1": { "@type": "Title", "kind": "title", "name": "Research Scientist" },
+    "TITLE-2": { "@type": "Title", "kind": "role", "name": "Project Leader", "organizationId": "ORG-1" }
+  },
+  "organizations": {
+    "ORG-1": { "@type": "Organization", "name": "ABC, Inc." }
+  }
+}

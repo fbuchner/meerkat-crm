@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:sound-example
+FN:Sound Example
+SOUND:https://example.com/sound.wav
+END:VCARD

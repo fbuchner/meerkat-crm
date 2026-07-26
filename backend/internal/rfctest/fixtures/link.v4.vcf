@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:link-example
+FN:Link Example
+URL:https://example.com/jdoe
+END:VCARD

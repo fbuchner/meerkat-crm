@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:caladruri-example
+FN:Caladruri Example
+CALADRURI:mailto:janedoe@example.com
+END:VCARD

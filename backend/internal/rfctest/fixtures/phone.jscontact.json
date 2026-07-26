@@ -1,0 +1,8 @@
+{
+  "@type": "Card",
+  "version": "1.0",
+  "uid": "phone-example",
+  "phones": {
+    "k1": { "@type": "Phone", "number": "+15551234567", "features": { "voice": true } }
+  }
+}

@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:gramgender-example
+FN:Beispiel
+GRAMGENDER;LANGUAGE=de:feminine
+END:VCARD

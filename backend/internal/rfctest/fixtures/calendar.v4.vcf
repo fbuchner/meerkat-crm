@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:calendar-example
+FN:Calendar Example
+CALURI:https://example.com/calendar
+END:VCARD

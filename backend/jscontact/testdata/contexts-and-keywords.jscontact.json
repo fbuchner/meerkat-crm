@@ -1,0 +1,15 @@
+{
+  "@type": "Card",
+  "version": "1.0",
+  "uid": "contexts-and-keywords-example",
+  "keywords": { "vip": true, "family": true },
+  "addresses": {
+    "ADR-1": {
+      "@type": "Address",
+      "contexts": { "work": true, "private": true },
+      "components": [
+        { "@type": "AddressComponent", "kind": "locality", "value": "Springfield" }
+      ]
+    }
+  }
+}

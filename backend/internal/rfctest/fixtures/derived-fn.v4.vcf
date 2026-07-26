@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:derived-fn-example
+N:;John;Quinlan;Mr.;
+FN;DERIVED=TRUE:Mr. John Quinlan
+END:VCARD

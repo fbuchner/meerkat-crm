@@ -1,0 +1,9 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:socialprofile-example
+FN:Foo Example
+SOCIALPROFILE;SERVICE-TYPE=Mastodon:https://example.com/@foo
+SOCIALPROFILE:https://example.com/ietf
+SOCIALPROFILE;SERVICE-TYPE=SomeSite;VALUE=text:peter94
+SOCIALPROFILE;USERNAME="The Foo":https://example.com/@foo
+END:VCARD

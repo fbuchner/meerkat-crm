@@ -1,0 +1,8 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:title-role-example
+FN;DERIVED=TRUE:Research Scientist
+TITLE:Research Scientist
+group1.ROLE:Project Leader
+group1.ORG:ABC, Inc.
+END:VCARD

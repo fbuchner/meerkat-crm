@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:org-unit-example
+FN:Org Unit Example
+ORG:Example Corp;Sales;East
+END:VCARD

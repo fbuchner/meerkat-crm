@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:directory-example
+FN:Directory Example
+ORG-DIRECTORY;PREF=1:ldap://ldap.tech.example/o=Example%20Tech,ou=Engineering
+END:VCARD

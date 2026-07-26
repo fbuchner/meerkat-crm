@@ -1,0 +1,7 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:member-example
+KIND:group
+FN:Example Group
+MEMBER:urn:uuid:03a0e51f-d1aa-4385-8a53-e29025acd8af
+END:VCARD

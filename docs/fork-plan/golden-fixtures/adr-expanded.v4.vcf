@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:adr-expanded-example
+FN:Adr Example
+ADR;GEO="geo:12.3457,78.910":;;123 Main Street;Any Town;CA;91921-1234;U.S.A;;;;123;Main Street;;;;;;
+END:VCARD

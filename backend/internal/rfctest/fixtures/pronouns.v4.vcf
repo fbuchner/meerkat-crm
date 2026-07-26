@@ -1,0 +1,7 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:pronouns-example
+FN:Xe Example
+PRONOUNS;LANGUAGE=en;PREF=1:xe/xir
+PRONOUNS;LANGUAGE=en;PREF=2:they/them
+END:VCARD

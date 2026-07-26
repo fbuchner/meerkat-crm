@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:photo-example
+FN:Photo Example
+PHOTO:https://example.com/photo.jpg
+END:VCARD

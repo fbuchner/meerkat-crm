@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:nickname-example
+FN:Nickname Example
+NICKNAME:Johnny
+END:VCARD

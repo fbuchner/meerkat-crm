@@ -171,8 +171,16 @@ Go handlers compile.
 
 ## WP-74 · Rebrand (effort S/M, do last)
 
-- Go module path `meerkat` → new name in `backend/go.mod` + all imports (`gofmt -r` / `goimports`);
-  mechanical.
+**Name direction: mycelium.** The chosen brand direction is mycelium-themed — working candidates
+**Mycelia** / **Mycelium** — reflecting the project's heavy emphasis on a *network* / graph of
+connections (the relationship graph, `90`–`92`): a mycelial network is a decentralized web linking many
+nodes, which is exactly the "personal relationship graph / identity hub" the fork is becoming. Pick the
+final exact name (and the Go module path token, e.g. `mycelia`) at rebrand time; the mechanics below are
+name-agnostic. (Note the hard-fork decision `90` D2 means the rebrand can happen at any deliberate
+branding moment, not strictly last — but it remains non-blocking; sequencing leaves it here by default.)
+
+- Go module path `meerkat` → new name (e.g. `mycelia`) in `backend/go.mod` + all imports (`gofmt -r` /
+  `goimports`); mechanical.
 - App name / branding: `frontend/src` strings, `docs/`, `README.md`, `docker-compose*.yml` service
   names, image names in `.github/workflows/docker-publish.yml`, favicon/logo assets.
 - New `README` section documenting the RFC 9553/9554 support and the vCard-version export selector.

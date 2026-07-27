@@ -1,4 +1,4 @@
-# MyCorrhizal CRM - a fork of Meerkat CRM for me to test ideas in
+# Mycorrhizal CRM - a fork of Meerkat CRM for me to test ideas in
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Backend: Go](https://img.shields.io/badge/Backend-Go-00ADD8?logo=go)](https://golang.org)

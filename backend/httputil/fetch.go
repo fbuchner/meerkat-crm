@@ -164,7 +164,7 @@ func FetchImageFromURL(imageURL string) ([]byte, string, error) {
 	}
 
 	// Set a user agent to avoid being blocked by some servers
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; MeerkatCRM/1.0)")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; MycorrhizalCRM/1.0)")
 
 	resp, err := client.Do(req)
 	if err != nil {

@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"meerkat/contactmodel"
-	"meerkat/logger"
-	"meerkat/models"
-	"meerkat/vcard3"
-	"meerkat/vcard4"
+	"mycorrhizal/contactmodel"
+	"mycorrhizal/logger"
+	"mycorrhizal/models"
+	"mycorrhizal/vcard3"
+	"mycorrhizal/vcard4"
 	"net/http"
 	"os"
 	"path"
@@ -183,7 +183,7 @@ func (b *Backend) ListAddressBooks(ctx context.Context) ([]carddav.AddressBook, 
 		{
 			Path:        "/carddav/addressbooks/" + username + "/contacts/",
 			Name:        "Contacts",
-			Description: "Meerkat CRM Contacts",
+			Description: "Mycorrhizal CRM Contacts",
 			// Advertise both versions (per WP-73: "advertise 4.0 (and/or 3.0)")
 			// rather than 4.0-only: this is a capability announcement, not the
 			// version actually served (that's requestedVCardVersion's job), so
@@ -212,7 +212,7 @@ func (b *Backend) GetAddressBook(ctx context.Context, urlPath string) (*carddav.
 	return &carddav.AddressBook{
 		Path:        expectedPath,
 		Name:        "Contacts",
-		Description: "Meerkat CRM Contacts",
+		Description: "Mycorrhizal CRM Contacts",
 		SupportedAddressData: []carddav.AddressDataType{
 			{ContentType: "text/vcard", Version: "3.0"},
 			{ContentType: "text/vcard", Version: "4.0"},

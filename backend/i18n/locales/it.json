@@ -1,6 +1,6 @@
 {
   "email": {
-    "footer": "Meerkat CRM - Gestione Contatti Personali",
+    "footer": "Mycorrhizal CRM - Gestione Contatti Personali",
     "reminder": {
       "subject": "I Tuoi Promemoria Quotidiani",
       "remindersTitle": "I Tuoi Promemoria per Oggi",
@@ -12,8 +12,8 @@
       "contactLabel": "Contatto"
     },
     "passwordReset": {
-      "subject": "Reimposta la tua password di Meerkat CRM",
-      "intro": "Abbiamo ricevuto una richiesta di reimpostazione della tua password di Meerkat CRM.",
+      "subject": "Reimposta la tua password di Mycorrhizal CRM",
+      "intro": "Abbiamo ricevuto una richiesta di reimpostazione della tua password di Mycorrhizal CRM.",
       "instruction": "Usa questo token per completare il ripristino entro 60 minuti:",
       "ignore": "Se non hai richiesto questo ripristino, puoi ignorare questa email."
     }

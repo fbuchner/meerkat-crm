@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"meerkat/contactmodel"
+	"mycorrhizal/contactmodel"
 )
 
 // --- (a) no duplicate concept_id -------------------------------------------------

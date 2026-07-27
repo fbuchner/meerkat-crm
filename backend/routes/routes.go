@@ -1,12 +1,12 @@
 package routes
 
 import (
-	"meerkat/carddav"
-	"meerkat/config"
-	"meerkat/controllers"
-	"meerkat/middleware"
-	"meerkat/models"
-	"meerkat/services"
+	"mycorrhizal/carddav"
+	"mycorrhizal/config"
+	"mycorrhizal/controllers"
+	"mycorrhizal/middleware"
+	"mycorrhizal/models"
+	"mycorrhizal/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"

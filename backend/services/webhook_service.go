@@ -7,9 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"meerkat/config"
-	"meerkat/logger"
-	"meerkat/models"
+	"mycorrhizal/config"
+	"mycorrhizal/logger"
+	"mycorrhizal/models"
 	"net"
 	"net/http"
 	"net/url"
@@ -104,7 +104,7 @@ func TriggerWebhooks(db *gorm.DB, cfg config.Config, userID uint, eventType stri
 // TestWebhookDelivery delivers a test payload directly to the given webhook, ignoring event subscriptions.
 func TestWebhookDelivery(db *gorm.DB, cfg config.Config, wh models.Webhook) models.WebhookDelivery {
 	testData := map[string]interface{}{
-		"message": "This is a test webhook delivery from Meerkat CRM.",
+		"message": "This is a test webhook delivery from Mycorrhizal CRM.",
 	}
 	body, err := buildPayloadBody("test", testData)
 	if err != nil {
@@ -130,7 +130,7 @@ func deliverWebhook(db *gorm.DB, cfg config.Config, wh models.Webhook, eventType
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Webhook-Signature", "sha256="+sig)
-	req.Header.Set("X-Meerkat-Event", eventType)
+	req.Header.Set("X-Mycorrhizal-Event", eventType)
 
 	resp, err := deliveryClient.Do(req)
 	if err != nil {

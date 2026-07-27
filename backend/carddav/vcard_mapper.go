@@ -3,8 +3,8 @@ package carddav
 import (
 	"encoding/json"
 	"fmt"
-	"meerkat/models"
-	"meerkat/photostore"
+	"mycorrhizal/models"
+	"mycorrhizal/photostore"
 	"strings"
 
 	"github.com/emersion/go-vcard"

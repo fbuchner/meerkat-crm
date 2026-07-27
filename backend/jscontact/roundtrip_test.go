@@ -3,7 +3,7 @@ package jscontact
 import (
 	"testing"
 
-	"meerkat/internal/rfctest"
+	"mycorrhizal/internal/rfctest"
 )
 
 // Spot-check round-trips (40-testing.md §40.1 point 4): jscontact -> neutral

@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"strings"
 
-	"meerkat/config"
-	apperrors "meerkat/errors"
-	"meerkat/logger"
-	"meerkat/middleware"
-	"meerkat/models"
-	"meerkat/services"
+	"mycorrhizal/config"
+	apperrors "mycorrhizal/errors"
+	"mycorrhizal/logger"
+	"mycorrhizal/middleware"
+	"mycorrhizal/models"
+	"mycorrhizal/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"

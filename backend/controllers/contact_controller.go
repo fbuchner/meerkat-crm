@@ -2,11 +2,11 @@ package controllers
 
 import (
 	"errors"
-	apperrors "meerkat/errors"
-	"meerkat/logger"
-	"meerkat/middleware"
-	"meerkat/models"
-	"meerkat/services"
+	apperrors "mycorrhizal/errors"
+	"mycorrhizal/logger"
+	"mycorrhizal/middleware"
+	"mycorrhizal/models"
+	"mycorrhizal/services"
 	"net/http"
 	"os"
 	"path/filepath"

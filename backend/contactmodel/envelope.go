@@ -1,6 +1,6 @@
 package contactmodel
 
-// CRMEnvelope holds Meerkat-specific data that is NOT part of any contact-exchange
+// CRMEnvelope holds Mycorrhizal-specific data that is NOT part of any contact-exchange
 // standard. Format adapters MUST ignore it entirely.
 type CRMEnvelope struct {
 	Circles            []string          `json:"circles,omitempty"`

@@ -17,9 +17,9 @@ Enable CardDAV by setting the `CARDDAV_ENABLED` environment variable to `true`. 
 1. Open **Settings** > **Contacts** > **Accounts** > **Add Account** > **Other**.
 2. Select **Add CardDAV Account**.
 3. Enter the following:
-   - **Server**: Your Meerkat CRM URL (e.g., `meerkat.example.com`)
-   - **User Name**: Your Meerkat CRM username or email
-   - **Password**: Your Meerkat CRM password
+   - **Server**: Your Mycorrhizal CRM URL (e.g., `mycorrhizal.example.com`)
+   - **User Name**: Your Mycorrhizal CRM username or email
+   - **Password**: Your Mycorrhizal CRM password
 4. Tap **Next**. iOS will automatically discover the CardDAV endpoint.
 5. Your contacts will begin syncing.
 
@@ -31,17 +31,17 @@ Android does not include a native CardDAV client. You will need a third-party ap
 2. Open DAVx5 and add a new account.
 3. Select **Login with URL and user name**.
 4. Enter:
-   - **Base URL**: Your Meerkat CRM URL followed by `/carddav/` (e.g., `https://meerkat.example.com/carddav/`)
-   - **User name**: Your Meerkat CRM username or email
-   - **Password**: Your Meerkat CRM password
+   - **Base URL**: Your Mycorrhizal CRM URL followed by `/carddav/` (e.g., `https://mycorrhizal.example.com/carddav/`)
+   - **User name**: Your Mycorrhizal CRM username or email
+   - **Password**: Your Mycorrhizal CRM password
 5. DAVx5 will detect the address book. Select it and sync.
-6. Your Meerkat CRM contacts will appear in your phone's Contacts app.
+6. Your Mycorrhizal CRM contacts will appear in your phone's Contacts app.
 
 ## Sync Behavior
 
-- **Two-way sync**: Changes made in Meerkat CRM appear on your phone, and changes made on your phone are synced back to Meerkat CRM. This also applies to profile pictures.
-- **Conflict detection**: Meerkat CRM uses ETags to detect conflicts. If a contact has been modified on both the server and the client since the last sync, the client will be notified and can resolve the conflict.
-- **Supported fields**: Meerkat CRM syncs all fields though now all fields might be visible in your client. In case you add additional fields on your client (like a secondary address) the fields will be preserved in the Meerkat database but will not show in the Meerkat CRM frontend.
+- **Two-way sync**: Changes made in Mycorrhizal CRM appear on your phone, and changes made on your phone are synced back to Mycorrhizal CRM. This also applies to profile pictures.
+- **Conflict detection**: Mycorrhizal CRM uses ETags to detect conflicts. If a contact has been modified on both the server and the client since the last sync, the client will be notified and can resolve the conflict.
+- **Supported fields**: Mycorrhizal CRM syncs all fields though now all fields might be visible in your client. In case you add additional fields on your client (like a secondary address) the fields will be preserved in the Mycorrhizal database but will not show in the Mycorrhizal CRM frontend.
 
 ## Troubleshooting
 

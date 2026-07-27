@@ -263,7 +263,7 @@ func fullCard() Card {
 		UID:      "card-uid-1",
 		Kind:     "individual",
 		Language: "en",
-		ProdID:   "-//Meerkat//RFC9553//EN",
+		ProdID:   "-//Mycorrhizal//RFC9553//EN",
 		Created:  fullTimestamp(),
 		Updated:  fullTimestamp(),
 

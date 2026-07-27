@@ -3,8 +3,8 @@ package vcard3
 import (
 	"testing"
 
-	"meerkat/contactmodel"
-	"meerkat/internal/rfctest"
+	"mycorrhizal/contactmodel"
+	"mycorrhizal/internal/rfctest"
 )
 
 // Concepts covered: uid, prodid, updated.
@@ -22,12 +22,12 @@ func TestExport_UID(t *testing.T) {
 }
 
 func TestExport_ProdID(t *testing.T) {
-	rec := &contactmodel.Record{Card: contactmodel.Card{ProdID: "-//Meerkat//WP-50 Test//EN"}}
+	rec := &contactmodel.Record{Card: contactmodel.Card{ProdID: "-//Mycorrhizal//WP-50 Test//EN"}}
 	out, _, err := (Adapter{}).Export(rec)
 	if err != nil {
 		t.Fatalf("Export: %v", err)
 	}
-	rfctest.AssertVCardLine(t, out, PropProdid, nil, "-//Meerkat//WP-50 Test//EN")
+	rfctest.AssertVCardLine(t, out, PropProdid, nil, "-//Mycorrhizal//WP-50 Test//EN")
 }
 
 func TestExport_Updated(t *testing.T) {

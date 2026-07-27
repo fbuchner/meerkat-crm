@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"meerkat/contactmodel"
+	"mycorrhizal/contactmodel"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"

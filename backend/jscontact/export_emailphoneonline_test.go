@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"meerkat/contactmodel"
-	"meerkat/internal/rfctest"
+	"mycorrhizal/contactmodel"
+	"mycorrhizal/internal/rfctest"
 )
 
 func init() {

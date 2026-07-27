@@ -1,6 +1,6 @@
 package models
 
-import "meerkat/contactmodel"
+import "mycorrhizal/contactmodel"
 
 // ContactSummary is the slim per-item shape for GET /api/v1/contacts (list).
 // Per docs/fork-plan/50-integration-and-rebrand.md WP-71 ("Mobile-CRUD-real"

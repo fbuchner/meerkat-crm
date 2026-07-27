@@ -1,7 +1,7 @@
 .PHONY: migrate-up migrate-down migrate-create migrate-status migrate-force migrate-version help
 
 # Database path
-DB_PATH ?= meerkat.db
+DB_PATH ?= mycorrhizal.db
 MIGRATIONS_DIR = ./database/migrations
 
 help: ## Show this help message
@@ -47,14 +47,14 @@ migrate-version: ## Show available migration files
 
 # Development helpers
 dev: ## Build and run the server in development mode
-	@go build -o meerkat . && ./meerkat
+	@go build -o mycorrhizal . && ./mycorrhizal
 
 test: ## Run all tests
 	@go test ./... -v
 
 build: ## Build the application
-	@go build -o meerkat .
+	@go build -o mycorrhizal .
 
 clean: ## Clean build artifacts
-	@rm -f meerkat
+	@rm -f mycorrhizal
 	@echo "Build artifacts cleaned!"

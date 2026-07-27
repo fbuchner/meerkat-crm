@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	apperrors "meerkat/errors"
-	"meerkat/logger"
+	apperrors "mycorrhizal/errors"
+	"mycorrhizal/logger"
 	"reflect"
 	"regexp"
 	"strings"

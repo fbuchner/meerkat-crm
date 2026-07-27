@@ -3,7 +3,7 @@ package vcard4
 import (
 	"testing"
 
-	"meerkat/internal/rfctest"
+	"mycorrhizal/internal/rfctest"
 )
 
 // Concepts: gramgender, pronouns.

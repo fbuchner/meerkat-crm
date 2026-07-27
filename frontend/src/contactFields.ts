@@ -29,7 +29,7 @@ export interface ContactFieldDef {
   /** i18n key for the field label */
   labelKey: string;
   /** group identifier used to render section subheaders in settings */
-  group: 'communication' | 'name' | 'work' | 'personal' | 'meerkat';
+  group: 'communication' | 'name' | 'work' | 'personal' | 'mycorrhizal';
 }
 
 export const CONTACT_FIELDS: ContactFieldDef[] = [
@@ -54,9 +54,9 @@ export const CONTACT_FIELDS: ContactFieldDef[] = [
   { key: 'birthday', labelKey: 'contacts.birthday', group: 'personal' },
   { key: 'anniversary', labelKey: 'contacts.anniversary', group: 'personal' },
 
-  { key: 'how_we_met', labelKey: 'contacts.howWeMet', group: 'meerkat' },
-  { key: 'food_preference', labelKey: 'contacts.foodPreference', group: 'meerkat' },
-  { key: 'contact_information', labelKey: 'contacts.contactInformation', group: 'meerkat' },
+  { key: 'how_we_met', labelKey: 'contacts.howWeMet', group: 'mycorrhizal' },
+  { key: 'food_preference', labelKey: 'contacts.foodPreference', group: 'mycorrhizal' },
+  { key: 'contact_information', labelKey: 'contacts.contactInformation', group: 'mycorrhizal' },
 ];
 
 export const CONTACT_FIELD_GROUPS: ContactFieldDef['group'][] = [
@@ -64,7 +64,7 @@ export const CONTACT_FIELD_GROUPS: ContactFieldDef['group'][] = [
   'name',
   'work',
   'personal',
-  'meerkat',
+  'mycorrhizal',
 ];
 
 // Default-enabled set = the fields shown today, so existing users see no change.

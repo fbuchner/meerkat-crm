@@ -3,8 +3,8 @@ package vcard3
 import (
 	"testing"
 
-	"meerkat/contactmodel"
-	"meerkat/internal/rfctest"
+	"mycorrhizal/contactmodel"
+	"mycorrhizal/internal/rfctest"
 )
 
 // Concept covered: phone.

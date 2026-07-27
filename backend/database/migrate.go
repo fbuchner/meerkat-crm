@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
-	"meerkat/logger"
+	"mycorrhizal/logger"
 
 	"github.com/glebarez/sqlite"
 	"github.com/golang-migrate/migrate/v4"

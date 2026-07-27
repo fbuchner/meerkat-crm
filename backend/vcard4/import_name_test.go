@@ -3,8 +3,8 @@ package vcard4
 import (
 	"testing"
 
-	"meerkat/contactmodel"
-	"meerkat/internal/rfctest"
+	"mycorrhizal/contactmodel"
+	"mycorrhizal/internal/rfctest"
 )
 
 // Concepts: name.full, name.surname, name.given, name.given2, name.title,

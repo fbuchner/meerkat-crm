@@ -11,7 +11,7 @@ import (
 
 	vcard "github.com/emersion/go-vcard"
 
-	"meerkat/contactmodel"
+	"mycorrhizal/contactmodel"
 )
 
 // Adapter implements contactmodel.Importer and contactmodel.Exporter for

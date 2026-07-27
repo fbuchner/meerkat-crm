@@ -4,9 +4,9 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"meerkat/config"
-	"meerkat/logger"
-	"meerkat/models"
+	"mycorrhizal/config"
+	"mycorrhizal/logger"
+	"mycorrhizal/models"
 	"net/http"
 	"strings"
 	"time"
@@ -42,8 +42,8 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			tokenString = strings.TrimPrefix(authHeader, "Bearer ")
 		}
 
-		// Handle API tokens (meerkat_ prefix)
-		if strings.HasPrefix(tokenString, "meerkat_") {
+		// Handle API tokens (mycorrhizal_ prefix)
+		if strings.HasPrefix(tokenString, "mycorrhizal_") {
 			db := c.MustGet("db").(*gorm.DB)
 			hash := fmt.Sprintf("%x", sha256.Sum256([]byte(tokenString)))
 			var apiToken models.ApiToken

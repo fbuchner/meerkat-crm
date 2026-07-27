@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"errors"
-	apperrors "meerkat/errors"
-	"meerkat/middleware"
-	"meerkat/models"
+	apperrors "mycorrhizal/errors"
+	"mycorrhizal/middleware"
+	"mycorrhizal/models"
 	"net/http"
 	"strconv"
 

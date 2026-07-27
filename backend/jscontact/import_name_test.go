@@ -3,7 +3,7 @@ package jscontact
 import (
 	"testing"
 
-	"meerkat/internal/rfctest"
+	"mycorrhizal/internal/rfctest"
 )
 
 // Concepts: name.full, name.surname, name.given, name.given2, name.title,

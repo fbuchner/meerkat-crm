@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/http"
 
-	"meerkat/models"
+	"mycorrhizal/models"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"

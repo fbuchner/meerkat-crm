@@ -21,8 +21,8 @@ import (
 	"strings"
 	"time"
 
-	"meerkat/contactmodel"
-	"meerkat/correspondence"
+	"mycorrhizal/contactmodel"
+	"mycorrhizal/correspondence"
 
 	vcard "github.com/emersion/go-vcard"
 )

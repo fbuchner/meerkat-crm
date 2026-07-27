@@ -19,7 +19,7 @@ import (
 	"strconv"
 	"strings"
 
-	"meerkat/contactmodel"
+	"mycorrhizal/contactmodel"
 )
 
 // Adapter implements contactmodel.Importer and contactmodel.Exporter for the

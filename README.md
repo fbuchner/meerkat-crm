@@ -1,4 +1,4 @@
-# Meerkat CRM - a simple CRM for the personal life
+# Mycorrhizal CRM - a simple CRM for the personal life
 
 <p align="center">
   <img src="docs/assets/meerkat-crm-logo.svg" alt="Meerkat CRM Logo" width="180" />
@@ -10,15 +10,9 @@
 
 
 ## About the project
-Meerkat CRM (Contact Relationship Management) is a  self-hosted solution to keep track of your important contacts. As your digital rolodex it reminds you of birthdays, helps you to keep in mind dietary habits as well as names of spouses of contacts - and much more.
+Mycorrhizal CRM (Contact Relationship Management) is a  self-hosted solution to keep track of your important contacts. As your digital rolodex it reminds you of birthdays, helps you to keep in mind dietary habits as well as names of spouses of contacts - and much more.
 
-You can find the detailed documentation here: [fbuchner.github.io/meerkat-crm/](https://fbuchner.github.io/meerkat-crm/)
-
-
-> [!TIP]
->**[Click here to try the Demo!](https://meerkat-crm-demo.fly.dev/login?username=demo&password=test_12345)** (user: demo, password: test_12345)
->
-> Demo instance will be started on demand, expect some seconds delay. Demo data is reset periodically. Photo upload is disabled.
+You can find the detailed documentation here: [drewbrunning.github.io/mycorrhizal-crm/](https://drewbrunning.github.io/mycorrhizal-crm/)
 
 <p align="center">
   <img src="docs/assets/screengrab.gif" alt="Meerkat CRM Demo" />
@@ -46,14 +40,14 @@ You can find the detailed documentation here: [fbuchner.github.io/meerkat-crm/](
 
 ### Docker (Recommended)
 
-Meerkat CRM ships as a single all-in-one image (`ghcr.io/fbuchner/meerkat-crm`)
-that bundles the frontend and backend into one container. The easiest way to run
-it is with Docker Compose:
+Mycorrhizal CRM ships as a single all-in-one image that bundles the frontend and
+backend into one container, built locally from source (no published registry
+image is required). The easiest way to run it is with Docker Compose:
 
 1. **Download the Docker Compose file:**
     ```sh
-    curl -O https://raw.githubusercontent.com/fbuchner/meerkat-crm/main/docker-compose.yml
-    curl -O https://raw.githubusercontent.com/fbuchner/meerkat-crm/main/.env.example
+    curl -O https://raw.githubusercontent.com/DrewBrunning/mycorrhizal-crm/main/docker-compose.yml
+    curl -O https://raw.githubusercontent.com/DrewBrunning/mycorrhizal-crm/main/.env.example
     ```
 
 2. **Configure environment:**
@@ -65,27 +59,19 @@ it is with Docker Compose:
     nano .env
     ```
 
-3. **Start the container:**
+3. **Build and start the container:**
     ```sh
-    docker compose up -d
+    docker compose up -d --build
     ```
 
 4. **Access the application:**
     Open http://localhost:7300 in your browser.
 
-Prefer to skip Compose? You can run the image directly:
-```sh
-docker run -d -p 7300:8080 \
-  -v ./data:/app/data \
-  -v ./photos:/app/static/photos \
-  ghcr.io/fbuchner/meerkat-crm:latest
-```
-
 
 ## Contributing
 
 ### Bugs and feature requests
-This application is under development. You can [open an issue](https://github.com/fbuchner/meerkat-crm/issues/new/choose) to report a bug or request a new feature.
+This application is under development. You can [open an issue](https://github.com/DrewBrunning/mycorrhizal-crm/issues/new/choose) to report a bug or request a new feature.
 
 You can also participate and open up a pull request. 
 
@@ -96,8 +82,8 @@ To set up this repository for development, follow these steps:
 
 1. **Clone the repository:**
     ```sh
-    git clone https://github.com/fbuchner/meerkat-crm.git
-    cd meerkat-crm
+    git clone https://github.com/DrewBrunning/mycorrhizal-crm.git
+    cd mycorrhizal-crm
     ```
 
 1. **Run the backend:**

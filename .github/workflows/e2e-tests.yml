@@ -28,7 +28,7 @@ jobs:
           context: .
           push: false
           load: true
-          tags: meerkat-crm-test:latest
+          tags: mycorrhizal-crm-test:latest
           cache-from: type=gha,scope=combined
           cache-to: type=gha,scope=combined,mode=max
 
@@ -86,8 +86,8 @@ jobs:
       - name: Show container logs on failure
         if: failure()
         run: |
-          echo "=== Meerkat logs (nginx + backend under supervisord) ==="
-          docker compose -f docker-compose.test.yml logs meerkat
+          echo "=== Mycorrhizal logs (nginx + backend under supervisord) ==="
+          docker compose -f docker-compose.test.yml logs mycorrhizal
 
       - name: Stop services
         if: always()

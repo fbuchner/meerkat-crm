@@ -13,7 +13,7 @@ package jscontact
 import (
 	"encoding/json"
 
-	"meerkat/contactmodel"
+	"mycorrhizal/contactmodel"
 )
 
 // extra (added to most wire object types below) captures JSON object keys

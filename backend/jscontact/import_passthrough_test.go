@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"meerkat/contactmodel"
+	"mycorrhizal/contactmodel"
 )
 
 // Concepts: pt.vcard, pt.jscontact.

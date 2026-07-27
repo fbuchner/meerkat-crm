@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"meerkat/contactmodel"
-	"meerkat/internal/rfctest"
+	"mycorrhizal/contactmodel"
+	"mycorrhizal/internal/rfctest"
 )
 
 func init() {

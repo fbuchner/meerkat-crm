@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"meerkat/contactmodel"
+	"mycorrhizal/contactmodel"
 )
 
 // TestApplyRecordToContact_RoundTrip exercises WP-71 Gap 1: RecordFromContact

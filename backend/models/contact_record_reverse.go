@@ -1,9 +1,9 @@
 package models
 
 import (
-	"meerkat/contactmodel"
-	"meerkat/logger"
-	"meerkat/photostore"
+	"mycorrhizal/contactmodel"
+	"mycorrhizal/logger"
+	"mycorrhizal/photostore"
 )
 
 // ApplyRecordToContact is the single, shared mapping from the neutral

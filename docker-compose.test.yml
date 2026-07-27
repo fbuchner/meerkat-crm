@@ -1,4 +1,4 @@
-# Meerkat CRM Docker Compose - E2E Testing
+# Mycorrhizal CRM Docker Compose - E2E Testing
 #
 # Builds and runs the all-in-one image for end-to-end testing with Playwright.
 # This exercises the same artifact that ships to users (nginx + backend under
@@ -10,12 +10,12 @@
 #   docker compose -f docker-compose.test.yml down -v
 
 services:
-  meerkat:
-    image: meerkat-crm-test:latest
+  mycorrhizal:
+    image: mycorrhizal-crm-test:latest
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: meerkat-test
+    container_name: mycorrhizal-test
     environment:
       - SQLITE_DB_PATH=/app/data/test.db
       - JWT_SECRET_KEY=test-secret-key-for-e2e-testing-minimum-32-chars

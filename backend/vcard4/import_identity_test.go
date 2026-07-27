@@ -3,7 +3,7 @@ package vcard4
 import (
 	"testing"
 
-	"meerkat/internal/rfctest"
+	"mycorrhizal/internal/rfctest"
 )
 
 // Concepts: uid, kind, prodid, updated, created, language.
@@ -43,7 +43,7 @@ func TestImport_ProdID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Import: %v", err)
 	}
-	if want := "-//Meerkat//RFCTest 1.0//EN"; rec.Card.ProdID != want {
+	if want := "-//Mycorrhizal//RFCTest 1.0//EN"; rec.Card.ProdID != want {
 		t.Errorf("ProdID = %q, want %q", rec.Card.ProdID, want)
 	}
 }

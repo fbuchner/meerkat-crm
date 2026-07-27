@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"meerkat/contactmodel"
-	"meerkat/photostore"
+	"mycorrhizal/contactmodel"
+	"mycorrhizal/photostore"
 )
 
 // RecordForContact returns the authoritative Record for a Contact that is

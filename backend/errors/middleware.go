@@ -2,7 +2,7 @@ package errors
 
 import (
 	"fmt"
-	"meerkat/logger"
+	"mycorrhizal/logger"
 	"runtime/debug"
 	"time"
 

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"meerkat/internal/rfctest"
+	"mycorrhizal/internal/rfctest"
 )
 
 // Concepts: pt.vcard, pt.jscontact.

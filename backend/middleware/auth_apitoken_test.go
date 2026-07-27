@@ -4,8 +4,8 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"meerkat/config"
-	"meerkat/models"
+	"mycorrhizal/config"
+	"mycorrhizal/models"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -59,7 +59,7 @@ func TestAuthMiddleware_ValidApiToken(t *testing.T) {
 	var user models.User
 	db.First(&user)
 
-	plaintext := "meerkat_validtoken123456789"
+	plaintext := "mycorrhizal_validtoken123456789"
 	db.Create(&models.ApiToken{
 		UserID:    user.ID,
 		Name:      "test",
@@ -85,7 +85,7 @@ func TestAuthMiddleware_RevokedApiToken(t *testing.T) {
 	var user models.User
 	db.First(&user)
 
-	plaintext := "meerkat_revokedtoken9876"
+	plaintext := "mycorrhizal_revokedtoken9876"
 	now := time.Now()
 	db.Create(&models.ApiToken{
 		UserID:    user.ID,
@@ -106,7 +106,7 @@ func TestAuthMiddleware_UnknownApiToken(t *testing.T) {
 	_, router := setupAuthTestRouter()
 
 	req, _ := http.NewRequest("GET", "/protected", nil)
-	req.Header.Set("Authorization", "Bearer meerkat_doesnotexistXXXX")
+	req.Header.Set("Authorization", "Bearer mycorrhizal_doesnotexistXXXX")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -119,7 +119,7 @@ func TestAuthMiddleware_ApiToken_UpdatesLastUsedAt(t *testing.T) {
 	var user models.User
 	db.First(&user)
 
-	plaintext := "meerkat_lastusedupdatetoken"
+	plaintext := "mycorrhizal_lastusedupdatetoken"
 	token := models.ApiToken{
 		UserID:    user.ID,
 		Name:      "track",

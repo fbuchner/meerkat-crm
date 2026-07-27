@@ -3,7 +3,7 @@ package vcard3
 import (
 	"testing"
 
-	"meerkat/correspondence"
+	"mycorrhizal/correspondence"
 )
 
 // importCoverage / exportCoverage are populated by each import_*_test.go /

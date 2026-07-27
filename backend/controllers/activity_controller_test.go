@@ -3,7 +3,7 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
-	"meerkat/models"
+	"mycorrhizal/models"
 	"net/http"
 	"net/http/httptest"
 	"strconv"

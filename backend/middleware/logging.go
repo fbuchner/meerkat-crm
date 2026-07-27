@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"meerkat/logger"
+	"mycorrhizal/logger"
 	"time"
 
 	"github.com/gin-gonic/gin"

@@ -1,4 +1,4 @@
-module meerkat
+module mycorrhizal
 
 go 1.25.3
 

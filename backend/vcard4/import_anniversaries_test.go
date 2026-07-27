@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"meerkat/internal/rfctest"
+	"mycorrhizal/internal/rfctest"
 )
 
 // Concepts: anniversary.birth, anniversary.wedding, anniversary.death,

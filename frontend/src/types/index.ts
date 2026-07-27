@@ -1,5 +1,5 @@
 /**
- * Central type definitions for the Meerkat CRM application
+ * Central type definitions for the Mycorrhizal CRM application
  * 
  * This file consolidates all TypeScript interfaces and types used across the application.
  * Types are re-exported from their source modules for backwards compatibility.

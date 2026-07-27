@@ -2,7 +2,7 @@ package services
 
 import (
 	"fmt"
-	"meerkat/models"
+	"mycorrhizal/models"
 	"slices"
 	"time"
 

@@ -26,7 +26,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"meerkat/httputil"
+	"mycorrhizal/httputil"
 
 	"github.com/emersion/go-vcard"
 	"github.com/gen2brain/heic"

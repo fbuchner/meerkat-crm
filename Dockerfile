@@ -1,9 +1,9 @@
-# Meerkat CRM - All-in-one image
+# Mycorrhizal CRM - All-in-one image
 #
 # Bundles React frontend and the Go backend into a single container, served by nginx
 #
 # Build context is the repository root:
-#   docker build -t meerkat-crm .
+#   docker build -t mycorrhizal-crm .
 
 # =============================================================================
 # Stage 1: Build Go backend (cross-compiled, CGO disabled - pure-Go SQLite)
@@ -23,7 +23,7 @@ RUN go mod download
 COPY backend/ .
 
 # Build the application (glebarez/sqlite is pure Go (no CGO, i.e. without QEMU)
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o meerkat .
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o mycorrhizal .
 
 # =============================================================================
 # Stage 2: Build React frontend (same-origin API, served by nginx)
@@ -74,7 +74,7 @@ RUN mkdir -p /app/data /app/static/photos /var/log/supervisor /run/nginx && \
     chown -R appuser:appgroup /app/data /app/static/photos
 
 # Copy Go binary and static assets from the backend builder
-COPY --from=backend-builder /app/meerkat /app/meerkat
+COPY --from=backend-builder /app/mycorrhizal /app/mycorrhizal
 COPY --from=backend-builder /app/static/styles.css /app/static/
 
 # Copy frontend build to nginx html directory
@@ -90,7 +90,7 @@ RUN chmod +x /app/entrypoint.sh
 # PORT is the backend's internal bind port - nginx listens on 8080 (below) and
 # proxies to it, so it must not collide with nginx's own port.
 ENV PORT=8081
-ENV SQLITE_DB_PATH=/app/data/meerkat.db
+ENV SQLITE_DB_PATH=/app/data/mycorrhizal.db
 ENV PROFILE_PHOTO_DIR=/app/static/photos
 ENV GIN_MODE=release
 

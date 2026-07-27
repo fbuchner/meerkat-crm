@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"meerkat/contactmodel"
-	"meerkat/models"
+	"mycorrhizal/contactmodel"
+	"mycorrhizal/models"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

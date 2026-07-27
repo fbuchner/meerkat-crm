@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"fmt"
-	"meerkat/models"
+	"mycorrhizal/models"
 	"net/http"
 	"strings"
 

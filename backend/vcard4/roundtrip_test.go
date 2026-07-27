@@ -3,8 +3,8 @@ package vcard4
 import (
 	"testing"
 
-	"meerkat/contactmodel"
-	"meerkat/internal/rfctest"
+	"mycorrhizal/contactmodel"
+	"mycorrhizal/internal/rfctest"
 )
 
 // Spot-check round trips (40-testing.md §40.1 point 4): a handful of

@@ -3,8 +3,8 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
-	"meerkat/contactmodel"
-	"meerkat/models"
+	"mycorrhizal/contactmodel"
+	"mycorrhizal/models"
 	"net/http"
 	"net/http/httptest"
 	"os"

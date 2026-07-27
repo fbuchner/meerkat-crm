@@ -5,13 +5,13 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"meerkat/middleware"
-	"meerkat/models"
+	"mycorrhizal/middleware"
+	"mycorrhizal/models"
 	"net/http"
 	"strconv"
 	"time"
 
-	apperrors "meerkat/errors"
+	apperrors "mycorrhizal/errors"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -59,13 +59,13 @@ func CreateApiToken(c *gin.Context) {
 		return
 	}
 
-	// Generate 32 random bytes → base64url → prepend "meerkat_"
+	// Generate 32 random bytes → base64url → prepend "mycorrhizal_"
 	rawBytes := make([]byte, 32)
 	if _, err := rand.Read(rawBytes); err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrInternal("token generation failed"))
 		return
 	}
-	plaintext := "meerkat_" + base64.RawURLEncoding.EncodeToString(rawBytes)
+	plaintext := "mycorrhizal_" + base64.RawURLEncoding.EncodeToString(rawBytes)
 
 	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(plaintext)))
 

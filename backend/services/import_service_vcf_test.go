@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"meerkat/contactmodel"
-	"meerkat/jscontact"
-	"meerkat/models"
+	"mycorrhizal/contactmodel"
+	"mycorrhizal/jscontact"
+	"mycorrhizal/models"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -27,8 +27,8 @@ import (
 	"os"
 	"reflect"
 
-	"meerkat/contactmodel"
-	"meerkat/models"
+	"mycorrhizal/contactmodel"
+	"mycorrhizal/models"
 
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
@@ -36,7 +36,7 @@ import (
 )
 
 func main() {
-	dbPath := flag.String("db", "meerkat.db", "path to the SQLite database file")
+	dbPath := flag.String("db", "mycorrhizal.db", "path to the SQLite database file")
 	write := flag.Bool("write", false, "actually persist changes (default: dry run, report only, zero writes)")
 	force := flag.Bool("force", false, "reprocess rows even if their card column is already populated")
 	photoDir := flag.String("photo-dir", "", "profile photo directory (config.Config.ProfilePhotoDir), used to bridge Contact.Photo into Card.Media (WP-73); optional, degrades gracefully to the PhotoThumbnail fallback (or no photo) if omitted")

@@ -5,13 +5,13 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"meerkat/contactmodel"
-	apperrors "meerkat/errors"
-	"meerkat/jscontact"
-	"meerkat/logger"
-	"meerkat/models"
-	"meerkat/vcard3"
-	"meerkat/vcard4"
+	"mycorrhizal/contactmodel"
+	apperrors "mycorrhizal/errors"
+	"mycorrhizal/jscontact"
+	"mycorrhizal/logger"
+	"mycorrhizal/models"
+	"mycorrhizal/vcard3"
+	"mycorrhizal/vcard4"
 	"net/http"
 	"strings"
 	"time"
@@ -322,7 +322,7 @@ func ExportData(c *gin.Context) {
 	}
 
 	// Generate filename with timestamp
-	filename := fmt.Sprintf("meerkat-export-%s.csv", time.Now().Format("2006-01-02"))
+	filename := fmt.Sprintf("mycorrhizal-export-%s.csv", time.Now().Format("2006-01-02"))
 
 	// Set headers for file download
 	c.Header("Content-Description", "File Transfer")
@@ -406,7 +406,7 @@ func ExportContactsAsVCF(c *gin.Context, photoDir string) {
 	}
 
 	// Generate filename with timestamp
-	filename := fmt.Sprintf("meerkat-contacts-%s.vcf", time.Now().Format("2006-01-02"))
+	filename := fmt.Sprintf("mycorrhizal-contacts-%s.vcf", time.Now().Format("2006-01-02"))
 
 	// Set headers for file download
 	c.Header("Content-Description", "File Transfer")
@@ -474,7 +474,7 @@ func ExportContactsAsJSContact(c *gin.Context) {
 		return
 	}
 
-	filename := fmt.Sprintf("meerkat-contacts-%s.jscontact.json", time.Now().Format("2006-01-02"))
+	filename := fmt.Sprintf("mycorrhizal-contacts-%s.jscontact.json", time.Now().Format("2006-01-02"))
 
 	c.Header("Content-Description", "File Transfer")
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))

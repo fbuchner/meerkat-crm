@@ -10,14 +10,14 @@ For initial setup see [Getting Started](getting-started.html). This page covers 
 
 ## How the Docker Setup Works
 
-Meerkat CRM runs as a single all-in-one container. Inside it, nginx serves the React SPA and proxies all `/api/`, `/carddav/`, and `/.well-known/carddav` requests to the Go backend on `127.0.0.1:8080`; the backend is never exposed to the host directly. Only the nginx port is published (default `7300`). This same-origin proxy is built in, so nothing extra is required.
+Mycorrhizal CRM runs as a single all-in-one container. Inside it, nginx serves the React SPA and proxies all `/api/`, `/carddav/`, and `/.well-known/carddav` requests to the Go backend on `127.0.0.1:8080`; the backend is never exposed to the host directly. Only the nginx port is published (default `7300`). This same-origin proxy is built in, so nothing extra is required.
 
 You only need an external reverse proxy for TLS termination. Point it at the published port (default `7300`):
 
 ```nginx
 server {
     listen 443 ssl;
-    server_name meerkat.example.com;
+    server_name mycorrhizal.example.com;
 
     location / {
         proxy_pass http://localhost:7300;
@@ -33,7 +33,7 @@ Set these variables in `.env` when running over HTTPS:
 
 | Variable | Value |
 |---|---|
-| `FRONTEND_URL` | Exact origin, e.g. `https://meerkat.example.com` (never `*`) |
+| `FRONTEND_URL` | Exact origin, e.g. `https://mycorrhizal.example.com` (never `*`) |
 | `COOKIE_SECURE` | `true` |
 | `COOKIE_DOMAIN` | Your domain |
 | `JWT_SECRET_KEY` | Generate with `openssl rand -base64 32` |
@@ -41,13 +41,13 @@ Set these variables in `.env` when running over HTTPS:
 
 ## Single Sign-On (OIDC)
 
-Meerkat CRM supports SSO via any OpenID Connect provider (Keycloak, Google, Authentik, Authelia, etc.). When enabled, a **Sign in with provider** button appears on the login page.
+Mycorrhizal CRM supports SSO via any OpenID Connect provider (Keycloak, Google, Authentik, Authelia, etc.). When enabled, a **Sign in with provider** button appears on the login page.
 
 ### Setup
 
 1. Register a new OAuth2 client with your provider. Set the redirect URI to:
    ```
-   https://meerkat.example.com/api/v1/auth/oidc/callback
+   https://mycorrhizal.example.com/api/v1/auth/oidc/callback
    ```
    This is derived automatically from `FRONTEND_URL`, no separate variable needed.
 
@@ -81,7 +81,7 @@ Database migrations run automatically on startup.
 Back up the SQLite database file and photo directory:
 
 ```sh
-cp /path/to/data/meerkat.db /backups/meerkat-$(date +%F).db
+cp /path/to/data/mycorrhizal.db /backups/mycorrhizal-$(date +%F).db
 rsync -a /path/to/photos/ /backups/photos/
 ```
 

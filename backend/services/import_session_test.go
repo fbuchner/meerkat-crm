@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"meerkat/config"
-	apperrors "meerkat/errors"
-	"meerkat/models"
+	"mycorrhizal/config"
+	apperrors "mycorrhizal/errors"
+	"mycorrhizal/models"
 
 	"github.com/glebarez/sqlite"
 	"github.com/rs/zerolog"

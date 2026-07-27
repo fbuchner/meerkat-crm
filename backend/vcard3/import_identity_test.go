@@ -10,7 +10,7 @@ func init() {
 const identityImportVCF = "BEGIN:VCARD\n" +
 	"VERSION:3.0\n" +
 	"UID:frank-dawson-uid-1\n" +
-	"PRODID:-//Meerkat//WP-50 Test//EN\n" +
+	"PRODID:-//Mycorrhizal//WP-50 Test//EN\n" +
 	"REV:2023-01-02T03:04:05Z\n" +
 	"END:VCARD\n"
 
@@ -29,8 +29,8 @@ func TestImport_ProdID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Import: %v", err)
 	}
-	if rec.Card.ProdID != "-//Meerkat//WP-50 Test//EN" {
-		t.Errorf("ProdID = %q, want %q", rec.Card.ProdID, "-//Meerkat//WP-50 Test//EN")
+	if rec.Card.ProdID != "-//Mycorrhizal//WP-50 Test//EN" {
+		t.Errorf("ProdID = %q, want %q", rec.Card.ProdID, "-//Mycorrhizal//WP-50 Test//EN")
 	}
 }
 

@@ -3,7 +3,7 @@ package jscontact
 import (
 	"testing"
 
-	"meerkat/internal/rfctest"
+	"mycorrhizal/internal/rfctest"
 )
 
 // Concepts: email, phone, impp, social.

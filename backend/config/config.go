@@ -80,7 +80,7 @@ func LoadConfig() *Config {
 	idleTimeout := getIntEnv("HTTP_IDLE_TIMEOUT", 60)
 
 	cfg := &Config{
-		DBPath:                  getEnv("SQLITE_DB_PATH", "meerkat.db"),
+		DBPath:                  getEnv("SQLITE_DB_PATH", "mycorrhizal.db"),
 		ReminderTime:            getEnv("REMINDER_TIME", "12:00"),
 		ReminderTimezone:        getEnv("REMINDER_TIMEZONE", "UTC"),
 		FrontendURL:             getEnv("FRONTEND_URL", "*"),

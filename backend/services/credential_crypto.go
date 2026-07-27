@@ -15,7 +15,7 @@ import (
 // credentials become undecryptable if JWT_SECRET_KEY changes; callers must
 // treat decryption failures as "credentials need to be re-entered".
 func credentialKey(jwtSecret string) []byte {
-	sum := sha256.Sum256([]byte("meerkat-credential-encryption:" + jwtSecret))
+	sum := sha256.Sum256([]byte("mycorrhizal-credential-encryption:" + jwtSecret))
 	return sum[:]
 }
 

@@ -1,7 +1,7 @@
-title: Meerkat CRM
-description: Documentation for Meerkat CRM
-url: https://fbuchner.github.io
-baseurl: /meerkat-crm
+title: Mycorrhizal CRM
+description: Documentation for Mycorrhizal CRM
+url: https://drewbrunning.github.io
+baseurl: /mycorrhizal-crm
 
 theme: just-the-docs
 
@@ -15,10 +15,9 @@ search_enabled: true
 heading_anchors: true
 
 aux_links:
-  "GitHub": "https://github.com/fbuchner/meerkat-crm"
-  "Demo": "https://meerkat-crm-demo.fly.dev/login?username=demo&password=test_12345"
+  "GitHub": "https://github.com/DrewBrunning/mycorrhizal-crm"
 
-footer_content: "Meerkat CRM - Self-hosted personal contact management"
+footer_content: "Mycorrhizal CRM - Self-hosted personal contact management"
 
 back_to_top: true
 back_to_top_text: "Back to top"

@@ -131,12 +131,12 @@ export default function SettingsPage() {
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
                 <GitHubIcon sx={{ mr: 1, fontSize: 18, color: 'text.secondary' }} />
                 <Link
-                  href="https://github.com/fbuchner/meerkat-crm"
+                  href="https://github.com/DrewBrunning/mycorrhizal-crm"
                   target="_blank"
                   rel="noopener noreferrer"
                   underline="hover"
                 >
-                  github.com/fbuchner/meerkat-crm
+                  github.com/DrewBrunning/mycorrhizal-crm
                 </Link>
               </Box>
             </Stack>

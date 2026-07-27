@@ -1,7 +1,7 @@
 package carddav
 
 import (
-	"meerkat/models"
+	"mycorrhizal/models"
 	"testing"
 
 	"github.com/emersion/go-vcard"

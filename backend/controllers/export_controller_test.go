@@ -3,8 +3,8 @@ package controllers
 import (
 	"encoding/base64"
 	"encoding/json"
-	"meerkat/config"
-	"meerkat/models"
+	"mycorrhizal/config"
+	"mycorrhizal/models"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -144,7 +144,7 @@ func TestExportData(t *testing.T) {
 
 	contentDisposition := w.Header().Get("Content-Disposition")
 	assert.Contains(t, contentDisposition, "attachment")
-	assert.Contains(t, contentDisposition, "meerkat-export")
+	assert.Contains(t, contentDisposition, "mycorrhizal-export")
 	assert.Contains(t, contentDisposition, ".csv")
 
 	// Check body content

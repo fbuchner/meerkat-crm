@@ -13,7 +13,7 @@ frontend/build
 frontend/coverage
 
 # Go / backend local artifacts
-backend/meerkat
+backend/mycorrhizal
 backend/tmp
 backend/vendor
 backend/*.db
@@ -21,7 +21,7 @@ backend/*.sqlite*
 backend/**/*_test.go
 
 # Local data (do not bake into the image). backend/static/photos and
-# backend/static/meerkat.db stay in the context: the production Dockerfile
+# backend/static/mycorrhizal.db stay in the context: the production Dockerfile
 # never copies them, and demo/Dockerfile bakes them into the demo image.
 data
 photos

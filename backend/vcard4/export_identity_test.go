@@ -3,8 +3,8 @@ package vcard4
 import (
 	"testing"
 
-	"meerkat/contactmodel"
-	"meerkat/internal/rfctest"
+	"mycorrhizal/contactmodel"
+	"mycorrhizal/internal/rfctest"
 )
 
 func init() {
@@ -30,12 +30,12 @@ func TestExport_Kind(t *testing.T) {
 }
 
 func TestExport_ProdID(t *testing.T) {
-	rec := &contactmodel.Record{Card: contactmodel.Card{ProdID: "-//Meerkat//Test 1.0//EN", Name: &contactmodel.Name{Full: "Test"}}}
+	rec := &contactmodel.Record{Card: contactmodel.Card{ProdID: "-//Mycorrhizal//Test 1.0//EN", Name: &contactmodel.Name{Full: "Test"}}}
 	out, _, err := Adapter{}.Export(rec)
 	if err != nil {
 		t.Fatalf("Export: %v", err)
 	}
-	rfctest.AssertVCardLine(t, out, "PRODID", nil, "-//Meerkat//Test 1.0//EN")
+	rfctest.AssertVCardLine(t, out, "PRODID", nil, "-//Mycorrhizal//Test 1.0//EN")
 }
 
 func TestExport_Updated(t *testing.T) {

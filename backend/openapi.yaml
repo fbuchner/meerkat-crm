@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
-  title: Meerkat CRM API
+  title: Mycorrhizal CRM API
   description: >
-    REST API for Meerkat's contact model. As of WP-71 (P2,
+    REST API for Mycorrhizal's contact model. As of WP-71 (P2,
     docs/fork-plan/50-integration-and-rebrand.md), the contact endpoints speak
     the neutral RFC 9553-shaped model (contactmodel.Record/Card) rather than
     the legacy flat Contact DTO. GET /contacts (list) returns a slim
@@ -478,7 +478,7 @@ components:
         reminders: { type: array, items: { type: object } }
     CRMEnvelope:
       type: object
-      description: Meerkat-specific data outside any contact-exchange standard.
+      description: Mycorrhizal-specific data outside any contact-exchange standard.
       properties:
         circles: { type: array, items: { type: string } }
         how_we_met: { type: string }

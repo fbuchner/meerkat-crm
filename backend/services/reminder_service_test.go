@@ -1,8 +1,8 @@
 package services
 
 import (
-	"meerkat/config"
-	"meerkat/models"
+	"mycorrhizal/config"
+	"mycorrhizal/models"
 	"testing"
 	"time"
 

@@ -11,10 +11,10 @@ import (
 	"strings"
 	"testing"
 
-	"meerkat/config"
-	"meerkat/middleware"
-	"meerkat/models"
-	"meerkat/services"
+	"mycorrhizal/config"
+	"mycorrhizal/middleware"
+	"mycorrhizal/models"
+	"mycorrhizal/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"

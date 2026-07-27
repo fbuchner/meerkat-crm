@@ -25,7 +25,7 @@ func main() {
 }
 
 func run(command string) error {
-	dbPath := "meerkat.db"
+	dbPath := "mycorrhizal.db"
 	migrationsPath := "file://database/migrations"
 
 	db, err := sql.Open("sqlite", dbPath)

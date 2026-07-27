@@ -2,7 +2,7 @@ package carddav
 
 import (
 	"context"
-	"meerkat/models"
+	"mycorrhizal/models"
 	"strings"
 	"testing"
 

@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Meerkat CRM",
+    "title": "Mycorrhizal CRM",
     "logout": "Esci",
     "loading": "Caricamento in corso..."
   },
@@ -19,7 +19,7 @@
     "data": "Dati"
   },
   "dashboard": {
-    "welcome": "Benvenuto nel Cruscotto di Meerkat CRM",
+    "welcome": "Benvenuto nel Cruscotto di Mycorrhizal CRM",
     "title": "Cruscotto",
     "upcomingBirthdays": "Prossimi Compleanni",
     "randomContacts": "Resta in Contatto",
@@ -413,7 +413,7 @@
     "theme": {
       "title": "Aspetto",
       "label": "Tema",
-      "description": "Scegli come deve apparire Meerkat CRM. Il predefinito di sistema segue le preferenze del tuo sistema operativo.",
+      "description": "Scegli come deve apparire Mycorrhizal CRM. Il predefinito di sistema segue le preferenze del tuo sistema operativo.",
       "options": {
         "system": "Usa predefinito di sistema",
         "light": "Modalità chiara",
@@ -481,8 +481,8 @@
       "deleteConfirm": "Rimuovere “{{name}}”? Le attività già importate verranno mantenute."
     },
     "about": {
-      "title": "Informazioni su Meerkat CRM",
-      "description": "Meerkat CRM è un'applicazione CRM personale open source progettata per aiutarti a gestire i tuoi contatti e rapporti.",
+      "title": "Informazioni su Mycorrhizal CRM",
+      "description": "Mycorrhizal CRM è un'applicazione CRM personale open source progettata per aiutarti a gestire i tuoi contatti e rapporti.",
       "contribute": "I contributori sono benvenuti! Puoi segnalare problemi, suggerire funzionalità o contribuire con codice su GitHub."
     },
     "webhooks": {
@@ -571,7 +571,7 @@
         "name": "Nome",
         "work": "Lavoro",
         "personal": "Personale",
-        "meerkat": "Note"
+        "mycorrhizal": "Note"
       }
     },
     "data": {

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"meerkat/contactmodel"
+	"mycorrhizal/contactmodel"
 )
 
 // These are self-tests of the helpers themselves (LoadFixture, AssertVCardLine,

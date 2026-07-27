@@ -3,7 +3,7 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
-	"meerkat/models"
+	"mycorrhizal/models"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -216,7 +216,7 @@ func TestTestWebhook(t *testing.T) {
 	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.NotEmpty(t, r.Header.Get("X-Webhook-Signature"))
-		assert.Equal(t, "test", r.Header.Get("X-Meerkat-Event"))
+		assert.Equal(t, "test", r.Header.Get("X-Mycorrhizal-Event"))
 		received <- struct{}{}
 		w.WriteHeader(http.StatusOK)
 	}))

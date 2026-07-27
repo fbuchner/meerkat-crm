@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"meerkat/contactmodel"
+	"mycorrhizal/contactmodel"
 )
 
 // testJPEGDataURL returns a "data:image/jpeg;base64,..." URI wrapping a

@@ -3,7 +3,7 @@ package models
 import (
 	"testing"
 
-	"meerkat/contactmodel"
+	"mycorrhizal/contactmodel"
 )
 
 // TestNewContactRecordResponse_PreservesPersistedCardOnlyData is the

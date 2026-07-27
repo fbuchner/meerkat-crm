@@ -8,7 +8,7 @@ import (
 
 	vcard "github.com/emersion/go-vcard"
 
-	"meerkat/contactmodel"
+	"mycorrhizal/contactmodel"
 )
 
 // degrade_test.go asserts, for every docs/fork-plan/20-correspondence.md

@@ -2,12 +2,12 @@ package controllers
 
 import (
 	"fmt"
-	"meerkat/config"
-	apperrors "meerkat/errors"
-	"meerkat/logger"
-	"meerkat/middleware"
-	"meerkat/models"
-	"meerkat/services"
+	"mycorrhizal/config"
+	apperrors "mycorrhizal/errors"
+	"mycorrhizal/logger"
+	"mycorrhizal/middleware"
+	"mycorrhizal/models"
+	"mycorrhizal/services"
 	"net/http"
 	"strings"
 

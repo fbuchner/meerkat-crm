@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Playwright configuration for Meerkat CRM E2E tests.
+ * Playwright configuration for Mycorrhizal CRM E2E tests.
  * 
  * Run tests with: npx playwright test
  * Run with UI:    npx playwright test --ui

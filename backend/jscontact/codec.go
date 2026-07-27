@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"meerkat/contactmodel"
+	"mycorrhizal/contactmodel"
 )
 
 // Marshal renders a Card to its RFC 9553 JSON wire form. Every object gets its

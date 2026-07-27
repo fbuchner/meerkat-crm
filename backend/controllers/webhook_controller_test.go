@@ -287,7 +287,10 @@ func TestWebhookUserIsolation(t *testing.T) {
 		body   []byte
 	}{
 		{"GET", "/webhooks/" + id, nil},
-		{"PUT", "/webhooks/" + id, func() []byte { b, _ := json.Marshal(models.WebhookInput{Name: "x", URL: "https://x.com", Events: []string{"contact.created"}}); return b }()},
+		{"PUT", "/webhooks/" + id, func() []byte {
+			b, _ := json.Marshal(models.WebhookInput{Name: "x", URL: "https://x.com", Events: []string{"contact.created"}})
+			return b
+		}()},
 		{"DELETE", "/webhooks/" + id, nil},
 	} {
 		req, _ := http.NewRequest(tc.method, tc.path, bytes.NewBuffer(tc.body))

@@ -131,7 +131,7 @@ type AddressComponent struct {
 	extra    map[string]json.RawMessage
 }
 
-// Organization. Field shape follows backend/contactmodel.Organization (RFC
+// Organization's field shape follows backend/contactmodel.Organization (RFC
 // 9553's Organization/OrgUnit objects are not enumerated in
 // docs/specs/rfc9553-model.md §1; see this package's codec_test.go / the WP-30a
 // report for the flagged gap).
@@ -152,7 +152,7 @@ type OrgUnit struct {
 	extra  map[string]json.RawMessage
 }
 
-// Title. Kind ∈ title|role. Field shape follows backend/contactmodel.Title;
+// Title's Kind ∈ title|role. Field shape follows backend/contactmodel.Title;
 // confirmed against the title-role golden fixture (docs/fork-plan/golden-fixtures/title-role.jscontact.json).
 type Title struct {
 	Type           string `json:"@type"`
@@ -210,7 +210,7 @@ type OnlineService struct {
 	extra     map[string]json.RawMessage
 }
 
-// Calendar. Kind ∈ calendar|freeBusy. Resource-shaped (see backend/contactmodel.Resource).
+// Calendar's Kind ∈ calendar|freeBusy. Resource-shaped (see backend/contactmodel.Resource).
 type Calendar struct {
 	Type      string   `json:"@type"`
 	ID        string   `json:"-"`
@@ -223,7 +223,7 @@ type Calendar struct {
 	extra     map[string]json.RawMessage
 }
 
-// SchedulingAddress. Resource-shaped, no Kind enum (vCard CALADRURI).
+// SchedulingAddress is Resource-shaped, with no Kind enum (vCard CALADRURI).
 type SchedulingAddress struct {
 	Type     string   `json:"@type"`
 	ID       string   `json:"-"`
@@ -234,7 +234,7 @@ type SchedulingAddress struct {
 	extra    map[string]json.RawMessage
 }
 
-// CryptoKey. Resource-shaped, no Kind enum (vCard KEY).
+// CryptoKey is Resource-shaped, with no Kind enum (vCard KEY).
 type CryptoKey struct {
 	Type      string   `json:"@type"`
 	ID        string   `json:"-"`
@@ -246,7 +246,7 @@ type CryptoKey struct {
 	extra     map[string]json.RawMessage
 }
 
-// Directory. Kind ∈ directory|entry; ListAs only meaningful for kind=entry.
+// Directory's Kind ∈ directory|entry; ListAs only meaningful for kind=entry.
 type Directory struct {
 	Type      string   `json:"@type"`
 	ID        string   `json:"-"`
@@ -260,7 +260,7 @@ type Directory struct {
 	extra     map[string]json.RawMessage
 }
 
-// Link. Kind ∈ contact (optional).
+// Link's Kind ∈ contact (optional).
 type Link struct {
 	Type      string   `json:"@type"`
 	ID        string   `json:"-"`
@@ -273,7 +273,7 @@ type Link struct {
 	extra     map[string]json.RawMessage
 }
 
-// Media. Kind ∈ photo|logo|sound.
+// Media's Kind ∈ photo|logo|sound.
 type Media struct {
 	Type      string   `json:"@type"`
 	ID        string   `json:"-"`
@@ -369,7 +369,7 @@ type PersonalInfo struct {
 	extra  map[string]json.RawMessage
 }
 
-// Note. Field shape follows backend/contactmodel.Note (RFC 9554 AUTHOR/AUTHOR-NAME/CREATED params).
+// Note's field shape follows backend/contactmodel.Note (RFC 9554 AUTHOR/AUTHOR-NAME/CREATED params).
 type Note struct {
 	Type    string     `json:"@type"`
 	ID      string     `json:"-"`

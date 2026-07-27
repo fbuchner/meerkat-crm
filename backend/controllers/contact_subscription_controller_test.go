@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"meerkat/config"
+	apperrors "meerkat/errors"
+	"meerkat/middleware"
 	"meerkat/models"
 	"meerkat/services"
 	"net/http"
@@ -232,9 +234,9 @@ func addressMultistatusResponseForTest(entries map[string]string) string {
 	for href, cardText := range entries {
 		escaped := strings.ReplaceAll(cardText, "&", "&amp;")
 		escaped = strings.ReplaceAll(escaped, "<", "&lt;")
-		sb.WriteString(fmt.Sprintf(`<d:response><d:href>%s</d:href>
+		fmt.Fprintf(&sb, `<d:response><d:href>%s</d:href>
 <d:propstat><d:prop><card:address-data>%s</card:address-data><d:getetag>&quot;%s-etag&quot;</d:getetag></d:prop>
-<d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`, href, escaped, href))
+<d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`, href, escaped, href)
 	}
 	sb.WriteString(`</d:multistatus>`)
 	return sb.String()
@@ -376,4 +378,288 @@ func TestSyncContactSubscription_NotFoundForOtherUser(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+// TestListContactSubscriptions_DBError exercises the db.Find error branch by
+// closing the underlying *sql.DB out from under gorm before the request
+// (mirrors export_controller_test.go's TestExportContactsAsVCF_DBError).
+func TestListContactSubscriptions_DBError(t *testing.T) {
+	db, _ := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	router := routerForUser(db, user.ID)
+	router.GET("/contact-subscriptions", ListContactSubscriptions)
+
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	require.NoError(t, sqlDB.Close())
+
+	req, _ := http.NewRequest("GET", "/contact-subscriptions", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+// TestCreateContactSubscription_DBError exercises the subscription-count
+// db.Count error branch (the first DB call CreateContactSubscription makes).
+func TestCreateContactSubscription_DBError(t *testing.T) {
+	db, _ := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	router := routerForUser(db, user.ID)
+	router.POST("/contact-subscriptions", withValidated(func() any { return &models.ContactSubscriptionInput{} }), CreateContactSubscription)
+
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	require.NoError(t, sqlDB.Close())
+
+	input := models.ContactSubscriptionInput{Name: "X", URL: "https://example.com/a/"}
+	body, _ := json.Marshal(input)
+	req, _ := http.NewRequest("POST", "/contact-subscriptions", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+// TestFindContactSubscription_DBError exercises findContactSubscription's
+// non-"record not found" DB error branch (used by Update/Delete/Sync).
+func TestFindContactSubscription_DBError(t *testing.T) {
+	db, _ := setupRouter()
+	var user models.User
+	db.First(&user)
+	sub := seedContactSubscription(db, user.ID, "https://example.com/a/")
+
+	router := routerForUser(db, user.ID)
+	router.DELETE("/contact-subscriptions/:id", DeleteContactSubscription)
+
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	require.NoError(t, sqlDB.Close())
+
+	req, _ := http.NewRequest("DELETE", "/contact-subscriptions/"+strconv.Itoa(int(sub.ID)), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+// TestUpdateContactSubscription_RealValidation_MissingRequiredFields mirrors
+// TestCreateContactSubscription_RealValidation_MissingRequiredFields for the
+// update path's GetValidated error branch.
+func TestUpdateContactSubscription_RealValidation_MissingRequiredFields(t *testing.T) {
+	db, _ := setupRouter()
+	var user models.User
+	db.First(&user)
+	sub := seedContactSubscription(db, user.ID, "https://example.com/a/")
+
+	router := routerForUser(db, user.ID)
+	router.Use(apperrors.ErrorHandlerMiddleware())
+	router.PUT("/contact-subscriptions/:id", middleware.ValidateJSONMiddleware(&models.ContactSubscriptionInput{}), UpdateContactSubscription)
+
+	req, _ := http.NewRequest("PUT", "/contact-subscriptions/"+strconv.Itoa(int(sub.ID)), strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
+}
+
+// TestContactSyncError_AllSentinelsMapped exercises every branch of
+// contactSyncError directly (pure function, no HTTP layer needed) — only
+// ErrContactSyncUnauthorized was reachable through the existing HTTP-level
+// tests above.
+func TestContactSyncError_AllSentinelsMapped(t *testing.T) {
+	cases := []struct {
+		name       string
+		err        error
+		wantStatus int
+	}{
+		{"InvalidURL", services.ErrContactSyncInvalidURL, http.StatusBadRequest},
+		{"Unauthorized", services.ErrContactSyncUnauthorized, http.StatusServiceUnavailable},
+		{"NotFound", services.ErrContactSyncNotFound, http.StatusServiceUnavailable},
+		{"PrivateAddress", services.ErrContactSyncPrivateAddress, http.StatusServiceUnavailable},
+		{"TooLarge", services.ErrContactSyncTooLarge, http.StatusServiceUnavailable},
+		{"InvalidData", services.ErrContactSyncInvalidData, http.StatusServiceUnavailable},
+		{"Unreachable", services.ErrContactSyncUnreachable, http.StatusServiceUnavailable},
+		{"UnknownError_FallsBackToOperationFailed", fmt.Errorf("some other failure"), http.StatusUnprocessableEntity},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			appErr := contactSyncError(tc.err)
+			require.NotNil(t, appErr)
+			assert.Equal(t, tc.wantStatus, appErr.HTTPStatus, "status for %v", tc.err)
+		})
+	}
+}
+
+// TestContactSubscriptionHandlers_NoAuth_Unauthorized exercises the
+// currentUserID !ok early-return every handler in this file checks first.
+func TestContactSubscriptionHandlers_NoAuth_Unauthorized(t *testing.T) {
+	db, _ := setupRouter()
+	router := routerWithoutAuth(db)
+	router.GET("/contact-subscriptions", ListContactSubscriptions)
+	router.POST("/contact-subscriptions", withValidated(func() any { return &models.ContactSubscriptionInput{} }), CreateContactSubscription)
+	router.PUT("/contact-subscriptions/:id", withValidated(func() any { return &models.ContactSubscriptionInput{} }), UpdateContactSubscription)
+	router.DELETE("/contact-subscriptions/:id", DeleteContactSubscription)
+	router.POST("/contact-subscriptions/:id/sync", SyncContactSubscription)
+
+	for _, req := range []*http.Request{
+		mustRequest(t, "GET", "/contact-subscriptions", nil),
+		mustRequest(t, "POST", "/contact-subscriptions", strings.NewReader(`{"name":"x","url":"https://example.com"}`)),
+		mustRequest(t, "PUT", "/contact-subscriptions/1", strings.NewReader(`{"name":"x","url":"https://example.com"}`)),
+		mustRequest(t, "DELETE", "/contact-subscriptions/1", nil),
+		mustRequest(t, "POST", "/contact-subscriptions/1/sync", nil),
+	} {
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		assert.NotEqual(t, http.StatusOK, w.Code, "%s %s should not succeed without auth", req.Method, req.URL.Path)
+		assert.NotEqual(t, http.StatusCreated, w.Code, "%s %s should not succeed without auth", req.Method, req.URL.Path)
+	}
+}
+
+func mustRequest(t *testing.T, method, path string, body io.Reader) *http.Request {
+	t.Helper()
+	req, err := http.NewRequest(method, path, body)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	return req
+}
+
+// TestFindContactSubscription_NonNumericID_InvalidInput exercises the
+// strconv.ParseUint error branch in findContactSubscription.
+func TestFindContactSubscription_NonNumericID_InvalidInput(t *testing.T) {
+	db, _ := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	router := routerForUser(db, user.ID)
+	router.DELETE("/contact-subscriptions/:id", DeleteContactSubscription)
+
+	req, _ := http.NewRequest("DELETE", "/contact-subscriptions/not-a-number", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
+}
+
+// TestUpdateContactSubscription_ClearPassword exercises UpdateContactSubscription's
+// ClearPassword branch.
+func TestUpdateContactSubscription_ClearPassword(t *testing.T) {
+	db, _ := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	cfg := config.Config{JWTSecretKey: "test-jwt-secret-key-with-32-chars!!"}
+	encrypted, err := services.EncryptCredential(cfg.JWTSecretKey, "hunter2")
+	require.NoError(t, err)
+	sub := models.ContactSubscription{UserID: user.ID, Name: "Has Password", URL: "https://example.com/a/", PasswordEncrypted: encrypted, SyncEnabled: true}
+	require.NoError(t, db.Create(&sub).Error)
+
+	router := routerForUser(db, user.ID)
+	router.Use(func(c *gin.Context) { c.Set("cfg", cfg); c.Next() })
+	router.PUT("/contact-subscriptions/:id", withValidated(func() any { return &models.ContactSubscriptionInput{} }), UpdateContactSubscription)
+
+	input := models.ContactSubscriptionInput{Name: "Has Password", URL: sub.URL, ClearPassword: true}
+	body, _ := json.Marshal(input)
+	req, _ := http.NewRequest("PUT", "/contact-subscriptions/"+strconv.Itoa(int(sub.ID)), bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var resp models.ContactSubscriptionResponse
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.False(t, resp.HasPassword)
+
+	var stored models.ContactSubscription
+	require.NoError(t, db.First(&stored, sub.ID).Error)
+	assert.Empty(t, stored.PasswordEncrypted)
+}
+
+// TestUpdateContactSubscription_ReplacesPassword exercises the
+// input.Password != "" branch (re-encrypting a new credential on update).
+func TestUpdateContactSubscription_ReplacesPassword(t *testing.T) {
+	db, _ := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	cfg := config.Config{JWTSecretKey: "test-jwt-secret-key-with-32-chars!!"}
+	encrypted, err := services.EncryptCredential(cfg.JWTSecretKey, "oldpass")
+	require.NoError(t, err)
+	sub := models.ContactSubscription{UserID: user.ID, Name: "Sub", URL: "https://example.com/a/", PasswordEncrypted: encrypted, SyncEnabled: true}
+	require.NoError(t, db.Create(&sub).Error)
+
+	router := routerForUser(db, user.ID)
+	router.Use(func(c *gin.Context) { c.Set("cfg", cfg); c.Next() })
+	router.PUT("/contact-subscriptions/:id", withValidated(func() any { return &models.ContactSubscriptionInput{} }), UpdateContactSubscription)
+
+	input := models.ContactSubscriptionInput{Name: "Sub", URL: sub.URL, Password: "newpass"}
+	body, _ := json.Marshal(input)
+	req, _ := http.NewRequest("PUT", "/contact-subscriptions/"+strconv.Itoa(int(sub.ID)), bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var stored models.ContactSubscription
+	require.NoError(t, db.First(&stored, sub.ID).Error)
+	assert.NotEqual(t, encrypted, stored.PasswordEncrypted)
+	decrypted, err := services.DecryptCredential(cfg.JWTSecretKey, stored.PasswordEncrypted)
+	require.NoError(t, err)
+	assert.Equal(t, "newpass", decrypted)
+}
+
+// TestUpdateContactSubscription_RejectsInvalidURL exercises the URL
+// validation error branch on the update path (only the create path was
+// previously tested).
+func TestUpdateContactSubscription_RejectsInvalidURL(t *testing.T) {
+	db, _ := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	sub := seedContactSubscription(db, user.ID, "https://example.com/a/")
+
+	router := routerForUser(db, user.ID)
+	router.PUT("/contact-subscriptions/:id", withValidated(func() any { return &models.ContactSubscriptionInput{} }), UpdateContactSubscription)
+
+	input := models.ContactSubscriptionInput{Name: "Sub", URL: "ftp://not-http.example.com"}
+	body, _ := json.Marshal(input)
+	req, _ := http.NewRequest("PUT", "/contact-subscriptions/"+strconv.Itoa(int(sub.ID)), bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
+}
+
+// TestCreateContactSubscription_RealValidation_MissingRequiredFields wires the
+// real middleware.ValidateJSONMiddleware (not the withValidated bypass used
+// elsewhere in this file) to prove the ContactSubscriptionInput struct tags
+// (name/url required) are actually enforced end-to-end, matching the
+// established pattern from contact_controller_validation_test.go.
+func TestCreateContactSubscription_RealValidation_MissingRequiredFields(t *testing.T) {
+	db, _ := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	router := routerForUser(db, user.ID)
+	router.Use(apperrors.ErrorHandlerMiddleware())
+	router.POST("/contact-subscriptions", middleware.ValidateJSONMiddleware(&models.ContactSubscriptionInput{}), CreateContactSubscription)
+
+	req, _ := http.NewRequest("POST", "/contact-subscriptions", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
+
+	var count int64
+	db.Model(&models.ContactSubscription{}).Count(&count)
+	assert.Equal(t, int64(0), count, "no subscription should be created when validation fails")
 }

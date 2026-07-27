@@ -1,5 +1,9 @@
-// This file (WP-30b) implements the JSContact <-> neutral-model adapter:
-// contactmodel.Importer/Exporter for RFC 9553 JSContact. Mapping decisions
+// Package jscontact implements RFC 9553 JSContact encoding/decoding and the
+// contactmodel.Importer/Exporter adapter that maps it to/from the neutral
+// model.
+//
+// This file (WP-30b) implements the JSContact <-> neutral-model adapter.
+// Mapping decisions
 // here are governed entirely by docs/fork-plan/20-correspondence.md (the
 // oracle); see that file's rows for the concept_id backing every field
 // touched below. Because JSContact is, per docs/fork-plan/30-adapters.md

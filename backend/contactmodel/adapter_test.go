@@ -11,11 +11,11 @@ func TestDiagnosticRoundTrip(t *testing.T) {
 // implementable exactly as specified (no adapter logic is exercised here).
 type noopAdapter struct{}
 
-func (noopAdapter) Import(raw []byte) (*Record, []Diagnostic, error) {
+func (noopAdapter) Import(_ []byte) (*Record, []Diagnostic, error) {
 	return &Record{}, nil, nil
 }
 
-func (noopAdapter) Export(r *Record) ([]byte, []Diagnostic, error) {
+func (noopAdapter) Export(_ *Record) ([]byte, []Diagnostic, error) {
 	return nil, nil, nil
 }
 

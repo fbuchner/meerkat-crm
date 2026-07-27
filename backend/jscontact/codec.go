@@ -320,6 +320,8 @@ type cardWire struct {
 	VCardProps []contactmodel.JCardProp `json:"vCardProps,omitempty"`
 }
 
+// MarshalJSON emits Card as its RFC 9553 wire shape (Id-keyed maps rather
+// than this package's slices, per cardWire's own doc comment).
 func (c Card) MarshalJSON() ([]byte, error) {
 	w := cardWire{
 		Type:     "Card",
@@ -361,6 +363,8 @@ func (c Card) MarshalJSON() ([]byte, error) {
 	return json.Marshal(w)
 }
 
+// UnmarshalJSON parses the RFC 9553 wire shape (Id-keyed maps) back into
+// Card's own slice-based fields.
 func (c *Card) UnmarshalJSON(data []byte) error {
 	var w cardWire
 	if err := json.Unmarshal(data, &w); err != nil {
@@ -410,6 +414,7 @@ func (c *Card) UnmarshalJSON(data []byte) error {
 
 // --- SpeakToAs (nested Id-map: pronouns) -----------------------------------
 
+// MarshalJSON emits SpeakToAs.Pronouns as the RFC 9553 Id-keyed map shape.
 func (s SpeakToAs) MarshalJSON() ([]byte, error) {
 	type wire struct {
 		Type              string              `json:"@type"`
@@ -427,6 +432,8 @@ func (s SpeakToAs) MarshalJSON() ([]byte, error) {
 	return mergeExtraJSON(base, s.extra)
 }
 
+// UnmarshalJSON parses the RFC 9553 Id-keyed pronouns map back into
+// SpeakToAs.Pronouns.
 func (s *SpeakToAs) UnmarshalJSON(data []byte) error {
 	type wire struct {
 		Type              string              `json:"@type"`
@@ -449,6 +456,7 @@ func (s *SpeakToAs) UnmarshalJSON(data []byte) error {
 
 // --- Anniversary (polymorphic date) -----------------------------------------
 
+// MarshalJSON emits Anniversary in its RFC 9553 wire shape.
 func (a Anniversary) MarshalJSON() ([]byte, error) {
 	type wire struct {
 		Type  string          `json:"@type"`
@@ -463,6 +471,7 @@ func (a Anniversary) MarshalJSON() ([]byte, error) {
 	return mergeExtraJSON(base, a.extra)
 }
 
+// UnmarshalJSON parses the RFC 9553 wire shape back into Anniversary.
 func (a *Anniversary) UnmarshalJSON(data []byte) error {
 	type wire struct {
 		Type  string          `json:"@type"`
@@ -482,9 +491,8 @@ func (a *Anniversary) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// AnniversaryDate marshals/unmarshals as whichever of PartialDate or
-// Timestamp is set (RFC 9553: Anniversary.date is PartialDate|Timestamp,
-// defaultType PartialDate).
+// MarshalJSON emits whichever of PartialDate or Timestamp is set (RFC 9553:
+// Anniversary.date is PartialDate|Timestamp, defaultType PartialDate).
 func (d AnniversaryDate) MarshalJSON() ([]byte, error) {
 	if d.Timestamp != nil {
 		return json.Marshal(*d.Timestamp)
@@ -495,6 +503,8 @@ func (d AnniversaryDate) MarshalJSON() ([]byte, error) {
 	return json.Marshal(PartialDate{Type: "PartialDate"})
 }
 
+// UnmarshalJSON peeks at @type to decide whether to parse the payload as a
+// PartialDate or a Timestamp (see MarshalJSON's doc comment).
 func (d *AnniversaryDate) UnmarshalJSON(data []byte) error {
 	var peek struct {
 		Type string `json:"@type"`
@@ -527,6 +537,8 @@ func (d *AnniversaryDate) UnmarshalJSON(data []byte) error {
 // Each of these forces/validates its own @type via a plain type-alias cast
 // (cheap: no field-shape change needed, so no embed trick required).
 
+// MarshalJSON forces Name's @type to "Name" via a plain type-alias cast
+// (see the trivial-@type-only comment above).
 func (n Name) MarshalJSON() ([]byte, error) {
 	n.Type = "Name"
 	type alias Name

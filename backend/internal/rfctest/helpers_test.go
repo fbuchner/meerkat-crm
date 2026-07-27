@@ -1,6 +1,7 @@
 package rfctest
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -30,12 +31,12 @@ func (f *fakeT) Helper() {}
 
 func (f *fakeT) Errorf(format string, args ...any) {
 	f.failed = true
-	f.messages = append(f.messages, format)
+	f.messages = append(f.messages, fmt.Sprintf(format, args...))
 }
 
 func (f *fakeT) Fatalf(format string, args ...any) {
 	f.failed = true
-	f.messages = append(f.messages, format)
+	f.messages = append(f.messages, fmt.Sprintf(format, args...))
 	// Real testing.T.Fatalf stops the goroutine via runtime.Goexit. Every
 	// call site in helpers.go already does `return` immediately after
 	// Fatalf, so a plain mark-and-continue is equivalent here.

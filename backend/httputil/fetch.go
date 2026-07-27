@@ -1,3 +1,6 @@
+// Package httputil provides shared, SSRF-guarded HTTP-fetch helpers (used by
+// the photo-proxy and photo-import paths) that refuse to fetch from private/
+// loopback/link-local addresses or cloud-metadata endpoints.
 package httputil
 
 import (

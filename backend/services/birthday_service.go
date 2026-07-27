@@ -125,14 +125,16 @@ func GetUpcomingBirthdays(db *gorm.DB, userID uint, now time.Time) ([]models.Bir
 	const twoWeeksDays = 14
 
 	resultCount := 0
+countLoop:
 	for i, b := range birthdays {
 		days := DaysUntilBirthday(b.Birthday, now)
-		if days <= twoWeeksDays {
+		switch {
+		case days <= twoWeeksDays:
 			resultCount = i + 1
-		} else if resultCount < maxResults {
+		case resultCount < maxResults:
 			resultCount = i + 1
-		} else {
-			break
+		default:
+			break countLoop
 		}
 	}
 

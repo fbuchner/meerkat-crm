@@ -107,7 +107,7 @@ func contactPrivateBlockingDialContext(ctx context.Context, network, addr string
 	}
 	var safeIP net.IP
 	for _, ip := range ips {
-		if !(ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified()) {
+		if !ip.IsLoopback() && !ip.IsPrivate() && !ip.IsLinkLocalUnicast() && !ip.IsLinkLocalMulticast() && !ip.IsUnspecified() {
 			safeIP = ip
 			break
 		}

@@ -71,7 +71,7 @@ func resolveNeutralPath(path string) error {
 			return fmt.Errorf("unknown field %q on %s", name, cur.String())
 		}
 		ft := field.Type
-		if ft.Kind() == reflect.Ptr {
+		if ft.Kind() == reflect.Pointer {
 			ft = ft.Elem()
 		}
 

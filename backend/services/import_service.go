@@ -420,16 +420,16 @@ func suggestGroupedMapping(header string) (field string, group int, ok bool) {
 
 	// Identify the value family.
 	var family string
-	switch {
-	case base == "e-mail" || base == "email":
+	switch base {
+	case "e-mail", "email":
 		family = "email"
-	case base == "phone" || base == "telephone" || base == "tel":
+	case "phone", "telephone", "tel":
 		family = "phone"
-	case base == "website" || base == "web site" || base == "url":
+	case "website", "web site", "url":
 		family = "url"
-	case base == "im" || base == "instant message" || base == "instant messaging":
+	case "im", "instant message", "instant messaging":
 		family = "impp"
-	case base == "address":
+	case "address":
 		family = "address"
 	default:
 		return "", 0, false

@@ -80,9 +80,9 @@ func multistatusResponse(calendars ...string) string {
 	for i, cal := range calendars {
 		escaped := strings.ReplaceAll(cal, "&", "&amp;")
 		escaped = strings.ReplaceAll(escaped, "<", "&lt;")
-		sb.WriteString(fmt.Sprintf(`<d:response><d:href>/calendars/test/event%d.ics</d:href>
+		fmt.Fprintf(&sb, `<d:response><d:href>/calendars/test/event%d.ics</d:href>
 <d:propstat><d:prop><c:calendar-data>%s</c:calendar-data></d:prop>
-<d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`, i, escaped))
+<d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`, i, escaped)
 	}
 	sb.WriteString(`</d:multistatus>`)
 	return sb.String()

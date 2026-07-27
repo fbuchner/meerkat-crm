@@ -166,6 +166,248 @@ paths:
                 items:
                   type: object
                   description: An RFC 9553 JSContact Card document.
+  /contacts/import/upload:
+    post:
+      summary: Upload a CSV file to start a contact import (step 1 of 3)
+      description: >
+        Parses the CSV's headers and suggests column-to-field mappings.
+        Returns a session_id used by POST /contacts/import/preview and
+        /contacts/import/confirm. The session (and any prior expired ones)
+        is cleaned up opportunistically on each upload call.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary, description: "A .csv file." }
+      responses:
+        "200":
+          description: Parsed headers, suggested mappings, and a sample of rows.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportUploadResponse"
+        "400":
+          description: Missing file, wrong extension, oversized file, or malformed CSV.
+  /contacts/import/vcf/upload:
+    post:
+      summary: Upload a VCF (vCard 3.0/4.0) file to start a contact import
+      description: >
+        No column mapping needed (vCard is self-describing): parses directly
+        into a preview with duplicate detection. Confirm via
+        POST /contacts/import/vcf/confirm.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary, description: "A .vcf file (one or more concatenated vCards)." }
+      responses:
+        "200":
+          description: Parsed rows with duplicate detection and per-row diagnostics.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportPreviewResponse"
+        "400":
+          description: Missing file, wrong extension, oversized file, or malformed VCF.
+  /contacts/import/jscontact/upload:
+    post:
+      summary: Upload a JSContact (RFC 9553) JSON file to start a contact import
+      description: >
+        Mirrors /contacts/import/vcf/upload — the resulting session is
+        format-agnostic (same underlying VCFContactData shape), so confirm
+        via the same POST /contacts/import/vcf/confirm endpoint.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary, description: "A JSContact .json file (single Card or an array of Cards)." }
+      responses:
+        "200":
+          description: Parsed rows with duplicate detection and per-row diagnostics.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportPreviewResponse"
+        "400":
+          description: Missing file, wrong extension, oversized file, or malformed JSON.
+  /contacts/import/preview:
+    post:
+      summary: Apply column mappings to a CSV import session and get a preview (step 2 of 3)
+      description: CSV-only — VCF/JSContact sessions already have their preview from the upload step.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportPreviewRequest"
+      responses:
+        "200":
+          description: Row-by-row preview with duplicate detection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportPreviewResponse"
+        "400":
+          description: Unknown/expired session, or session owned by another user.
+  /contacts/import/confirm:
+    post:
+      summary: Execute a CSV import with the caller's per-row actions (step 3 of 3)
+      description: >
+        One bad row's error does not abort the batch — other rows in the
+        same request still commit. The session is deleted on completion.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportConfirmRequest"
+      responses:
+        "200":
+          description: Import result summary.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportResult"
+        "400":
+          description: No prior preview cached, or unknown/expired/foreign session.
+  /contacts/import/vcf/confirm:
+    post:
+      summary: Execute a VCF or JSContact import with the caller's per-row actions
+      description: >
+        Same contract as /contacts/import/confirm, plus photo processing:
+        embedded or URL-referenced photos are saved after the row commits
+        (an incoming photo never overwrites a contact that already has one
+        on "update").
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportConfirmRequest"
+      responses:
+        "200":
+          description: Import result summary.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportResult"
+        "400":
+          description: A CSV-sourced session ID was sent here, no prior preview cached, or unknown/expired/foreign session.
+  /contact-subscriptions:
+    get:
+      summary: List the caller's CardDAV contact subscriptions
+      responses:
+        "200":
+          description: The caller's subscriptions.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contact_subscriptions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ContactSubscriptionResponse"
+    post:
+      summary: Add a CardDAV address book to sync contacts in from
+      description: Capped at 10 subscriptions per user (mirrors the calendar subscription cap).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactSubscriptionInput"
+      responses:
+        "201":
+          description: Subscription created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactSubscriptionResponse"
+        "400":
+          description: Invalid URL, or validation failed.
+        "409":
+          description: Subscription cap (10) reached.
+  /contact-subscriptions/{id}:
+    put:
+      summary: Update a contact subscription
+      description: >
+        Changing the URL resets the stored sync token (the next sync will be
+        a full resync). clear_password removes stored credentials; an empty
+        password field leaves the existing credential untouched.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactSubscriptionInput"
+      responses:
+        "200":
+          description: Updated subscription.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactSubscriptionResponse"
+        "404":
+          description: Subscription not found (or not owned by the caller).
+    delete:
+      summary: Delete a contact subscription
+      description: Synced Contact rows are kept; only the subscription and its sync-link bookkeeping are removed.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Deleted.
+        "404":
+          description: Subscription not found (or not owned by the caller).
+  /contact-subscriptions/{id}/sync:
+    post:
+      summary: Trigger an immediate sync of one contact subscription
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Sync completed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  created: { type: integer }
+                  updated: { type: integer }
+                  archived: { type: integer }
+                  skipped: { type: integer }
+        "404":
+          description: Subscription not found (or not owned by the caller).
+        "502":
+          description: >
+            The remote CardDAV server rejected the request, was unreachable,
+            returned unparsable data, or resolved to a blocked private
+            address.
 components:
   schemas:
     ContactSummary:
@@ -586,3 +828,122 @@ components:
         localizations:
           type: object
           additionalProperties: true
+    ColumnMapping:
+      type: object
+      required: [csv_column]
+      properties:
+        csv_column: { type: string }
+        contact_field: { type: string, description: "Empty means \"ignore this column\"." }
+        group: { type: integer, description: "Multi-value entry index (0-based); ties value+label/parts of one entry together." }
+    ImportUploadResponse:
+      type: object
+      description: Returned by POST /contacts/import/upload (CSV).
+      properties:
+        session_id: { type: string }
+        headers: { type: array, items: { type: string } }
+        suggested_mappings:
+          type: array
+          items: { $ref: "#/components/schemas/ColumnMapping" }
+        row_count: { type: integer }
+        sample_data:
+          type: array
+          items: { type: array, items: { type: string } }
+    ImportPreviewRequest:
+      type: object
+      required: [session_id, mappings]
+      properties:
+        session_id: { type: string }
+        mappings:
+          type: array
+          items: { $ref: "#/components/schemas/ColumnMapping" }
+    DuplicateMatch:
+      type: object
+      description: Describes a potential duplicate contact found via email/name/phone matching.
+      properties:
+        existing_contact_id: { type: integer }
+        existing_firstname: { type: string }
+        existing_lastname: { type: string }
+        existing_email: { type: string }
+        existing_phone: { type: string }
+        match_reason: { type: string, enum: [email, name, phone] }
+    ImportRowPreview:
+      type: object
+      properties:
+        row_index: { type: integer }
+        parsed_contact:
+          type: object
+          additionalProperties: true
+        validation_errors: { type: array, items: { type: string } }
+        duplicate_match:
+          $ref: "#/components/schemas/DuplicateMatch"
+        suggested_action: { type: string, enum: [add, skip, update] }
+        diagnostics:
+          type: array
+          items: { type: string }
+          description: >
+            Degradation-policy diagnostics from the vcard4/vcard3/jscontact
+            adapter that parsed this row (empty for CSV-import rows, which
+            don't go through an adapter).
+    ImportPreviewResponse:
+      type: object
+      description: Returned by the VCF/JSContact upload endpoints and by POST /contacts/import/preview (CSV).
+      properties:
+        session_id: { type: string }
+        rows:
+          type: array
+          items: { $ref: "#/components/schemas/ImportRowPreview" }
+        total_rows: { type: integer }
+        valid_rows: { type: integer }
+        duplicate_count: { type: integer }
+        error_count: { type: integer }
+    RowImportAction:
+      type: object
+      required: [action]
+      properties:
+        row_index: { type: integer, minimum: 0 }
+        action: { type: string, enum: [skip, add, update] }
+    ImportConfirmRequest:
+      type: object
+      required: [session_id, actions]
+      properties:
+        session_id: { type: string }
+        actions:
+          type: array
+          items: { $ref: "#/components/schemas/RowImportAction" }
+    ImportResult:
+      type: object
+      description: Returned by POST /contacts/import/confirm and /contacts/import/vcf/confirm.
+      properties:
+        total_processed: { type: integer }
+        created: { type: integer }
+        updated: { type: integer }
+        skipped: { type: integer }
+        errors: { type: array, items: { type: string } }
+    ContactSubscriptionInput:
+      type: object
+      required: [name, url]
+      description: Request body for POST /contact-subscriptions and PUT /contact-subscriptions/{id}.
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        url: { type: string, format: uri, maxLength: 2048 }
+        username: { type: string, maxLength: 200 }
+        password:
+          type: string
+          maxLength: 500
+          description: Encrypted at rest. On update, an empty value leaves the existing credential untouched.
+        clear_password: { type: boolean, description: "On update, removes any stored credential." }
+        sync_enabled: { type: boolean, nullable: true, description: "Defaults to true if omitted on create." }
+    ContactSubscriptionResponse:
+      type: object
+      description: Never includes the password or sync token.
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        url: { type: string }
+        username: { type: string }
+        has_password: { type: boolean }
+        sync_enabled: { type: boolean }
+        last_synced_at: { type: string, format: date-time, nullable: true }
+        last_sync_status: { type: string }
+        last_sync_error: { type: string }
+        created_at: { type: string, format: date-time }

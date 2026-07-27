@@ -271,9 +271,9 @@ func addressMultistatusResponse(entries map[string]string) string {
 	for href, cardText := range entries {
 		escaped := strings.ReplaceAll(cardText, "&", "&amp;")
 		escaped = strings.ReplaceAll(escaped, "<", "&lt;")
-		sb.WriteString(fmt.Sprintf(`<d:response><d:href>%s</d:href>
+		fmt.Fprintf(&sb, `<d:response><d:href>%s</d:href>
 <d:propstat><d:prop><card:address-data>%s</card:address-data><d:getetag>&quot;%s-etag&quot;</d:getetag></d:prop>
-<d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`, href, escaped, href))
+<d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`, href, escaped, href)
 	}
 	sb.WriteString(`</d:multistatus>`)
 	return sb.String()

@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	apperrors "meerkat/errors"
 	"meerkat/config"
+	apperrors "meerkat/errors"
 	"strconv"
 
 	"github.com/gin-gonic/gin"

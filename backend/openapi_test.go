@@ -34,6 +34,10 @@ func TestOpenAPISpecValidates(t *testing.T) {
 	wantSchemas := []string{
 		"ContactSummary", "ContactSummaryWithRelations", "ContactRecordInput",
 		"ContactRecordResponse", "Card", "CRMEnvelope", "Passthrough",
+		"ColumnMapping", "ImportUploadResponse", "ImportPreviewRequest",
+		"DuplicateMatch", "ImportRowPreview", "ImportPreviewResponse",
+		"RowImportAction", "ImportConfirmRequest", "ImportResult",
+		"ContactSubscriptionInput", "ContactSubscriptionResponse",
 	}
 	for _, name := range wantSchemas {
 		if _, ok := doc.Components.Schemas[name]; !ok {
@@ -41,12 +45,31 @@ func TestOpenAPISpecValidates(t *testing.T) {
 		}
 	}
 
-	wantPaths := []string{"/contacts", "/contacts/{id}", "/export/vcf", "/export/jscontact"}
+	wantPaths := []string{
+		"/contacts", "/contacts/{id}", "/export/vcf", "/export/jscontact",
+		// WP-73b import + contact-subscription endpoints (added alongside
+		// this test's own extension, so a future path deletion is caught
+		// here rather than silently drifting like the original 4-path spec
+		// did for months before this WP).
+		"/contacts/import/upload", "/contacts/import/vcf/upload",
+		"/contacts/import/jscontact/upload", "/contacts/import/preview",
+		"/contacts/import/confirm", "/contacts/import/vcf/confirm",
+		"/contact-subscriptions", "/contact-subscriptions/{id}",
+		"/contact-subscriptions/{id}/sync",
+	}
 	for _, p := range wantPaths {
 		if doc.Paths.Find(p) == nil {
 			t.Errorf("openapi.yaml is missing expected path %q", p)
 		}
 	}
+
+	// NOTE: this spec (and this test's wantPaths) still only covers the
+	// nested-Card contact API (WP-71) and the import/contact-subscription
+	// surface (WP-73b) — most of the pre-existing REST API (activities,
+	// calendars, notes, reminders, users, webhooks, ...) was never
+	// documented here and is out of scope for this pass. A repo-wide
+	// route-vs-spec audit is a separate, larger effort (tracked as Phase 3
+	// pre-existing-surface work), not something to assert here.
 
 	// GET /contacts must document the query mechanics Gap 2 requires be
 	// preserved (page/limit/search/sort/order/include_archived/archived/

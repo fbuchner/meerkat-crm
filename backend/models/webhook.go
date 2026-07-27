@@ -18,11 +18,11 @@ type Webhook struct {
 
 type WebhookDelivery struct {
 	gorm.Model
-	WebhookID   uint       `gorm:"not null;index"`
-	EventType   string     `gorm:"not null"`
-	Payload     string     `gorm:"not null"`
+	WebhookID   uint   `gorm:"not null;index"`
+	EventType   string `gorm:"not null"`
+	Payload     string `gorm:"not null"`
 	StatusCode  *int
 	Error       *string
-	Attempts    int        `gorm:"default:1"`
+	Attempts    int `gorm:"default:1"`
 	NextRetryAt *time.Time
 }

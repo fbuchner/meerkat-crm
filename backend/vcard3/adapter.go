@@ -284,7 +284,7 @@ func (Adapter) Export(r *contactmodel.Record) ([]byte, []contactmodel.Diagnostic
 		if m.URI == "" {
 			continue
 		}
-		card.Add(prop, exportMediaField(m.URI, m.MediaType, m.Kind))
+		card.Add(prop, exportMediaField(m.URI, m.MediaType))
 	}
 
 	// --- Calendars / FreeBusyURLs (discrete fields, 20.7-style split) ---
@@ -313,7 +313,7 @@ func (Adapter) Export(r *contactmodel.Record) ([]byte, []contactmodel.Diagnostic
 		if k.URI == "" {
 			continue
 		}
-		card.Add(PropKey, exportMediaField(k.URI, k.MediaType, "key"))
+		card.Add(PropKey, exportMediaField(k.URI, k.MediaType))
 	}
 
 	// --- Directories: directory (no 3.0 home) vs entry (SOURCE) ---
@@ -1176,7 +1176,7 @@ func parseDataURI(uri string) (data, mediatype string, ok bool) {
 // a data: URI becomes inline ENCODING=b/TYPE=... (RFC 2426 §3.1.4); any other
 // URI (the source is already a URI) is emitted as a bare value, per
 // docs/specs/rfc2426-v3-baseline.md §4 and 30-adapters.md §30.C.
-func exportMediaField(uri, mediaType, kind string) *vcard.Field {
+func exportMediaField(uri, mediaType string) *vcard.Field {
 	if data, mt, ok := parseDataURI(uri); ok {
 		if mt == "" {
 			mt = mediaType

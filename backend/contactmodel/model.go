@@ -74,13 +74,15 @@ type Name struct {
 	PhoneticScript   string            `json:"phoneticScript,omitempty"`
 }
 
-// NameComponent.Kind ∈ title,given,given2,surname,surname2,credential,generation,separator
+// NameComponent is one labeled piece of a Name (e.g. "given" -> "Ada").
+// Kind ∈ title,given,given2,surname,surname2,credential,generation,separator
 type NameComponent struct {
 	Kind     string `json:"kind"`
 	Value    string `json:"value"`
 	Phonetic string `json:"phonetic,omitempty"`
 }
 
+// Nickname is a single nickname entry (JSContact nicknames / vCard NICKNAME).
 type Nickname struct {
 	ID       string   `json:"id,omitempty"`
 	Name     string   `json:"name"`
@@ -88,6 +90,8 @@ type Nickname struct {
 	Pref     *int     `json:"pref,omitempty"`
 }
 
+// Organization is one employer/org affiliation (JSContact organizations /
+// vCard ORG), optionally split into OrgUnit sub-units.
 type Organization struct {
 	ID     string    `json:"id,omitempty"`
 	Name   string    `json:"name,omitempty"`
@@ -95,12 +99,14 @@ type Organization struct {
 	SortAs string    `json:"sortAs,omitempty"`
 }
 
+// OrgUnit is one named sub-unit within an Organization's Units.
 type OrgUnit struct {
 	Name   string `json:"name"`
 	SortAs string `json:"sortAs,omitempty"`
 }
 
-// Title.Kind ∈ title|role
+// Title is a job title or role (JSContact titles / vCard TITLE, ROLE).
+// Kind ∈ title|role
 type Title struct {
 	ID             string `json:"id,omitempty"`
 	Name           string `json:"name"`
@@ -108,6 +114,7 @@ type Title struct {
 	OrganizationID string `json:"organizationId,omitempty"`
 }
 
+// Email is one email address entry (JSContact emails / vCard EMAIL).
 type Email struct {
 	ID       string   `json:"id,omitempty"`
 	Address  string   `json:"address"`
@@ -116,7 +123,8 @@ type Email struct {
 	Label    string   `json:"label,omitempty"`
 }
 
-// Phone.Features ∈ voice,fax,cell/mobile,video,pager,text,textphone,main-number
+// Phone is one phone number entry (JSContact phones / vCard TEL).
+// Features ∈ voice,fax,cell/mobile,video,pager,text,textphone,main-number
 type Phone struct {
 	ID       string   `json:"id,omitempty"`
 	Number   string   `json:"number"`
@@ -126,6 +134,10 @@ type Phone struct {
 	Label    string   `json:"label,omitempty"`
 }
 
+// OnlineService is one online-presence entry: an IMPP address, an
+// RFC 9554 SOCIALPROFILE, or an unclassified other-online-service (see
+// Card.ImppAddresses/SocialProfiles/OtherOnlineServices for which field
+// each belongs to).
 type OnlineService struct {
 	ID       string   `json:"id,omitempty"`
 	Service  string   `json:"service,omitempty"` // e.g. "Mastodon"
@@ -136,6 +148,7 @@ type OnlineService struct {
 	Label    string   `json:"label,omitempty"`
 }
 
+// Address is one postal address entry (JSContact addresses / vCard ADR).
 type Address struct {
 	ID               string             `json:"id,omitempty"`
 	Components       []AddressComponent `json:"components,omitempty"`
@@ -151,16 +164,18 @@ type Address struct {
 	PhoneticScript   string             `json:"phoneticScript,omitempty"`
 }
 
-// AddressComponent.Kind ∈ room,apartment,floor,building,number,name,block,subdistrict,
-//
-//	district,locality,region,postcode,country,direction,landmark,postOfficeBox,separator
+// AddressComponent is one labeled piece of an Address (e.g. "locality" ->
+// "Springfield"). Kind ∈ room,apartment,floor,building,number,name,block,
+// subdistrict,district,locality,region,postcode,country,direction,landmark,
+// postOfficeBox,separator
 type AddressComponent struct {
 	Kind     string `json:"kind"`
 	Value    string `json:"value"`
 	Phonetic string `json:"phonetic,omitempty"`
 }
 
-// Anniversary.Kind ∈ birth|death|wedding
+// Anniversary is one dated life event (JSContact anniversaries / vCard
+// BDAY, ANNIVERSARY, DEATHDATE). Kind ∈ birth|death|wedding
 type Anniversary struct {
 	ID    string          `json:"id,omitempty"`
 	Kind  string          `json:"kind"`
@@ -168,11 +183,15 @@ type Anniversary struct {
 	Place *Address        `json:"place,omitempty"` // vCard BIRTHPLACE/DEATHPLACE
 }
 
+// AnniversaryDate holds an Anniversary's date, either a full RFC3339
+// Timestamp or a partial/year-unknown PartialDate.
 type AnniversaryDate struct {
 	Partial   *PartialDate `json:"partial,omitempty"`
 	Timestamp *string      `json:"timestamp,omitempty"` // RFC3339
 }
 
+// PartialDate is a date with one or more components (typically the year)
+// deliberately unknown, e.g. a birthday recorded without a year.
 type PartialDate struct {
 	Year          *int   `json:"year,omitempty"`
 	Month         *int   `json:"month,omitempty"`
@@ -194,13 +213,15 @@ type SpeakToAs struct {
 	Pronouns           []Pronouns          `json:"pronouns,omitempty"` // vCard PRONOUNS (9554)
 }
 
-// GrammaticalGender.Value ∈ animate|common|feminine|inanimate|masculine|neuter
+// GrammaticalGender is one language-scoped grammatical-gender preference
+// (RFC 9554 GRAMGENDER). Value ∈ animate|common|feminine|inanimate|masculine|neuter
 type GrammaticalGender struct {
 	ID       string `json:"id,omitempty"`
 	Value    string `json:"value"`
 	Language string `json:"language,omitempty"` // RFC 9554 §3.2 LANGUAGE param; no PREF param exists for GRAMGENDER
 }
 
+// Pronouns is one set of personal pronouns (RFC 9554 PRONOUNS).
 type Pronouns struct {
 	ID       string   `json:"id,omitempty"`
 	Pronouns string   `json:"pronouns"` // the text, e.g. "they/them" — confirmed field name, RFC 9553 §2.2.4
@@ -208,7 +229,9 @@ type Pronouns struct {
 	Pref     *int     `json:"pref,omitempty"`
 }
 
-// PersonalInfo.Kind ∈ expertise|hobby|interest ; Level ∈ high|medium|low
+// PersonalInfo is one hobby/interest/expertise entry (JSContact personalInfo
+// / vCard EXPERTISE, HOBBY, INTEREST). Kind ∈ expertise|hobby|interest ;
+// Level ∈ high|medium|low
 type PersonalInfo struct {
 	ID     string `json:"id,omitempty"`
 	Kind   string `json:"kind"`
@@ -218,6 +241,7 @@ type PersonalInfo struct {
 	Label  string `json:"label,omitempty"`
 }
 
+// Note is one free-text note (JSContact notes / vCard NOTE).
 type Note struct {
 	ID      string     `json:"id,omitempty"`
 	Note    string     `json:"note"`
@@ -225,6 +249,7 @@ type Note struct {
 	Created *Timestamp `json:"created,omitempty"` // vCard CREATED param (9554)
 }
 
+// Author identifies who wrote a Note (RFC 9554 AUTHOR/AUTHOR-NAME params).
 type Author struct {
 	Name string `json:"name,omitempty"`
 	URI  string `json:"uri,omitempty"`
@@ -246,6 +271,8 @@ type Resource struct {
 	ListAs    *int     `json:"listAs,omitempty"` // directories only
 }
 
+// LanguagePref is one preferred-language entry (JSContact preferredLanguages
+// / vCard LANG).
 type LanguagePref struct {
 	ID       string   `json:"id,omitempty"`
 	Language string   `json:"language"`
@@ -253,12 +280,16 @@ type LanguagePref struct {
 	Pref     *int     `json:"pref,omitempty"`
 }
 
-// Relation.Relations keys ∈ the relatedTo enum (acquaintance,friend,child,parent,…,emergency)
+// Relation is one link to another entity (JSContact relatedTo / vCard
+// RELATED). Relations keys ∈ the relatedTo enum (acquaintance,friend,child,
+// parent,…,emergency)
 type Relation struct {
 	Target    string   `json:"target"` // uri or uid of the related entity
 	Relations []string `json:"relations,omitempty"`
 }
 
+// Timestamp is an RFC3339 instant, used wherever the neutral model needs a
+// full date-time rather than a PartialDate.
 type Timestamp struct {
 	UTC string `json:"utc"` // RFC3339
 }

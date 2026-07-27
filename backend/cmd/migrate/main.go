@@ -16,49 +16,49 @@ func main() {
 		log.Fatal("Usage: go run cmd/migrate/main.go [up|down|version]")
 	}
 
-	command := os.Args[1]
+	// run's own defers (notably db.Close()) execute before main ever calls
+	// log.Fatal, unlike inlining this logic directly in main: log.Fatal(f)
+	// calls os.Exit, which skips every pending defer in the process.
+	if err := run(os.Args[1]); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run(command string) error {
 	dbPath := "meerkat.db"
 	migrationsPath := "file://database/migrations"
 
-	// Open database connection
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
-		log.Fatalf("Failed to open database: %v", err)
+		return fmt.Errorf("failed to open database: %w", err)
 	}
 	defer db.Close()
 
-	// Create migration driver
 	driver, err := migrateSQLite.WithInstance(db, &migrateSQLite.Config{})
 	if err != nil {
-		log.Fatalf("Failed to create migration driver: %v", err)
+		return fmt.Errorf("failed to create migration driver: %w", err)
 	}
 
-	// Create migration instance
-	m, err := migrate.NewWithDatabaseInstance(
-		migrationsPath,
-		"sqlite",
-		driver,
-	)
+	m, err := migrate.NewWithDatabaseInstance(migrationsPath, "sqlite", driver)
 	if err != nil {
-		log.Fatalf("Failed to create migration instance: %v", err)
+		return fmt.Errorf("failed to create migration instance: %w", err)
 	}
 
-	// Execute command
 	switch command {
 	case "up":
 		if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-			log.Fatalf("Failed to run migrations: %v", err)
+			return fmt.Errorf("failed to run migrations: %w", err)
 		}
 		fmt.Println("Migrations applied successfully!")
 	case "down":
 		if err := m.Down(); err != nil && err != migrate.ErrNoChange {
-			log.Fatalf("Failed to rollback migrations: %v", err)
+			return fmt.Errorf("failed to rollback migrations: %w", err)
 		}
 		fmt.Println("Migrations rolled back successfully!")
 	case "version":
 		version, dirty, err := m.Version()
 		if err != nil && err != migrate.ErrNilVersion {
-			log.Fatalf("Failed to get migration version: %v", err)
+			return fmt.Errorf("failed to get migration version: %w", err)
 		}
 		if err == migrate.ErrNilVersion {
 			fmt.Println("No migrations applied yet")
@@ -66,6 +66,7 @@ func main() {
 			fmt.Printf("Current version: %d (dirty: %v)\n", version, dirty)
 		}
 	default:
-		log.Fatalf("Unknown command: %s. Use 'up', 'down', or 'version'", command)
+		return fmt.Errorf("unknown command: %s. Use 'up', 'down', or 'version'", command)
 	}
+	return nil
 }

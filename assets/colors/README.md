@@ -3,10 +3,12 @@
 Canonical, platform-agnostic color tokens — shared across the web app (`frontend/src/colors.css`) and
 any future mobile clients, same reasoning as `assets/fonts/`.
 
-`tokens.json` is the source of truth: 8 primitive tokens (`bone`, `parchment`, `paper`, `hypha`,
-`lichen`, `mycelium`, `bark`, `soil`), each with a `light` and `dark` value, plus computed interaction
-states (`hover`/`active`/`focusRing`/`disabled`) for the ones that need them, plus a `semantic` map from
-role names (`background.default`, `brand.primary`, `text.secondary`, ...) to a token+state pair.
+`tokens.json` is the source of truth: 8 core primitive tokens (`bone`, `parchment`, `paper`, `hypha`,
+`lichen`, `mycelium`, `bark`, `soil`) plus 4 mushroom-themed status tokens (`russula`/error,
+`chanterelle`/warning, `inkyCap`/info, `moss`/success), each with a `light` and `dark` value, plus
+computed interaction states (`hover`/`active`/`focusRing`/`disabled` for the core tokens, `hover` for the
+status tokens) for the ones that need them, plus a `semantic` map from role names
+(`background.default`, `brand.primary`, `status.error`, ...) to a token+state pair.
 
 ## Provenance
 
@@ -52,6 +54,32 @@ badly (1.73:1) — it needs a *dark* label instead. `tokens.json`'s `contrastOnB
 per-mode (`white` in light mode, dark `bone` in dark mode), matching exactly what MUI calls
 `palette.primary.contrastText`. Disabled state contrast (~3.25:1) is intentionally below AA-normal —
 WCAG 1.4.3 explicitly exempts inactive/disabled controls from the contrast requirement.
+
+## Status colors (`russula`/`chanterelle`/`inkyCap`/`moss`)
+
+Supplied as OKLCH, same as the core 8 — but two needed correcting before going in, both caught by
+actually computing hex/contrast rather than eyeballing the OKLCH values:
+
+- **`moss` (success) was originally proposed as hex** (`#5E7258` light / `#8FA887` dark), which converts
+  to `oklch(0.528 0.046 138.5)` / `oklch(0.703 0.055 138.1)` — only **2–6.5° of hue distance** from
+  `mycelium` (145/140) and `lichen` (135), with near-identical chroma. A success badge would have read as
+  "a shade of the brand color," not a distinct signal. Corrected to `oklch(0.54 0.130 155)` (light) /
+  `oklch(0.62 0.130 155)` (dark): shifted to 10–20° of hue separation from both brand greens, *and*
+  chroma boosted to match how saturated the other three status colors are (`C` 0.07–0.13) rather than the
+  core palette's muted `C` 0.03–0.05 — hue and saturation both signal "this is a status color," not just
+  hue alone.
+- **`inkyCap` (info) light mode** (`oklch(0.60 0.070 300)`, `#8677A4`) doesn't clear 4.5:1 with *any*
+  label color — white peaks at 4.05:1, dark labels do worse. Corrected `L` 0.60 → 0.56
+  (`oklch(0.56 0.070 300)`, `#7B6B98`) for a clean 4.77:1 with white.
+
+`contrastOnStatusColors` in `tokens.json` records the verified label per token per mode. Two are
+mode-dependent in the same way `mycelium`'s `contrastText` is (light label in light mode, dark `bone`
+label in dark mode, since dark-mode fills sit at a higher `L`): `russula` and `inkyCap`. `chanterelle` is
+dark-label in *both* modes (it's light in both: `L` 0.75/0.78). `moss` follows the same white/dark-`bone`
+split as `mycelium`.
+
+Hover states use the same `L −0.05` darken rule as `mycelium`/`lichen`, except `moss` (`L −0.04`, `C
+−0.01`) — the full delta pushed it out of sRGB gamut at this hue/chroma combination.
 
 ## Regenerating
 

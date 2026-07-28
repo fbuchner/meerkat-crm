@@ -36,14 +36,29 @@ export const lightTheme = createTheme({
 
     divider: "#CBC7BF", // hypha
 
+    // Mushroom-themed status colors -- see assets/colors/README.md for the
+    // two corrections made before wiring these in (moss/success was too
+    // close in hue to mycelium/lichen; inkyCap/info's light value didn't
+    // clear 4.5:1 with any label color).
     success: {
-      main: "#16A34A",
+      main: "#0D844C", // moss
+      dark: "#0B7643", // moss hover
+      contrastText: "#FFFFFF",
     },
     warning: {
-      main: "#F59E0B",
+      main: "#D3A563", // chanterelle
+      dark: "#C39553", // chanterelle hover
+      contrastText: "#30271F", // bark -- chanterelle is light in both modes, needs a dark label in both
     },
     error: {
-      main: "#DC2626",
+      main: "#AD5349", // russula
+      dark: "#9C443B", // russula hover
+      contrastText: "#FFFFFF",
+    },
+    info: {
+      main: "#7B6B98", // inky-cap (corrected from the original oklch(0.60 0.070 300))
+      dark: "#6C5D89", // inky-cap hover
+      contrastText: "#FFFFFF",
     },
   },
 
@@ -156,13 +171,24 @@ export const darkTheme = createTheme({
     divider: "#45423B", // hypha
 
     success: {
-      main: "#22C55E",
+      main: "#349D62", // moss
+      dark: "#318F5A", // moss hover
+      contrastText: "#1E1A13", // bone -- moss is bright in dark mode, same reasoning as mycelium
     },
     warning: {
-      main: "#FBBF24",
+      main: "#DDAE6C", // chanterelle
+      dark: "#CD9F5D", // chanterelle hover
+      contrastText: "#1E1A13", // bone
     },
     error: {
-      main: "#EF4444",
+      main: "#C4675D", // russula
+      dark: "#B3584E", // russula hover
+      contrastText: "#1E1A13", // bone
+    },
+    info: {
+      main: "#9F8FBE", // inky-cap
+      dark: "#8F80AE", // inky-cap hover
+      contrastText: "#1E1A13", // bone
     },
   },
 

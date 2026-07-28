@@ -25,6 +25,14 @@
   --color-mycelium-disabled: #848A83;
   --color-bark: #30271F;
   --color-soil: #595148;
+  --color-russula: #AD5349;
+  --color-russula-hover: #9C443B;
+  --color-chanterelle: #D3A563;
+  --color-chanterelle-hover: #C39553;
+  --color-inky-cap: #7B6B98;
+  --color-inky-cap-hover: #6C5D89;
+  --color-moss: #0D844C;
+  --color-moss-hover: #0B7643;
 }
 
 /* Dark mode: AppThemeProvider sets data-color-mode on <html> to mirror the
@@ -53,6 +61,14 @@
   --color-mycelium-disabled: #727871;
   --color-bark: #EAE4DA;
   --color-soil: #B5ADA2;
+  --color-russula: #C4675D;
+  --color-russula-hover: #B3584E;
+  --color-chanterelle: #DDAE6C;
+  --color-chanterelle-hover: #CD9F5D;
+  --color-inky-cap: #9F8FBE;
+  --color-inky-cap-hover: #8F80AE;
+  --color-moss: #349D62;
+  --color-moss-hover: #318F5A;
 }
 
 /* Recommended label color for text/icons sitting on top of a brand.primary fill --
@@ -87,4 +103,26 @@
   --color-brand-primary-disabled: var(--color-mycelium-disabled);
   --color-text-primary: var(--color-bark);
   --color-text-secondary: var(--color-soil);
+  --color-status-error: var(--color-russula);
+  --color-status-error-hover: var(--color-russula-hover);
+  --color-status-warning: var(--color-chanterelle);
+  --color-status-warning-hover: var(--color-chanterelle-hover);
+  --color-status-info: var(--color-inky-cap);
+  --color-status-info-hover: var(--color-inky-cap-hover);
+  --color-status-success: var(--color-moss);
+  --color-status-success-hover: var(--color-moss-hover);
+}
+
+/* Recommended label color for text/icons on top of each status-color fill. */
+:root {
+  --color-on-russula: #FFFFFF;
+  --color-on-chanterelle: #30271F;
+  --color-on-inky-cap: #FFFFFF;
+  --color-on-moss: #FFFFFF;
+}
+:root[data-color-mode="dark"] {
+  --color-on-russula: #1E1A13;
+  --color-on-chanterelle: #1E1A13;
+  --color-on-inky-cap: #1E1A13;
+  --color-on-moss: #1E1A13;
 }

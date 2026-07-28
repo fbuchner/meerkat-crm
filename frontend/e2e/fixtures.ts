@@ -1,5 +1,6 @@
 import { test as base, Page, APIRequestContext, expect } from '@playwright/test';
 import { TEST_USER, API_BASE_URL, E2E_CONTACT_PREFIX } from './global-setup';
+import { toContactRecordInput } from '../src/api/contacts';
 
 export { test } from '@playwright/test';
 export { expect } from '@playwright/test';
@@ -72,13 +73,18 @@ export async function createTestContact(
   overrides: Record<string, unknown> = {}
 ): Promise<CreatedContact> {
   const firstname = `${E2E_CONTACT_PREFIX}${Date.now()}`;
+  const lastname = (overrides.lastname as string | undefined) ?? 'Temp';
   const response = await request.post(`${API_BASE_URL}/contacts`, {
-    data: { firstname, lastname: 'Temp', ...overrides },
+    data: toContactRecordInput({ firstname, lastname, ...overrides }),
   });
   expect(response.ok(), `failed to create test contact: ${response.status()}`).toBeTruthy();
-  // The API wraps the created contact: { contact: {...} }.
+  // The API wraps the created contact: { contact: {...} }. The nested
+  // ContactRecordResponse doesn't carry flat firstname/lastname/ID fields
+  // (see src/api/contacts.ts's toLegacyContact for the full mapping), so
+  // this echoes back what was actually sent rather than re-deriving it.
   const body = await response.json();
-  return body.contact || body;
+  const created = body.contact || body;
+  return { ID: created.id ?? created.ID, firstname, lastname };
 }
 
 /**

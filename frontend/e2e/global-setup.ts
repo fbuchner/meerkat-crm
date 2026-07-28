@@ -1,4 +1,5 @@
 import { chromium, FullConfig, BrowserContext } from '@playwright/test';
+import { toContactRecordInput } from '../src/api/contacts';
 
 export const APP_ORIGIN = 'http://localhost:7300';
 export const API_BASE_URL = `${APP_ORIGIN}/api/v1`;
@@ -180,7 +181,7 @@ async function loginAndCreateContacts(context: BrowserContext): Promise<void> {
       }
 
       const response = await context.request.post(`${API_BASE_URL}/contacts`, {
-        data: contact,
+        data: toContactRecordInput(contact),
       });
 
       if (response.ok()) {
@@ -213,7 +214,7 @@ async function cleanupLeftoverTestData(context: BrowserContext): Promise<void> {
     );
 
     for (const contact of stale) {
-      await context.request.delete(`${API_BASE_URL}/contacts/${contact.ID}`).catch(() => {});
+      await context.request.delete(`${API_BASE_URL}/contacts/${contact.id}`).catch(() => {});
     }
 
     if (stale.length > 0) {

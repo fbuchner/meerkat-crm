@@ -2,6 +2,8 @@ module mycorrhizal
 
 go 1.25.3
 
+toolchain go1.26.5
+
 require (
 	github.com/coreos/go-oidc/v3 v3.20.0
 	github.com/emersion/go-ical v0.0.0-20250609112844-439c63cef608

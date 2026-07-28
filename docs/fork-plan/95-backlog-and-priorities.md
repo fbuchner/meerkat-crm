@@ -26,7 +26,7 @@ backend investment demoable.
 
 | Order | Item | Size | Status | Why here |
 |---|---|---|---|---|
-| 1 | `contactFields.ts` field-key registry → nested keys | 93 lines | pending | Prerequisite for everything below; cheap |
+| 1 | `contactFields.ts` field-key registry → nested keys | 93 lines | **done** (`8b1cd71`) | Prerequisite for everything below; cheap |
 | 2 | `MultiValueField.tsx` / `AddressFields.tsx` → real Card arrays | ~250 lines | pending | Prerequisite. The one generic component reused by every multi-value field — highest leverage per line |
 | 3 | `ContactInformation.tsx` migration | 421 lines | pending | The actual payoff: multi-email/phone/address with structured types. Ships the visible feature. |
 | 4 | `AddContactDialog.tsx` migration | 494 lines | pending | Same payoff, on the creation path — first impression |

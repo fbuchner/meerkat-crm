@@ -1,4 +1,10 @@
 // theme.ts
+//
+// Palette values come from assets/colors/tokens.json (OKLCH-derived; see
+// assets/colors/README.md for the conversion math and the hover/active/
+// contrastText derivation rules). `light`/`dark` on primary/secondary are
+// deliberately omitted where we don't have a bespoke tint -- MUI's own
+// augmentColor() fills them in from `main`.
 import { createTheme } from "@mui/material/styles";
 
 export const lightTheme = createTheme({
@@ -6,29 +12,29 @@ export const lightTheme = createTheme({
     mode: "light",
 
     primary: {
-      main: "#2563EB",
-      light: "#DBEAFE",
-      dark: "#1E40AF",
+      main: "#3E543E", // mycelium
+      dark: "#314631", // mycelium hover (also used by MUI for contained-button hover/emphasis)
       contrastText: "#FFFFFF",
     },
 
     secondary: {
-      main: "#14B8A6",
-      light: "#99F6E4",
-      dark: "#0F766E",
+      main: "#97A390", // lichen
+      dark: "#879481", // lichen hover
+      contrastText: "#30271F", // bark -- verified 5.54:1 (AA); white fails at 2.64:1
     },
 
     background: {
-      default: "#F8FAFC",
-      paper: "#FFFFFF",
+      default: "#FAF5EA", // bone
+      paper: "#EFE7D9", // parchment -- cards/sidebars. Dialogs/menus/popovers use the
+      // lighter "paper" token (#FFFFFF) instead, see MuiDialog/MuiPopover/MuiMenu below.
     },
 
     text: {
-      primary: "#0F172A",
-      secondary: "#475569",
+      primary: "#30271F", // bark
+      secondary: "#595148", // soil
     },
 
-    divider: "#E2E8F0",
+    divider: "#CBC7BF", // hypha
 
     success: {
       main: "#16A34A",
@@ -58,7 +64,7 @@ export const lightTheme = createTheme({
       fontWeight: 500,
     },
     body2: {
-      color: "#475569",
+      color: "#595148", // soil
     },
   },
 
@@ -67,7 +73,7 @@ export const lightTheme = createTheme({
       styleOverrides: {
         root: {
           boxShadow:
-            "0px 1px 2px rgba(15, 23, 42, 0.06), 0px 2px 8px rgba(15, 23, 42, 0.04)",
+            "0px 1px 2px rgba(48, 39, 31, 0.06), 0px 2px 8px rgba(48, 39, 31, 0.04)",
         },
       },
     },
@@ -83,7 +89,36 @@ export const lightTheme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: {
+          // No explicit color override -- AppBar defaults to color="primary"
+          // (mycelium), matching its "brand primary, navigation" role.
           boxShadow: "none",
+        },
+      },
+    },
+
+    // "paper" token (elevated dialogs/floating elements) is one step lighter
+    // than background.paper (parchment) -- applied here rather than as the
+    // base background.paper, to keep the 3-tier bone/parchment/paper
+    // elevation the tokens define instead of collapsing it to MUI's default
+    // 2-tier default/paper model.
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: "#FFFFFF", // paper
+        },
+      },
+    },
+    MuiPopover: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: "#FFFFFF", // paper
+        },
+      },
+    },
+    MuiMenu: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: "#FFFFFF", // paper
         },
       },
     },
@@ -95,29 +130,30 @@ export const darkTheme = createTheme({
     mode: "dark",
 
     primary: {
-      main: "#3B82F6",
-      light: "#93C5FD",
-      dark: "#1D4ED8",
-      contrastText: "#020617",
+      main: "#9EB698", // mycelium (dark mode: bright, not dark -- see contrastText note)
+      dark: "#8EA789", // mycelium hover
+      // mycelium is bright in dark mode (L 0.75), so a light label fails
+      // contrast (1.73:1) -- verified a dark label works instead (7.92:1, AAA).
+      contrastText: "#1E1A13", // bone
     },
 
     secondary: {
-      main: "#2DD4BF",
-      light: "#99F6E4",
-      dark: "#0F766E",
+      main: "#9BAA94", // lichen
+      dark: "#8C9A85", // lichen hover
+      contrastText: "#1E1A13", // bone -- verified 7.07:1 (AAA); bark fails at 1.94:1 here
     },
 
     background: {
-      default: "#0f172a",
-      paper: "#020617",
+      default: "#1E1A13", // bone
+      paper: "#2B261B", // parchment
     },
 
     text: {
-      primary: "#E5E7EB",
-      secondary: "#94A3B8",
+      primary: "#EAE4DA", // bark
+      secondary: "#B5ADA2", // soil
     },
 
-    divider: "#1E293B",
+    divider: "#45423B", // hypha
 
     success: {
       main: "#22C55E",
@@ -144,7 +180,7 @@ export const darkTheme = createTheme({
       fontWeight: 600,
     },
     body2: {
-      color: "#94A3B8",
+      color: "#B5ADA2", // soil
     },
   },
 
@@ -153,7 +189,7 @@ export const darkTheme = createTheme({
       styleOverrides: {
         root: {
           backgroundImage: "none",
-          border: "1px solid #1E293B",
+          border: "1px solid #45423B", // hypha
         },
       },
     },
@@ -161,8 +197,17 @@ export const darkTheme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: "#020617",
-          borderBottom: "1px solid #1E293B",
+          // Deliberately not primary.main here (mycelium is bright in dark
+          // mode -- a full-bleed bright light-green top bar would fight the
+          // rest of the dark chrome, and tried-and-checked-in dark parchment
+          // instead just blended into the cards below it with no brand
+          // presence left). Uses light mode's mycelium value directly instead
+          // -- a fixed dark-green brand anchor that doesn't flip between
+          // modes, same idea as a fixed-color sidebar/header in apps like
+          // Slack. Already verified AAA with white text (8.26:1) since it's
+          // the exact value light mode's AppBar already uses.
+          backgroundColor: "#3E543E", // mycelium (light-mode value, used as-is here)
+          color: "#FFFFFF",
           boxShadow: "none",
         },
       },
@@ -179,8 +224,30 @@ export const darkTheme = createTheme({
     MuiChip: {
       styleOverrides: {
         root: {
-          backgroundColor: "#1E293B",
-          color: "#E5E7EB",
+          backgroundColor: "#45423B", // hypha
+          color: "#EAE4DA", // bark
+        },
+      },
+    },
+
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: "#393226", // paper
+        },
+      },
+    },
+    MuiPopover: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: "#393226", // paper
+        },
+      },
+    },
+    MuiMenu: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: "#393226", // paper
         },
       },
     },

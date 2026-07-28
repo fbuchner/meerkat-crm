@@ -31,8 +31,8 @@ const OIDC_ERROR_MAP: Record<string, string> = {
 export default function LoginPage({ setToken }: LoginPageProps) {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
-  const [identifier, setIdentifier] = useState(searchParams.get('username') || '');
-  const [password, setPassword] = useState(searchParams.get('password') || '');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState(() => {
     const oidcError = searchParams.get('error');
     return oidcError && OIDC_ERROR_MAP[oidcError] ? t(OIDC_ERROR_MAP[oidcError]) : '';

@@ -406,8 +406,8 @@
       "label": "Date Format",
       "description": "Choose how dates are displayed throughout the application.",
       "options": {
-        "eu":  "European (DD.MM.YYYY)",
-        "us":  "US (MM/DD/YYYY)",
+        "eu": "European (DD.MM.YYYY)",
+        "us": "US (MM/DD/YYYY)",
         "iso": "ISO (YYYY-MM-DD)"
       }
     },
@@ -665,12 +665,15 @@
       "created": "Created",
       "lastUsed": "Last Used",
       "status": "Status",
-      "actions": "Actions"
+      "actions": "Actions",
+      "expires": "Expires"
     },
     "createDialog": {
       "title": "Create API Token",
       "nameLabel": "Token Name",
-      "createButton": "Create"
+      "createButton": "Create",
+      "expiryLabel": "Expires in",
+      "expiryDays": "{{days}} days"
     },
     "createdDialog": {
       "title": "Token Created",
@@ -683,7 +686,8 @@
       "title": "Revoke Token",
       "message": "Are you sure you want to revoke \"{{name}}\"? This cannot be undone.",
       "confirm": "Revoke"
-    }
+    },
+    "expired": "Expired"
   },
   "users": {
     "title": "User Management",

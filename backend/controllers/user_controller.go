@@ -353,6 +353,9 @@ func ConfirmPasswordReset(context *gin.Context) {
 	user.PasswordResetTokenHash = nil
 	user.PasswordResetExpiresAt = nil
 	user.PasswordResetRequestedAt = nil
+	// End every existing session. A reset is the recovery path for a suspected
+	// compromise, so any token the attacker still holds must stop working.
+	user.TokenVersion++
 
 	if err := db.Save(&user).Error; err != nil {
 		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to persist password reset")
@@ -680,11 +683,41 @@ func ChangePassword(context *gin.Context) {
 	user.PasswordResetTokenHash = nil
 	user.PasswordResetExpiresAt = nil
 	user.PasswordResetRequestedAt = nil
+	// Invalidate every JWT issued before this change, including any held by
+	// someone who learned the old password.
+	user.TokenVersion++
 
 	if err := db.Save(&user).Error; err != nil {
 		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to persist password change")
 		apperrors.AbortWithError(context, apperrors.ErrDatabase("update user").WithError(err))
 		return
+	}
+
+	// The bump above also invalidated the caller's own token. Re-issue it so
+	// changing your password signs out your *other* sessions rather than
+	// kicking you out of the one you are using. Cookie-authenticated callers
+	// only: API tokens are separate credentials and carry no token version.
+	if isAPIToken, _ := context.Get("isAPIToken"); isAPIToken != true {
+		cfg := currentConfig(context)
+		tokenString, err := services.GenerateToken(user, &cfg)
+		if err != nil {
+			// The password change already succeeded; failing here would be
+			// misleading. Report success and let the client re-authenticate.
+			log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to re-issue token after password change")
+			context.JSON(http.StatusOK, gin.H{"message": "Password updated successfully"})
+			return
+		}
+
+		context.SetSameSite(http.SameSiteLaxMode)
+		context.SetCookie(
+			"auth_token",
+			tokenString,
+			cfg.JWTExpiryHours*3600,
+			"/",
+			cfg.CookieDomain,
+			cfg.CookieSecure,
+			true,
+		)
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Password updated successfully"})

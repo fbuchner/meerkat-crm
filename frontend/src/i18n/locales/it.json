@@ -406,8 +406,8 @@
       "label": "Formato Data",
       "description": "Scegli come visualizzare le date nell'applicazione.",
       "options": {
-        "eu":  "Europeo (GG.MM.AAAA)",
-        "us":  "Americano (MM/GG/AAAA)",
+        "eu": "Europeo (GG.MM.AAAA)",
+        "us": "Americano (MM/GG/AAAA)",
         "iso": "ISO (AAAA-MM-GG)"
       }
     },
@@ -665,12 +665,15 @@
       "created": "Creato",
       "lastUsed": "Ultimo Uso",
       "status": "Stato",
-      "actions": "Azioni"
+      "actions": "Azioni",
+      "expires": "Scade"
     },
     "createDialog": {
       "title": "Crea Token API",
       "nameLabel": "Nome Token",
-      "createButton": "Crea"
+      "createButton": "Crea",
+      "expiryLabel": "Scade tra",
+      "expiryDays": "{{days}} giorni"
     },
     "createdDialog": {
       "title": "Token Creato",
@@ -683,7 +686,8 @@
       "title": "Revoca Token",
       "message": "Sei sicuro di voler revocare \"{{name}}\"? Questo non può essere annullato.",
       "confirm": "Revoca"
-    }
+    },
+    "expired": "Scaduto"
   },
   "users": {
     "title": "Gestione Utenti",

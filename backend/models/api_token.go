@@ -13,4 +13,9 @@ type ApiToken struct {
 	TokenHash  string `gorm:"not null;unique" json:"-"`
 	LastUsedAt *time.Time
 	RevokedAt  *time.Time
+
+	// ExpiresAt bounds how long a leaked token stays useful. NULL means no
+	// expiry and exists only for rows predating this column; tokens created
+	// through the API always get a concrete value.
+	ExpiresAt *time.Time
 }

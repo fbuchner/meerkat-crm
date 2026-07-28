@@ -44,7 +44,10 @@ func GenerateToken(user models.User, cfg *config.Config) (string, error) {
 		"authorized": true,
 		"username":   user.Username,
 		"user_id":    user.ID,
-		"exp":        time.Now().Add(time.Hour * time.Duration(JWTExpiryHours)).Unix(),
+		// Checked against the user's current TokenVersion on every request, so
+		// bumping that column invalidates this token immediately.
+		"token_version": user.TokenVersion,
+		"exp":           time.Now().Add(time.Hour * time.Duration(JWTExpiryHours)).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

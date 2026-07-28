@@ -222,6 +222,9 @@ func UpdateUser(c *gin.Context) {
 			return
 		}
 		user.Password = hashedPassword
+		// An admin resetting someone's password must end that user's existing
+		// sessions, otherwise the reset does not actually lock anyone out.
+		user.TokenVersion++
 	}
 	if input.IsAdmin != nil {
 		user.IsAdmin = *input.IsAdmin

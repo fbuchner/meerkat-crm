@@ -15,6 +15,7 @@ import {
   Divider
 } from '@mui/material';
 import ForgotPasswordDialog from './components/ForgotPasswordDialog';
+import BrandLogo from './components/BrandLogo';
 import { useOIDCConfig } from './hooks/useOIDCConfig';
 
 type LoginPageProps = {
@@ -71,12 +72,7 @@ export default function LoginPage({ setToken }: LoginPageProps) {
     <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
       <Paper sx={{ p: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-          <Box
-            component="img"
-            src="/meerkat-crm-logo.svg"
-            alt="Meerkat CRM"
-            sx={{ width: 150, height: 'auto' }}
-          />
+          <BrandLogo height={150} />
         </Box>
         <Typography variant="h5" mb={2}>{t('login.title')}</Typography>
         <form onSubmit={handleSubmit}>

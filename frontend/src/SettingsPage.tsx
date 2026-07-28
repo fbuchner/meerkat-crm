@@ -23,6 +23,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import InfoIcon from '@mui/icons-material/Info';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import Link from '@mui/material/Link';
+import BrandLogo from './components/BrandLogo';
 import { changePassword } from './api/auth';
 import { updateLanguage, updateDateFormat } from './api/users';
 import { ThemePreference, useThemePreference } from './AppThemeProvider';
@@ -116,11 +117,7 @@ export default function SettingsPage() {
           <Divider sx={{ mb: 1.5 }} />
 
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-            <img
-              src="/meerkat-crm-logo.svg"
-              alt="Meerkat CRM Logo"
-              style={{ height: 100, flexShrink: 0 }}
-            />
+            <BrandLogo height={100} />
             <Stack spacing={1}>
               <Typography variant="body2" color="text.secondary">
                 {t('settings.about.description')}

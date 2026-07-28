@@ -18,19 +18,26 @@ import "mycorrhizal/contactmodel"
 // that requested include_archived=true (mixed archived/active results)
 // distinguish which is which without a second round trip. Both are cheap,
 // already-loaded scalar columns — no extra query cost.
+//
+// Nickname and Circles were added after the fact (frontend migration
+// pre-work): ContactsPage's list view renders both per-row, and the old
+// fields=-based flat API used to let it request them directly. Both are
+// cheap, already-loaded columns like ID/Archived above.
 type ContactSummary struct {
-	ID             uint   `json:"id"`
-	UID            string `json:"uid"`
-	Firstname      string `json:"firstname"`
-	Lastname       string `json:"lastname"`
-	FN             string `json:"fn"`
-	PrimaryEmail   string `json:"primary_email"`
-	PrimaryPhone   string `json:"primary_phone"`
-	Birthday       string `json:"birthday"`
-	Org            string `json:"org"`
-	Photo          string `json:"photo"`
-	PhotoThumbnail string `json:"photo_thumbnail"`
-	Archived       bool   `json:"archived"`
+	ID             uint     `json:"id"`
+	UID            string   `json:"uid"`
+	Firstname      string   `json:"firstname"`
+	Lastname       string   `json:"lastname"`
+	Nickname       string   `json:"nickname"`
+	FN             string   `json:"fn"`
+	PrimaryEmail   string   `json:"primary_email"`
+	PrimaryPhone   string   `json:"primary_phone"`
+	Birthday       string   `json:"birthday"`
+	Org            string   `json:"org"`
+	Photo          string   `json:"photo"`
+	PhotoThumbnail string   `json:"photo_thumbnail"`
+	Circles        []string `json:"circles"`
+	Archived       bool     `json:"archived"`
 }
 
 // NewContactSummary builds a ContactSummary directly from a Contact's own
@@ -47,6 +54,7 @@ func NewContactSummary(c *Contact) ContactSummary {
 		UID:            c.VCardUID,
 		Firstname:      c.Firstname,
 		Lastname:       c.Lastname,
+		Nickname:       c.Nickname,
 		FN:             c.FN,
 		PrimaryEmail:   c.Email,
 		PrimaryPhone:   c.Phone,
@@ -54,6 +62,7 @@ func NewContactSummary(c *Contact) ContactSummary {
 		Org:            c.Org,
 		Photo:          c.Photo,
 		PhotoThumbnail: c.PhotoThumbnail,
+		Circles:        c.Circles,
 		Archived:       c.Archived,
 	}
 }

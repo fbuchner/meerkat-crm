@@ -31,3 +31,25 @@ func TestNewContactRecordResponse_PreservesPersistedCardOnlyData(t *testing.T) {
 		t.Errorf("ContactRecordResponse.Card.SpeakToAs = %+v, want the persisted she/her preserved in the API response", resp.Card.SpeakToAs)
 	}
 }
+
+// TestNewContactSummary_IncludesNicknameAndCircles is a regression test for
+// the frontend-migration pre-work gap: ContactsPage's list view renders
+// nickname and circles per row, but GET /contacts' slim ContactSummary
+// projection didn't carry either field until this fix.
+func TestNewContactSummary_IncludesNicknameAndCircles(t *testing.T) {
+	c := &Contact{
+		Firstname: "Ada",
+		Lastname:  "Lovelace",
+		Nickname:  "Countess",
+		Circles:   []string{"Friends", "Work"},
+	}
+
+	summary := NewContactSummary(c)
+
+	if summary.Nickname != "Countess" {
+		t.Errorf("ContactSummary.Nickname = %q, want %q", summary.Nickname, "Countess")
+	}
+	if len(summary.Circles) != 2 || summary.Circles[0] != "Friends" || summary.Circles[1] != "Work" {
+		t.Errorf("ContactSummary.Circles = %+v, want [Friends Work]", summary.Circles)
+	}
+}

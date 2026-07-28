@@ -420,6 +420,7 @@ components:
         uid: { type: string }
         firstname: { type: string }
         lastname: { type: string }
+        nickname: { type: string }
         fn: { type: string, description: "Full/display name (vCard FN)." }
         primary_email: { type: string }
         primary_phone: { type: string }
@@ -427,6 +428,7 @@ components:
         org: { type: string }
         photo: { type: string }
         photo_thumbnail: { type: string, description: "Base64 data URL of the thumbnail." }
+        circles: { type: array, items: { type: string } }
         archived: { type: boolean }
     ContactSummaryWithRelations:
       description: ContactSummary extended with the sub-resource arrays requested via includes=.

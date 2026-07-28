@@ -66,16 +66,6 @@ interface ContactWithRelations extends Contact {
   activities?: Activity[];
 }
 
-const CONTACT_FIELDS = [
-  'ID', 'firstname', 'lastname', 'nickname', 'gender',
-  'email', 'phone', 'birthday', 'address', 'how_we_met',
-  'food_preference', 'work_information', 'contact_information',
-  'circles', 'photo', 'custom_fields', 'archived',
-  'emails', 'phones', 'addresses', 'urls', 'impps',
-  'prefix', 'middle_name', 'suffix', 'organization', 'department',
-  'job_title', 'role', 'anniversary'
-];
-
 export default function ContactDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
@@ -217,7 +207,7 @@ export default function ContactDetailPage() {
       try {
         // First batch: parallel fetch of core data
         const [contactData, notesData, activitiesData, completionsData, user] = await Promise.all([
-          getContact(id, CONTACT_FIELDS),
+          getContact(id),
           getContactNotes(id),
           getContactActivities(id),
           getCompletionsForContact(parseInt(id)),

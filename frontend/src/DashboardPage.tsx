@@ -69,9 +69,8 @@ function DashboardPage() {
       const uniqueMissingIds = Array.from(new Set(missingContactIds));
 
       if (uniqueMissingIds.length > 0) {
-        const minimalFields = ['ID', 'firstname', 'lastname', 'nickname'];
         const fetchedContacts = await Promise.all(
-          uniqueMissingIds.map(id => getContact(id, minimalFields).catch(() => null))
+          uniqueMissingIds.map(id => getContact(id).catch(() => null))
         );
         fetchedContacts.forEach(c => {
           if (c) newContactsMap[c.ID] = c;

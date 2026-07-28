@@ -5,7 +5,7 @@
 > tool is used only for tracking the one or two items actively being worked on right now, since it has
 > repeatedly lost its full contents mid-session and should not be trusted as the backlog's home.
 >
-> Last groomed: 2026-07-28 (post-rebrand pivot back to the backend/security work below).
+> Last groomed: 2026-07-28 (Tier 1 security review closed; next actionable tier is Tier 2 / P5).
 
 ## How to read this
 
@@ -116,20 +116,56 @@ returning to this list. All three legs are merged:
 
 Nothing further planned here; revisit only if new brand assets are produced.
 
-## Tier 1 — Security review, before the data model grows further
+## Tier 1 — DONE: Security review (2026-07-28)
 
-Cheap relative to new feature work (a review pass, not new implementation), and better done *before*
-Tier 2 (relationship graph, households) adds more PII surface than *after*. Also motivated by known
-upstream issues and the general "don't assume inherited Meerkat code is correct" audit the user asked
-for.
+All three items done. Twelve findings, all patched and merged to `main`.
 
-1. **Security audit of the core backend** (not just RFC 9553 additions) — Meerkat is still a dependency;
-   evaluate it as a risk surface now that more sensitive personal data is going into this database.
-2. **OIDC/OAuth implementation evaluation** — known issue areas upstream in Meerkat. Explicitly should
-   not block client work, hence not Tier 0, but shouldn't wait for the full P5–P10 backend expansion either.
-3. **Injection audit** — the other "actual exposure" item from the original backend-hardening brainstorm.
+**1. Core backend audit** (`becd907`, `34fbc2c`, `7e988c5`, `fda2c18`, `ae0ef6c`) — eight findings:
 
-## Tier 2 — P5: Core relationship & event model (WP-80..84b)
+| Finding | Severity | Fix |
+|---|---|---|
+| Go 1.26.0: 19 reachable stdlib CVEs, incl. 2 `html/template` XSS reachable from the email renderer | high | Pinned toolchain to 1.26.5 (19 → 0); pinned floating `golang:alpine`/`alpine:latest` images |
+| Webhook SSRF guard bypassable via 302 to an internal address or DNS rebinding | high | Enforcement moved into the transport dialer, which every connection incl. redirects passes through |
+| Password change/reset did not invalidate issued JWTs (up to 96h) | medium | `users.token_version` claim, checked per request |
+| API tokens never expired | medium | `api_tokens.expires_at`, 90d default / 365d max |
+| SVG served by the image proxy → XSS on the API origin | medium | SVG rejected; `Content-Disposition` + CSP on that response |
+| No `Content-Security-Policy` on API responses | medium | `default-src 'none'; frame-ancestors 'none'` |
+| `FRONTEND_URL` defaulted to `*` (wildcard CORS + credentials) | medium | Refuses to boot in release mode; compose default is now a concrete origin |
+| Password accepted via login URL query param | low | Removed |
+
+**2. OIDC/OAuth evaluation** (`04b74cf`) — sound foundation: state and nonce both validated with
+constant-time compares, ID token signature/issuer/audience/expiry verified, `email_verified` required
+before linking an OIDC identity to an existing account, no open redirect in the callback. Three fixes:
+- **UserInfo fallback** — upstream [#189](https://github.com/fbuchner/meerkat-crm/issues/189) applies
+  here unchanged. Claims came only from the ID token, but providers (Authelia among them) may return
+  just `sub` there. Result was an empty email → linking silently skipped, and with auto-provisioning on,
+  users written with `email=''`; since `users.email` is UNIQUE NOT NULL, only the *first* such login
+  ever worked. Now falls back to UserInfo, **verifies the UserInfo `sub` matches the ID token's**
+  (OIDC Core 5.3.2 — go-oidc does not do this for you), and refuses to provision without an email.
+- **PKCE** — flow sent no `code_challenge`; added S256.
+- **`COOKIE_DOMAIN`** — both `.env.example` files shipped `'localhost'`, inherited from upstream
+  ([#196](https://github.com/fbuchner/meerkat-crm/pull/196)). Now empty (host-only cookie).
+
+**3. Injection audit** (`04b74cf`) — one real finding: **CSV formula injection** in export. `encoding/csv`
+quotes delimiters but leaves a leading `=`/`+`/`-`/`@`/tab/CR intact, so a contact field carrying a
+formula executes when the export is opened in a spreadsheet — and contact data is not all self-authored
+(CardDAV sync, VCF/CSV import). At-risk values, including user-defined custom field names in the header
+row, are now prefixed as text.
+
+Everything else came back clean, verified rather than assumed: SQL uniformly parameterized (the
+`ORDER BY` at `contact_controller.go` *looks* injectable but is allowlisted); no `os/exec` anywhere;
+templates parsed from an embedded FS, never built from input; export filenames server-generated;
+Go's `encoding/xml` resolves no external entities, so the CardDAV surface has no XXE; every `:id`
+handler across all resource controllers scopes by `user_id` (zero IDOR); update handlers use explicit
+field allowlists (no mass assignment).
+
+**Known, accepted, not patched:** CardDAV authenticates with the account password rather than
+app-specific credentials, so a synced-device leak is full account compromise — noted for a future
+app-password feature. `contact.Photo` reaches `filepath.Join` unguarded on the delete path, but is only
+ever set to a server-generated UUID, so it is not reachable. `golang.org/x/crypto`'s `openpgp`
+subpackage carries a standing advisory with no fixed version; govulncheck confirms it is not called.
+
+## Tier 2 — NEXT: P5 core relationship & event model (WP-80..84b)
 
 Full detail already lives in `92-delivery-roadmap.md §92.1` — not duplicated here. Hard gate: nothing in
 P6+ starts until this is green, since search, timeline, cadence, and integrations all read these

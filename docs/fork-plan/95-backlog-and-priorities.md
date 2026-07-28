@@ -5,7 +5,7 @@
 > tool is used only for tracking the one or two items actively being worked on right now, since it has
 > repeatedly lost its full contents mid-session and should not be trusted as the backlog's home.
 >
-> Last groomed: 2026-07-27.
+> Last groomed: 2026-07-28.
 
 ## How to read this
 
@@ -14,28 +14,27 @@ Within a tier, do items top-to-bottom. Re-groom (re-run this judgment call) when
 a security concern surfaces, or the user's priorities change — don't treat the ordering below as fixed
 forever.
 
-## Tier 0 — Active: WP-72 frontend nested-model remodel
+## Tier 0 — DONE: WP-72 frontend nested-model remodel
 
-The backend already speaks the full RFC 9553/9554 neutral Card/CRM model (WP-70–71, done). The frontend
-adapter shim (`frontend/src/api/contacts.ts`) makes the app *work* against it, verified end-to-end via
-Playwright against `docker-compose.test.yml` (28/28 passing). But the shim collapses every multi-value
-field down to a single scalar, so **the actual payoff of the RFC 9553 backend work — multiple emails,
-phones, addresses, structured name/org data — is currently invisible to users.** Finishing this tier is
-the highest-leverage work available: it's close to done, and it's what makes the last several months of
-backend investment demoable.
+**All 7 items done as of `eb7549d` (2026-07-28).** No contact-editing component depends on the flat
+`Contact` adapter shape anymore; every one reads/writes `Card`/`CRMEnvelope` (or the raw
+`ContactRecordResponse`) directly. The shim functions (`getContact`/`createContact`/`updateContact`/
+`toLegacyContact`) are deleted. `Contact`/`ContactValue`/`ContactAddress`/`summaryToLegacyContact`/
+`toContactRecordInput` survive deliberately, not as leftover debt — see the item 7 note below for why
+each one is a legitimate permanent use rather than shim residue.
 
 | Order | Item | Size | Status | Why here |
 |---|---|---|---|---|
 | 1 | `contactFields.ts` field-key registry → nested keys | 93 lines | **done** (`8b1cd71`) | Prerequisite for everything below; cheap |
 | 2 | `MultiValueField.tsx` / `AddressFields.tsx` → real Card arrays | ~250 lines | **done — no code change needed** | Turned out already correct on investigation; see note below |
 | 3 | `ContactInformation.tsx` migration | 421 lines | **done** (`18e68dc`) | Not just a payoff feature — turned out to be architectural, see note below |
-| 4 | `AddContactDialog.tsx` migration | 494 lines | pending | Same shape of work, on the creation path |
-| 5 | `ContactHeader.tsx` migration | 422 lines | pending | Lower urgency — name/nickname/photo already round-trip fine as scalars, no functional gap |
-| 6 | `ContactDetailPage.tsx` orchestration — remainder | 813 lines | partially done | A slice of this already landed as part of item 3 (see note); what's left is migrating the consumers item 3 deliberately left on the derived flat view (ContactHeader props, delete/archive, note/activity dialogs) once items 4–5 land |
-| 7 | Migrate remaining peripheral consumers + retire the adapter shim | — | pending | Cleanup once 4–6 land |
-| ongoing | Unit test coverage for the migrated contact-editing surface | — | in progress | `api/contacts.test.ts` added (21 tests) covering the adapter helpers item 3 introduced. Keep adding per-component as 4–6 land. |
+| 4 | `AddContactDialog.tsx` migration | 494 lines | **done** (`eb7549d`) | Same shape of work, on the creation path |
+| 5 | `ContactHeader.tsx` migration | 422 lines | **done** (`eb7549d`) | Coupled to item 6, same as item 3 was to item 6 — see note below |
+| 6 | `ContactDetailPage.tsx` orchestration — remainder | 813 lines | **done** (`eb7549d`) | Landed alongside item 5; every handler and prop now reads `record` directly, the derived `contact` view is gone |
+| 7 | Migrate remaining peripheral consumers + retire the adapter shim | — | **done** (`eb7549d`) | `getContact`/`createContact`/`updateContact`/`toLegacyContact` deleted — see note below for what stayed and why |
+| ongoing | Unit test coverage for the migrated contact-editing surface | — | 68 tests in `api/contacts.test.ts` | Revisit if a future change touches this surface again; not tracked as a standalone item anymore now that Tier 0 is closed |
 
-Branch: `feature/frontend-nested-model`.
+Branch: `feature/frontend-nested-model` — ready to merge to `main` and open a PR whenever the user wants.
 
 **Note on item 2 (2026-07-27):** this item's original sizing assumed `MultiValueField.tsx`/
 `AddressFields.tsx` didn't yet support multiple entries. Re-investigation (reading the adapter in
@@ -74,6 +73,33 @@ confirmation, note/activity/reminder dialogs). This is a strangler-fig approach 
 coexist, with `record` as the one source of truth — rather than a big-bang rewrite of everything at once.
 Item 6 is now "partially done": the state-shape work landed, what's left is migrating the *other*
 consumers (`ContactHeader` in item 5) off the derived `contact` view.
+
+**Note on items 4/5/6/7 (2026-07-28):** items 5 and 6 turned out coupled exactly like 3 and 6 were —
+`ContactHeader.tsx` couldn't take `Card`/`CRMEnvelope` without `ContactDetailPage.tsx`'s last remaining
+derived `contact` value (kept after item 3 specifically for `ContactHeader`, delete/archive confirmation
+text, and dialog `contactId` props) going away too. Both landed together; item 6 has no remainder left.
+
+Item 7 ("retire the adapter shim") turned out to mean something narrower than the phrase suggests, once
+it was time to actually do it: the shim isn't one thing to delete, it's two different uses that happened
+to share a type.
+- **Genuinely retired**: `getContact`/`createContact`/`updateContact`/`toLegacyContact` — the
+  record-shaped round-trip through the flat `Contact` type. Zero production callers once
+  `DashboardPage.tsx`'s one remaining `getContact()` call (backfilling a reminder's contact name when
+  that contact isn't in the "random 5" dashboard widget) was rewritten to read straight off
+  `getContactRecord` via `nameComponentValue`. Deleted outright, not deprecated-and-kept.
+- **Deliberately kept, not shim debt**: `Contact`/`ContactValue`/`ContactAddress` remain the permanent
+  shape for (a) the `GET /contacts` *list* endpoint, which is genuinely flat on the wire
+  (`ContactSummaryDTO` via `summaryToLegacyContact`) — there's no nested shape to migrate to there, and
+  (b) `MultiValueField`/`AddressFields`' editing-UI contract (item 2's finding: these were already
+  correct, no reason to touch them). `toContactRecordInput` stays too — `e2e/fixtures.ts` and
+  `e2e/global-setup.ts` still use it to build nested payloads from simple flat test data, which remains
+  the most convenient way to do that regardless of what the app itself does.
+
+Verified end-to-end via `docker-compose.test.yml`: full Playwright suite (28/28) plus two manual checks
+the suite doesn't cover — a contact created through every `AddContactDialog` field group including the
+birthday-reminder-on-create flow, and a seeded scenario (8 contacts, 6 reminders) specifically
+engineered to force the `DashboardPage` backfill path to fire, confirming it still resolves names
+correctly post-migration.
 
 ## Tier 1 — Security review, before the data model grows further
 

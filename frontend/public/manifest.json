@@ -3,21 +3,6 @@
   "name": "Mycorrhizal CRM",
   "icons": [
     {
-      "src": "meerkat-crm-logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
-    },
-    {
-      "src": "meerkat-crm-logo_192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "meerkat-crm-logo_512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    },
-    {
       "src": "android-chrome-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
@@ -53,6 +38,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#3E543E",
+  "background_color": "#FAF5EA"
 }

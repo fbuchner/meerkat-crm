@@ -266,6 +266,19 @@ func (c *Config) Validate() []ValidationError {
 		})
 	}
 
+	// FRONTEND_URL="*" combined with AllowCredentials:true (see main.go) makes the
+	// server reflect any Origin while still accepting the auth cookie cross-site.
+	// This is currently mitigated by SameSite=Lax on that cookie, so it's not a
+	// live hole today - but it's fragile defense-in-depth, not a guarantee, so
+	// refuse to boot with it in release mode. "*" remains fine for local dev
+	// (GIN_MODE unset or "debug").
+	if c.FrontendURL == "*" && os.Getenv("GIN_MODE") == "release" {
+		errors = append(errors, ValidationError{
+			Field:   "FRONTEND_URL",
+			Message: "FRONTEND_URL cannot be '*' when GIN_MODE=release. '*' is dev-only (see .env.example); set FRONTEND_URL to your actual frontend origin(s) in production.",
+		})
+	}
+
 	// Validate JWT Expiry Hours
 	if c.JWTExpiryHours < 1 || c.JWTExpiryHours > 8760 {
 		errors = append(errors, ValidationError{

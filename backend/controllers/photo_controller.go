@@ -340,6 +340,32 @@ func ProxyImage(c *gin.Context) {
 		return
 	}
 
+	// Reject SVG: fetch.go only checks for an "image/" prefix, which SVG satisfies,
+	// but SVG documents can embed <script> and execute JS in this API's origin
+	// (which holds the httpOnly auth cookie) once served back to the browser.
+	// Every other "image/*" type (png, jpeg, gif, webp, ...) is passive raster/vector
+	// data with no script capability, so they're safe to pass through unchanged.
+	lowerContentType := strings.ToLower(contentType)
+	if strings.HasPrefix(lowerContentType, "image/svg") {
+		logger.FromContext(c).Warn().Str("url", imageURL).Str("content_type", contentType).Msg("Rejected SVG image from proxy (XSS risk)")
+		apperrors.AbortWithError(c, apperrors.ErrValidation("SVG images are not supported by the image proxy"))
+		return
+	}
+
+	// Defense-in-depth beyond the global "default-src 'none'" CSP (set by
+	// SecurityHeadersMiddleware for every response, including this one): lock
+	// down how this specific response can be interpreted if it's ever loaded
+	// as a top-level document (e.g. a user pasting the proxy URL directly into
+	// the address bar) rather than fetched as an <img> resource.
+	//
+	// "inline" (not "attachment") because the proxy's whole purpose is to be
+	// embedded via <img src="..."> in the frontend; Content-Disposition is only
+	// consulted for navigation/download, not for <img> fetches, so this has no
+	// effect on normal use. We still set it explicitly (rather than relying on
+	// browser default) so a direct navigation renders the image inline instead
+	// of prompting a download, matching the endpoint's actual purpose.
+	c.Header("Content-Disposition", "inline")
+
 	// Return the image with appropriate content type
 	c.Data(http.StatusOK, contentType, body)
 }

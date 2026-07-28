@@ -5,7 +5,7 @@ any future mobile clients, same reasoning as `assets/fonts/`.
 
 `tokens.json` is the source of truth: 8 core primitive tokens (`bone`, `parchment`, `paper`, `hypha`,
 `lichen`, `mycelium`, `bark`, `soil`) plus 4 mushroom-themed status tokens (`russula`/error,
-`chanterelle`/warning, `inkyCap`/info, `moss`/success), each with a `light` and `dark` value, plus
+`chanterelle`/warning, `lacarria`/info, `moss`/success), each with a `light` and `dark` value, plus
 computed interaction states (`hover`/`active`/`focusRing`/`disabled` for the core tokens, `hover` for the
 status tokens) for the ones that need them, plus a `semantic` map from role names
 (`background.default`, `brand.primary`, `status.error`, ...) to a token+state pair.
@@ -55,7 +55,7 @@ per-mode (`white` in light mode, dark `bone` in dark mode), matching exactly wha
 `palette.primary.contrastText`. Disabled state contrast (~3.25:1) is intentionally below AA-normal —
 WCAG 1.4.3 explicitly exempts inactive/disabled controls from the contrast requirement.
 
-## Status colors (`russula`/`chanterelle`/`inkyCap`/`moss`)
+## Status colors (`russula`/`chanterelle`/`laccaria`/`moss`)
 
 Supplied as OKLCH, same as the core 8 — but two needed correcting before going in, both caught by
 actually computing hex/contrast rather than eyeballing the OKLCH values:
@@ -68,7 +68,7 @@ actually computing hex/contrast rather than eyeballing the OKLCH values:
   chroma boosted to match how saturated the other three status colors are (`C` 0.07–0.13) rather than the
   core palette's muted `C` 0.03–0.05 — hue and saturation both signal "this is a status color," not just
   hue alone.
-- **`inkyCap` (info) light mode** (`oklch(0.60 0.070 300)`, `#8677A4`) doesn't clear 4.5:1 with *any*
+- **`laccaria` (info) light mode** (`oklch(0.60 0.070 300)`, `#8677A4`) doesn't clear 4.5:1 with *any*
   label color — white peaks at 4.05:1, dark labels do worse. Corrected `L` 0.60 → 0.56
   (`oklch(0.56 0.070 300)`, `#7B6B98`) for a clean 4.77:1 with white.
 

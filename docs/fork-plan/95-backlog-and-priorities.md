@@ -5,7 +5,7 @@
 > tool is used only for tracking the one or two items actively being worked on right now, since it has
 > repeatedly lost its full contents mid-session and should not be trusted as the backlog's home.
 >
-> Last groomed: 2026-07-28.
+> Last groomed: 2026-07-28 (post-rebrand pivot back to the backend/security work below).
 
 ## How to read this
 
@@ -100,6 +100,19 @@ the suite doesn't cover — a contact created through every `AddContactDialog` f
 birthday-reminder-on-create flow, and a seeded scenario (8 contacts, 6 reminders) specifically
 engineered to force the `DashboardPage` backfill path to fire, confirming it still resolves names
 correctly post-migration.
+
+## Rebranding (out-of-band, done except visual assets)
+
+Not originally a tier here — a user-directed pivot after Tier 0 landed, done and merged to `main` before
+returning to this list. Typography (`feature/rebrand-typography`, self-hosted EB Garamond for the
+wordmark + Source Sans 3 for UI) and the full OKLCH color system (`feature/rebrand-colors` +
+`feature/rebrand-status-colors` — core palette, interaction states, and mushroom-themed
+error/warning/info/success colors, all wired into `theme.ts`) are merged. See `assets/fonts/README.md`
+and `assets/colors/README.md` for the palettes and derivation reasoning.
+
+**Deliberately not done**: visual assets (logo, favicon, app icons) — still the old meerkat branding,
+blocked on the user producing new images. Revisit this list once those exist; it isn't tracked as a
+numbered tier since there's no actionable next step until then.
 
 ## Tier 1 — Security review, before the data model grows further
 

@@ -3,16 +3,19 @@ package controllers
 import (
 	"bytes"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
-	"meerkat/carddav"
-	apperrors "meerkat/errors"
-	"meerkat/logger"
-	"meerkat/models"
+	"mycorrhizal/contactmodel"
+	apperrors "mycorrhizal/errors"
+	"mycorrhizal/jscontact"
+	"mycorrhizal/logger"
+	"mycorrhizal/models"
+	"mycorrhizal/vcard3"
+	"mycorrhizal/vcard4"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/emersion/go-vcard"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -319,7 +322,7 @@ func ExportData(c *gin.Context) {
 	}
 
 	// Generate filename with timestamp
-	filename := fmt.Sprintf("meerkat-export-%s.csv", time.Now().Format("2006-01-02"))
+	filename := fmt.Sprintf("mycorrhizal-export-%s.csv", time.Now().Format("2006-01-02"))
 
 	// Set headers for file download
 	c.Header("Content-Description", "File Transfer")
@@ -337,7 +340,28 @@ func ExportData(c *gin.Context) {
 		Msg("Data export completed successfully")
 }
 
-// ExportContactsAsVCF exports all user contacts as a VCF (vCard) file
+// ExportContactsAsVCF exports all user contacts as a VCF (vCard) file.
+//
+// Per docs/fork-plan/50-integration-and-rebrand.md WP-71 Gap 4, this now
+// routes through the vcard4/vcard3 adapters instead of the legacy
+// carddav.ContactToVCard mapper. ?version=3 (or "3.0") selects vCard 3.0;
+// anything else (including absent) defaults to 4.0, per the "advertise 4.0
+// by default" precedent this WP sets.
+//
+// contactmodel.Record is built via models.RecordForContact, not
+// RecordFromContact directly — the persisted contact.Card already carries
+// any data with no flat-field home (SpeakToAs, PersonalInfo, ...); calling
+// RecordFromContact fresh here would silently drop it from the export. See
+// RecordForContact's doc comment; this was a real bug found and fixed
+// across three call sites while auditing WP-73's work.
+//
+// photoDir (config.Config.ProfilePhotoDir, from routes.go's call site) is
+// forwarded through RecordForContact: per
+// docs/fork-plan/50-integration-and-rebrand.md WP-73's photo-bridging
+// prerequisite, Contact.Photo/PhotoThumbnail bridges into a
+// Card.Media{Kind:"photo"} entry, which the vcard4/vcard3 adapters encode
+// as an embedded PHOTO property — closing WP-71's previously-documented
+// "VCF export doesn't embed photos" gap.
 func ExportContactsAsVCF(c *gin.Context, photoDir string) {
 	db := c.MustGet("db").(*gorm.DB)
 	log := logger.FromContext(c)
@@ -357,21 +381,32 @@ func ExportContactsAsVCF(c *gin.Context, photoDir string) {
 		return
 	}
 
-	// Generate VCF content
-	var buf bytes.Buffer
-	encoder := vcard.NewEncoder(&buf)
+	version := "4"
+	var exporter contactmodel.Exporter = vcard4.Adapter{}
+	if v := strings.TrimPrefix(c.Query("version"), "v"); v == "3" || v == "3.0" {
+		version = "3"
+		exporter = vcard3.Adapter{}
+	}
 
+	// Generate VCF content: one full vCard block per contact, concatenated
+	// (the standard shape for a multi-contact .vcf file).
+	var buf bytes.Buffer
 	for _, contact := range contacts {
-		card := carddav.ContactToVCard(&contact, photoDir)
-		if err := encoder.Encode(card); err != nil {
+		record := models.RecordForContact(&contact, photoDir)
+		data, diags, err := exporter.Export(record)
+		if err != nil {
 			log.Error().Err(err).Uint("contact_id", contact.ID).Msg("Failed to encode contact as vCard")
 			// Continue with other contacts instead of failing completely
 			continue
 		}
+		for _, d := range diags {
+			log.Debug().Str("severity", d.Severity).Str("concept", d.Concept).Uint("contact_id", contact.ID).Msg(d.Message)
+		}
+		buf.Write(data)
 	}
 
 	// Generate filename with timestamp
-	filename := fmt.Sprintf("meerkat-contacts-%s.vcf", time.Now().Format("2006-01-02"))
+	filename := fmt.Sprintf("mycorrhizal-contacts-%s.vcf", time.Now().Format("2006-01-02"))
 
 	// Set headers for file download
 	c.Header("Content-Description", "File Transfer")
@@ -383,5 +418,72 @@ func ExportContactsAsVCF(c *gin.Context, photoDir string) {
 
 	log.Info().
 		Int("contacts", len(contacts)).
+		Str("version", version).
 		Msg("VCF export completed successfully")
+}
+
+// ExportContactsAsJSContact exports all user contacts as a single JSON
+// document: a JSON array of RFC 9553 JSContact Card objects (one per
+// contact) — the "Card set" option from WP-71's task list, chosen over a
+// single merged document since each contact is an independent Card with its
+// own @type/uid, not sub-objects of one another.
+//
+// Reads photoDir from currentConfig(c).ProfilePhotoDir directly (rather than
+// as an explicit parameter, unlike ExportContactsAsVCF) since this handler is
+// registered directly in routes.go with the plain gin.HandlerFunc signature,
+// not via a photoDir-carrying closure; this avoids a routes.go signature
+// change for a one-line lookup this handler can already make itself.
+func ExportContactsAsJSContact(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	log := logger.FromContext(c)
+	photoDir := currentConfig(c).ProfilePhotoDir
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	var contacts []models.Contact
+	if err := db.Where("user_id = ?", userID).
+		Order("firstname ASC, lastname ASC").
+		Find(&contacts).Error; err != nil {
+		log.Error().Err(err).Msg("Failed to fetch contacts for JSContact export")
+		apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to fetch contacts"))
+		return
+	}
+
+	adapter := jscontact.Adapter{}
+	cards := make([]json.RawMessage, 0, len(contacts))
+	for _, contact := range contacts {
+		record := models.RecordForContact(&contact, photoDir)
+		data, diags, err := adapter.Export(record)
+		if err != nil {
+			log.Error().Err(err).Uint("contact_id", contact.ID).Msg("Failed to encode contact as JSContact")
+			continue
+		}
+		for _, d := range diags {
+			log.Debug().Str("severity", d.Severity).Str("concept", d.Concept).Uint("contact_id", contact.ID).Msg(d.Message)
+		}
+		cards = append(cards, json.RawMessage(data))
+	}
+
+	payload, err := json.Marshal(cards)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to marshal JSContact export")
+		apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to generate export"))
+		return
+	}
+
+	filename := fmt.Sprintf("mycorrhizal-contacts-%s.jscontact.json", time.Now().Format("2006-01-02"))
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+	c.Header("Content-Type", "application/jscontact+json; charset=utf-8")
+	c.Header("Content-Length", fmt.Sprintf("%d", len(payload)))
+
+	c.Data(http.StatusOK, "application/jscontact+json; charset=utf-8", payload)
+
+	log.Info().
+		Int("contacts", len(contacts)).
+		Msg("JSContact export completed successfully")
 }

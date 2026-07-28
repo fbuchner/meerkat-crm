@@ -2,10 +2,10 @@ package services
 
 import (
 	"fmt"
-	"meerkat/config"
-	"meerkat/i18n"
-	"meerkat/logger"
-	"meerkat/models"
+	"mycorrhizal/config"
+	"mycorrhizal/i18n"
+	"mycorrhizal/logger"
+	"mycorrhizal/models"
 	"os"
 	"sort"
 	"strconv"

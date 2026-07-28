@@ -2,11 +2,34 @@ package models
 
 import (
 	"fmt"
+	"os"
 	"strings"
+
+	"mycorrhizal/contactmodel"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+// DefaultPhotoDir is the configured profile-photo directory
+// (config.Config.ProfilePhotoDir), read directly from the PROFILE_PHOTO_DIR
+// environment variable (the same variable config.LoadConfig() reads) rather
+// than threaded in from main.go: BeforeSave is a GORM hook with a fixed
+// signature (tx *gorm.DB) error — it has no per-call parameter to receive a
+// photoDir through, unlike RecordFromContact/ApplyRecordToContact's own
+// explicit photoDir parameter (added for WP-73's photo-bridging
+// prerequisite, docs/fork-plan/50-integration-and-rebrand.md). A
+// package-level var populated at process-init time is the least-invasive way
+// to give BeforeSave the same capability without changing its signature or
+// reaching into files outside backend/models' WP-73 file scope (this WP does
+// not touch main.go). Environment variables are already present in the OS
+// process environment before the Go binary starts (this codebase does not
+// load a .env file itself — see config/config.go), so reading it here at var-
+// init time is equivalent to config.LoadConfig() reading it moments later in
+// main(). Empty ("") is a safe default: RecordFromContact's photo bridging
+// degrades gracefully to the base64 PhotoThumbnail fallback (or is skipped
+// entirely if neither Photo nor PhotoThumbnail is set), never panics.
+var DefaultPhotoDir = os.Getenv("PROFILE_PHOTO_DIR")
 
 // ContactEmail is a single typed email address (vCard EMAIL).
 type ContactEmail struct {
@@ -98,6 +121,49 @@ type Contact struct {
 	CustomFields map[string]string `gorm:"type:text;serializer:json" json:"custom_fields"`
 
 	Archived bool `gorm:"default:false" json:"archived"`
+
+	// Neutral RFC 9553/9554/9555 representation (WP-70, P1 — see
+	// docs/fork-plan/50-integration-and-rebrand.md). This is a second,
+	// parallel representation of the same data already held in the legacy
+	// flat/array fields above: purely additive, nothing existing is removed,
+	// renamed, or stops being populated. Populated by RecordFromContact (see
+	// contact_record.go) via BeforeSave on every save, and by the one-shot
+	// cmd/backfill-contact-records tool for rows that predate this WP.
+	// Nothing else reads these fields yet (hence json:"-": exposing them on
+	// the wire is P2's job, per WP-71's API/DTO rewrite), so adding them
+	// carries no compile or behavior risk to any other package.
+	Card        contactmodel.Card        `gorm:"column:card;type:text;serializer:json" json:"-"`
+	CRM         contactmodel.CRMEnvelope `gorm:"column:crm;type:text;serializer:json" json:"-"`
+	Passthrough contactmodel.Passthrough `gorm:"column:passthrough;type:text;serializer:json" json:"-"`
+
+	// Derived projection scalars with no existing legacy analog
+	// (contactmodel.Projection.FN / .Org). Populated the same way as
+	// Firstname/Lastname/Email/Phone/Birthday below, via DeriveProjection.
+	FN  string `gorm:"column:fn" json:"-"`
+	Org string `gorm:"column:org" json:"-"`
+
+	// cardSetDirectly is a transient, in-memory-only marker (unexported, so
+	// GORM ignores it entirely — no column, nothing to tag) set by
+	// ApplyRecordToContact (contact_record_reverse.go, WP-71/P2) to tell
+	// BeforeSave below "Card/CRM/Passthrough were just set directly from an
+	// authoritative contactmodel.Record — do not re-derive and overwrite them
+	// from the flat legacy fields on this save."
+	//
+	// Without this, BeforeSave's original (WP-70/P1) unconditional
+	// `c.Card = RecordFromContact(c, photoDir).Card` would silently discard
+	// any Card-only data with no flat-field home (SpeakToAs, PersonalInfo,
+	// SocialProfiles, OtherOnlineServices, Keywords, extra name
+	// components, additional Organizations/Titles, RelatedTo, Members,
+	// Localizations, ...) on every single save of a contact created/updated
+	// through the new nested REST API or the VCF/JSContact import path —
+	// defeating the entire point of WP-71 accepting/returning the full
+	// neutral Record. Flat-field-only writers (CSV import's
+	// BuildContactFromRow, MergeImportedContact's merge-by-flat-fields path,
+	// and anything else that never calls ApplyRecordToContact) never set
+	// this flag, so BeforeSave's original flat->Card derivation keeps running
+	// for them exactly as it did in WP-70 — this is what keeps their Card
+	// column in sync at all, since they have no other way to populate it.
+	cardSetDirectly bool
 }
 
 // renders a structured address as a single human-readable line, used to keep the legacy Address scalar in sync for search/list views.
@@ -112,7 +178,29 @@ func FormatAddress(a ContactAddress) string {
 }
 
 // BeforeSave keeps the denormalized primary scalars (Email/Phone/Address) in sync
-// with the first entry of their respective JSON arrays. Runs on both create and update
+// with the first entry of their respective JSON arrays, and keeps the neutral
+// Card/CRM/Passthrough representation (and its own derived projection
+// scalars) in sync with the legacy fields on every create/update.
+//
+// RecordFromContact + contactmodel.DeriveProjection is now the single source
+// of truth for Firstname/Lastname/Email/Phone/Birthday/FN/Org: the old
+// ad-hoc "first array entry wins" logic for Email/Phone is superseded by
+// DeriveProjection's own (equivalent, Pref-aware) primary-value selection,
+// so there is one derivation path, not two competing ones (see
+// docs/fork-plan/50-integration-and-rebrand.md WP-70). Address has no
+// neutral projection field (Address stays a free-text legacy scalar), so its
+// ad-hoc sync from the first Addresses[] entry is kept as-is.
+//
+// Projection values only overwrite their legacy scalar when non-empty, the
+// same "only sync when there's something to sync" semantics the original
+// Email/Phone logic had (`if len(c.Emails) > 0 { ... }`) — this matters
+// because some existing contacts only ever had the scalar Email/Phone set
+// directly, without ever populating the Emails/Phones arrays; DeriveProjection
+// on those rows also lands back on the same scalar value (RecordFromContact
+// falls back to the scalar when its array is empty — see contact_record.go),
+// so this is a no-op for them, not a silent blank-out. FN and Org are new
+// columns with no prior value and no back-compat concern, so they are always
+// assigned directly.
 func (c *Contact) BeforeSave(tx *gorm.DB) error {
 	if len(c.Emails) > 0 {
 		c.Email = c.Emails[0].Value
@@ -123,6 +211,44 @@ func (c *Contact) BeforeSave(tx *gorm.DB) error {
 	if len(c.Addresses) > 0 {
 		c.Address = FormatAddress(c.Addresses[0])
 	}
+
+	var record *contactmodel.Record
+	if c.cardSetDirectly {
+		// Card/CRM/Passthrough were just set directly by ApplyRecordToContact
+		// from an authoritative Record (new nested REST input, or a VCF/
+		// JSContact import) — use that Record's own values for the derived
+		// projection below, but leave c.Card/c.CRM/c.Passthrough untouched
+		// rather than truncating them back down to what the (necessarily
+		// lossy) flat fields alone could reconstruct. See the cardSetDirectly
+		// field doc above.
+		record = &contactmodel.Record{Card: c.Card, Envelope: c.CRM, Passthrough: c.Passthrough}
+		c.cardSetDirectly = false // one-shot: only guards the save that immediately follows ApplyRecordToContact
+	} else {
+		record = RecordFromContact(c, DefaultPhotoDir)
+		c.Card = record.Card
+		c.CRM = record.Envelope
+		c.Passthrough = record.Passthrough
+	}
+
+	proj := contactmodel.DeriveProjection(record)
+	if proj.Firstname != "" {
+		c.Firstname = proj.Firstname
+	}
+	if proj.Lastname != "" {
+		c.Lastname = proj.Lastname
+	}
+	if proj.PrimaryEmail != "" {
+		c.Email = proj.PrimaryEmail
+	}
+	if proj.PrimaryPhone != "" {
+		c.Phone = proj.PrimaryPhone
+	}
+	if proj.Birthday != "" {
+		c.Birthday = proj.Birthday
+	}
+	c.FN = proj.FN
+	c.Org = proj.Org
+
 	return nil
 }
 

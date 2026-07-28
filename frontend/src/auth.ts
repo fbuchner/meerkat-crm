@@ -1,5 +1,5 @@
 // src/auth.ts
-// Cookie-based JWT auth service for meerkat crm frontend
+// Cookie-based JWT auth service for mycorrhizal crm frontend
 // Token is stored in httpOnly cookie (not accessible from JS for security)
 // User info is cached in localStorage for UI purposes
 

@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:freebusy-example
+FN:Freebusy Example
+FBURL:https://example.com/freebusy
+END:VCARD

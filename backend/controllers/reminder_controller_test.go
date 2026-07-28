@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"meerkat/models"
+	"mycorrhizal/models"
 	"net/http"
 	"net/http/httptest"
 	"strconv"

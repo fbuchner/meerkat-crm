@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:related-example
+FN:Related Example
+RELATED;TYPE=friend:https://example.com/directory/jdoe
+END:VCARD

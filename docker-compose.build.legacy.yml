@@ -1,4 +1,4 @@
-# Meerkat CRM Docker Compose - Local Build
+# Mycorrhizal CRM Docker Compose - Local Build
 #
 # Builds images locally from source.
 #
@@ -14,7 +14,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: meerkat-backend
+    container_name: mycorrhizal-backend
     restart: unless-stopped
     env_file:
       - .env.docker
@@ -34,7 +34,7 @@ services:
       dockerfile: Dockerfile
       args:
         - REACT_APP_API_URL=${REACT_APP_API_URL:-}
-    container_name: meerkat-frontend
+    container_name: mycorrhizal-frontend
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-7300}:8080"

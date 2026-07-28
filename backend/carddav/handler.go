@@ -41,8 +41,13 @@ func (h *Handler) GinHandler() gin.HandlerFunc {
 		userID, _ := c.Get("userID")
 		username, _ := c.Get("username")
 
-		// Set in request context for the backend
-		ctx := ContextWithUser(c.Request.Context(), userID.(uint), username.(string), h.db, h.photoDir)
+		// Set in request context for the backend. The Accept header is
+		// forwarded for vCard version content negotiation — see
+		// ContextWithUser's doc comment for why this is the only per-request
+		// negotiation signal available (go-webdav's Backend interface
+		// doesn't surface the RFC 6352 address-data content-type/version
+		// request attributes to GetAddressObject/ListAddressObjects).
+		ctx := ContextWithUser(c.Request.Context(), userID.(uint), username.(string), h.db, h.photoDir, c.Request.Header.Get("Accept"))
 		c.Request = c.Request.WithContext(ctx)
 
 		// Handle principals endpoint specially for proper discovery

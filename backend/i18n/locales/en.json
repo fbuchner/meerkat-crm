@@ -1,6 +1,6 @@
 {
   "email": {
-    "footer": "Meerkat CRM - Personal Contact Management",
+    "footer": "Mycorrhizal CRM - Personal Contact Management",
     "reminder": {
       "subject": "Your Daily Reminders",
       "remindersTitle": "Your Reminders for Today",
@@ -12,8 +12,8 @@
       "contactLabel": "Contact"
     },
     "passwordReset": {
-      "subject": "Reset your Meerkat CRM password",
-      "intro": "We received a request to reset your Meerkat CRM password.",
+      "subject": "Reset your Mycorrhizal CRM password",
+      "intro": "We received a request to reset your Mycorrhizal CRM password.",
       "instruction": "Use this token to complete the reset within 60 minutes:",
       "ignore": "If you did not request this reset, you can ignore this email."
     }

@@ -14,7 +14,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o meerkat .
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o mycorrhizal .
 
 # Runtime stage
 FROM alpine:latest
@@ -33,11 +33,11 @@ RUN mkdir -p /app/static/photos /app/data && \
 
 # Set default environment
 ENV PORT=8080
-ENV SQLITE_DB_PATH=/app/data/meerkat.db
+ENV SQLITE_DB_PATH=/app/data/mycorrhizal.db
 ENV PROFILE_PHOTO_DIR=/app/static/photos
 
 # Copy the binary from builder
-COPY --from=builder /app/meerkat .
+COPY --from=builder /app/mycorrhizal .
 
 # Copy static assets if any
 COPY --from=builder /app/static/styles.css ./static/
@@ -51,4 +51,4 @@ EXPOSE 8080
 
 # Run as root initially; entrypoint drops to appuser after adjusting UID/GID
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["./meerkat"]
+CMD ["./mycorrhizal"]

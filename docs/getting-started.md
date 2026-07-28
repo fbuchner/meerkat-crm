@@ -9,15 +9,12 @@ nav_order: 2
 
 ### Docker compose
 
-Meerkat CRM ships as a single all-in-one image that bundles the frontend and backend into one container, published in the github registry as `ghcr.io/fbuchner/meerkat-crm`.
-Images are available for linux/amd64 and linux/arm64.
+Mycorrhizal CRM ships as a single all-in-one image that bundles the frontend and backend into one container, built locally from source via the repository's `Dockerfile` (no published registry image is required).
 
-You can use either the `:latest` tag or a specific version (e.g. `:0.9` or `:0.9.1`).
-
-Copy the [sample docker compose file](https://github.com/fbuchner/meerkat-crm/blob/main/docker-compose.yml) as well as [sample env file](https://github.com/fbuchner/meerkat-crm/blob/main/.env.example) and rename the env file to `.env`.
+Clone the repository, copy the [sample docker compose file](https://github.com/DrewBrunning/mycorrhizal-crm/blob/main/docker-compose.yml) as well as [sample env file](https://github.com/DrewBrunning/mycorrhizal-crm/blob/main/.env.example) and rename the env file to `.env`.
 
 After adjusting the environment variables as needed you can run:
-```docker compose up -d```
+```docker compose up -d --build```
 
 ### Environment variables
 
@@ -48,13 +45,13 @@ After adjusting the environment variables as needed you can run:
 
 SSO is disabled unless all three of `OIDC_PROVIDER_URL`, `OIDC_CLIENT_ID`, and `OIDC_CLIENT_SECRET` are set.
 
-Other variables are found in the [sample env file](https://github.com/fbuchner/meerkat-crm/blob/main/.env.example).
+Other variables are found in the [sample env file](https://github.com/DrewBrunning/mycorrhizal-crm/blob/main/.env.example).
 
 The backend process runs as a non-root user (default UID/GID 1001), and a startup script chowns the data and photo directories to that user. Run `id` on your host to find your UID and GID and set them as `PUID`/`PGID` in your `.env` file if you prefer folders to be owned by your host user (optional).
 
 ## Post-Installation Setup
 
-When running Meerkat-CRM you can access the application under the specified port (default is `7300`). 
+When running Mycorrhizal CRM you can access the application under the specified port (default is `7300`). 
 To get started you need to register a user. The first user will automatically receive administrator rights and therefore be able to access the admin panel in the settings menu.
 
 ## Backup

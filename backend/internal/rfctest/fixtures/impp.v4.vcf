@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:impp-example
+FN:Impp Example
+IMPP:xmpp:alice@example.com
+END:VCARD

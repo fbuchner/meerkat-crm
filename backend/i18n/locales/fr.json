@@ -1,6 +1,6 @@
 {
   "email": {
-    "footer": "Meerkat CRM - Gestion des contacts personnels",
+    "footer": "Mycorrhizal CRM - Gestion des contacts personnels",
     "reminder": {
       "subject": "Vos rappels quotidiens",
       "remindersTitle": "Vos rappels pour aujourd'hui",
@@ -12,8 +12,8 @@
       "contactLabel": "Contact"
     },
     "passwordReset": {
-      "subject": "Réinitialisez votre mot de passe Meerkat CRM",
-      "intro": "Nous avons reçu une demande de réinitialisation de votre mot de passe Meerkat CRM.",
+      "subject": "Réinitialisez votre mot de passe Mycorrhizal CRM",
+      "intro": "Nous avons reçu une demande de réinitialisation de votre mot de passe Mycorrhizal CRM.",
       "instruction": "Utilisez ce jeton pour finaliser la réinitialisation dans les 60 minutes :",
       "ignore": "Si vous n'avez pas demandé cette réinitialisation, vous pouvez ignorer cet e-mail."
     }

@@ -5,9 +5,9 @@ import (
 	"errors"
 	"net/http"
 
-	"meerkat/config"
-	"meerkat/logger"
-	"meerkat/services"
+	"mycorrhizal/config"
+	"mycorrhizal/logger"
+	"mycorrhizal/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"

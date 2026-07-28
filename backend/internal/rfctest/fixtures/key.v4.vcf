@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:key-example
+FN:Key Example
+KEY:https://example.com/key.pem
+END:VCARD

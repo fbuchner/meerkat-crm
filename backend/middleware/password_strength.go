@@ -51,13 +51,14 @@ func determineCharacterSetSize(password string) int {
 	hasSymbol := false
 
 	for _, char := range password {
-		if unicode.IsLower(char) {
+		switch {
+		case unicode.IsLower(char):
 			hasLower = true
-		} else if unicode.IsUpper(char) {
+		case unicode.IsUpper(char):
 			hasUpper = true
-		} else if unicode.IsDigit(char) {
+		case unicode.IsDigit(char):
 			hasDigit = true
-		} else {
+		default:
 			hasSymbol = true
 		}
 	}
@@ -114,14 +115,15 @@ func EvaluatePasswordStrength(password string) PasswordStrength {
 	}
 
 	// Add specific feedback for common scenarios
-	if length < 8 {
+	switch {
+	case length < 8:
 		result.Feedback = "Password must be at least 8 characters long."
-	} else if length >= 20 && charSetSize == LowercaseCharSet {
+	case length >= 20 && charSetSize == LowercaseCharSet:
 		// Long passphrase with only lowercase
 		if result.IsValid {
 			result.Feedback = "Great passphrase! Length makes up for simplicity."
 		}
-	} else if length < 12 && charSetSize < 52 {
+	case length < 12 && charSetSize < 52:
 		// Short password without both upper and lower
 		result.Feedback = "Short passwords need more character variety or consider using a passphrase."
 	}

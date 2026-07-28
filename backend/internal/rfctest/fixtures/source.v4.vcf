@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:source-example
+FN:Source Example
+SOURCE:https://example.com/directory/jdoe.vcf
+END:VCARD

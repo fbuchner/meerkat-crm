@@ -1,6 +1,6 @@
 {
   "email": {
-    "footer": "Meerkat CRM - Personal Contact Management",
+    "footer": "Mycorrhizal CRM - Personal Contact Management",
     "reminder": {
       "subject": "Tägliche Erinnerungen",
       "remindersTitle": "Erinnerungen für heute",
@@ -12,8 +12,8 @@
       "contactLabel": "Kontakt"
     },
     "passwordReset": {
-      "subject": "Setzen Sie Ihr Meerkat CRM Passwort zurück",
-      "intro": "Wir haben eine Anfrage zum Zurücksetzen Ihres Meerkat CRM Passworts erhalten.",
+      "subject": "Setzen Sie Ihr Mycorrhizal CRM Passwort zurück",
+      "intro": "Wir haben eine Anfrage zum Zurücksetzen Ihres Mycorrhizal CRM Passworts erhalten.",
       "instruction": "Verwenden Sie diesen Token, um das Zurücksetzen innerhalb von 60 Minuten abzuschließen:",
       "ignore": "Falls Sie dieses Zurücksetzen nicht angefordert haben, können Sie diese E-Mail ignorieren."
     }

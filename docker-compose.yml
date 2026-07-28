@@ -1,19 +1,15 @@
-# Meerkat CRM Docker Compose - All-in-one image
+# Mycorrhizal CRM Docker Compose - All-in-one image
 #
 # Single-container with bundled frontend and backend (+ nginx)
 #
 # USAGE:
 #   cp .env.example .env && edit .env, then:
-#   docker compose up -d
-#
-# To build the image locally instead of pulling it:
-#   uncomment the `build:` line below, then: docker compose up -d --build
+#   docker compose up -d --build
 
 services:
-  meerkat:
-    image: ghcr.io/fbuchner/meerkat-crm:${IMAGE_TAG:-latest}
-    # build: .
-    container_name: meerkat
+  mycorrhizal:
+    build: .
+    container_name: mycorrhizal
     restart: unless-stopped
     env_file:
       - .env

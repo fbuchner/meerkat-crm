@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:expertise-example
+FN:Expertise Example
+EXPERTISE;INDEX=1;LEVEL=expert:chemistry
+END:VCARD

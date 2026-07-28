@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:prodid-example
+FN:ProdID Example
+PRODID:-//Mycorrhizal//RFCTest 1.0//EN
+END:VCARD

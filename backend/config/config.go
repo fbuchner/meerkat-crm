@@ -1,3 +1,7 @@
+// Package config loads and validates application configuration from
+// environment variables, exposing it as a single Config value the rest of
+// the backend reads from (server/DB settings, auth secrets, mail/OIDC/
+// CardDAV sync options, feature flags).
 package config
 
 import (
@@ -23,6 +27,8 @@ type OIDCConfig struct {
 	TrustEmail         bool // skip email_verified requirement when linking accounts (for trusted self-hosted providers)
 }
 
+// Config is the fully-loaded application configuration, populated once by
+// LoadConfig from environment variables at process start.
 type Config struct {
 	DBPath                  string
 	ReminderTime            string
@@ -57,6 +63,8 @@ type Config struct {
 	OIDC                    OIDCConfig
 }
 
+// LoadConfig reads environment variables (with sensible defaults) into a
+// new Config.
 func LoadConfig() *Config {
 
 	defaultJWTExpiry := 96
@@ -72,7 +80,7 @@ func LoadConfig() *Config {
 	idleTimeout := getIntEnv("HTTP_IDLE_TIMEOUT", 60)
 
 	cfg := &Config{
-		DBPath:                  getEnv("SQLITE_DB_PATH", "meerkat.db"),
+		DBPath:                  getEnv("SQLITE_DB_PATH", "mycorrhizal.db"),
 		ReminderTime:            getEnv("REMINDER_TIME", "12:00"),
 		ReminderTimezone:        getEnv("REMINDER_TIMEZONE", "UTC"),
 		FrontendURL:             getEnv("FRONTEND_URL", "*"),

@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:lang-example
+FN:Lang Example
+LANG;PREF=1:en
+END:VCARD

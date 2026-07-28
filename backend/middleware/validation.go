@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	apperrors "meerkat/errors"
-	"meerkat/logger"
+	apperrors "mycorrhizal/errors"
+	"mycorrhizal/logger"
 	"reflect"
 	"regexp"
 	"strings"
@@ -242,7 +242,7 @@ func GetValidated[T any](c *gin.Context) (*T, *apperrors.AppError) {
 func ValidateJSONMiddleware(template interface{}) gin.HandlerFunc {
 	// Get the type of the template to create new instances per request
 	templateType := reflect.TypeOf(template)
-	if templateType.Kind() == reflect.Ptr {
+	if templateType.Kind() == reflect.Pointer {
 		templateType = templateType.Elem()
 	}
 

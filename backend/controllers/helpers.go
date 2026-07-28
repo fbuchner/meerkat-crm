@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	apperrors "meerkat/errors"
-	"meerkat/config"
+	"mycorrhizal/config"
+	apperrors "mycorrhizal/errors"
 	"strconv"
 
 	"github.com/gin-gonic/gin"

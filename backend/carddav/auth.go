@@ -1,9 +1,9 @@
 package carddav
 
 import (
-	"meerkat/logger"
-	"meerkat/middleware"
-	"meerkat/models"
+	"mycorrhizal/logger"
+	"mycorrhizal/middleware"
+	"mycorrhizal/models"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,7 +15,7 @@ import (
 
 // equalize response time for non-existing user by using dummy bcrypt value
 var dummyBcryptHash = func() []byte {
-	hash, err := bcrypt.GenerateFromPassword([]byte("meerkat-timing-equalizer"), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte("mycorrhizal-timing-equalizer"), bcrypt.DefaultCost)
 	if err != nil {
 		panic(err)
 	}

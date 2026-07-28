@@ -7,10 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"meerkat/config"
-	"meerkat/i18n"
-	"meerkat/logger"
-	"meerkat/models"
+	"mycorrhizal/config"
+	"mycorrhizal/i18n"
+	"mycorrhizal/logger"
+	"mycorrhizal/models"
 	"net"
 	"net/http"
 	"net/url"
@@ -105,7 +105,7 @@ func privateBlockingDialContext(ctx context.Context, network, addr string) (net.
 	}
 	var safeIP net.IP
 	for _, ip := range ips {
-		if !(ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified()) {
+		if !ip.IsLoopback() && !ip.IsPrivate() && !ip.IsLinkLocalUnicast() && !ip.IsLinkLocalMulticast() && !ip.IsUnspecified() {
 			safeIP = ip
 			break
 		}
@@ -366,7 +366,7 @@ func (s *CalendarSyncService) fetchICS(ctx context.Context, httpClient webdav.HT
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrCalendarInvalidURL, err)
 	}
-	req.Header.Set("User-Agent", "MeerkatCRM/1.0 CalendarSync")
+	req.Header.Set("User-Agent", "MycorrhizalCRM/1.0 CalendarSync")
 	req.Header.Set("Accept", "text/calendar, application/octet-stream, */*")
 
 	resp, err := httpClient.Do(req)

@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:contacturi-example
+FN:Contacturi Example
+CONTACT-URI;PREF=1:mailto:contact@example.com
+END:VCARD

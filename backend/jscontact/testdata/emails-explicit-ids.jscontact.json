@@ -1,0 +1,9 @@
+{
+  "@type": "Card",
+  "version": "1.0",
+  "uid": "emails-explicit-ids-example",
+  "emails": {
+    "E1": { "@type": "EmailAddress", "address": "alice@example.com", "contexts": { "work": true } },
+    "E2": { "@type": "EmailAddress", "address": "alice@home.example.com", "contexts": { "private": true } }
+  }
+}

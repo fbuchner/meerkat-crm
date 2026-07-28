@@ -1,7 +1,7 @@
 package services
 
 import (
-	"meerkat/models"
+	"mycorrhizal/models"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

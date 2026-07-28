@@ -1,3 +1,5 @@
+// Package i18n loads embedded locale JSON files and translates message keys
+// for a given language, falling back to English for missing keys/locales.
 package i18n
 
 import (

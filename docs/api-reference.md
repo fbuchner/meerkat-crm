@@ -23,7 +23,7 @@ Login sets an httpOnly JWT cookie. Subsequent requests must include it (i.e. sen
 Alternatively, API tokens can be used in the `Authorization` header:
 
 ```
-Authorization: Bearer meerkat_<token>
+Authorization: Bearer mycorrhizal_<token>
 ```
 
 API tokens are created and managed via the admin endpoints, the tokens always have normal user rights. The plaintext token is only returned once at creation time.
@@ -188,7 +188,7 @@ Every request and response carries an `X-Request-ID` header created by the middl
 { "name": "my token" }
 ```
 
-Response includes `token` (the `meerkat_…` plaintext value) only on creation. Subsequent list responses omit it.
+Response includes `token` (the `mycorrhizal_…` plaintext value) only on creation. Subsequent list responses omit it.
 
 ### Admin
 

@@ -6,9 +6,9 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"meerkat/config"
-	"meerkat/i18n"
-	"meerkat/logger"
+	"mycorrhizal/config"
+	"mycorrhizal/i18n"
+	"mycorrhizal/logger"
 	"time"
 )
 

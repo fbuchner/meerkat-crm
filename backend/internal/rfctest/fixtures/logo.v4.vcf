@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:logo-example
+FN:Logo Example
+LOGO:https://example.com/logo.png
+END:VCARD

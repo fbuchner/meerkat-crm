@@ -44,7 +44,7 @@ export async function exportDataAsCsv(): Promise<void> {
     throw error;
   }
 
-  await downloadFileFromResponse(response, 'meerkat-export.csv');
+  await downloadFileFromResponse(response, 'mycorrhizal-export.csv');
 }
 
 /**
@@ -62,5 +62,5 @@ export async function exportContactsAsVcf(): Promise<void> {
     throw error;
   }
 
-  await downloadFileFromResponse(response, 'meerkat-contacts.vcf');
+  await downloadFileFromResponse(response, 'mycorrhizal-contacts.vcf');
 }

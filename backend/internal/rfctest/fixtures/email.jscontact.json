@@ -1,0 +1,8 @@
+{
+  "@type": "Card",
+  "version": "1.0",
+  "uid": "email-example",
+  "emails": {
+    "k1": { "@type": "EmailAddress", "address": "alice@example.com" }
+  }
+}

@@ -5,8 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"meerkat/middleware"
-	"meerkat/models"
+	"mycorrhizal/middleware"
+	"mycorrhizal/models"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -148,7 +148,7 @@ func TestCreateApiToken_Success(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	assert.Equal(t, "ci-token", resp.Name)
 	assert.NotZero(t, resp.ID)
-	assert.Contains(t, resp.Token, "meerkat_")
+	assert.Contains(t, resp.Token, "mycorrhizal_")
 	assert.Nil(t, resp.LastUsedAt)
 	assert.Nil(t, resp.RevokedAt)
 
@@ -157,7 +157,7 @@ func TestCreateApiToken_Success(t *testing.T) {
 	require.NoError(t, db.First(&stored, resp.ID).Error)
 	expectedHash := fmt.Sprintf("%x", sha256.Sum256([]byte(resp.Token)))
 	assert.Equal(t, expectedHash, stored.TokenHash)
-	assert.NotContains(t, stored.TokenHash, "meerkat_")
+	assert.NotContains(t, stored.TokenHash, "mycorrhizal_")
 }
 
 func TestCreateApiToken_MissingName(t *testing.T) {

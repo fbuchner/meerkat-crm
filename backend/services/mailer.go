@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"meerkat/config"
-	"meerkat/logger"
+	"mycorrhizal/config"
+	"mycorrhizal/logger"
 
 	"github.com/resend/resend-go/v2"
 )

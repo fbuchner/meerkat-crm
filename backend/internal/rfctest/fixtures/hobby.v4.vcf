@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:hobby-example
+FN:Hobby Example
+HOBBY;INDEX=1;LEVEL=high:reading
+END:VCARD

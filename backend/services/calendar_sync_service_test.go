@@ -3,11 +3,12 @@ package services
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
-	"meerkat/config"
-	"meerkat/i18n"
-	"meerkat/models"
+	"mycorrhizal/config"
+	"mycorrhizal/i18n"
+	"mycorrhizal/models"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -79,9 +80,9 @@ func multistatusResponse(calendars ...string) string {
 	for i, cal := range calendars {
 		escaped := strings.ReplaceAll(cal, "&", "&amp;")
 		escaped = strings.ReplaceAll(escaped, "<", "&lt;")
-		sb.WriteString(fmt.Sprintf(`<d:response><d:href>/calendars/test/event%d.ics</d:href>
+		fmt.Fprintf(&sb, `<d:response><d:href>/calendars/test/event%d.ics</d:href>
 <d:propstat><d:prop><c:calendar-data>%s</c:calendar-data></d:prop>
-<d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`, i, escaped))
+<d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`, i, escaped)
 	}
 	sb.WriteString(`</d:multistatus>`)
 	return sb.String()
@@ -575,4 +576,133 @@ func TestSyncAllCalendarsRecordsErrorsPerSubscription(t *testing.T) {
 	require.NoError(t, db.First(&refreshedBroken, brokenSub.ID).Error)
 	assert.Equal(t, models.CalendarSyncStatusSuccess, refreshedBroken.LastSyncStatus)
 	assert.Empty(t, refreshedBroken.LastSyncError)
+}
+
+// --- privateBlockingDialContext ---
+
+func TestPrivateBlockingDialContextRejectsPrivateAddress(t *testing.T) {
+	for _, addr := range []string{"127.0.0.1:80", "10.0.0.1:80"} {
+		conn, err := privateBlockingDialContext(context.Background(), "tcp", addr)
+		assert.Nil(t, conn)
+		assert.ErrorIs(t, err, ErrCalendarPrivateAddress, "addr = %q", addr)
+	}
+}
+
+func TestPrivateBlockingDialContextUnresolvableHostWrapsUnreachable(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// "*.invalid" is reserved by RFC 2606 and never resolves; whether that
+	// fails as NXDOMAIN or (in a network-less sandbox) as a resolver error,
+	// LookupIP returns an error either way, exercising the same branch.
+	conn, err := privateBlockingDialContext(ctx, "tcp", "no-such-host.invalid:80")
+	assert.Nil(t, conn)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrCalendarUnreachable)
+}
+
+func TestPrivateBlockingDialContextMalformedAddrPropagatesSplitHostPortError(t *testing.T) {
+	conn, err := privateBlockingDialContext(context.Background(), "tcp", "no-port-here")
+	assert.Nil(t, conn)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "missing port")
+	assert.False(t, errors.Is(err, ErrCalendarPrivateAddress))
+	assert.False(t, errors.Is(err, ErrCalendarUnreachable))
+}
+
+// TestNewCalendarSyncServiceBlocksPrivateURLsWiring proves the dial-context
+// function is actually wired into the http.Client's Transport when
+// blockPrivateURLs is enabled, not just correct in isolation: a real request
+// to a local httptest.Server (which listens on 127.0.0.1) must be refused.
+func TestNewCalendarSyncServiceBlocksPrivateURLsWiring(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	service := NewCalendarSyncService(true)
+	req, err := http.NewRequest(http.MethodGet, server.URL, nil)
+	require.NoError(t, err)
+
+	_, doErr := service.client.Do(req)
+	require.Error(t, doErr)
+	assert.ErrorIs(t, doErr, ErrCalendarPrivateAddress)
+}
+
+// --- SyncCalendarsWithRateLimit ---
+
+// TestSyncCalendarsWithRateLimitSkipsWhenLocked seeds a JobExecution row
+// whose LastRunAt is "just now", so the rate-limit gate (which floors at a
+// 30-minute minimum interval regardless of CalDAVSyncIntervalHours) must
+// refuse to run. SyncAllCalendars is never covered internally here — a
+// server hit and subscription bookkeeping update are used purely as the
+// side effect that would prove it ran.
+func TestSyncCalendarsWithRateLimitSkipsWhenLocked(t *testing.T) {
+	db := setupCalendarSyncTestDB(t)
+	cfg := calendarTestConfig()
+	cfg.CalDAVSyncIntervalHours = 6
+	user := createCalendarTestUser(t, db)
+
+	var sawRequest bool
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sawRequest = true
+		w.Header().Set("Content-Type", "text/calendar")
+		fmt.Fprint(w, "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Test//EN\nEND:VCALENDAR\n")
+	}))
+	defer server.Close()
+
+	sub := newTestSubscription(t, db, cfg, user.ID, server.URL+"/cal.ics", "", "")
+
+	require.NoError(t, db.Create(&models.JobExecution{
+		JobName:   models.JobNameCalendarSync,
+		LastRunAt: time.Now(),
+	}).Error)
+
+	require.NotPanics(t, func() {
+		SyncCalendarsWithRateLimit(db, cfg)
+	})
+
+	assert.False(t, sawRequest, "SyncAllCalendars must not run while the job lock is rate-limited")
+
+	var refreshed models.CalendarSubscription
+	require.NoError(t, db.First(&refreshed, sub.ID).Error)
+	assert.Nil(t, refreshed.LastSyncedAt, "subscription bookkeeping must be untouched while locked")
+}
+
+// TestSyncCalendarsWithRateLimitRunsAndReleasesLock covers the opposite path:
+// no lock row exists yet, so acquireJobLock succeeds on first run,
+// SyncAllCalendars is actually invoked (proven via the fetch side effect,
+// kept trivial -- an empty calendar -- since SyncAllCalendars/SyncSubscription
+// are already covered elsewhere), and the lock is released afterward.
+func TestSyncCalendarsWithRateLimitRunsAndReleasesLock(t *testing.T) {
+	db := setupCalendarSyncTestDB(t)
+	cfg := calendarTestConfig()
+	cfg.CalDAVSyncIntervalHours = 6
+	user := createCalendarTestUser(t, db)
+
+	var sawRequest bool
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sawRequest = true
+		w.Header().Set("Content-Type", "text/calendar")
+		fmt.Fprint(w, "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Test//EN\nEND:VCALENDAR\n")
+	}))
+	defer server.Close()
+
+	sub := newTestSubscription(t, db, cfg, user.ID, server.URL+"/cal.ics", "", "")
+
+	require.NotPanics(t, func() {
+		SyncCalendarsWithRateLimit(db, cfg)
+	})
+
+	assert.True(t, sawRequest, "SyncAllCalendars must actually run when the lock is acquired")
+
+	var refreshed models.CalendarSubscription
+	require.NoError(t, db.First(&refreshed, sub.ID).Error)
+	assert.NotNil(t, refreshed.LastSyncedAt, "subscription bookkeeping should be updated once the gated sync runs")
+
+	var job models.JobExecution
+	require.NoError(t, db.Where("job_name = ?", models.JobNameCalendarSync).First(&job).Error)
+	assert.Nil(t, job.LockedAt, "lock must be released after the run")
+	assert.Empty(t, job.LockedBy)
+	assert.WithinDuration(t, time.Now(), job.LastRunAt, 5*time.Second, "LastRunAt should be bumped on success")
 }

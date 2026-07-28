@@ -1,0 +1,6 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:interest-example
+FN:Interest Example
+INTEREST;INDEX=1;LEVEL=medium:r&b music
+END:VCARD

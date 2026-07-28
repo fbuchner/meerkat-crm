@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"strings"
 
-	"meerkat/config"
-	"meerkat/models"
+	"mycorrhizal/config"
+	"mycorrhizal/models"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"

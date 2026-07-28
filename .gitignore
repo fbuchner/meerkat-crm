@@ -7,7 +7,7 @@
 *.db
 *.db-shm
 *.db-wal
-meerkat.db
+mycorrhizal.db
 
 # TLS/SSL certificates
 *.pem
@@ -21,7 +21,7 @@ backend/static/photos/
 static/photos/
 
 # Build artifacts
-backend/meerkat
+backend/mycorrhizal
 backend/main
 
 # Go specific
@@ -87,3 +87,4 @@ CLAUDE.md
 BACKLOG.md
 fly.demo.toml
 fly.test.toml
+.aider*

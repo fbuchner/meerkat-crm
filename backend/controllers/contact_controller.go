@@ -2,21 +2,32 @@ package controllers
 
 import (
 	"errors"
-	apperrors "meerkat/errors"
-	"meerkat/logger"
-	"meerkat/middleware"
-	"meerkat/models"
-	"meerkat/services"
+	apperrors "mycorrhizal/errors"
+	"mycorrhizal/logger"
+	"mycorrhizal/middleware"
+	"mycorrhizal/models"
+	"mycorrhizal/services"
 	"net/http"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
+
+// contactSummaryColumns is the fixed set of columns needed to build a
+// ContactSummary (list-view) response. Selecting only these avoids the
+// over-fetch (heavy JSON columns like card/emails/phones/addresses/...) that
+// the removed fields= param used to exist to let callers opt out of (Gap 3
+// in docs/fork-plan/50-integration-and-rebrand.md WP-71) — now that the list
+// endpoint has a fixed slim shape, this is baked in rather than
+// caller-configurable.
+var contactSummaryColumns = []string{
+	"id", "vcard_uid", "firstname", "lastname", "fn", "email", "phone", "birthday", "org",
+	"photo", "photo_thumbnail", "archived",
+}
 
 func CreateContact(c *gin.Context) {
 	// Save to the database
@@ -27,44 +38,31 @@ func CreateContact(c *gin.Context) {
 		return
 	}
 
-	// Get validated input from validation middleware
-	contactInput, err := middleware.GetValidated[models.ContactInput](c)
+	// Get validated input from validation middleware. Per WP-71 item 3, this
+	// is the new nested Card/CRM shape (models.ContactRecordInput), not the
+	// old flat models.ContactInput.
+	input, err := middleware.GetValidated[models.ContactRecordInput](c)
 	if err != nil {
 		apperrors.AbortWithError(c, err)
 		return
 	}
 
-	// Create contact from validated input
-	contact := models.Contact{
-		UserID:             userID,
-		Firstname:          contactInput.Firstname,
-		Lastname:           contactInput.Lastname,
-		Nickname:           contactInput.Nickname,
-		Gender:             contactInput.Gender,
-		Email:              contactInput.Email,
-		Phone:              contactInput.Phone,
-		Birthday:           contactInput.Birthday,
-		Address:            contactInput.Address,
-		HowWeMet:           contactInput.HowWeMet,
-		FoodPreference:     contactInput.FoodPreference,
-		WorkInformation:    contactInput.WorkInformation,
-		ContactInformation: contactInput.ContactInformation,
-		Circles:            contactInput.Circles,
-		CustomFields:       contactInput.CustomFields,
-		Emails:             contactInput.Emails,
-		Phones:             contactInput.Phones,
-		Addresses:          contactInput.Addresses,
-		URLs:               contactInput.URLs,
-		IMPPs:              contactInput.IMPPs,
-		Prefix:             contactInput.Prefix,
-		MiddleName:         contactInput.MiddleName,
-		Suffix:             contactInput.Suffix,
-		Organization:       contactInput.Organization,
-		Department:         contactInput.Department,
-		JobTitle:           contactInput.JobTitle,
-		Role:               contactInput.Role,
-		Anniversary:        contactInput.Anniversary,
+	contact := models.Contact{UserID: userID, Gender: input.Gender}
+	models.ApplyRecordToContact(&contact, input.ToRecord(), currentConfig(c).ProfilePhotoDir)
+
+	// Firstname is checked here (not via a struct tag on the nested input —
+	// see ContactRecordInput's doc comment for why) because it's an
+	// app-level invariant on Contact itself (existing `validate:"required"`
+	// tag on models.Contact.Firstname, previously enforced indirectly by the
+	// old flat ContactInput requiring it directly) that the new nested shape
+	// has no simple field-level equivalent for: "at least one given-name
+	// component, or a Name.Full, is present" is a derived condition, not a
+	// single field.
+	if contact.Firstname == "" {
+		apperrors.AbortWithError(c, apperrors.ErrValidation("Request validation failed").WithDetails("card.name", "at least one name component (kind=given) or name.full is required"))
+		return
 	}
+
 	if err := db.Create(&contact).Error; err != nil {
 		logger.FromContext(c).Error().Err(err).Msg("Error saving contact to database")
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save contact").WithError(err))
@@ -72,7 +70,7 @@ func CreateContact(c *gin.Context) {
 	}
 
 	go services.TriggerWebhooks(db, currentConfig(c), userID, "contact.created", contact)
-	c.JSON(http.StatusCreated, gin.H{"message": "Contact created successfully", "contact": contact})
+	c.JSON(http.StatusCreated, gin.H{"message": "Contact created successfully", "contact": models.NewContactRecordResponse(&contact, currentConfig(c).ProfilePhotoDir)})
 }
 
 // filters a contacts query by a free-text term
@@ -98,21 +96,17 @@ func GetContacts(c *gin.Context) {
 
 	pagination := GetPaginationParams(c)
 
-	// Define allowed fields and parse requested fields with validation
-	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail", "custom_fields", "archived", "emails", "phones", "addresses", "urls", "impps", "prefix", "middle_name", "suffix", "organization", "department", "job_title", "role", "anniversary"}
-	var selectedFields []string
-	fields := c.Query("fields")
-	if fields != "" {
-		for _, field := range strings.Split(fields, ",") {
-			if slices.Contains(allowedFields, field) { // Validate field
-				selectedFields = append(selectedFields, field)
-			}
-		}
-	} else {
-		selectedFields = allowedFields // Use all allowed fields if none are specified
-	}
+	// NOTE: the fields= partial-projection param is gone (Gap 3 in
+	// docs/fork-plan/50-integration-and-rebrand.md WP-71) — deliberately, not
+	// an oversight. It is simply no longer read; a request that still sends
+	// it is not rejected, it just has no effect. The fixed ContactSummary
+	// shape (below) now serves the reason fields= existed (avoiding
+	// over-fetch on a list view) — see contactSummaryColumns.
 
-	// Parse relationships to include with validation
+	// Parse relationships to include with validation. Per Gap 2, this
+	// mechanic is preserved exactly as-is; only the per-item shape changes
+	// (ContactSummary, extended to ContactSummaryWithRelations when any
+	// includes= relation is requested).
 	var relationshipMap = map[string]bool{
 		"notes":         false,
 		"activities":    false,
@@ -120,9 +114,11 @@ func GetContacts(c *gin.Context) {
 		"reminders":     false,
 	}
 	includes := c.Query("includes")
+	includesRequested := false
 	for _, rel := range strings.Split(includes, ",") {
 		if _, exists := relationshipMap[rel]; exists {
 			relationshipMap[rel] = true
+			includesRequested = true
 		}
 	}
 
@@ -143,7 +139,9 @@ func GetContacts(c *gin.Context) {
 	archivedOnly := c.Query("archived") == "true"
 
 	var contacts []models.Contact
-	query := db.Model(&models.Contact{}).Where("user_id = ?", userID).Limit(pagination.Limit).Offset(pagination.Offset)
+	query := db.Model(&models.Contact{}).Where("user_id = ?", userID).
+		Select(contactSummaryColumns).
+		Limit(pagination.Limit).Offset(pagination.Offset)
 
 	// Apply archive filtering
 	if !includeArchived {
@@ -163,10 +161,6 @@ func GetContacts(c *gin.Context) {
 		query = query.Order("RANDOM()")
 	} else {
 		query = query.Order(sortField + " " + sortOrder)
-	}
-
-	if len(selectedFields) > 0 {
-		query = query.Select(selectedFields)
 	}
 
 	// Apply search filter using parameterization
@@ -223,18 +217,30 @@ func GetContacts(c *gin.Context) {
 
 	countQuery.Count(&total)
 
-	// Map contacts to ContactResponse with photo thumbnails
-	contactResponses := make([]models.ContactResponse, len(contacts))
-	for i, contact := range contacts {
-		contactResponses[i] = models.ContactResponse{
-			Contact:        contact,
-			PhotoThumbnail: contact.PhotoThumbnail,
+	// Map contacts to the slim ContactSummary shape (Gap 2/3): plain
+	// ContactSummary normally, or ContactSummaryWithRelations when includes=
+	// requested at least one relation — never the full Card, per WP-71's
+	// binding "list returns []ContactSummary, not the full Card" rule.
+	if includesRequested {
+		items := make([]models.ContactSummaryWithRelations, len(contacts))
+		for i := range contacts {
+			items[i] = models.NewContactSummaryWithRelations(&contacts[i])
 		}
+		c.JSON(http.StatusOK, gin.H{
+			"contacts": items,
+			"total":    total,
+			"page":     pagination.Page,
+			"limit":    pagination.Limit,
+		})
+		return
 	}
 
-	// Respond with contacts and pagination metadata
+	items := make([]models.ContactSummary, len(contacts))
+	for i := range contacts {
+		items[i] = models.NewContactSummary(&contacts[i])
+	}
 	c.JSON(http.StatusOK, gin.H{
-		"contacts": contactResponses,
+		"contacts": items,
 		"total":    total,
 		"page":     pagination.Page,
 		"limit":    pagination.Limit,
@@ -311,32 +317,22 @@ func GetContact(c *gin.Context) {
 
 	db := c.MustGet("db").(*gorm.DB)
 
-	// Check for fields query parameter to enable partial fetching
-	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail", "custom_fields", "archived", "emails", "phones", "addresses", "urls", "impps", "prefix", "middle_name", "suffix", "organization", "department", "job_title", "role", "anniversary"}
-	var selectedFields []string
-	fields := c.Query("fields")
-	if fields != "" {
-		for _, field := range strings.Split(fields, ",") {
-			if slices.Contains(allowedFields, field) {
-				selectedFields = append(selectedFields, field)
-			}
-		}
-	}
-
+	// NOTE: fields= is gone here too (Gap 3) — the detail endpoint now always
+	// returns the full neutral Record/Card (ContactRecordResponse), which is
+	// what fields= partial-fetching existed to approximate a slice of.
+	//
+	// Preload behavior: kept exactly as the pre-WP-71 "no fields=" branch
+	// (always preload all four associations) — dedicated endpoints like
+	// GET /contacts/:id/notes already exist and may make this redundant for
+	// some callers, but changing that is a separate, larger decision this WP
+	// doesn't need to make; preserving existing behavior here is the safer
+	// default for backward compat.
 	var contact models.Contact
-	query := db.Where("user_id = ?", userID)
-
-	if len(selectedFields) > 0 {
-		// Partial fetch: only select requested fields, skip preloading associations
-		query = query.Select(selectedFields)
-	} else {
-		// Full fetch: preload all associations
-		query = query.
-			Preload("Notes", "notes.user_id = ?", userID).
-			Preload("Activities", "activities.user_id = ?", userID).
-			Preload("Relationships", "relationships.user_id = ?", userID).
-			Preload("Reminders", "reminders.user_id = ?", userID)
-	}
+	query := db.Where("user_id = ?", userID).
+		Preload("Notes", "notes.user_id = ?", userID).
+		Preload("Activities", "activities.user_id = ?", userID).
+		Preload("Relationships", "relationships.user_id = ?", userID).
+		Preload("Reminders", "reminders.user_id = ?", userID)
 
 	if err := query.First(&contact, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -346,7 +342,7 @@ func GetContact(c *gin.Context) {
 		}
 		return
 	}
-	c.JSON(http.StatusOK, contact)
+	c.JSON(http.StatusOK, models.NewContactRecordResponse(&contact, currentConfig(c).ProfilePhotoDir))
 }
 
 func UpdateContact(c *gin.Context) {
@@ -368,41 +364,21 @@ func UpdateContact(c *gin.Context) {
 		return
 	}
 
-	// Get validated input from validation middleware
-	contactInput, err := middleware.GetValidated[models.ContactInput](c)
+	// Get validated input from validation middleware (new nested shape, see
+	// CreateContact's comment).
+	input, err := middleware.GetValidated[models.ContactRecordInput](c)
 	if err != nil {
 		apperrors.AbortWithError(c, err)
 		return
 	}
 
-	// Updateable fields
-	contact.Firstname = contactInput.Firstname
-	contact.Lastname = contactInput.Lastname
-	contact.Nickname = contactInput.Nickname
-	contact.Gender = contactInput.Gender
-	contact.Email = contactInput.Email
-	contact.Phone = contactInput.Phone
-	contact.Birthday = contactInput.Birthday
-	contact.Address = contactInput.Address
-	contact.HowWeMet = contactInput.HowWeMet
-	contact.FoodPreference = contactInput.FoodPreference
-	contact.WorkInformation = contactInput.WorkInformation
-	contact.ContactInformation = contactInput.ContactInformation
-	contact.Circles = contactInput.Circles
-	contact.CustomFields = contactInput.CustomFields
-	contact.Emails = contactInput.Emails
-	contact.Phones = contactInput.Phones
-	contact.Addresses = contactInput.Addresses
-	contact.URLs = contactInput.URLs
-	contact.IMPPs = contactInput.IMPPs
-	contact.Prefix = contactInput.Prefix
-	contact.MiddleName = contactInput.MiddleName
-	contact.Suffix = contactInput.Suffix
-	contact.Organization = contactInput.Organization
-	contact.Department = contactInput.Department
-	contact.JobTitle = contactInput.JobTitle
-	contact.Role = contactInput.Role
-	contact.Anniversary = contactInput.Anniversary
+	contact.Gender = input.Gender
+	models.ApplyRecordToContact(&contact, input.ToRecord(), currentConfig(c).ProfilePhotoDir)
+
+	if contact.Firstname == "" {
+		apperrors.AbortWithError(c, apperrors.ErrValidation("Request validation failed").WithDetails("card.name", "at least one name component (kind=given) or name.full is required"))
+		return
+	}
 
 	if err := db.Save(&contact).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update contact").WithError(err))
@@ -410,7 +386,7 @@ func UpdateContact(c *gin.Context) {
 	}
 
 	go services.TriggerWebhooks(db, currentConfig(c), userID, "contact.updated", contact)
-	c.JSON(http.StatusOK, contact)
+	c.JSON(http.StatusOK, models.NewContactRecordResponse(&contact, currentConfig(c).ProfilePhotoDir))
 }
 
 func DeleteContact(c *gin.Context) {

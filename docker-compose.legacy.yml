@@ -1,4 +1,4 @@
-# Meerkat CRM Docker Compose - Production
+# Mycorrhizal CRM Docker Compose - Production
 #
 # Pulls pre-built images from GitHub Container Registry.
 #
@@ -11,7 +11,7 @@
 services:
   backend:
     image: ghcr.io/fbuchner/meerkat-crm-backend:${IMAGE_TAG:-latest}
-    container_name: meerkat-backend
+    container_name: mycorrhizal-backend
     restart: unless-stopped
     env_file:
       - .env.docker
@@ -33,7 +33,7 @@ services:
 
   frontend:
     image: ghcr.io/fbuchner/meerkat-crm-frontend:${IMAGE_TAG:-latest}
-    container_name: meerkat-frontend
+    container_name: mycorrhizal-frontend
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-7300}:8080"

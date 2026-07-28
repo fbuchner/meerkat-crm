@@ -1,12 +1,12 @@
 package routes
 
 import (
-	"meerkat/carddav"
-	"meerkat/config"
-	"meerkat/controllers"
-	"meerkat/middleware"
-	"meerkat/models"
-	"meerkat/services"
+	"mycorrhizal/carddav"
+	"mycorrhizal/config"
+	"mycorrhizal/controllers"
+	"mycorrhizal/middleware"
+	"mycorrhizal/models"
+	"mycorrhizal/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -60,9 +60,9 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			protected.GET("/contacts/circles", controllers.GetCircles)
 			protected.GET("/contacts/random", controllers.GetContactsRandom)
 			protected.GET("/contacts/birthdays", controllers.GetUpcomingBirthdays)
-			protected.POST("/contacts", middleware.ValidateJSONMiddleware(&models.ContactInput{}), controllers.CreateContact)
+			protected.POST("/contacts", middleware.ValidateJSONMiddleware(&models.ContactRecordInput{}), controllers.CreateContact)
 			protected.GET("/contacts/:id", controllers.GetContact)
-			protected.PUT("/contacts/:id", middleware.ValidateJSONMiddleware(&models.ContactInput{}), controllers.UpdateContact)
+			protected.PUT("/contacts/:id", middleware.ValidateJSONMiddleware(&models.ContactRecordInput{}), controllers.UpdateContact)
 			protected.DELETE("/contacts/:id", controllers.DeleteContact)
 			protected.POST("/contacts/:id/archive", controllers.ArchiveContact)
 			protected.POST("/contacts/:id/unarchive", controllers.UnarchiveContact)
@@ -79,6 +79,12 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			protected.POST("/contacts/import/vcf/confirm", middleware.ValidateJSONMiddleware(&models.ImportConfirmRequest{}), func(c *gin.Context) {
 				controllers.ConfirmVCFImport(c, cfg)
 			})
+
+			// Contact import routes (JSContact JSON) — WP-71 Gap 4 extension.
+			// Confirmation deliberately reuses /contacts/import/vcf/confirm
+			// (see UploadJSContactForImport's doc comment): the session it
+			// creates is format-agnostic once parsed into []VCFContactData.
+			protected.POST("/contacts/import/jscontact/upload", controllers.UploadJSContactForImport)
 
 			// Relationship routes
 			protected.GET("/contacts/:id/relationships", controllers.GetRelationships)
@@ -134,6 +140,7 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			protected.GET("/export/vcf", func(c *gin.Context) {
 				controllers.ExportContactsAsVCF(c, cfg.ProfilePhotoDir)
 			})
+			protected.GET("/export/jscontact", controllers.ExportContactsAsJSContact)
 
 			// Graph/Network visualization route
 			protected.GET("/graph", controllers.GetGraph)
@@ -158,6 +165,14 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			protected.PUT("/calendars/:id", middleware.ValidateJSONMiddleware(&models.CalendarSubscriptionInput{}), controllers.UpdateCalendarSubscription)
 			protected.DELETE("/calendars/:id", controllers.DeleteCalendarSubscription)
 			protected.POST("/calendars/:id/sync", controllers.SyncCalendarSubscription)
+
+			// Contact subscription routes (CardDAV client: sync contacts in
+			// from an external address book, WP-73b)
+			protected.GET("/contact-subscriptions", controllers.ListContactSubscriptions)
+			protected.POST("/contact-subscriptions", middleware.ValidateJSONMiddleware(&models.ContactSubscriptionInput{}), controllers.CreateContactSubscription)
+			protected.PUT("/contact-subscriptions/:id", middleware.ValidateJSONMiddleware(&models.ContactSubscriptionInput{}), controllers.UpdateContactSubscription)
+			protected.DELETE("/contact-subscriptions/:id", controllers.DeleteContactSubscription)
+			protected.POST("/contact-subscriptions/:id/sync", controllers.SyncContactSubscription)
 		}
 
 		// Admin routes (admin authentication required)

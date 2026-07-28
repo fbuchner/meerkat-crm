@@ -1,0 +1,951 @@
+openapi: 3.0.3
+info:
+  title: Mycorrhizal CRM API
+  description: >
+    REST API for Mycorrhizal's contact model. As of WP-71 (P2,
+    docs/fork-plan/50-integration-and-rebrand.md), the contact endpoints speak
+    the neutral RFC 9553-shaped model (contactmodel.Record/Card) rather than
+    the legacy flat Contact DTO. GET /contacts (list) returns a slim
+    ContactSummary per item; GET/POST/PUT /contacts/{id} exchange the full
+    Card/CRM shape (ContactRecordResponse / ContactRecordInput) — a
+    symmetric read/write contract.
+  version: "1.0.0"
+servers:
+  - url: /api/v1
+paths:
+  /contacts:
+    get:
+      summary: List contacts (slim projection)
+      description: >
+        Returns a page of ContactSummary items — never the full Card, so a
+        mobile contact-list screen doesn't have to fetch every contact's
+        nested data (see docs/fork-plan/50-integration-and-rebrand.md WP-71
+        Gap 2). All existing query mechanics are preserved: pagination,
+        free-text search, sort, archive filtering, circle filtering, and
+        includes=. The fields= partial-projection param is gone (Gap 3) and
+        has no effect if sent.
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, default: 20 }
+        - name: search
+          in: query
+          description: Free-text search across name/nickname/email/phone (including secondary array entries).
+          schema: { type: string }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [firstname, lastname, id, random], default: id }
+        - name: order
+          in: query
+          schema: { type: string, enum: [asc, desc], default: desc }
+        - name: include_archived
+          in: query
+          schema: { type: boolean, default: false }
+        - name: archived
+          in: query
+          description: When true (and include_archived is not set), return only archived contacts.
+          schema: { type: boolean, default: false }
+        - name: circle
+          in: query
+          schema: { type: string }
+        - name: includes
+          in: query
+          description: >
+            Comma-separated subset of notes,activities,relationships,reminders.
+            When set, each item is a ContactSummaryWithRelations instead of a
+            plain ContactSummary.
+          schema: { type: string }
+      responses:
+        "200":
+          description: A page of contacts.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contacts:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ContactSummary"
+                  total: { type: integer }
+                  page: { type: integer }
+                  limit: { type: integer }
+    post:
+      summary: Create a contact
+      description: >
+        Accepts the full neutral Card/CRM shape (ContactRecordInput), not the
+        legacy flat DTO. At least one name component (kind=given) or
+        card.name.full is required.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactRecordInput"
+      responses:
+        "201":
+          description: Contact created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: "Contact created successfully" }
+                  contact:
+                    $ref: "#/components/schemas/ContactRecordResponse"
+        "400":
+          description: Validation failed.
+  /contacts/{id}:
+    get:
+      summary: Get a contact (full neutral Record/Card)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: The contact.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactRecordResponse"
+        "404":
+          description: Contact not found.
+    put:
+      summary: Update a contact
+      description: Same request/response shape as POST /contacts (symmetric read/write contract).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactRecordInput"
+      responses:
+        "200":
+          description: Updated contact.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactRecordResponse"
+        "404":
+          description: Contact not found.
+  /export/vcf:
+    get:
+      summary: Export all contacts as a vCard (.vcf) file
+      parameters:
+        - name: version
+          in: query
+          description: vCard version to export. Defaults to 4.0.
+          schema: { type: string, enum: ["4", "4.0", "3", "3.0"], default: "4" }
+      responses:
+        "200":
+          description: A .vcf file (one or more concatenated vCard blocks).
+          content:
+            text/vcard:
+              schema: { type: string, format: binary }
+  /export/jscontact:
+    get:
+      summary: Export all contacts as a JSContact (RFC 9553) JSON document
+      description: A JSON array of JSContact Card objects, one per contact.
+      responses:
+        "200":
+          description: A JSON array of JSContact Card documents.
+          content:
+            application/jscontact+json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  description: An RFC 9553 JSContact Card document.
+  /contacts/import/upload:
+    post:
+      summary: Upload a CSV file to start a contact import (step 1 of 3)
+      description: >
+        Parses the CSV's headers and suggests column-to-field mappings.
+        Returns a session_id used by POST /contacts/import/preview and
+        /contacts/import/confirm. The session (and any prior expired ones)
+        is cleaned up opportunistically on each upload call.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary, description: "A .csv file." }
+      responses:
+        "200":
+          description: Parsed headers, suggested mappings, and a sample of rows.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportUploadResponse"
+        "400":
+          description: Missing file, wrong extension, oversized file, or malformed CSV.
+  /contacts/import/vcf/upload:
+    post:
+      summary: Upload a VCF (vCard 3.0/4.0) file to start a contact import
+      description: >
+        No column mapping needed (vCard is self-describing): parses directly
+        into a preview with duplicate detection. Confirm via
+        POST /contacts/import/vcf/confirm.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary, description: "A .vcf file (one or more concatenated vCards)." }
+      responses:
+        "200":
+          description: Parsed rows with duplicate detection and per-row diagnostics.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportPreviewResponse"
+        "400":
+          description: Missing file, wrong extension, oversized file, or malformed VCF.
+  /contacts/import/jscontact/upload:
+    post:
+      summary: Upload a JSContact (RFC 9553) JSON file to start a contact import
+      description: >
+        Mirrors /contacts/import/vcf/upload — the resulting session is
+        format-agnostic (same underlying VCFContactData shape), so confirm
+        via the same POST /contacts/import/vcf/confirm endpoint.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary, description: "A JSContact .json file (single Card or an array of Cards)." }
+      responses:
+        "200":
+          description: Parsed rows with duplicate detection and per-row diagnostics.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportPreviewResponse"
+        "400":
+          description: Missing file, wrong extension, oversized file, or malformed JSON.
+  /contacts/import/preview:
+    post:
+      summary: Apply column mappings to a CSV import session and get a preview (step 2 of 3)
+      description: CSV-only — VCF/JSContact sessions already have their preview from the upload step.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportPreviewRequest"
+      responses:
+        "200":
+          description: Row-by-row preview with duplicate detection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportPreviewResponse"
+        "400":
+          description: Unknown/expired session, or session owned by another user.
+  /contacts/import/confirm:
+    post:
+      summary: Execute a CSV import with the caller's per-row actions (step 3 of 3)
+      description: >
+        One bad row's error does not abort the batch — other rows in the
+        same request still commit. The session is deleted on completion.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportConfirmRequest"
+      responses:
+        "200":
+          description: Import result summary.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportResult"
+        "400":
+          description: No prior preview cached, or unknown/expired/foreign session.
+  /contacts/import/vcf/confirm:
+    post:
+      summary: Execute a VCF or JSContact import with the caller's per-row actions
+      description: >
+        Same contract as /contacts/import/confirm, plus photo processing:
+        embedded or URL-referenced photos are saved after the row commits
+        (an incoming photo never overwrites a contact that already has one
+        on "update").
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportConfirmRequest"
+      responses:
+        "200":
+          description: Import result summary.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportResult"
+        "400":
+          description: A CSV-sourced session ID was sent here, no prior preview cached, or unknown/expired/foreign session.
+  /contact-subscriptions:
+    get:
+      summary: List the caller's CardDAV contact subscriptions
+      responses:
+        "200":
+          description: The caller's subscriptions.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contact_subscriptions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ContactSubscriptionResponse"
+    post:
+      summary: Add a CardDAV address book to sync contacts in from
+      description: Capped at 10 subscriptions per user (mirrors the calendar subscription cap).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactSubscriptionInput"
+      responses:
+        "201":
+          description: Subscription created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactSubscriptionResponse"
+        "400":
+          description: Invalid URL, or validation failed.
+        "409":
+          description: Subscription cap (10) reached.
+  /contact-subscriptions/{id}:
+    put:
+      summary: Update a contact subscription
+      description: >
+        Changing the URL resets the stored sync token (the next sync will be
+        a full resync). clear_password removes stored credentials; an empty
+        password field leaves the existing credential untouched.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactSubscriptionInput"
+      responses:
+        "200":
+          description: Updated subscription.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactSubscriptionResponse"
+        "404":
+          description: Subscription not found (or not owned by the caller).
+    delete:
+      summary: Delete a contact subscription
+      description: Synced Contact rows are kept; only the subscription and its sync-link bookkeeping are removed.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Deleted.
+        "404":
+          description: Subscription not found (or not owned by the caller).
+  /contact-subscriptions/{id}/sync:
+    post:
+      summary: Trigger an immediate sync of one contact subscription
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Sync completed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  created: { type: integer }
+                  updated: { type: integer }
+                  archived: { type: integer }
+                  skipped: { type: integer }
+        "404":
+          description: Subscription not found (or not owned by the caller).
+        "502":
+          description: >
+            The remote CardDAV server rejected the request, was unreachable,
+            returned unparsable data, or resolved to a blocked private
+            address.
+components:
+  schemas:
+    ContactSummary:
+      type: object
+      description: >
+        Slim per-item shape for GET /contacts (list) — wraps
+        contactmodel.Projection's own fields plus identity/photo.
+      properties:
+        id: { type: integer }
+        uid: { type: string }
+        firstname: { type: string }
+        lastname: { type: string }
+        nickname: { type: string }
+        fn: { type: string, description: "Full/display name (vCard FN)." }
+        primary_email: { type: string }
+        primary_phone: { type: string }
+        birthday: { type: string, description: "ISO YYYY-MM-DD or year-less --MM-DD." }
+        org: { type: string }
+        photo: { type: string }
+        photo_thumbnail: { type: string, description: "Base64 data URL of the thumbnail." }
+        circles: { type: array, items: { type: string } }
+        archived: { type: boolean }
+    ContactSummaryWithRelations:
+      description: ContactSummary extended with the sub-resource arrays requested via includes=.
+      allOf:
+        - $ref: "#/components/schemas/ContactSummary"
+        - type: object
+          properties:
+            notes: { type: array, items: { type: object } }
+            activities: { type: array, items: { type: object } }
+            relationships: { type: array, items: { type: object } }
+            reminders: { type: array, items: { type: object } }
+    ContactRecordInput:
+      type: object
+      description: >
+        Request body for POST /contacts and PUT /contacts/{id}. Gender rides
+        alongside card/crm since it has no neutral-model home (see
+        docs/fork-plan/50-integration-and-rebrand.md's RecordFromContact
+        notes).
+      properties:
+        gender:
+          type: string
+          enum: [male, female, other, prefer_not_to_say]
+        card:
+          $ref: "#/components/schemas/Card"
+        crm:
+          $ref: "#/components/schemas/CRMEnvelope"
+        passthrough:
+          $ref: "#/components/schemas/Passthrough"
+    ContactRecordResponse:
+      type: object
+      description: Full neutral detail-view response for GET/POST/PUT /contacts.
+      properties:
+        id: { type: integer }
+        uid: { type: string }
+        etag: { type: string }
+        gender: { type: string }
+        card:
+          $ref: "#/components/schemas/Card"
+        crm:
+          $ref: "#/components/schemas/CRMEnvelope"
+        passthrough:
+          $ref: "#/components/schemas/Passthrough"
+        photo: { type: string }
+        photo_thumbnail: { type: string }
+        archived: { type: boolean }
+        notes: { type: array, items: { type: object } }
+        activities: { type: array, items: { type: object } }
+        relationships: { type: array, items: { type: object } }
+        reminders: { type: array, items: { type: object } }
+    CRMEnvelope:
+      type: object
+      description: Mycorrhizal-specific data outside any contact-exchange standard.
+      properties:
+        circles: { type: array, items: { type: string } }
+        how_we_met: { type: string }
+        food_preference: { type: string }
+        work_information: { type: string }
+        contact_information: { type: string }
+        custom_fields:
+          type: object
+          additionalProperties: { type: string }
+    Passthrough:
+      type: object
+      description: Unmapped data preserved verbatim (docs/fork-plan/00-overview.md §0.5).
+      properties:
+        vCardProps:
+          type: array
+          items:
+            $ref: "#/components/schemas/JCardProp"
+        jsContactProps:
+          type: object
+          additionalProperties: true
+    JCardProp:
+      type: object
+      required: [name, type, value]
+      properties:
+        name: { type: string }
+        params:
+          type: object
+          additionalProperties: true
+        type: { type: string, example: text }
+        value: {}
+    Timestamp:
+      type: object
+      required: [utc]
+      properties:
+        utc: { type: string, format: date-time }
+    PartialDate:
+      type: object
+      properties:
+        year: { type: integer, nullable: true }
+        month: { type: integer, nullable: true }
+        day: { type: integer, nullable: true }
+        calendarScale: { type: string }
+    AnniversaryDate:
+      type: object
+      properties:
+        partial:
+          $ref: "#/components/schemas/PartialDate"
+        timestamp: { type: string, format: date-time, nullable: true }
+    Anniversary:
+      type: object
+      required: [kind, date]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [birth, death, wedding] }
+        date:
+          $ref: "#/components/schemas/AnniversaryDate"
+        place:
+          $ref: "#/components/schemas/Address"
+    NameComponent:
+      type: object
+      required: [kind, value]
+      properties:
+        kind:
+          type: string
+          enum: [title, given, given2, surname, surname2, credential, generation, separator]
+        value: { type: string }
+        phonetic: { type: string }
+    Name:
+      type: object
+      properties:
+        components:
+          type: array
+          items:
+            $ref: "#/components/schemas/NameComponent"
+        full: { type: string }
+        sortAs:
+          type: object
+          additionalProperties: { type: string }
+        isOrdered: { type: boolean, nullable: true }
+        defaultSeparator: { type: string }
+        phoneticSystem: { type: string, enum: [ipa, jyut, piny] }
+        phoneticScript: { type: string }
+    Nickname:
+      type: object
+      required: [name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        contexts: { type: array, items: { type: string } }
+        pref: { type: integer, nullable: true }
+    OrgUnit:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        sortAs: { type: string }
+    Organization:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        units:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrgUnit"
+        sortAs: { type: string }
+    Title:
+      type: object
+      required: [name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        kind: { type: string, enum: [title, role] }
+        organizationId: { type: string }
+    Email:
+      type: object
+      required: [address]
+      properties:
+        id: { type: string }
+        address: { type: string, format: email }
+        contexts: { type: array, items: { type: string, enum: [private, work] } }
+        pref: { type: integer, nullable: true }
+        label: { type: string }
+    Phone:
+      type: object
+      required: [number]
+      properties:
+        id: { type: string }
+        number: { type: string }
+        features:
+          type: array
+          items:
+            type: string
+            enum: [voice, fax, cell, video, pager, text, textphone, main-number]
+        contexts: { type: array, items: { type: string } }
+        pref: { type: integer, nullable: true }
+        label: { type: string }
+    OnlineService:
+      type: object
+      properties:
+        id: { type: string }
+        service: { type: string }
+        uri: { type: string }
+        user: { type: string }
+        contexts: { type: array, items: { type: string } }
+        pref: { type: integer, nullable: true }
+        label: { type: string }
+    AddressComponent:
+      type: object
+      required: [kind, value]
+      properties:
+        kind:
+          type: string
+          enum:
+            [room, apartment, floor, building, number, name, block,
+             subdistrict, district, locality, region, postcode, country,
+             direction, landmark, postOfficeBox, separator]
+        value: { type: string }
+        phonetic: { type: string }
+    Address:
+      type: object
+      properties:
+        id: { type: string }
+        components:
+          type: array
+          items:
+            $ref: "#/components/schemas/AddressComponent"
+        countryCode: { type: string }
+        coordinates: { type: string, description: "geo: URI" }
+        timeZone: { type: string }
+        contexts: { type: array, items: { type: string, enum: [billing, delivery, private, work] } }
+        pref: { type: integer, nullable: true }
+        full: { type: string }
+        isOrdered: { type: boolean, nullable: true }
+        defaultSeparator: { type: string }
+        phoneticSystem: { type: string }
+        phoneticScript: { type: string }
+    GrammaticalGender:
+      type: object
+      required: [value]
+      properties:
+        id: { type: string }
+        value: { type: string, enum: [animate, common, feminine, inanimate, masculine, neuter] }
+        language: { type: string }
+    Pronouns:
+      type: object
+      required: [pronouns]
+      properties:
+        id: { type: string }
+        pronouns: { type: string, example: "she/her" }
+        contexts: { type: array, items: { type: string } }
+        pref: { type: integer, nullable: true }
+    SpeakToAs:
+      type: object
+      properties:
+        grammaticalGenders:
+          type: array
+          items:
+            $ref: "#/components/schemas/GrammaticalGender"
+        pronouns:
+          type: array
+          items:
+            $ref: "#/components/schemas/Pronouns"
+    PersonalInfo:
+      type: object
+      required: [kind, value]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [expertise, hobby, interest] }
+        value: { type: string }
+        level: { type: string, enum: [high, medium, low, beginner, average, expert] }
+        listAs: { type: integer, nullable: true }
+        label: { type: string }
+    Author:
+      type: object
+      properties:
+        name: { type: string }
+        uri: { type: string }
+    CardNote:
+      type: object
+      required: [note]
+      properties:
+        id: { type: string }
+        note: { type: string }
+        author:
+          $ref: "#/components/schemas/Author"
+        created:
+          $ref: "#/components/schemas/Timestamp"
+    Resource:
+      type: object
+      required: [uri]
+      properties:
+        id: { type: string }
+        kind: { type: string, description: "photo|logo|sound (Media) or directory|entry (Directories); unset for single-purpose Resource fields." }
+        uri: { type: string }
+        mediaType: { type: string }
+        label: { type: string }
+        contexts: { type: array, items: { type: string } }
+        pref: { type: integer, nullable: true }
+        listAs: { type: integer, nullable: true }
+    LanguagePref:
+      type: object
+      required: [language]
+      properties:
+        id: { type: string }
+        language: { type: string }
+        contexts: { type: array, items: { type: string } }
+        pref: { type: integer, nullable: true }
+    Relation:
+      type: object
+      required: [target]
+      properties:
+        target: { type: string }
+        relations: { type: array, items: { type: string } }
+    Card:
+      type: object
+      description: >
+        Neutral superset of a contact's standardized data (union of RFC 9553
+        JSContact + the IANA vCard-elements registry). See
+        docs/fork-plan/20-correspondence.md for the full field-by-field
+        mapping to/from vCard 3.0/4.0 and JSContact.
+      properties:
+        uid: { type: string }
+        kind: { type: string, enum: [individual, group, org, location, application, device] }
+        language: { type: string }
+        prodId: { type: string }
+        created:
+          $ref: "#/components/schemas/Timestamp"
+        updated:
+          $ref: "#/components/schemas/Timestamp"
+        name:
+          $ref: "#/components/schemas/Name"
+        nicknames:
+          type: array
+          items: { $ref: "#/components/schemas/Nickname" }
+        organizations:
+          type: array
+          items: { $ref: "#/components/schemas/Organization" }
+        titles:
+          type: array
+          items: { $ref: "#/components/schemas/Title" }
+        emails:
+          type: array
+          items: { $ref: "#/components/schemas/Email" }
+        phones:
+          type: array
+          items: { $ref: "#/components/schemas/Phone" }
+        imppAddresses:
+          type: array
+          items: { $ref: "#/components/schemas/OnlineService" }
+        socialProfiles:
+          type: array
+          items: { $ref: "#/components/schemas/OnlineService" }
+        otherOnlineServices:
+          type: array
+          items: { $ref: "#/components/schemas/OnlineService" }
+        addresses:
+          type: array
+          items: { $ref: "#/components/schemas/Address" }
+        anniversaries:
+          type: array
+          items: { $ref: "#/components/schemas/Anniversary" }
+        speakToAs:
+          $ref: "#/components/schemas/SpeakToAs"
+        personalInfo:
+          type: array
+          items: { $ref: "#/components/schemas/PersonalInfo" }
+        notes:
+          type: array
+          items: { $ref: "#/components/schemas/CardNote" }
+        keywords:
+          type: array
+          items: { type: string }
+        media:
+          type: array
+          items: { $ref: "#/components/schemas/Resource" }
+        calendars:
+          type: array
+          items: { $ref: "#/components/schemas/Resource" }
+        freeBusyUrls:
+          type: array
+          items: { $ref: "#/components/schemas/Resource" }
+        schedulingAddresses:
+          type: array
+          items: { $ref: "#/components/schemas/Resource" }
+        cryptoKeys:
+          type: array
+          items: { $ref: "#/components/schemas/Resource" }
+        directories:
+          type: array
+          items: { $ref: "#/components/schemas/Resource" }
+        links:
+          type: array
+          items: { $ref: "#/components/schemas/Resource" }
+        contactUris:
+          type: array
+          items: { $ref: "#/components/schemas/Resource" }
+        preferredLanguages:
+          type: array
+          items: { $ref: "#/components/schemas/LanguagePref" }
+        relatedTo:
+          type: array
+          items: { $ref: "#/components/schemas/Relation" }
+        members:
+          type: array
+          items: { type: string }
+        localizations:
+          type: object
+          additionalProperties: true
+    ColumnMapping:
+      type: object
+      required: [csv_column]
+      properties:
+        csv_column: { type: string }
+        contact_field: { type: string, description: "Empty means \"ignore this column\"." }
+        group: { type: integer, description: "Multi-value entry index (0-based); ties value+label/parts of one entry together." }
+    ImportUploadResponse:
+      type: object
+      description: Returned by POST /contacts/import/upload (CSV).
+      properties:
+        session_id: { type: string }
+        headers: { type: array, items: { type: string } }
+        suggested_mappings:
+          type: array
+          items: { $ref: "#/components/schemas/ColumnMapping" }
+        row_count: { type: integer }
+        sample_data:
+          type: array
+          items: { type: array, items: { type: string } }
+    ImportPreviewRequest:
+      type: object
+      required: [session_id, mappings]
+      properties:
+        session_id: { type: string }
+        mappings:
+          type: array
+          items: { $ref: "#/components/schemas/ColumnMapping" }
+    DuplicateMatch:
+      type: object
+      description: Describes a potential duplicate contact found via email/name/phone matching.
+      properties:
+        existing_contact_id: { type: integer }
+        existing_firstname: { type: string }
+        existing_lastname: { type: string }
+        existing_email: { type: string }
+        existing_phone: { type: string }
+        match_reason: { type: string, enum: [email, name, phone] }
+    ImportRowPreview:
+      type: object
+      properties:
+        row_index: { type: integer }
+        parsed_contact:
+          type: object
+          additionalProperties: true
+        validation_errors: { type: array, items: { type: string } }
+        duplicate_match:
+          $ref: "#/components/schemas/DuplicateMatch"
+        suggested_action: { type: string, enum: [add, skip, update] }
+        diagnostics:
+          type: array
+          items: { type: string }
+          description: >
+            Degradation-policy diagnostics from the vcard4/vcard3/jscontact
+            adapter that parsed this row (empty for CSV-import rows, which
+            don't go through an adapter).
+    ImportPreviewResponse:
+      type: object
+      description: Returned by the VCF/JSContact upload endpoints and by POST /contacts/import/preview (CSV).
+      properties:
+        session_id: { type: string }
+        rows:
+          type: array
+          items: { $ref: "#/components/schemas/ImportRowPreview" }
+        total_rows: { type: integer }
+        valid_rows: { type: integer }
+        duplicate_count: { type: integer }
+        error_count: { type: integer }
+    RowImportAction:
+      type: object
+      required: [action]
+      properties:
+        row_index: { type: integer, minimum: 0 }
+        action: { type: string, enum: [skip, add, update] }
+    ImportConfirmRequest:
+      type: object
+      required: [session_id, actions]
+      properties:
+        session_id: { type: string }
+        actions:
+          type: array
+          items: { $ref: "#/components/schemas/RowImportAction" }
+    ImportResult:
+      type: object
+      description: Returned by POST /contacts/import/confirm and /contacts/import/vcf/confirm.
+      properties:
+        total_processed: { type: integer }
+        created: { type: integer }
+        updated: { type: integer }
+        skipped: { type: integer }
+        errors: { type: array, items: { type: string } }
+    ContactSubscriptionInput:
+      type: object
+      required: [name, url]
+      description: Request body for POST /contact-subscriptions and PUT /contact-subscriptions/{id}.
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        url: { type: string, format: uri, maxLength: 2048 }
+        username: { type: string, maxLength: 200 }
+        password:
+          type: string
+          maxLength: 500
+          description: Encrypted at rest. On update, an empty value leaves the existing credential untouched.
+        clear_password: { type: boolean, description: "On update, removes any stored credential." }
+        sync_enabled: { type: boolean, nullable: true, description: "Defaults to true if omitted on create." }
+    ContactSubscriptionResponse:
+      type: object
+      description: Never includes the password or sync token.
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        url: { type: string }
+        username: { type: string }
+        has_password: { type: boolean }
+        sync_enabled: { type: boolean }
+        last_synced_at: { type: string, format: date-time, nullable: true }
+        last_sync_status: { type: string }
+        last_sync_error: { type: string }
+        created_at: { type: string, format: date-time }

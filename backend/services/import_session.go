@@ -4,10 +4,10 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"meerkat/carddav"
-	"meerkat/config"
-	apperrors "meerkat/errors"
-	"meerkat/models"
+	"mycorrhizal/config"
+	apperrors "mycorrhizal/errors"
+	"mycorrhizal/models"
+	"mycorrhizal/photostore"
 	"sync"
 	"time"
 
@@ -398,7 +398,7 @@ func (m *ImportSessionManager) ConfirmVCF(db *gorm.DB, userID uint, req models.I
 		} else if task.photoURL != "" {
 			// Fetch photo from URL
 			var err error
-			photoData, mediaType, err = carddav.FetchPhotoFromURL(task.photoURL)
+			photoData, mediaType, err = photostore.FetchPhotoFromURL(task.photoURL)
 			if err != nil {
 				log.Warn().Err(err).Uint("contact_id", task.contactID).Str("photo_url", task.photoURL).Msg("Failed to fetch photo from URL")
 				continue
@@ -409,13 +409,30 @@ func (m *ImportSessionManager) ConfirmVCF(db *gorm.DB, userID uint, req models.I
 			continue
 		}
 
-		photoPath, thumbnailData, err := carddav.SaveContactPhoto(photoData, mediaType, cfg.ProfilePhotoDir)
+		photoPath, thumbnailData, err := photostore.SaveContactPhoto(photoData, mediaType, cfg.ProfilePhotoDir)
 		if err != nil {
 			log.Warn().Err(err).Uint("contact_id", task.contactID).Msg("Failed to save imported photo")
 			continue
 		}
 
-		if err := db.Model(&models.Contact{}).Where("id = ?", task.contactID).Updates(map[string]interface{}{
+		// Load the row first, then update through the loaded struct rather
+		// than a bare Model(&models.Contact{}).Where(...).Updates(map) bulk
+		// call. Contact.AfterSave (models/contact.go) recomputes ETag via
+		// tx.Model(c).UpdateColumn using the receiver's own ID/UpdatedAt; a
+		// bulk update's zero-value receiver has ID 0, so AfterSave's own
+		// sub-update has no WHERE clause and GORM rejects it
+		// (ErrMissingWhereClause) — and since GORM wraps this single
+		// Updates call (plus its hooks) in an implicit transaction, that
+		// hook failure rolls back the photo/thumbnail write too, silently
+		// discarding it. Same fix shape as contact_sync_service.go's
+		// reconcileContactSync and controllers/contact_controller.go's
+		// ArchiveContact.
+		var contact models.Contact
+		if err := db.First(&contact, task.contactID).Error; err != nil {
+			log.Warn().Err(err).Uint("contact_id", task.contactID).Msg("Failed to load contact for photo update")
+			continue
+		}
+		if err := db.Model(&contact).Updates(map[string]interface{}{
 			"photo":           photoPath,
 			"photo_thumbnail": thumbnailData,
 		}).Error; err != nil {

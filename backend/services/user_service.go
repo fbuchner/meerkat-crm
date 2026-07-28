@@ -2,8 +2,8 @@ package services
 
 import (
 	"errors"
-	"meerkat/config"
-	"meerkat/models"
+	"mycorrhizal/config"
+	"mycorrhizal/models"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"

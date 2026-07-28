@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	apperrors "meerkat/errors"
-	"meerkat/logger"
+	apperrors "mycorrhizal/errors"
+	"mycorrhizal/logger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -290,7 +290,7 @@ func TestValidateJSONMiddleware_MultipleErrors(t *testing.T) {
 	})
 
 	payload := map[string]string{
-		"email":    "invalid-email",
+		"email": "invalid-email",
 		// username omitted to trigger required validation
 		"phone":    "12", // Too short
 		"password": "weak",

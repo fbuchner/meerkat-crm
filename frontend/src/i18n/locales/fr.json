@@ -665,12 +665,15 @@
       "created": "Créé",
       "lastUsed": "Dernière utilisation",
       "status": "Statut",
-      "actions": "Actions"
+      "actions": "Actions",
+      "expires": "Expire le"
     },
     "createDialog": {
       "title": "Créer un jeton API",
       "nameLabel": "Nom du jeton",
-      "createButton": "Créer"
+      "createButton": "Créer",
+      "expiryLabel": "Expire dans",
+      "expiryDays": "{{days}} jours"
     },
     "createdDialog": {
       "title": "Jeton créé",
@@ -683,7 +686,8 @@
       "title": "Révoquer le jeton",
       "message": "Êtes-vous sûr de vouloir révoquer \"{{name}}\" ? Cette action est irréversible.",
       "confirm": "Révoquer"
-    }
+    },
+    "expired": "Expiré"
   },
   "users": {
     "title": "Gestion des utilisateurs",

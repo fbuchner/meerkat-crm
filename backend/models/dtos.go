@@ -201,9 +201,20 @@ type AdminUsersListResponse struct {
 	TotalPages int                 `json:"total_pages"`
 }
 
+// DefaultApiTokenExpiryDays is used when a token is created without an explicit
+// lifetime. Tokens are long-lived bearer credentials, so they get a bounded
+// life by default rather than living forever until someone remembers to revoke.
+const DefaultApiTokenExpiryDays = 90
+
+// MaxApiTokenExpiryDays caps how far out a token may be dated.
+const MaxApiTokenExpiryDays = 365
+
 // ApiTokenInput represents the DTO for creating an API token
 type ApiTokenInput struct {
 	Name string `json:"name" validate:"required,min=1,max=100"`
+	// ExpiresInDays is optional; omitting it applies DefaultApiTokenExpiryDays.
+	// There is deliberately no "never expires" option.
+	ExpiresInDays *int `json:"expires_in_days" validate:"omitempty,min=1,max=365"`
 }
 
 // ApiTokenResponse represents the DTO returned for an API token
@@ -213,6 +224,7 @@ type ApiTokenResponse struct {
 	CreatedAt  time.Time  `json:"created_at"`
 	LastUsedAt *time.Time `json:"last_used_at"`
 	RevokedAt  *time.Time `json:"revoked_at"`
+	ExpiresAt  *time.Time `json:"expires_at"`
 }
 
 // ApiTokenCreateResponse is returned on token creation and includes the plaintext token

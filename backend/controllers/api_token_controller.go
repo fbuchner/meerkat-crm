@@ -40,6 +40,7 @@ func ListApiTokens(c *gin.Context) {
 			CreatedAt:  t.CreatedAt,
 			LastUsedAt: t.LastUsedAt,
 			RevokedAt:  t.RevokedAt,
+			ExpiresAt:  t.ExpiresAt,
 		}
 	}
 
@@ -69,10 +70,17 @@ func CreateApiToken(c *gin.Context) {
 
 	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(plaintext)))
 
+	expiryDays := models.DefaultApiTokenExpiryDays
+	if input.ExpiresInDays != nil {
+		expiryDays = *input.ExpiresInDays
+	}
+	expiresAt := time.Now().Add(time.Duration(expiryDays) * 24 * time.Hour)
+
 	token := models.ApiToken{
 		UserID:    userID,
 		Name:      input.Name,
 		TokenHash: hash,
+		ExpiresAt: &expiresAt,
 	}
 	if err := db.Create(&token).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("insert"))
@@ -86,6 +94,7 @@ func CreateApiToken(c *gin.Context) {
 			CreatedAt:  token.CreatedAt,
 			LastUsedAt: token.LastUsedAt,
 			RevokedAt:  token.RevokedAt,
+			ExpiresAt:  token.ExpiresAt,
 		},
 		Token: plaintext,
 	})

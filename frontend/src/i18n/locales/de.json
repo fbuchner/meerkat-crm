@@ -406,8 +406,8 @@
       "label": "Datumsformat",
       "description": "Wählen Sie, wie Daten in der Anwendung angezeigt werden.",
       "options": {
-        "eu":  "Europäisch (TT.MM.JJJJ)",
-        "us":  "US (MM/TT/JJJJ)",
+        "eu": "Europäisch (TT.MM.JJJJ)",
+        "us": "US (MM/TT/JJJJ)",
         "iso": "ISO (JJJJ-MM-TT)"
       }
     },
@@ -665,12 +665,15 @@
       "created": "Erstellt",
       "lastUsed": "Zuletzt verwendet",
       "status": "Status",
-      "actions": "Aktionen"
+      "actions": "Aktionen",
+      "expires": "Läuft ab"
     },
     "createDialog": {
       "title": "API-Token erstellen",
       "nameLabel": "Token-Name",
-      "createButton": "Erstellen"
+      "createButton": "Erstellen",
+      "expiryLabel": "Läuft ab in",
+      "expiryDays": "{{days}} Tage"
     },
     "createdDialog": {
       "title": "Token erstellt",
@@ -683,7 +686,8 @@
       "title": "Token widerrufen",
       "message": "Möchten Sie \"{{name}}\" wirklich widerrufen? Dies kann nicht rückgängig gemacht werden.",
       "confirm": "Widerrufen"
-    }
+    },
+    "expired": "Abgelaufen"
   },
   "users": {
     "title": "Benutzerverwaltung",

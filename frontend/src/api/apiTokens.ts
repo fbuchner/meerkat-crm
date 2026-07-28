@@ -7,7 +7,14 @@ export interface ApiToken {
   created_at: string;
   last_used_at: string | null;
   revoked_at: string | null;
+  /** Null only for tokens created before expiry was introduced. */
+  expires_at: string | null;
 }
+
+/** Selectable lifetimes; the backend caps this at 365 days. */
+export const API_TOKEN_EXPIRY_OPTIONS = [30, 60, 90, 180, 365] as const;
+
+export const DEFAULT_API_TOKEN_EXPIRY_DAYS = 90;
 
 export interface ApiTokenCreateResponse extends ApiToken {
   token: string;
@@ -26,11 +33,14 @@ export async function getApiTokens(): Promise<ApiTokensListResponse> {
   return { tokens: data?.tokens || [] };
 }
 
-export async function createApiToken(name: string): Promise<ApiTokenCreateResponse> {
+export async function createApiToken(
+  name: string,
+  expiresInDays: number = DEFAULT_API_TOKEN_EXPIRY_DAYS,
+): Promise<ApiTokenCreateResponse> {
   const response = await apiFetch(`${API_BASE_URL}/api-tokens`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, expires_in_days: expiresInDays }),
   });
   const data = await handleResponse(response, 'Unable to create API token.');
   return data as ApiTokenCreateResponse;

@@ -31,7 +31,16 @@ import AddIcon from '@mui/icons-material/Add';
 import KeyIcon from '@mui/icons-material/Key';
 import BlockIcon from '@mui/icons-material/Block';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import { getApiTokens, createApiToken, revokeApiToken, ApiToken, ApiTokenCreateResponse } from './api/apiTokens';
+import MenuItem from '@mui/material/MenuItem';
+import {
+  getApiTokens,
+  createApiToken,
+  revokeApiToken,
+  ApiToken,
+  ApiTokenCreateResponse,
+  API_TOKEN_EXPIRY_OPTIONS,
+  DEFAULT_API_TOKEN_EXPIRY_DAYS,
+} from './api/apiTokens';
 import { useSnackbar } from './context/SnackbarContext';
 import WebhooksSettings from './components/WebhooksSettings';
 
@@ -46,6 +55,7 @@ export default function ApiTokensPage() {
   // Create dialog
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newTokenName, setNewTokenName] = useState('');
+  const [newTokenExpiryDays, setNewTokenExpiryDays] = useState<number>(DEFAULT_API_TOKEN_EXPIRY_DAYS);
   const [createLoading, setCreateLoading] = useState(false);
 
   // Token display dialog (shown once after creation)
@@ -78,9 +88,10 @@ export default function ApiTokensPage() {
     if (!newTokenName.trim()) return;
     setCreateLoading(true);
     try {
-      const result = await createApiToken(newTokenName.trim());
+      const result = await createApiToken(newTokenName.trim(), newTokenExpiryDays);
       setCreateDialogOpen(false);
       setNewTokenName('');
+      setNewTokenExpiryDays(DEFAULT_API_TOKEN_EXPIRY_DAYS);
       setCreatedToken(result);
       setCopied(false);
       await fetchTokens();
@@ -119,6 +130,11 @@ export default function ApiTokensPage() {
     if (!dateStr) return t('apiTokens.neverUsed');
     return new Date(dateStr).toLocaleString();
   };
+
+  // A null expires_at means no expiry, which only occurs for tokens created
+  // before expiry was introduced.
+  const isExpired = (token: ApiToken) =>
+    token.expires_at !== null && new Date(token.expires_at) <= new Date();
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 2 }}>
@@ -159,6 +175,7 @@ export default function ApiTokensPage() {
                     <TableCell>{t('apiTokens.columns.name')}</TableCell>
                     <TableCell>{t('apiTokens.columns.created')}</TableCell>
                     <TableCell>{t('apiTokens.columns.lastUsed')}</TableCell>
+                    <TableCell>{t('apiTokens.columns.expires')}</TableCell>
                     <TableCell>{t('apiTokens.columns.status')}</TableCell>
                     <TableCell>{t('apiTokens.columns.actions')}</TableCell>
                   </TableRow>
@@ -166,7 +183,7 @@ export default function ApiTokensPage() {
                 <TableBody>
                   {tokens.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} align="center">
+                      <TableCell colSpan={6} align="center">
                         <Typography color="text.secondary">{t('apiTokens.noTokens')}</Typography>
                       </TableCell>
                     </TableRow>
@@ -176,15 +193,18 @@ export default function ApiTokensPage() {
                         <TableCell>{token.name}</TableCell>
                         <TableCell>{new Date(token.created_at).toLocaleString()}</TableCell>
                         <TableCell>{formatDate(token.last_used_at)}</TableCell>
+                        <TableCell>{formatDate(token.expires_at)}</TableCell>
                         <TableCell>
                           {token.revoked_at ? (
                             <Chip label={t('apiTokens.revoked')} color="error" size="small" />
+                          ) : isExpired(token) ? (
+                            <Chip label={t('apiTokens.expired')} color="warning" size="small" />
                           ) : (
                             <Chip label={t('apiTokens.active')} color="success" size="small" />
                           )}
                         </TableCell>
                         <TableCell>
-                          {!token.revoked_at && (
+                          {!token.revoked_at && !isExpired(token) && (
                             <Tooltip title={t('apiTokens.revokeDialog.title')}>
                               <IconButton
                                 size="small"
@@ -220,6 +240,20 @@ export default function ApiTokensPage() {
             margin="normal"
             inputProps={{ maxLength: 100 }}
           />
+          <TextField
+            select
+            label={t('apiTokens.createDialog.expiryLabel')}
+            value={newTokenExpiryDays}
+            onChange={(e) => setNewTokenExpiryDays(Number(e.target.value))}
+            fullWidth
+            margin="normal"
+          >
+            {API_TOKEN_EXPIRY_OPTIONS.map((days) => (
+              <MenuItem key={days} value={days}>
+                {t('apiTokens.createDialog.expiryDays', { days })}
+              </MenuItem>
+            ))}
+          </TextField>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCreateDialogOpen(false)} disabled={createLoading}>

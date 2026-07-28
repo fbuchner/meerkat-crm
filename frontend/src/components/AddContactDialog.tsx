@@ -320,10 +320,10 @@ export default function AddContactDialog({
           {isOn('addresses') && (
             <AddressFields label={t('contacts.address')} value={addresses} onChange={setAddresses} />
           )}
-          {isOn('urls') && (
+          {isOn('links') && (
             <MultiValueField label={t('contacts.urls')} value={urls} onChange={setUrls} valueType="url" defaultType="home" />
           )}
-          {isOn('impps') && (
+          {isOn('imppAddresses') && (
             <MultiValueField label={t('contacts.impps')} value={impps} onChange={setImpps} defaultType="" freeTextType />
           )}
 
@@ -361,17 +361,17 @@ export default function AddContactDialog({
             />
           )}
 
-          {isOn('organization') && (
-            <TextField label={t('contacts.organization')} fullWidth value={formData.organization} onChange={handleChange('organization')} />
+          {isOn('organizations') && (
+            <>
+              <TextField label={t('contacts.organization')} fullWidth value={formData.organization} onChange={handleChange('organization')} />
+              <TextField label={t('contacts.department')} fullWidth value={formData.department} onChange={handleChange('department')} />
+            </>
           )}
-          {isOn('department') && (
-            <TextField label={t('contacts.department')} fullWidth value={formData.department} onChange={handleChange('department')} />
-          )}
-          {isOn('job_title') && (
-            <TextField label={t('contacts.jobTitle')} fullWidth value={formData.job_title} onChange={handleChange('job_title')} />
-          )}
-          {isOn('role') && (
-            <TextField label={t('contacts.role')} fullWidth value={formData.role} onChange={handleChange('role')} />
+          {isOn('titles') && (
+            <>
+              <TextField label={t('contacts.jobTitle')} fullWidth value={formData.job_title} onChange={handleChange('job_title')} />
+              <TextField label={t('contacts.role')} fullWidth value={formData.role} onChange={handleChange('role')} />
+            </>
           )}
           {isOn('work_information') && (
             <TextField

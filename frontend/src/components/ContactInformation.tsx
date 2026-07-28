@@ -175,7 +175,7 @@ export default function ContactInformation({
               />
             )}
 
-            {isOn('urls') && (
+            {isOn('links') && (
               <EditableArrayField<ContactValue[]>
                 icon={<LanguageIcon sx={iconSx} />}
                 label={t('contacts.urls')}
@@ -189,7 +189,7 @@ export default function ContactInformation({
               />
             )}
 
-            {isOn('impps') && (
+            {isOn('imppAddresses') && (
               <EditableArrayField<ContactValue[]>
                 icon={<ChatIcon sx={iconSx} />}
                 label={t('contacts.impps')}
@@ -240,68 +240,66 @@ export default function ContactInformation({
               />
             )}
 
-            {isOn('organization') && (
-              <EditableField
-                icon={<BusinessIcon sx={iconSx} />}
-                label={t('contacts.organization')}
-                field="organization"
-                value={contact.organization || ''}
-                isEditing={editingField === 'organization'}
-                editValue={editValue}
-                validationError={validationError}
-                onEditStart={onEditStart}
-                onEditCancel={onEditCancel}
-                onEditSave={onEditSave}
-                onEditValueChange={onEditValueChange}
-              />
+            {isOn('organizations') && (
+              <>
+                <EditableField
+                  icon={<BusinessIcon sx={iconSx} />}
+                  label={t('contacts.organization')}
+                  field="organization"
+                  value={contact.organization || ''}
+                  isEditing={editingField === 'organization'}
+                  editValue={editValue}
+                  validationError={validationError}
+                  onEditStart={onEditStart}
+                  onEditCancel={onEditCancel}
+                  onEditSave={onEditSave}
+                  onEditValueChange={onEditValueChange}
+                />
+                <EditableField
+                  icon={<BusinessIcon sx={iconSx} />}
+                  label={t('contacts.department')}
+                  field="department"
+                  value={contact.department || ''}
+                  isEditing={editingField === 'department'}
+                  editValue={editValue}
+                  validationError={validationError}
+                  onEditStart={onEditStart}
+                  onEditCancel={onEditCancel}
+                  onEditSave={onEditSave}
+                  onEditValueChange={onEditValueChange}
+                />
+              </>
             )}
 
-            {isOn('department') && (
-              <EditableField
-                icon={<BusinessIcon sx={iconSx} />}
-                label={t('contacts.department')}
-                field="department"
-                value={contact.department || ''}
-                isEditing={editingField === 'department'}
-                editValue={editValue}
-                validationError={validationError}
-                onEditStart={onEditStart}
-                onEditCancel={onEditCancel}
-                onEditSave={onEditSave}
-                onEditValueChange={onEditValueChange}
-              />
-            )}
-
-            {isOn('job_title') && (
-              <EditableField
-                icon={<BadgeIcon sx={iconSx} />}
-                label={t('contacts.jobTitle')}
-                field="job_title"
-                value={contact.job_title || ''}
-                isEditing={editingField === 'job_title'}
-                editValue={editValue}
-                validationError={validationError}
-                onEditStart={onEditStart}
-                onEditCancel={onEditCancel}
-                onEditSave={onEditSave}
-                onEditValueChange={onEditValueChange}
-              />
-            )}
-
-            {isOn('role') && (
-              <EditableField
-                icon={<BadgeIcon sx={iconSx} />}
-                label={t('contacts.role')}
-                field="role"
-                value={contact.role || ''}
-                isEditing={editingField === 'role'}
-                editValue={editValue}
-                validationError={validationError}
-                onEditStart={onEditStart}
-                onEditCancel={onEditCancel}
-                onEditSave={onEditSave}
-                onEditValueChange={onEditValueChange}
-              />
+            {isOn('titles') && (
+              <>
+                <EditableField
+                  icon={<BadgeIcon sx={iconSx} />}
+                  label={t('contacts.jobTitle')}
+                  field="job_title"
+                  value={contact.job_title || ''}
+                  isEditing={editingField === 'job_title'}
+                  editValue={editValue}
+                  validationError={validationError}
+                  onEditStart={onEditStart}
+                  onEditCancel={onEditCancel}
+                  onEditSave={onEditSave}
+                  onEditValueChange={onEditValueChange}
+                />
+                <EditableField
+                  icon={<BadgeIcon sx={iconSx} />}
+                  label={t('contacts.role')}
+                  field="role"
+                  value={contact.role || ''}
+                  isEditing={editingField === 'role'}
+                  editValue={editValue}
+                  validationError={validationError}
+                  onEditStart={onEditStart}
+                  onEditCancel={onEditCancel}
+                  onEditSave={onEditSave}
+                  onEditValueChange={onEditValueChange}
+                />
+              </>
             )}
 
             {isOn('work_information') && (

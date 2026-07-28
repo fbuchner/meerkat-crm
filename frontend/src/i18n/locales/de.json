@@ -212,6 +212,7 @@
     "department": "Abteilung",
     "jobTitle": "Position",
     "role": "Rolle",
+    "titles": "Position / Rolle",
     "anniversary": "Jahrestag",
     "fieldType": "Typ",
     "types": {

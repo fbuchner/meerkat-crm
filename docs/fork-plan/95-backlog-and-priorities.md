@@ -118,7 +118,7 @@ Nothing further planned here; revisit only if new brand assets are produced.
 
 ## Tier 1 — DONE: Security review (2026-07-28)
 
-All three items done. Twelve findings, all patched and merged to `main`.
+All three items done. Fourteen findings, all patched and merged to `main`.
 
 **1. Core backend audit** (`becd907`, `34fbc2c`, `7e988c5`, `fda2c18`, `ae0ef6c`) — eight findings:
 
@@ -145,6 +145,27 @@ before linking an OIDC identity to an existing account, no open redirect in the 
 - **PKCE** — flow sent no `code_challenge`; added S256.
 - **`COOKIE_DOMAIN`** — both `.env.example` files shipped `'localhost'`, inherited from upstream
   ([#196](https://github.com/fbuchner/meerkat-crm/pull/196)). Now empty (host-only cookie).
+
+A follow-up spec-conformance pass (`3556e3b`) found two more, both in ID token claim decoding:
+- **`email_verified` type** — providers disagree on boolean vs quoted string (AWS Cognito sends
+  `"true"`); the spec doesn't settle it. The struct declared a plain `bool`, and since `idToken.Claims`
+  decodes in one pass, the string form failed *every* claim and killed the login with a generic
+  `oidc_error`. go-oidc has this workaround for UserInfo but doesn't expose it for ID tokens.
+- **`azp` unchecked** — OIDC Core 3.1.3.7 steps 4-5. go-oidc verifies our `client_id` is in `aud` but
+  ignores `azp`, so a token minted for another client that lists us in a multi-valued `aud` was accepted.
+
+**Verified as already correct, so deliberately unchanged:** the `(oidc_subject, oidc_provider)` pairing
+key is safe because `oidc.NewProvider` refuses to start unless the configured URL exactly equals the
+discovery document's `iss`, so the stored provider value cannot drift from the real issuer. `at_hash`
+is unvalidated, which is spec-conformant — it is `MAY` for the code flow (OIDC Core 3.1.3.8), and the
+UserInfo `sub` check already covers the substitution risk that validating it would address.
+
+**Known gap, not implemented:** no RP-initiated logout (OIDC RP-Initiated Logout 1.0). `/logout` clears
+the local cookie only, so the IdP session survives and a subsequent "Sign in with SSO" re-authenticates
+silently without a prompt — on a shared machine, logging out does not fully log you out. Implementing it
+means discovering `end_session_endpoint`, retaining an `id_token_hint`, and registering a
+`post_logout_redirect_uri`; it is a feature rather than a patch, so it is recorded here for a decision
+rather than done as part of the audit.
 
 **3. Injection audit** (`04b74cf`) — one real finding: **CSV formula injection** in export. `encoding/csv`
 quotes delimiters but leaves a leading `=`/`+`/`-`/`@`/tab/CR intact, so a contact field carrying a

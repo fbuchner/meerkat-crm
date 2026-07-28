@@ -5,9 +5,11 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mycorrhizal/config"
+	"mycorrhizal/httputil"
 	"mycorrhizal/logger"
 	"mycorrhizal/models"
 	"net"
@@ -21,11 +23,50 @@ import (
 
 const maxDeliveryAttempts = 3
 
+// Sentinels surfaced by the SSRF-guarded dialer. They are returned as ordinary
+// dial errors and end up in the stored delivery record's Error field.
 var (
+	ErrWebhookUnreachable    = errors.New("webhook host could not be resolved")
+	ErrWebhookPrivateAddress = errors.New("webhook URL resolves to a private or loopback address")
+)
+
+var (
+	// deliveryClient is used when WEBHOOK_BLOCK_PRIVATE_URLS is off, which is
+	// the default: self-hosted installs legitimately point webhooks at other
+	// services on the same box or LAN, so no address filtering is applied.
 	deliveryClient = &http.Client{Timeout: 15 * time.Second}
+
+	// guardedDeliveryClient is used when WEBHOOK_BLOCK_PRIVATE_URLS is on. The
+	// filtering lives in the dialer rather than in a pre-flight URL check
+	// because every connection the transport opens — including ones for
+	// redirect targets — must be validated. A pre-flight check alone is
+	// bypassable two ways: a 302 to an internal address (the redirect target
+	// was never checked) and DNS rebinding (the dial re-resolves and can get a
+	// different answer than the check did).
+	guardedDeliveryClient = &http.Client{
+		Timeout: 15 * time.Second,
+		Transport: &http.Transport{
+			DialContext: httputil.SafeDialContext(ErrWebhookUnreachable, ErrWebhookPrivateAddress),
+		},
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 3 {
+				return errors.New("too many redirects")
+			}
+			return nil
+		},
+	}
+
 	// semaphore limits concurrent outbound webhook HTTP calls
 	deliverySem = make(chan struct{}, 10)
 )
+
+// clientFor picks the delivery client matching the configured SSRF policy.
+func clientFor(cfg config.Config) *http.Client {
+	if cfg.WebhookBlockPrivateURLs {
+		return guardedDeliveryClient
+	}
+	return deliveryClient
+}
 
 var retryDelays = []time.Duration{5 * time.Minute, 15 * time.Minute}
 
@@ -46,19 +87,24 @@ func buildPayloadBody(eventType string, data interface{}) ([]byte, error) {
 	return json.Marshal(payload)
 }
 
-// returns true if the URL resolves to a loopback, private, or link-local address
+// isPrivateURL reports whether rawURL resolves to any non-public address. It
+// is only a fast pre-flight so the stored delivery record carries a clear
+// error; the authoritative check is the pinning dialer on
+// guardedDeliveryClient, which also covers redirects and DNS rebinding.
+//
+// Fails closed: an unparseable URL or a failed lookup counts as private, since
+// we cannot show it is safe.
 func isPrivateURL(rawURL string) bool {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return true
 	}
-	addrs, err := net.LookupHost(u.Hostname())
+	ips, err := net.LookupIP(u.Hostname())
 	if err != nil {
-		return false
+		return true
 	}
-	for _, addr := range addrs {
-		ip := net.ParseIP(addr)
-		if ip != nil && (ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast()) {
+	for _, ip := range ips {
+		if !httputil.IsPublicIP(ip) {
 			return true
 		}
 	}
@@ -132,7 +178,7 @@ func deliverWebhook(db *gorm.DB, cfg config.Config, wh models.Webhook, eventType
 	req.Header.Set("X-Webhook-Signature", "sha256="+sig)
 	req.Header.Set("X-Mycorrhizal-Event", eventType)
 
-	resp, err := deliveryClient.Do(req)
+	resp, err := clientFor(cfg).Do(req)
 	if err != nil {
 		errStr := err.Error()
 		return saveDelivery(db, wh.ID, eventType, string(body), nil, &errStr, attempt, retryAt(attempt))

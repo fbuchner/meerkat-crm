@@ -10,6 +10,7 @@ import (
 	"io"
 	"mycorrhizal/config"
 	"mycorrhizal/contactmodel"
+	"mycorrhizal/httputil"
 	"mycorrhizal/logger"
 	"mycorrhizal/models"
 	"mycorrhizal/vcard3"
@@ -92,31 +93,16 @@ func NewContactSyncService(blockPrivateURLs bool) *ContactSyncService {
 }
 
 // contactPrivateBlockingDialContext mirrors calendar_sync_service.go's
-// privateBlockingDialContext exactly, but returns the contacts-specific
-// sentinel errors. Duplicated rather than shared: the calendar version
-// returns ErrCalendar*/hardcoded sentinels, and generalizing it (e.g. via a
-// parameter) risks touching calendar sync behavior for no benefit here.
+// privateBlockingDialContext, returning the contacts-specific sentinel errors.
+// The address classification and IP-pinning are shared (httputil.SafeDialContext)
+// so every outbound path enforces the same reserved ranges; only the sentinels
+// differ, which is what kept these two apart in the first place.
 func contactPrivateBlockingDialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	host, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		return nil, err
-	}
-	ips, err := net.DefaultResolver.LookupIP(ctx, "ip", host)
-	if err != nil {
-		return nil, fmt.Errorf("%w: could not resolve host", ErrContactSyncUnreachable)
-	}
-	var safeIP net.IP
-	for _, ip := range ips {
-		if !ip.IsLoopback() && !ip.IsPrivate() && !ip.IsLinkLocalUnicast() && !ip.IsLinkLocalMulticast() && !ip.IsUnspecified() {
-			safeIP = ip
-			break
-		}
-	}
-	if safeIP == nil {
-		return nil, ErrContactSyncPrivateAddress
-	}
-	dialer := &net.Dialer{Timeout: 10 * time.Second, KeepAlive: 10 * time.Second}
-	return dialer.DialContext(ctx, network, net.JoinHostPort(safeIP.String(), port))
+	dial := httputil.SafeDialContext(
+		fmt.Errorf("%w: could not resolve host", ErrContactSyncUnreachable),
+		ErrContactSyncPrivateAddress,
+	)
+	return dial(ctx, network, addr)
 }
 
 // contactRoundTripper maps HTTP auth/not-found responses to sentinel errors

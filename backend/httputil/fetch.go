@@ -4,7 +4,6 @@
 package httputil
 
 import (
-	"context"
 	"errors"
 	"io"
 	"net"
@@ -13,35 +12,6 @@ import (
 	"strings"
 	"time"
 )
-
-// isPrivateIP checks if an IP address is in a private/reserved range
-func isPrivateIP(ip net.IP) bool {
-	if ip == nil {
-		return true
-	}
-
-	// Check for loopback
-	if ip.IsLoopback() {
-		return true
-	}
-
-	// Check for link-local (includes cloud metadata endpoint 169.254.169.254)
-	if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
-		return true
-	}
-
-	// Check for private ranges
-	if ip.IsPrivate() {
-		return true
-	}
-
-	// Check for unspecified (0.0.0.0 or ::)
-	if ip.IsUnspecified() {
-		return true
-	}
-
-	return false
-}
 
 // validateURLForSSRF checks if a URL is safe to fetch (not pointing to internal resources)
 func validateURLForSSRF(rawURL string) (*url.URL, error) {
@@ -75,9 +45,11 @@ func validateURLForSSRF(rawURL string) (*url.URL, error) {
 		return nil, errors.New("failed to resolve hostname")
 	}
 
-	// Check all resolved IPs
+	// Reject if *any* answer is non-public, not merely if all of them are: a
+	// host that resolves to a mix of public and internal addresses has no
+	// legitimate reason to be fetched here.
 	for _, ip := range ips {
-		if isPrivateIP(ip) {
+		if !IsPublicIP(ip) {
 			return nil, errors.New("access to internal IP addresses is not allowed")
 		}
 	}
@@ -100,43 +72,12 @@ func FetchImageFromURL(imageURL string) ([]byte, string, error) {
 		return nil, "", err
 	}
 
-	// Create a custom dialer that validates IP addresses at connection time
-	// This prevents DNS rebinding/TOCTOU attacks
-	safeDialer := &net.Dialer{
-		Timeout:   10 * time.Second,
-		KeepAlive: 10 * time.Second,
-	}
-
-	safeDialContext := func(ctx context.Context, network, addr string) (net.Conn, error) {
-		// Extract host from addr (format is host:port)
-		host, port, err := net.SplitHostPort(addr)
-		if err != nil {
-			return nil, err
-		}
-
-		// Resolve the hostname to IP addresses
-		ips, err := net.LookupIP(host)
-		if err != nil {
-			return nil, errors.New("failed to resolve hostname")
-		}
-
-		// Find a safe IP to connect to
-		var safeIP net.IP
-		for _, ip := range ips {
-			if !isPrivateIP(ip) {
-				safeIP = ip
-				break
-			}
-		}
-
-		if safeIP == nil {
-			return nil, errors.New("access to internal IP addresses is not allowed")
-		}
-
-		// Connect using the validated IP address directly
-		safeAddr := net.JoinHostPort(safeIP.String(), port)
-		return safeDialer.DialContext(ctx, network, safeAddr)
-	}
+	// Validate IP addresses at connection time, pinning the resolved address,
+	// so DNS rebinding between validation and dial cannot redirect us inward.
+	safeDialContext := SafeDialContext(
+		errors.New("failed to resolve hostname"),
+		errors.New("access to internal IP addresses is not allowed"),
+	)
 
 	// Create HTTP client with custom transport that validates IPs at connection time
 	client := &http.Client{

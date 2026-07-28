@@ -14,9 +14,7 @@ import {
   withTitles,
   formatAnniversaryDate,
   parseAnniversaryDate,
-  toLegacyContact,
   toContactRecordInput,
-  ContactRecordResponse,
 } from './contacts';
 
 describe('email conversion', () => {
@@ -169,65 +167,45 @@ describe('title fields', () => {
   });
 });
 
-describe('toLegacyContact / toContactRecordInput round-trip', () => {
-  const record: ContactRecordResponse = {
-    id: 42,
-    uid: 'uid-42',
-    etag: 'etag-1',
-    gender: 'other',
-    card: {
-      name: {
-        components: [
-          { kind: 'title', value: 'Dr.' },
-          { kind: 'given', value: 'Marie' },
-          { kind: 'given2', value: 'Salomea' },
-          { kind: 'surname', value: 'Curie' },
-        ],
-      },
-      nicknames: [{ name: 'Manya' }],
-      emails: [{ address: 'marie@sorbonne.fr', contexts: ['work'] }],
-      phones: [{ number: '555-0100', features: ['cell'] }],
-      organizations: [{ name: 'Sorbonne University', units: [{ name: 'Physics' }] }],
-      titles: [{ name: 'Professor', kind: 'title' }, { name: 'Nobel Laureate', kind: 'role' }],
-      anniversaries: [{ kind: 'birth', date: { partial: { year: 1867, month: 11, day: 7 } } }],
-    },
-    crm: {
+describe('toContactRecordInput', () => {
+  // toLegacyContact/getContact/createContact/updateContact were retired once
+  // every contact-editing component migrated onto getContactRecord/
+  // updateContactRecord/createContactRecord (docs/fork-plan/95, Tier 0 items
+  // 3-7) -- toContactRecordInput itself survives only for e2e test fixtures
+  // (e2e/fixtures.ts, e2e/global-setup.ts), which still find it convenient
+  // to build nested payloads from simple flat test data.
+  test('builds an equivalent nested shape from a flat Contact-like input', () => {
+    const input = toContactRecordInput({
+      firstname: 'Marie',
+      lastname: 'Curie',
+      prefix: 'Dr.',
+      middle_name: 'Salomea',
+      nickname: 'Manya',
+      gender: 'other',
+      emails: [{ type: 'work', value: 'marie@sorbonne.fr' }],
+      phones: [{ type: 'cell', value: '555-0100' }],
+      organization: 'Sorbonne University',
+      department: 'Physics',
+      job_title: 'Professor',
+      role: 'Nobel Laureate',
+      birthday: '1867-11-07',
       circles: ['Scientists'],
-      how_we_met: 'Conference',
       custom_fields: { favorite_color: 'Radium Green' },
-    },
-    photo: '',
-    photo_thumbnail: '',
-    archived: false,
-  };
+    });
 
-  test('toLegacyContact flattens every field correctly', () => {
-    const contact = toLegacyContact(record);
-    expect(contact.firstname).toBe('Marie');
-    expect(contact.lastname).toBe('Curie');
-    expect(contact.prefix).toBe('Dr.');
-    expect(contact.middle_name).toBe('Salomea');
-    expect(contact.nickname).toBe('Manya');
-    expect(contact.emails).toEqual([{ type: 'work', value: 'marie@sorbonne.fr' }]);
-    expect(contact.phones).toEqual([{ type: 'cell', value: '555-0100' }]);
-    expect(contact.organization).toBe('Sorbonne University');
-    expect(contact.department).toBe('Physics');
-    expect(contact.job_title).toBe('Professor');
-    expect(contact.role).toBe('Nobel Laureate');
-    expect(contact.birthday).toBe('1867-11-07');
-    expect(contact.circles).toEqual(['Scientists']);
-    expect(contact.custom_fields).toEqual({ favorite_color: 'Radium Green' });
-  });
-
-  test('toContactRecordInput rebuilds an equivalent nested shape from the flattened contact', () => {
-    const contact = toLegacyContact(record);
-    const input = toContactRecordInput(contact);
     expect(input.gender).toBe('other');
-    expect(input.card.emails).toEqual(record.card.emails);
+    expect(input.card.name?.components).toEqual([
+      { kind: 'title', value: 'Dr.' },
+      { kind: 'given', value: 'Marie' },
+      { kind: 'given2', value: 'Salomea' },
+      { kind: 'surname', value: 'Curie' },
+    ]);
+    expect(input.card.nicknames).toEqual([{ name: 'Manya' }]);
+    expect(input.card.emails).toEqual([{ address: 'marie@sorbonne.fr', contexts: ['work'] }]);
     expect(input.card.phones).toEqual([{ number: '555-0100', contexts: ['cell'] }]);
-    expect(input.card.organizations).toEqual(record.card.organizations);
-    expect(input.card.titles).toEqual(record.card.titles);
-    expect(input.card.anniversaries).toEqual(record.card.anniversaries);
+    expect(input.card.organizations).toEqual([{ name: 'Sorbonne University', units: [{ name: 'Physics' }] }]);
+    expect(input.card.titles).toEqual([{ name: 'Professor', kind: 'title' }, { name: 'Nobel Laureate', kind: 'role' }]);
+    expect(input.card.anniversaries).toEqual([{ kind: 'birth', date: { partial: { year: 1867, month: 11, day: 7 } } }]);
     expect(input.crm.circles).toEqual(['Scientists']);
     expect(input.crm.custom_fields).toEqual({ favorite_color: 'Radium Green' });
   });

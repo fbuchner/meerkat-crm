@@ -2,14 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  Contact,
   Card as CardModel,
   CRMEnvelope,
   NameComponent,
   ContactRecordResponse,
   getContactRecord,
   updateContactRecord,
-  toLegacyContact,
+  nameComponentValue,
   withAnniversary,
   getOrganizationFields,
   withOrganization,
@@ -77,12 +76,10 @@ export default function ContactDetailPage() {
   const { showError } = useSnackbar();
   const { formatBirthdayForInput, parseBirthdayInput, autoFormatBirthdayInput } = useDateFormat();
   // record is the single source of truth, fetched/written directly against
-  // the nested Card/CRM wire shape. `contact` below is a read-only flat
-  // view derived from it via toLegacyContact, kept only for the consumers
-  // (ContactHeader, dialogs, circle/profile editing) that haven't migrated
-  // off the legacy Contact shape yet -- see docs/fork-plan/95.
+  // the nested Card/CRM wire shape -- see docs/fork-plan/95.
   const [record, setRecord] = useState<ContactRecordResponse | null>(null);
-  const contact: Contact | null = record ? toLegacyContact(record) : null;
+  const firstname = record ? nameComponentValue(record.card?.name?.components, 'given') || '' : '';
+  const lastname = record ? nameComponentValue(record.card?.name?.components, 'surname') || '' : '';
   const [profilePic, setProfilePic] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -160,7 +157,7 @@ export default function ContactDetailPage() {
     handleDeleteNote,
     handleDeleteActivity,
     setEditTimelineValues
-  } = useTimelineEditing(contact?.ID, refreshNotesAndActivities, { showError });
+  } = useTimelineEditing(record?.id, refreshNotesAndActivities, { showError });
 
   const {
     reminders,
@@ -491,15 +488,16 @@ export default function ContactDetailPage() {
   };
 
   const handleStartEditProfile = () => {
-    if (!contact) return;
+    if (!record) return;
+    const components = record.card?.name?.components;
     setProfileValues({
-      prefix: contact.prefix || '',
-      firstname: contact.firstname || '',
-      middle_name: contact.middle_name || '',
-      lastname: contact.lastname || '',
-      suffix: contact.suffix || '',
-      nickname: contact.nickname || '',
-      gender: contact.gender ? contact.gender.toLowerCase() : ''
+      prefix: nameComponentValue(components, 'title') || '',
+      firstname: nameComponentValue(components, 'given') || '',
+      middle_name: nameComponentValue(components, 'given2') || '',
+      lastname: nameComponentValue(components, 'surname') || '',
+      suffix: nameComponentValue(components, 'generation') || '',
+      nickname: record.card?.nicknames?.[0]?.name || '',
+      gender: record.gender ? record.gender.toLowerCase() : ''
     });
     setEditingProfile(true);
   };
@@ -545,10 +543,10 @@ export default function ContactDetailPage() {
   };
 
   const handleDeleteContact = async () => {
-    if (!contact || !id) return;
+    if (!record || !id) return;
 
     const confirmMessage = t('contactDetail.confirmDeleteContact', {
-      name: `${contact.firstname} ${contact.lastname}`
+      name: `${firstname} ${lastname}`
     });
 
     if (!window.confirm(confirmMessage)) {
@@ -602,8 +600,8 @@ export default function ContactDetailPage() {
   };
 
   const handleStayInTouch = () => {
-    if (!contact) return;
-    const contactName = `${contact.firstname}${contact.lastname ? ' ' + contact.lastname : ''}`;
+    if (!record) return;
+    const contactName = `${firstname}${lastname ? ' ' + lastname : ''}`;
     setReminderInitialValues({
       message: t('contactDetail.catchUpWith', { name: contactName }),
       recurrence: 'quarterly'
@@ -647,7 +645,7 @@ export default function ContactDetailPage() {
     );
   }
 
-  if (!record || !contact) {
+  if (!record) {
     return (
       <Box sx={{ maxWidth: 800, mx: 'auto', mt: 2, p: 2 }}>
         <Typography variant="h6">{t('contactDetail.notFound')}</Typography>
@@ -660,7 +658,7 @@ export default function ContactDetailPage() {
 
       {/* Contact Header Card */}
       <ContactHeader
-        contact={contact}
+        record={record}
         profilePic={profilePic}
         editingProfile={editingProfile}
         profileValues={profileValues}
@@ -678,9 +676,9 @@ export default function ContactDetailPage() {
         onDeleteCircle={handleDeleteCircle}
         onNewCircleNameChange={setNewCircleName}
         onUploadProfilePicture={() => setProfilePictureDialogOpen(true)}
-        onStayInTouch={contact.archived ? undefined : handleStayInTouch}
-        onArchiveContact={contact.archived ? undefined : handleArchiveContact}
-        onUnarchiveContact={contact.archived ? handleUnarchiveContact : undefined}
+        onStayInTouch={record.archived ? undefined : handleStayInTouch}
+        onArchiveContact={record.archived ? undefined : handleArchiveContact}
+        onUnarchiveContact={record.archived ? handleUnarchiveContact : undefined}
       />
 
       {/* General Information and Timeline - Two Column Layout */}
@@ -793,7 +791,7 @@ export default function ContactDetailPage() {
         open={activityDialogOpen}
         onClose={() => setActivityDialogOpen(false)}
         onSave={handleSaveActivity}
-        preselectedContactId={contact?.ID}
+        preselectedContactId={record?.id}
       />
 
       <ReminderDialog
@@ -805,7 +803,7 @@ export default function ContactDetailPage() {
         }}
         onSave={handleSaveReminder}
         reminder={editingReminder}
-        contactId={contact?.ID || 0}
+        contactId={record?.id || 0}
         initialValues={reminderInitialValues}
       />
 
@@ -848,7 +846,7 @@ export default function ContactDetailPage() {
         }}
         onSave={handleSaveRelationship}
         relationship={editingRelationship}
-        currentContactId={contact?.ID || 0}
+        currentContactId={record?.id || 0}
       />
     </Box>
   );

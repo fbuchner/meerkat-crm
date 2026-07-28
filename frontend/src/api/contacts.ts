@@ -216,7 +216,7 @@ interface ContactSummaryDTO {
 // Adapter: nested wire shape <-> legacy flat Contact shape.
 // ---------------------------------------------------------------------------
 
-function nameComponentValue(components: NameComponent[] | undefined, kind: NameComponent['kind']): string | undefined {
+export function nameComponentValue(components: NameComponent[] | undefined, kind: NameComponent['kind']): string | undefined {
   return components?.find((c) => c.kind === kind)?.value;
 }
 
@@ -356,54 +356,6 @@ export function withTitles(jobTitle: string, role: string): CardTitle[] {
   if (jobTitle) titles.push({ name: jobTitle, kind: 'title' });
   if (role) titles.push({ name: role, kind: 'role' });
   return titles;
-}
-
-// toLegacyContact maps a full ContactRecordResponse (GET/POST/PUT
-// /contacts/{id}) down into the flat Contact shape.
-export function toLegacyContact(record: ContactRecordResponse): Contact {
-  const card = record.card || {};
-  const crm = record.crm || {};
-
-  const emails = cardEmailsToValues(card.emails);
-  const phones = cardPhonesToValues(card.phones);
-  const urls = cardLinksToValues(card.links);
-  const impps = cardImppToValues(card.imppAddresses);
-  const addresses = cardAddressesToValues(card.addresses);
-  const { organization, department } = getOrganizationFields(card.organizations);
-
-  return {
-    ID: record.id,
-    firstname: nameComponentValue(card.name?.components, 'given') || '',
-    lastname: nameComponentValue(card.name?.components, 'surname') || '',
-    nickname: card.nicknames?.[0]?.name,
-    prefix: nameComponentValue(card.name?.components, 'title'),
-    middle_name: nameComponentValue(card.name?.components, 'given2'),
-    suffix: nameComponentValue(card.name?.components, 'generation'),
-    gender: record.gender,
-    email: emails[0]?.value,
-    phone: phones[0]?.value,
-    birthday: getAnniversaryField(card.anniversaries, 'birth'),
-    anniversary: getAnniversaryField(card.anniversaries, 'wedding'),
-    photo: record.photo,
-    photo_thumbnail: record.photo_thumbnail,
-    address: addresses[0]?.street,
-    how_we_met: crm.how_we_met,
-    food_preference: crm.food_preference,
-    work_information: crm.work_information,
-    contact_information: crm.contact_information,
-    circles: crm.circles,
-    custom_fields: crm.custom_fields,
-    archived: record.archived,
-    emails,
-    phones,
-    addresses,
-    urls,
-    impps,
-    organization,
-    department,
-    job_title: getTitleField(card.titles, 'title'),
-    role: getTitleField(card.titles, 'role'),
-  };
 }
 
 // summaryToLegacyContact maps the slim GET /contacts list item shape down
@@ -547,29 +499,12 @@ export async function getContacts(
   };
 }
 
-// Get single contact. The backend always returns the full
-// ContactRecordResponse now (the old fields= partial-projection param is
-// gone); toLegacyContact narrows it down to the flat shape callers expect.
-export async function getContact(
-  id: string | number
-): Promise<Contact> {
-  const response = await apiFetch(
-    `${API_BASE_URL}/contacts/${id}`,
-    { headers: getAuthHeaders() }
-  );
-
-  if (!response.ok) {
-    throw await parseErrorResponse(response);
-  }
-
-  const record: ContactRecordResponse = await response.json();
-  return toLegacyContact(record);
-}
-
-// getContactRecord/updateContactRecord are the pre-shim counterparts of
-// getContact/updateContact above -- for components that read/write
-// Card/CRMEnvelope directly (ContactInformation) instead of going through
-// toLegacyContact/toContactRecordInput.
+// getContactRecord/updateContactRecord/createContactRecord read and write
+// Card/CRMEnvelope directly. Every contact-editing component has migrated
+// onto these (see docs/fork-plan/95, Tier 0 items 3-6) -- toContactRecordInput
+// (below) still exists for the e2e test fixtures' convenience, but nothing
+// in the app itself round-trips a full record through the flat Contact shape
+// anymore.
 export async function getContactRecord(id: string | number): Promise<ContactRecordResponse> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/${id}`,
@@ -600,16 +535,13 @@ export async function updateContactRecord(id: string | number, input: ContactRec
   return response.json();
 }
 
-// Create contact
-export async function createContact(
-  data: Partial<Contact>
-): Promise<Contact> {
+export async function createContactRecord(input: ContactRecordInput): Promise<ContactRecordResponse> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts`,
     {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(toContactRecordInput(data)),
+      body: JSON.stringify(input),
     }
   );
 
@@ -618,30 +550,7 @@ export async function createContact(
   }
 
   const result = await response.json();
-  const record: ContactRecordResponse = result.contact || result;
-  return toLegacyContact(record);
-}
-
-// Update contact
-export async function updateContact(
-  id: string | number,
-  data: Partial<Contact>
-): Promise<Contact> {
-  const response = await apiFetch(
-    `${API_BASE_URL}/contacts/${id}`,
-    {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(toContactRecordInput(data)),
-    }
-  );
-
-  if (!response.ok) {
-    throw await parseErrorResponse(response);
-  }
-
-  const record: ContactRecordResponse = await response.json();
-  return toLegacyContact(record);
+  return result.contact || result;
 }
 
 // Delete contact

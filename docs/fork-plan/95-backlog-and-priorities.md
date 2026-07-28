@@ -101,18 +101,20 @@ birthday-reminder-on-create flow, and a seeded scenario (8 contacts, 6 reminders
 engineered to force the `DashboardPage` backfill path to fire, confirming it still resolves names
 correctly post-migration.
 
-## Rebranding (out-of-band, done except visual assets)
+## Rebranding — DONE (2026-07-28)
 
 Not originally a tier here — a user-directed pivot after Tier 0 landed, done and merged to `main` before
-returning to this list. Typography (`feature/rebrand-typography`, self-hosted EB Garamond for the
-wordmark + Source Sans 3 for UI) and the full OKLCH color system (`feature/rebrand-colors` +
-`feature/rebrand-status-colors` — core palette, interaction states, and mushroom-themed
-error/warning/info/success colors, all wired into `theme.ts`) are merged. See `assets/fonts/README.md`
-and `assets/colors/README.md` for the palettes and derivation reasoning.
+returning to this list. All three legs are merged:
+- Typography (`feature/rebrand-typography`) — self-hosted EB Garamond for the wordmark + Source Sans 3
+  for UI. See `assets/fonts/README.md`.
+- OKLCH color system (`feature/rebrand-colors` + `feature/rebrand-status-colors`) — core palette,
+  interaction states, and mushroom-themed error/warning/info/success colors, all wired into `theme.ts`.
+  See `assets/colors/README.md`.
+- Logo/icons (`feature/rebrand-logo`, merged `644d762`) — mycelium mark replaces the meerkat mark across
+  favicon, PWA icons, login page, and Settings About section; light/dark variants via `BrandLogo.tsx`.
+  See `assets/logo/README.md`.
 
-**Deliberately not done**: visual assets (logo, favicon, app icons) — still the old meerkat branding,
-blocked on the user producing new images. Revisit this list once those exist; it isn't tracked as a
-numbered tier since there's no actionable next step until then.
+Nothing further planned here; revisit only if new brand assets are produced.
 
 ## Tier 1 — Security review, before the data model grows further
 

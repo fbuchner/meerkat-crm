@@ -115,6 +115,58 @@ type OIDCClaims struct {
 	Provider      string
 }
 
+// flexibleBool decodes a JSON boolean that some providers send as a quoted
+// string. AWS Cognito is the well-known offender, and go-oidc carries the same
+// workaround for the UserInfo response — but it does not expose it for ID token
+// claims, so decoding `"email_verified": "true"` into a plain bool fails the
+// whole claim decode and therefore the entire login.
+type flexibleBool bool
+
+func (b *flexibleBool) UnmarshalJSON(data []byte) error {
+	switch string(data) {
+	case "true", `"true"`:
+		*b = true
+	case "false", `"false"`, "null":
+		*b = false
+	default:
+		return fmt.Errorf("invalid boolean value %s", data)
+	}
+	return nil
+}
+
+// idTokenClaims is the subset of ID token claims this app reads.
+type idTokenClaims struct {
+	Email             string       `json:"email"`
+	EmailVerified     flexibleBool `json:"email_verified"`
+	Name              string       `json:"name"`
+	PreferredUsername string       `json:"preferred_username"`
+	// AuthorizedParty is the `azp` claim, checked in verifyAuthorizedParty.
+	AuthorizedParty string `json:"azp"`
+}
+
+// displayName prefers `name` but accepts `preferred_username`, so a provider
+// that sends only the latter does not trigger an avoidable UserInfo round trip.
+func (c idTokenClaims) displayName() string {
+	if c.Name != "" {
+		return c.Name
+	}
+	return c.PreferredUsername
+}
+
+// verifyAuthorizedParty applies OIDC Core 3.1.3.7 steps 4 and 5, which go-oidc's
+// verifier does not: it confirms this client is present in `aud` but ignores
+// `azp` entirely. An ID token minted for a different client but listing us in a
+// multi-valued `aud` would otherwise be accepted.
+func (p *OIDCProvider) verifyAuthorizedParty(idToken *oidc.IDToken, azp string) error {
+	if len(idToken.Audience) > 1 && azp == "" {
+		return errors.New("id_token has multiple audiences but no azp claim")
+	}
+	if azp != "" && azp != p.oauth2Cfg.ClientID {
+		return fmt.Errorf("id_token azp %q is not this client", azp)
+	}
+	return nil
+}
+
 // ClaimsFor normalizes the caller's identity from a verified ID token, falling
 // back to the UserInfo endpoint for anything the ID token left out.
 //
@@ -125,20 +177,20 @@ type OIDCClaims struct {
 // produces users the database cannot even store more than one of
 // (users.email is UNIQUE NOT NULL).
 func (p *OIDCProvider) ClaimsFor(ctx context.Context, idToken *oidc.IDToken, token *oauth2.Token, providerURL string) (*OIDCClaims, error) {
-	var raw struct {
-		Email         string `json:"email"`
-		Name          string `json:"name"`
-		EmailVerified bool   `json:"email_verified"`
-	}
+	var raw idTokenClaims
 	if err := idToken.Claims(&raw); err != nil {
 		return nil, fmt.Errorf("failed to extract claims: %w", err)
+	}
+
+	if err := p.verifyAuthorizedParty(idToken, raw.AuthorizedParty); err != nil {
+		return nil, err
 	}
 
 	claims := &OIDCClaims{
 		Subject:       idToken.Subject,
 		Email:         raw.Email,
-		EmailVerified: raw.EmailVerified,
-		Name:          raw.Name,
+		EmailVerified: bool(raw.EmailVerified),
+		Name:          raw.displayName(),
 		Provider:      providerURL,
 	}
 

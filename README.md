@@ -1,8 +1,4 @@
-# Mycorrhizal CRM - a simple CRM for the personal life
-
-<p align="center">
-  <img src="docs/assets/meerkat-crm-logo.svg" alt="Meerkat CRM Logo" width="180" />
-</p>
+# Mycorrhizal CRM - a fork of Meerkat for me to play around in
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Backend: Go](https://img.shields.io/badge/Backend-Go-00ADD8?logo=go)](https://golang.org)
@@ -12,18 +8,16 @@
 ## About the project
 Mycorrhizal CRM (Contact Relationship Management) is a  self-hosted solution to keep track of your important contacts. As your digital rolodex it reminds you of birthdays, helps you to keep in mind dietary habits as well as names of spouses of contacts - and much more.
 
-You can find the detailed documentation here: [drewbrunning.github.io/mycorrhizal-crm/](https://drewbrunning.github.io/mycorrhizal-crm/)
-
-<p align="center">
-  <img src="docs/assets/screengrab.gif" alt="Meerkat CRM Demo" />
-</p>
+At this point, this repo is still in the exploration phase. If you're looking for a well-maintained CRM, check out [Meerkat](https://github.com/fbuchner/meerkat-crm)
 
 ## Features
 - Contact management
     - add and search contacts
     - group contacts by circles (e.g. friends, family, work)
     - store relationships of contacts (e.g. spouses, children)
-    - CardDav server for two-way synchronization with your phone's contact list
+    - CardDAV server for two-way synchronization with your phone's contact list
+    - CardDAV client for two-way synchronization with other servers
+    - Import and export all of vCard 3.0, vCard 4.0, and JSContact
 - Notes and activities
     - social network style timeline for contacts
     - notes assigned to individual contacts
@@ -71,11 +65,7 @@ image is required). The easiest way to run it is with Docker Compose:
 ## Contributing
 
 ### Bugs and feature requests
-This application is under development. You can [open an issue](https://github.com/DrewBrunning/mycorrhizal-crm/issues/new/choose) to report a bug or request a new feature.
-
-You can also participate and open up a pull request. 
-
-While AI-assistants can be used to support coding, please note that you are ultimately responsible for code quality. Do not open pull requests for hands-off "vibe-coding" developments, rather stick to feature requests in these cases.
+This application is under development. You're free to note bugs or share ideas as issues, but I can't promise I'll implement them at this point.
 
 ### Development
 To set up this repository for development, follow these steps:
@@ -110,12 +100,3 @@ Ensure you have [Go](https://golang.org/doc/install) installed. Then, set up you
    ```
 
 You can find a more comprehensive overview for developers in the [developer README](README-developer.md).
-
-## Alternative software
-Notable other personal CRM systems are
-* [MonicaHQ](https://www.monicahq.com/) (Open Source, development seems to have stalled; the new version chandler is available at beta.monicahq.com)
-* [Dex](https://getdex.com/) (paid offering with social media integration)
-* [Clay](https://clay.earth/) (paid offering with focus on automation)
-
-Other software that can be used to build or configure something similar includes
-* [Twenty](https://twenty.com/) (Open Source "classic" CRM system)

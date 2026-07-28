@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"mycorrhizal/config"
+	"mycorrhizal/logger"
 	"mycorrhizal/models"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -18,6 +19,12 @@ import (
 )
 
 var ErrOIDCUserNotFound = errors.New("no account found for OIDC identity")
+
+// ErrOIDCNoEmail means the provider supplied no email address in either the ID
+// token or UserInfo, so no account can be provisioned. Usually a missing
+// "email" scope, or a provider that serves email only from UserInfo while its
+// UserInfo endpoint is unreachable.
+var ErrOIDCNoEmail = errors.New("OIDC provider returned no email address")
 
 // OIDCProvider holds the initialized OIDC provider and OAuth2 config.
 type OIDCProvider struct {
@@ -59,29 +66,44 @@ func GenerateStateToken() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-// BuildAuthURL constructs the provider's authorization URL with the given state and nonce.
-func (p *OIDCProvider) BuildAuthURL(state, nonce string) string {
-	return p.oauth2Cfg.AuthCodeURL(state, oauth2.SetAuthURLParam("nonce", nonce))
+// GeneratePKCEVerifier returns a fresh PKCE code verifier.
+func GeneratePKCEVerifier() string {
+	return oauth2.GenerateVerifier()
 }
 
-// ExchangeAndVerify exchanges an authorization code for tokens and verifies the ID token.
-func (p *OIDCProvider) ExchangeAndVerify(ctx context.Context, code string) (*oidc.IDToken, error) {
-	token, err := p.oauth2Cfg.Exchange(ctx, code)
+// BuildAuthURL constructs the provider's authorization URL with the given state,
+// nonce and PKCE verifier. PKCE is sent even though this is a confidential
+// client: OAuth 2.1 requires it for every client type, and it binds the
+// authorization code to this specific login attempt so a stolen or injected
+// code cannot be redeemed elsewhere.
+func (p *OIDCProvider) BuildAuthURL(state, nonce, pkceVerifier string) string {
+	return p.oauth2Cfg.AuthCodeURL(
+		state,
+		oauth2.SetAuthURLParam("nonce", nonce),
+		oauth2.S256ChallengeOption(pkceVerifier),
+	)
+}
+
+// ExchangeAndVerify exchanges an authorization code for tokens and verifies the
+// ID token. The OAuth2 token is returned alongside it because the UserInfo
+// request needs its access token — see ClaimsFor.
+func (p *OIDCProvider) ExchangeAndVerify(ctx context.Context, code, pkceVerifier string) (*oidc.IDToken, *oauth2.Token, error) {
+	token, err := p.oauth2Cfg.Exchange(ctx, code, oauth2.VerifierOption(pkceVerifier))
 	if err != nil {
-		return nil, fmt.Errorf("failed to exchange code: %w", err)
+		return nil, nil, fmt.Errorf("failed to exchange code: %w", err)
 	}
 
 	rawIDToken, ok := token.Extra("id_token").(string)
 	if !ok {
-		return nil, errors.New("missing id_token in token response")
+		return nil, nil, errors.New("missing id_token in token response")
 	}
 
 	idToken, err := p.verifier.Verify(ctx, rawIDToken)
 	if err != nil {
-		return nil, fmt.Errorf("failed to verify id_token: %w", err)
+		return nil, nil, fmt.Errorf("failed to verify id_token: %w", err)
 	}
 
-	return idToken, nil
+	return idToken, token, nil
 }
 
 // OIDCClaims holds the normalized user identity from an ID token.
@@ -93,8 +115,16 @@ type OIDCClaims struct {
 	Provider      string
 }
 
-// ExtractClaims parses standard claims out of a verified ID token.
-func ExtractClaims(idToken *oidc.IDToken, providerURL string) (*OIDCClaims, error) {
+// ClaimsFor normalizes the caller's identity from a verified ID token, falling
+// back to the UserInfo endpoint for anything the ID token left out.
+//
+// The fallback is not optional in practice. Nothing in OIDC requires a provider
+// to put `email`/`name` in the ID token — several (Authelia among them)
+// deliberately return only `sub` there and serve the rest from UserInfo. Without
+// this, those providers yield an empty email, which skips account linking and
+// produces users the database cannot even store more than one of
+// (users.email is UNIQUE NOT NULL).
+func (p *OIDCProvider) ClaimsFor(ctx context.Context, idToken *oidc.IDToken, token *oauth2.Token, providerURL string) (*OIDCClaims, error) {
 	var raw struct {
 		Email         string `json:"email"`
 		Name          string `json:"name"`
@@ -104,13 +134,64 @@ func ExtractClaims(idToken *oidc.IDToken, providerURL string) (*OIDCClaims, erro
 		return nil, fmt.Errorf("failed to extract claims: %w", err)
 	}
 
-	return &OIDCClaims{
+	claims := &OIDCClaims{
 		Subject:       idToken.Subject,
 		Email:         raw.Email,
 		EmailVerified: raw.EmailVerified,
 		Name:          raw.Name,
 		Provider:      providerURL,
-	}, nil
+	}
+
+	if claims.Email == "" || claims.Name == "" {
+		if err := p.enrichFromUserInfo(ctx, idToken.Subject, token, claims); err != nil {
+			// Not fatal on its own: if the ID token already carried an email we
+			// can still proceed. FindOrProvisionUser rejects the case where we
+			// end up with nothing usable.
+			logger.Warn().Err(err).Str("subject", idToken.Subject).Msg("OIDC: UserInfo lookup failed")
+		}
+	}
+
+	return claims, nil
+}
+
+// enrichFromUserInfo fills blank claims from the provider's UserInfo endpoint.
+func (p *OIDCProvider) enrichFromUserInfo(ctx context.Context, subject string, token *oauth2.Token, claims *OIDCClaims) error {
+	if token == nil {
+		return errors.New("no oauth2 token available for UserInfo request")
+	}
+
+	info, err := p.provider.UserInfo(ctx, oauth2.StaticTokenSource(token))
+	if err != nil {
+		return fmt.Errorf("userinfo request failed: %w", err)
+	}
+
+	// OIDC Core 5.3.2: the UserInfo `sub` MUST match the ID token's `sub`.
+	// Skipping this check would let a provider (or anything able to swap the
+	// access token) attach one identity's profile to another's session.
+	if info.Subject != subject {
+		return fmt.Errorf("userinfo subject %q does not match id_token subject %q", info.Subject, subject)
+	}
+
+	if claims.Email == "" && info.Email != "" {
+		claims.Email = info.Email
+		claims.EmailVerified = info.EmailVerified
+	}
+
+	if claims.Name == "" {
+		var extra struct {
+			Name              string `json:"name"`
+			PreferredUsername string `json:"preferred_username"`
+		}
+		if err := info.Claims(&extra); err == nil {
+			if extra.Name != "" {
+				claims.Name = extra.Name
+			} else if extra.PreferredUsername != "" {
+				claims.Name = extra.PreferredUsername
+			}
+		}
+	}
+
+	return nil
 }
 
 // FindOrProvisionUser finds an existing user by OIDC subject/email, or creates one
@@ -149,6 +230,15 @@ func FindOrProvisionUser(db *gorm.DB, claims *OIDCClaims, cfg *config.Config) (*
 	// 3. Auto-provision a new user if enabled
 	if !cfg.OIDC.AllowAutoProvision {
 		return nil, ErrOIDCUserNotFound
+	}
+
+	// users.email is UNIQUE NOT NULL, so provisioning without one inserts an
+	// empty string that the *next* such user then collides with, locking
+	// everyone after the first out. Refuse up front with a diagnosable error
+	// rather than creating an account that cannot receive mail or reset its
+	// password anyway.
+	if claims.Email == "" {
+		return nil, ErrOIDCNoEmail
 	}
 
 	username := deriveUsername(claims)

@@ -47,7 +47,8 @@
     "orSeparator": "oppure",
     "oidcDenied": "Il login SSO è stato annullato o negato.",
     "oidcNoAccount": "Nessun account trovato per la tua identità SSO. Contatta il tuo amministratore.",
-    "oidcError": "Si è verificato un errore durante il login SSO. Riprova."
+    "oidcError": "Si è verificato un errore durante il login SSO. Riprova.",
+    "oidcNoEmail": "Il tuo provider SSO non ha restituito un indirizzo email. Chiedi all'amministratore di concedere l'ambito «email»."
   },
   "passwordReset": {
     "title": "Reimposta Password",

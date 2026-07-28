@@ -47,7 +47,8 @@
     "orSeparator": "oder",
     "oidcDenied": "Die SSO-Anmeldung wurde abgebrochen oder abgelehnt.",
     "oidcNoAccount": "Kein Konto für Ihre SSO-Identität gefunden. Kontaktieren Sie Ihren Administrator.",
-    "oidcError": "Bei der SSO-Anmeldung ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut."
+    "oidcError": "Bei der SSO-Anmeldung ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
+    "oidcNoEmail": "Ihr SSO-Anbieter hat keine E-Mail-Adresse zurückgegeben. Bitten Sie Ihren Administrator, den Scope „email“ freizugeben."
   },
   "passwordReset": {
     "title": "Passwort zurücksetzen",

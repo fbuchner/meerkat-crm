@@ -270,10 +270,12 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
               setSearchQuery('');
               setSearchResults([]);
             }}
-            sx={{ 
-              flexGrow: 1, 
-              textDecoration: 'none', 
+            sx={{
+              flexGrow: 1,
+              textDecoration: 'none',
               color: 'inherit',
+              fontFamily: '"EB Garamond", serif',
+              fontWeight: 600,
               '&:hover': { opacity: 0.8 }
             }}
           >

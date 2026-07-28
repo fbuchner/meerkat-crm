@@ -20,6 +20,41 @@ import (
 	"gorm.io/gorm"
 )
 
+// csvFormulaLeaders are the characters spreadsheet applications treat as the
+// start of a formula rather than text. Tab and carriage return are included
+// because Excel strips leading whitespace before deciding.
+const csvFormulaLeaders = "=+-@\t\r"
+
+// csvSafe neutralizes spreadsheet formula injection.
+//
+// encoding/csv quotes delimiters and newlines, which makes the file parse
+// correctly, but quoting does nothing about a value like
+// `=HYPERLINK("http://attacker","click")` — Excel and LibreOffice still
+// evaluate it on open. Contact data is not all self-authored: it arrives from
+// CardDAV sync and VCF/CSV import, so a field can carry a payload chosen by
+// someone else and fire when the user exports and opens the result.
+//
+// Prefixing with a single quote is the conventional fix: spreadsheets consume
+// it as a "treat as text" marker, and any consumer that is not a spreadsheet
+// sees one extra leading character rather than executable content.
+func csvSafe(value string) string {
+	if value == "" {
+		return value
+	}
+	if strings.ContainsRune(csvFormulaLeaders, rune(value[0])) {
+		return "'" + value
+	}
+	return value
+}
+
+// csvSafeRecord applies csvSafe to every field of a record.
+func csvSafeRecord(record []string) []string {
+	for i, field := range record {
+		record[i] = csvSafe(field)
+	}
+	return record
+}
+
 // ExportData exports all user data as CSV files in a combined format
 func ExportData(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
@@ -96,9 +131,10 @@ func ExportData(c *gin.Context) {
 		"Birthday", "Address", "How We Met", "Food Preference", "Work Information",
 		"Contact Information", "Circles", "Created At", "Updated At",
 	}
-	// Add custom field names as additional headers
+	// Add custom field names as additional headers. These are user-defined, so
+	// the header row needs the same treatment as the data rows.
 	contactHeaders = append(contactHeaders, customFieldNames...)
-	if err := writer.Write(contactHeaders); err != nil {
+	if err := writer.Write(csvSafeRecord(contactHeaders)); err != nil {
 		log.Error().Err(err).Msg("Failed to write contact headers")
 		apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to generate export"))
 		return
@@ -131,7 +167,7 @@ func ExportData(c *gin.Context) {
 			}
 			record = append(record, value)
 		}
-		if err := writer.Write(record); err != nil {
+		if err := writer.Write(csvSafeRecord(record)); err != nil {
 			log.Error().Err(err).Msg("Failed to write contact record")
 			apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to generate export"))
 			return
@@ -176,7 +212,7 @@ func ExportData(c *gin.Context) {
 				rel.CreatedAt.Format(time.RFC3339),
 				rel.UpdatedAt.Format(time.RFC3339),
 			}
-			if err := writer.Write(record); err != nil {
+			if err := writer.Write(csvSafeRecord(record)); err != nil {
 				log.Error().Err(err).Msg("Failed to write relationship record")
 				apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to generate export"))
 				return
@@ -212,7 +248,7 @@ func ExportData(c *gin.Context) {
 			activity.CreatedAt.Format(time.RFC3339),
 			activity.UpdatedAt.Format(time.RFC3339),
 		}
-		if err := writer.Write(record); err != nil {
+		if err := writer.Write(csvSafeRecord(record)); err != nil {
 			log.Error().Err(err).Msg("Failed to write activity record")
 			apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to generate export"))
 			return
@@ -248,7 +284,7 @@ func ExportData(c *gin.Context) {
 			note.CreatedAt.Format(time.RFC3339),
 			note.UpdatedAt.Format(time.RFC3339),
 		}
-		if err := writer.Write(record); err != nil {
+		if err := writer.Write(csvSafeRecord(record)); err != nil {
 			log.Error().Err(err).Msg("Failed to write note record")
 			apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to generate export"))
 			return
@@ -306,7 +342,7 @@ func ExportData(c *gin.Context) {
 			reminder.CreatedAt.Format(time.RFC3339),
 			reminder.UpdatedAt.Format(time.RFC3339),
 		}
-		if err := writer.Write(record); err != nil {
+		if err := writer.Write(csvSafeRecord(record)); err != nil {
 			log.Error().Err(err).Msg("Failed to write reminder record")
 			apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to generate export"))
 			return

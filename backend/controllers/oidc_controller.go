@@ -37,12 +37,14 @@ func OIDCLoginHandler(provider *services.OIDCProvider, cfg *config.Config) gin.H
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate nonce"})
 			return
 		}
+		pkceVerifier := services.GeneratePKCEVerifier()
 
 		c.SetSameSite(http.SameSiteLaxMode)
 		c.SetCookie("oidc_state", state, 600, "/api/v1/auth/oidc/callback", cfg.CookieDomain, cfg.CookieSecure, true)
 		c.SetCookie("oidc_nonce", nonce, 600, "/api/v1/auth/oidc/callback", cfg.CookieDomain, cfg.CookieSecure, true)
+		c.SetCookie("oidc_pkce", pkceVerifier, 600, "/api/v1/auth/oidc/callback", cfg.CookieDomain, cfg.CookieSecure, true)
 
-		c.Redirect(http.StatusFound, provider.BuildAuthURL(state, nonce))
+		c.Redirect(http.StatusFound, provider.BuildAuthURL(state, nonce, pkceVerifier))
 	}
 }
 
@@ -60,9 +62,11 @@ func OIDCCallbackHandler(provider *services.OIDCProvider, cfg *config.Config) gi
 		// Retrieve and immediately clear the state and nonce cookies.
 		stateCookie, err := c.Cookie("oidc_state")
 		nonceCookie, nonceErr := c.Cookie("oidc_nonce")
+		pkceCookie, pkceErr := c.Cookie("oidc_pkce")
 		c.SetSameSite(http.SameSiteLaxMode)
 		c.SetCookie("oidc_state", "", -1, "/api/v1/auth/oidc/callback", cfg.CookieDomain, cfg.CookieSecure, true)
 		c.SetCookie("oidc_nonce", "", -1, "/api/v1/auth/oidc/callback", cfg.CookieDomain, cfg.CookieSecure, true)
+		c.SetCookie("oidc_pkce", "", -1, "/api/v1/auth/oidc/callback", cfg.CookieDomain, cfg.CookieSecure, true)
 
 		if err != nil || stateCookie == "" {
 			log.Warn().Msg("OIDC callback: missing state cookie")
@@ -71,6 +75,11 @@ func OIDCCallbackHandler(provider *services.OIDCProvider, cfg *config.Config) gi
 		}
 		if nonceErr != nil || nonceCookie == "" {
 			log.Warn().Msg("OIDC callback: missing nonce cookie")
+			c.Redirect(http.StatusFound, "/login?error=oidc_error")
+			return
+		}
+		if pkceErr != nil || pkceCookie == "" {
+			log.Warn().Msg("OIDC callback: missing PKCE verifier cookie")
 			c.Redirect(http.StatusFound, "/login?error=oidc_error")
 			return
 		}
@@ -89,7 +98,7 @@ func OIDCCallbackHandler(provider *services.OIDCProvider, cfg *config.Config) gi
 			return
 		}
 
-		idToken, err := provider.ExchangeAndVerify(c.Request.Context(), code)
+		idToken, oauthToken, err := provider.ExchangeAndVerify(c.Request.Context(), code, pkceCookie)
 		if err != nil {
 			log.Error().Err(err).Msg("OIDC token exchange/verification failed")
 			c.Redirect(http.StatusFound, "/login?error=oidc_error")
@@ -102,7 +111,7 @@ func OIDCCallbackHandler(provider *services.OIDCProvider, cfg *config.Config) gi
 			return
 		}
 
-		claims, err := services.ExtractClaims(idToken, cfg.OIDC.ProviderURL)
+		claims, err := provider.ClaimsFor(c.Request.Context(), idToken, oauthToken, cfg.OIDC.ProviderURL)
 		if err != nil {
 			log.Error().Err(err).Msg("OIDC: failed to extract claims")
 			c.Redirect(http.StatusFound, "/login?error=oidc_error")
@@ -115,6 +124,11 @@ func OIDCCallbackHandler(provider *services.OIDCProvider, cfg *config.Config) gi
 		if err != nil {
 			if errors.Is(err, services.ErrOIDCUserNotFound) {
 				c.Redirect(http.StatusFound, "/login?error=oidc_no_account")
+				return
+			}
+			if errors.Is(err, services.ErrOIDCNoEmail) {
+				log.Error().Msg("OIDC: provider returned no email; check that the 'email' scope is granted and the UserInfo endpoint is reachable")
+				c.Redirect(http.StatusFound, "/login?error=oidc_no_email")
 				return
 			}
 			log.Error().Err(err).Msg("OIDC: failed to find or provision user")

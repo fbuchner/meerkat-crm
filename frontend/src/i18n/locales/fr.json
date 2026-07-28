@@ -47,7 +47,8 @@
     "orSeparator": "ou",
     "oidcDenied": "La connexion SSO a été annulée ou refusée.",
     "oidcNoAccount": "Aucun compte trouvé pour votre identité SSO. Contactez votre administrateur.",
-    "oidcError": "Une erreur s'est produite lors de la connexion SSO. Veuillez réessayer."
+    "oidcError": "Une erreur s'est produite lors de la connexion SSO. Veuillez réessayer.",
+    "oidcNoEmail": "Votre fournisseur SSO n'a pas renvoyé d'adresse e-mail. Demandez à votre administrateur d'accorder la portée « email »."
   },
   "passwordReset": {
     "title": "Réinitialiser le mot de passe",

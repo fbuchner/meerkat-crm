@@ -25,6 +25,7 @@ type LoginPageProps = {
 const OIDC_ERROR_MAP: Record<string, string> = {
   oidc_denied: 'login.oidcDenied',
   oidc_no_account: 'login.oidcNoAccount',
+  oidc_no_email: 'login.oidcNoEmail',
   oidc_error: 'login.oidcError',
 };
 

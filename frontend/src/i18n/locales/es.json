@@ -47,7 +47,8 @@
     "orSeparator": "o",
     "oidcDenied": "El inicio de sesión SSO fue cancelado o denegado.",
     "oidcNoAccount": "No se encontró ninguna cuenta para tu identidad SSO. Contacta con tu administrador.",
-    "oidcError": "Se produjo un error durante el inicio de sesión SSO. Inténtalo de nuevo."
+    "oidcError": "Se produjo un error durante el inicio de sesión SSO. Inténtalo de nuevo.",
+    "oidcNoEmail": "Su proveedor de SSO no devolvió una dirección de correo electrónico. Pida a su administrador que conceda el ámbito «email»."
   },
   "passwordReset": {
     "title": "Restablecer Contraseña",

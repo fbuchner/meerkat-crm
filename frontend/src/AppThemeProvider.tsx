@@ -73,6 +73,18 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
 
   const mode: "light" | "dark" = preference === "system" ? (systemPrefersDark ? "dark" : "light") : preference;
   const theme = useMemo(() => (mode === "dark" ? darkTheme : lightTheme), [mode]);
+
+  // Mirrors `mode` onto the document root so colors.css's plain-CSS custom
+  // properties (used outside MUI's own styling) can respond to the same
+  // effective mode -- including a manual override, not just system
+  // preference, which a `prefers-color-scheme` media query alone would miss.
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    document.documentElement.setAttribute("data-color-mode", mode);
+  }, [mode]);
   const contextValue = useMemo(
     () => ({
       preference,

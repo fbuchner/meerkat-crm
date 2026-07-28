@@ -1,0 +1,90 @@
+/* Generated from assets/colors/tokens.json -- do not hand-edit derived values.
+   See assets/colors/README.md for the OKLCH derivation formulas. */
+
+:root {
+  --color-bone: #FAF5EA;
+  --color-bone-hover: #F0EBE0;
+  --color-bone-active: #E9E4DA;
+  --color-parchment: #EFE7D9;
+  --color-parchment-hover: #E5DDD0;
+  --color-parchment-active: #DED6C9;
+  --color-paper: #FFFFFF;
+  --color-paper-hover: #F5F5F5;
+  --color-paper-active: #EEEEEE;
+  --color-hypha: #CBC7BF;
+  --color-hypha-strong: #A09277;
+  --color-lichen: #97A390;
+  --color-lichen-hover: #879481;
+  --color-lichen-active: #798573;
+  --color-lichen-focus-ring: #91A687;
+  --color-lichen-disabled: #B1B4AF;
+  --color-mycelium: #3E543E;
+  --color-mycelium-hover: #314631;
+  --color-mycelium-active: #243924;
+  --color-mycelium-focus-ring: #365637;
+  --color-mycelium-disabled: #848A83;
+  --color-bark: #30271F;
+  --color-soil: #595148;
+}
+
+/* Dark mode: AppThemeProvider sets data-color-mode on <html> to mirror the
+   MUI theme's actual mode (manual override included, not just prefers-color-scheme). */
+:root[data-color-mode="dark"] {
+  --color-bone: #1E1A13;
+  --color-bone-hover: #252119;
+  --color-bone-active: #2A261E;
+  --color-parchment: #2B261B;
+  --color-parchment-hover: #332D22;
+  --color-parchment-active: #383227;
+  --color-paper: #393226;
+  --color-paper-hover: #41392E;
+  --color-paper-active: #463F33;
+  --color-hypha: #45423B;
+  --color-hypha-strong: #7B6E53;
+  --color-lichen: #9BAA94;
+  --color-lichen-hover: #8C9A85;
+  --color-lichen-active: #7D8B76;
+  --color-lichen-focus-ring: #96AD8A;
+  --color-lichen-disabled: #6F736E;
+  --color-mycelium: #9EB698;
+  --color-mycelium-hover: #8EA789;
+  --color-mycelium-active: #7F977A;
+  --color-mycelium-focus-ring: #97B98F;
+  --color-mycelium-disabled: #727871;
+  --color-bark: #EAE4DA;
+  --color-soil: #B5ADA2;
+}
+
+/* Recommended label color for text/icons sitting on top of a brand.primary fill --
+   mycelium flips from dark (light mode) to bright (dark mode), so the label must flip too. */
+:root {
+  --color-on-brand-primary: #FFFFFF;
+}
+:root[data-color-mode="dark"] {
+  --color-on-brand-primary: #1E1A13;
+}
+
+/* Semantic aliases -- reference these in component CSS, not the primitive names above. */
+:root {
+  --color-background-default: var(--color-bone);
+  --color-background-default-hover: var(--color-bone-hover);
+  --color-background-paper: var(--color-parchment);
+  --color-background-paper-hover: var(--color-parchment-hover);
+  --color-background-paper-active: var(--color-parchment-active);
+  --color-background-elevated: var(--color-paper);
+  --color-background-elevated-hover: var(--color-paper-hover);
+  --color-border-default: var(--color-hypha);
+  --color-border-strong: var(--color-hypha-strong);
+  --color-accent-secondary: var(--color-lichen);
+  --color-accent-secondary-hover: var(--color-lichen-hover);
+  --color-accent-secondary-active: var(--color-lichen-active);
+  --color-accent-secondary-focus-ring: var(--color-lichen-focus-ring);
+  --color-accent-secondary-disabled: var(--color-lichen-disabled);
+  --color-brand-primary: var(--color-mycelium);
+  --color-brand-primary-hover: var(--color-mycelium-hover);
+  --color-brand-primary-active: var(--color-mycelium-active);
+  --color-brand-primary-focus-ring: var(--color-mycelium-focus-ring);
+  --color-brand-primary-disabled: var(--color-mycelium-disabled);
+  --color-text-primary: var(--color-bark);
+  --color-text-secondary: var(--color-soil);
+}

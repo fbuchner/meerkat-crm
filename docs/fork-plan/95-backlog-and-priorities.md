@@ -28,12 +28,12 @@ backend investment demoable.
 |---|---|---|---|---|
 | 1 | `contactFields.ts` field-key registry → nested keys | 93 lines | **done** (`8b1cd71`) | Prerequisite for everything below; cheap |
 | 2 | `MultiValueField.tsx` / `AddressFields.tsx` → real Card arrays | ~250 lines | **done — no code change needed** | Turned out already correct on investigation; see note below |
-| 3 | `ContactInformation.tsx` migration | 421 lines | pending | The actual payoff: multi-email/phone/address with structured types. Ships the visible feature. |
-| 4 | `AddContactDialog.tsx` migration | 494 lines | pending | Same payoff, on the creation path — first impression |
-| 5 | `ContactHeader.tsx` migration | 422 lines | pending | Lower urgency — name/nickname/photo already round-trip fine as scalars through the shim today, no functional gap |
-| 6 | `ContactDetailPage.tsx` orchestration | 813 lines | pending | Glue layer; depends on items 4–5, biggest file, leave until the shape is settled |
-| 7 | Migrate remaining peripheral consumers + retire the adapter shim | — | pending | Cleanup once 3–6 land |
-| ongoing | Unit test coverage for the migrated contact-editing surface | — | pending | Write incrementally per-component as each one migrates, not saved to the end — cheaper against code just touched |
+| 3 | `ContactInformation.tsx` migration | 421 lines | **done** (`18e68dc`) | Not just a payoff feature — turned out to be architectural, see note below |
+| 4 | `AddContactDialog.tsx` migration | 494 lines | pending | Same shape of work, on the creation path |
+| 5 | `ContactHeader.tsx` migration | 422 lines | pending | Lower urgency — name/nickname/photo already round-trip fine as scalars, no functional gap |
+| 6 | `ContactDetailPage.tsx` orchestration — remainder | 813 lines | partially done | A slice of this already landed as part of item 3 (see note); what's left is migrating the consumers item 3 deliberately left on the derived flat view (ContactHeader props, delete/archive, note/activity dialogs) once items 4–5 land |
+| 7 | Migrate remaining peripheral consumers + retire the adapter shim | — | pending | Cleanup once 4–6 land |
+| ongoing | Unit test coverage for the migrated contact-editing surface | — | in progress | `api/contacts.test.ts` added (21 tests) covering the adapter helpers item 3 introduced. Keep adding per-component as 4–6 land. |
 
 Branch: `feature/frontend-nested-model`.
 
@@ -55,6 +55,25 @@ rows. Two smaller vocabulary mismatches were found and traced end-to-end, and tu
   but narrow (only affects externally-imported addresses with non-standard structure) and the fix belongs
   in the adapter (`api/contacts.ts`), not these components — noted here rather than fixed now; revisit if
   CardDAV-imported addresses turn out to actually use these in practice.
+
+**Note on items 3/6 (2026-07-27):** verified empirically (not just from reading code) that multi-value
+editing already worked end-to-end *before* any of this migration work — created a contact with 2 emails
+and 2 phones via the API, confirmed both displayed correctly through the old shimmed UI, then added a
+third via the UI and confirmed all three persisted. So item 3's real value isn't "unlocking a hidden
+feature" (nothing was hidden) — it's genuinely retiring this component's dependency on the flat `Contact`
+shim, which is architecture work, not a user-facing feature.
+
+That surfaced a real coupling the original item ordering didn't account for: `ContactInformation.tsx`
+can't consume `Card`/`CRMEnvelope` directly unless its parent (`ContactDetailPage.tsx`, item 6) *also*
+holds nested state, since that's where the fetched record lives and gets threaded down as props. Item 3
+ended up including the minimal slice of item 6 needed to unblock it — `ContactDetailPage`'s `contact`
+state became `record` (the raw `ContactRecordResponse`, now the single source of truth for every
+mutation: circles, profile name/nickname/gender, archive), with `contact` demoted to a value derived from
+it via `toLegacyContact` purely for the consumers that haven't migrated yet (`ContactHeader`, delete
+confirmation, note/activity/reminder dialogs). This is a strangler-fig approach — old and new shapes
+coexist, with `record` as the one source of truth — rather than a big-bang rewrite of everything at once.
+Item 6 is now "partially done": the state-shape work landed, what's left is migrating the *other*
+consumers (`ContactHeader` in item 5) off the derived `contact` view.
 
 ## Tier 1 — Security review, before the data model grows further
 

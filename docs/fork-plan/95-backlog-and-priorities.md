@@ -27,7 +27,7 @@ backend investment demoable.
 | Order | Item | Size | Status | Why here |
 |---|---|---|---|---|
 | 1 | `contactFields.ts` field-key registry → nested keys | 93 lines | **done** (`8b1cd71`) | Prerequisite for everything below; cheap |
-| 2 | `MultiValueField.tsx` / `AddressFields.tsx` → real Card arrays | ~250 lines | pending | Prerequisite. The one generic component reused by every multi-value field — highest leverage per line |
+| 2 | `MultiValueField.tsx` / `AddressFields.tsx` → real Card arrays | ~250 lines | **done — no code change needed** | Turned out already correct on investigation; see note below |
 | 3 | `ContactInformation.tsx` migration | 421 lines | pending | The actual payoff: multi-email/phone/address with structured types. Ships the visible feature. |
 | 4 | `AddContactDialog.tsx` migration | 494 lines | pending | Same payoff, on the creation path — first impression |
 | 5 | `ContactHeader.tsx` migration | 422 lines | pending | Lower urgency — name/nickname/photo already round-trip fine as scalars through the shim today, no functional gap |
@@ -36,6 +36,25 @@ backend investment demoable.
 | ongoing | Unit test coverage for the migrated contact-editing surface | — | pending | Write incrementally per-component as each one migrates, not saved to the end — cheaper against code just touched |
 
 Branch: `feature/frontend-nested-model`.
+
+**Note on item 2 (2026-07-27):** this item's original sizing assumed `MultiValueField.tsx`/
+`AddressFields.tsx` didn't yet support multiple entries. Re-investigation (reading the adapter in
+`api/contacts.ts` alongside the backend's `contactmodel`/`vcard4` packages) found they already do —
+`toLegacyContact`/`toContactRecordInput` already map the *full* `card.emails`/`phones`/`addresses`/
+`links`/`imppAddresses` arrays, not just a first entry, and both components already support add/remove
+rows. Two smaller vocabulary mismatches were found and traced end-to-end, and turned out to be harmless:
+- The frontend stores context tokens as `'home'` where the backend's internal vocabulary is `'private'`,
+  and stores phone `'cell'`/`'fax'` selections into `Contexts` rather than `Features`. Both look like bugs
+  on paper, but `backend/vcard4/adapter.go`'s `contextsToTypeTokens` falls back to passing unrecognized
+  tokens through verbatim — so vCard4/CardDAV export produces the correct `TYPE=home`/`TYPE=cell` either
+  way. No functional or data-loss bug; left as-is rather than adding a translation layer to fix something
+  that isn't broken.
+- `AddressFields`/`toLegacyContact` only round-trip 5 address component kinds (street/locality/region/
+  postcode/country). A CardDAV-imported address using other JSContact component kinds (apartment, floor,
+  district, ...) would have those silently dropped on the next edit-and-save through this app's UI. Real
+  but narrow (only affects externally-imported addresses with non-standard structure) and the fix belongs
+  in the adapter (`api/contacts.ts`), not these components — noted here rather than fixed now; revisit if
+  CardDAV-imported addresses turn out to actually use these in practice.
 
 ## Tier 1 — Security review, before the data model grows further
 

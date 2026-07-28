@@ -5,7 +5,8 @@
 > tool is used only for tracking the one or two items actively being worked on right now, since it has
 > repeatedly lost its full contents mid-session and should not be trusted as the backlog's home.
 >
-> Last groomed: 2026-07-28 (Tier 1 security review closed; next actionable tier is Tier 2 / P5).
+> Last groomed: 2026-07-28 (Tier 1 closed; its auth follow-ups scheduled as Tier 3a; next actionable
+> tier is Tier 2 / P5).
 
 ## How to read this
 
@@ -160,12 +161,11 @@ discovery document's `iss`, so the stored provider value cannot drift from the r
 is unvalidated, which is spec-conformant — it is `MAY` for the code flow (OIDC Core 3.1.3.8), and the
 UserInfo `sub` check already covers the substitution risk that validating it would address.
 
-**Known gap, not implemented:** no RP-initiated logout (OIDC RP-Initiated Logout 1.0). `/logout` clears
-the local cookie only, so the IdP session survives and a subsequent "Sign in with SSO" re-authenticates
-silently without a prompt — on a shared machine, logging out does not fully log you out. Implementing it
-means discovering `end_session_endpoint`, retaining an `id_token_hint`, and registering a
-`post_logout_redirect_uri`; it is a feature rather than a patch, so it is recorded here for a decision
-rather than done as part of the audit.
+**Known gap, not implemented:** no RP-initiated logout (OIDC RP-Initiated Logout 1.0), plus hardcoded
+scopes. These are features rather than patches, and unlike `email_verified`/`azp` above they degrade an
+otherwise working login rather than blocking it — with username/password available as the path used for
+testing and releasing, none of them gate anything. Scheduled as **Tier 3a** below, together with the
+CardDAV app-password work that also unblocks SSO users.
 
 **3. Injection audit** (`04b74cf`) — one real finding: **CSV formula injection** in export. `encoding/csv`
 quotes delimiters but leaves a leading `=`/`+`/`-`/`@`/tab/CR intact, so a contact field carrying a
@@ -180,11 +180,12 @@ Go's `encoding/xml` resolves no external entities, so the CardDAV surface has no
 handler across all resource controllers scopes by `user_id` (zero IDOR); update handlers use explicit
 field allowlists (no mass assignment).
 
-**Known, accepted, not patched:** CardDAV authenticates with the account password rather than
-app-specific credentials, so a synced-device leak is full account compromise — noted for a future
-app-password feature. `contact.Photo` reaches `filepath.Join` unguarded on the delete path, but is only
-ever set to a server-generated UUID, so it is not reachable. `golang.org/x/crypto`'s `openpgp`
-subpackage carries a standing advisory with no fixed version; govulncheck confirms it is not called.
+**Known, accepted, not patched** — all three now scheduled in Tier 3 rather than left as loose notes:
+CardDAV authenticates with the account password rather than app-specific credentials, so a synced-device
+leak is full account compromise (**Tier 3a item 1**, which also unblocks SSO users). `contact.Photo`
+reaches `filepath.Join` unguarded on the delete path, but is only ever set to a server-generated UUID,
+so it is not reachable (**Tier 3b**). `golang.org/x/crypto`'s `openpgp` subpackage carries a standing
+advisory with no fixed version; govulncheck confirms it is not called (**Tier 3b**, CVE sweep).
 
 ## Tier 2 — NEXT: P5 core relationship & event model (WP-80..84b)
 
@@ -194,16 +195,47 @@ entities. Depends on P1/P0 (done), not on Tier 0/1 above — but sequenced after
 large net-new backend surface, and finishing the client (Tier 0) plus a security pass (Tier 1) on the
 *current* surface is worth more right now than starting the *next* one.
 
-## Tier 3 — Remaining backend hardening/audits
+## Tier 3 — Remaining backend hardening/audits + auth follow-ups
 
-Lower urgency than Tier 1's security-relevant items — risk-reduction and correctness, not exposure:
+Lower urgency than Tier 1's security-relevant items — risk-reduction and correctness, not exposure.
+
+### 3a. Auth follow-ups carried out of Tier 1
+
+Deferred behind Tier 2 deliberately: username/password login works and is the path used for testing and
+releasing, so none of these block anything. They are correctness gaps in a *secondary* auth path. Note
+the distinction from what Tier 1 actually fixed — `email_verified` and `azp` were outright blockers for
+affected providers, whereas everything below degrades an otherwise working login.
+
+| # | Item | Size | Why deferred, not dropped |
+|---|---|---|---|
+| 1 | **App-specific passwords for CardDAV** | large | Solves two problems at once, which is why it is one item rather than two — see below |
+| 2 | **RP-initiated logout (OIDC RP-Initiated Logout 1.0)** | medium | `/logout` clears the local cookie only; the IdP session survives, so "Sign in with SSO" silently re-authenticates without a prompt. On a shared machine, logging out does not fully log you out. Needs `end_session_endpoint` discovery, a retained `id_token_hint`, and a registered `post_logout_redirect_uri` |
+| 3 | **Configurable OIDC scopes** | small | `openid`/`email`/`profile` are hardcoded in `InitOIDCProvider`. Providers needing an extra scope (groups, or a non-standard email scope) cannot be configured without a code change. Only worth doing if a real provider actually needs it — do not add config for a hypothetical |
+
+**On item 1 — why the two CardDAV problems are one piece of work.** Tier 1 recorded that CardDAV
+authenticates with the account password, so a synced-device credential leak is full account compromise.
+Separately, OIDC-provisioned users get `Password: ""`, which bcrypt can never match — so **SSO users
+cannot use CardDAV at all**. Both are the same missing capability: a per-device credential that is not
+the account password. Building app-specific passwords fixes the blast radius *and* unblocks SSO users in
+one change, so they should not be scheduled separately.
+
+Sequencing note: item 1 touches the CardDAV auth path, which P5 (Tier 2) does not, so there is no
+ordering constraint between them beyond priority.
+
+### 3b. Standing audits
+
 - Correctness audit
 - Data-lifecycle audit
 - Backup audit
-- Silent-failure audit
+- Silent-failure audit (a known instance: `db.Updates()`/`db.Save()` return values go unchecked in the
+  note, reminder and relationship update handlers)
 - Single-instance-assumption audit
-- CVE sweep of dependencies
+- CVE sweep of dependencies (post-Tier 1 state: only `golang.org/x/crypto`'s `openpgp` advisory remains,
+  which has no fixed version and is not called — confirm that still holds rather than re-deriving it)
 - Broader test-coverage closure (Phase 3, remaining tiers beyond what `45-test-coverage-closure.md` already closed)
+- Defense-in-depth: `contact.Photo` reaches `filepath.Join` unguarded on the delete path
+  (`contact_controller.go`). Not currently reachable — it is only ever set to a server-generated UUID —
+  so this is a guard against a future writer, not a live fix
 
 ## Tier 4 — P6–P10 (search, CalDAV export, external links/Immich, sync, relationship-maintenance)
 

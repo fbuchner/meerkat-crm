@@ -35,9 +35,15 @@ export default function NetworkPage() {
   const { data, loading, error } = useGraph();
 
   const [selectedCircle, setSelectedCircle] = useState<string>('');
-  const [showRelationships, setShowRelationships] = useState(true);
-  const [showActivities, setShowActivities] = useState(true);
-  const [showCircles, setShowCircles] = useState(false);
+  const [showRelationships, setShowRelationships] = useState(() => {
+    return localStorage.getItem('network-show-relationships') !== 'false';
+  });
+  const [showActivities, setShowActivities] = useState(() => {
+    return localStorage.getItem('network-show-activities') !== 'false';
+  });
+  const [showCircles, setShowCircles] = useState(() => {
+    return localStorage.getItem('network-show-circles') === 'true';
+  });
   const [centeredNodeId, setCenteredNodeId] = useState<string | null>(() => {
     return localStorage.getItem('network-centered-node-id');
   });
@@ -50,6 +56,13 @@ export default function NetworkPage() {
     activityContacts?: Contact[];
   }>({});
   const [allContacts, setAllContacts] = useState<Contact[]>([]);
+
+  // Persist filter toggles to localStorage
+  useEffect(() => {
+    localStorage.setItem('network-show-relationships', String(showRelationships));
+    localStorage.setItem('network-show-activities', String(showActivities));
+    localStorage.setItem('network-show-circles', String(showCircles));
+  }, [showRelationships, showActivities, showCircles]);
 
   useEffect(() => {
     if (centeredNodeId !== null) {

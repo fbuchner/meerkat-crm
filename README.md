@@ -1,5 +1,9 @@
 # Mycorrhizal CRM - a fork of Meerkat for me to play around in
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/ef5a9313-43bc-492e-ae29-91c643e95bda" alt="Mycorrhizal CRM Logo" width="180" />
+</p>
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Backend: Go](https://img.shields.io/badge/Backend-Go-00ADD8?logo=go)](https://golang.org)
 [![Frontend: React](https://img.shields.io/badge/Frontend-React-61DAFB?logo=react)](https://reactjs.org)

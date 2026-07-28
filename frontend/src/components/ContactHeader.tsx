@@ -10,6 +10,7 @@ import ArchiveIcon from '@mui/icons-material/Archive';
 import UnarchiveIcon from '@mui/icons-material/Unarchive';
 import { useTranslation } from 'react-i18next';
 import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
+import { ContactRecordResponse, nameComponentValue } from '../api/contacts';
 
 export interface ProfileValues {
   prefix: string;
@@ -22,18 +23,7 @@ export interface ProfileValues {
 }
 
 interface ContactHeaderProps {
-  contact: {
-    ID: number;
-    prefix?: string;
-    firstname: string;
-    middle_name?: string;
-    lastname: string;
-    suffix?: string;
-    nickname?: string;
-    gender?: string;
-    circles?: string[];
-    archived?: boolean;
-  };
+  record: ContactRecordResponse;
   profilePic: string;
   editingProfile: boolean;
   profileValues: ProfileValues;
@@ -57,7 +47,7 @@ interface ContactHeaderProps {
 }
 
 export default function ContactHeader({
-  contact,
+  record,
   profilePic,
   editingProfile,
   profileValues,
@@ -83,13 +73,25 @@ export default function ContactHeader({
   const enabled = enabledFields ?? resolveEnabledFields(null);
   const isOn = (key: ContactFieldKey) => enabled.has(key);
 
+  const card = record.card || {};
+  const crm = record.crm || {};
+  const prefix = nameComponentValue(card.name?.components, 'title');
+  const firstname = nameComponentValue(card.name?.components, 'given') || '';
+  const middleName = nameComponentValue(card.name?.components, 'given2');
+  const lastname = nameComponentValue(card.name?.components, 'surname') || '';
+  const suffix = nameComponentValue(card.name?.components, 'generation');
+  const nickname = card.nicknames?.[0]?.name;
+  const gender = record.gender;
+  const circles = crm.circles;
+  const archived = record.archived;
+
   const displayName = [
-    contact.prefix,
-    contact.firstname,
-    contact.nickname ? `"${contact.nickname}"` : '',
-    contact.middle_name,
-    contact.lastname,
-    contact.suffix,
+    prefix,
+    firstname,
+    nickname ? `"${nickname}"` : '',
+    middleName,
+    lastname,
+    suffix,
   ]
     .map((part) => part?.trim())
     .filter(Boolean)
@@ -119,7 +121,7 @@ export default function ContactHeader({
               }}
               onClick={onUploadProfilePicture}
             >
-              {contact.firstname.charAt(0)}
+              {firstname.charAt(0)}
             </Avatar>
             <IconButton
               className="camera-badge"
@@ -224,7 +226,7 @@ export default function ContactHeader({
             ) : (
               // View Mode
               <>
-                {contact.archived && (
+                {archived && (
                   <Chip
                     label={t('contactDetail.archivedBadge')}
                     color="warning"
@@ -262,7 +264,7 @@ export default function ContactHeader({
                     </IconButton>
                   </Box>
                   <Box sx={{ display: 'flex', gap: 1 }}>
-                    {contact.archived ? (
+                    {archived ? (
                       onUnarchiveContact && (
                         <Button
                           variant="outlined"
@@ -301,9 +303,9 @@ export default function ContactHeader({
                     )}
                   </Box>
                 </Box>
-                {contact.gender && (
+                {gender && (
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-                    {t(`contactDetail.${contact.gender}`)}
+                    {t(`contactDetail.${gender}`)}
                   </Typography>
                 )}
               </>
@@ -340,8 +342,8 @@ export default function ContactHeader({
                 // Edit Mode
                 <Box>
                   <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 1, mb: 1 }}>
-                    {contact.circles && contact.circles.length > 0 ? (
-                      contact.circles.map((circle, index) => (
+                    {circles && circles.length > 0 ? (
+                      circles.map((circle, index) => (
                         <Chip
                           key={index}
                           label={circle}
@@ -358,9 +360,9 @@ export default function ContactHeader({
                   </Stack>
                   <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
                     <Autocomplete
-                      key={contact.circles?.length ?? 0}
+                      key={circles?.length ?? 0}
                       size="small"
-                      options={availableCircles.filter(c => !contact.circles?.includes(c))}
+                      options={availableCircles.filter(c => !circles?.includes(c))}
                       value={null}
                       onChange={(_, value) => {
                         if (value) {
@@ -402,8 +404,8 @@ export default function ContactHeader({
               ) : (
                 // View Mode
                 <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 1 }}>
-                  {contact.circles && contact.circles.length > 0 ? (
-                    contact.circles.map((circle, index) => (
+                  {circles && circles.length > 0 ? (
+                    circles.map((circle, index) => (
                       <Chip key={index} label={circle} size="small" color="primary" />
                     ))
                   ) : (

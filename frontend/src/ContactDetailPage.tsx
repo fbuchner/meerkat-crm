@@ -2,9 +2,18 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  Contact,
-  getContact,
-  updateContact,
+  Card as CardModel,
+  CRMEnvelope,
+  NameComponent,
+  ContactRecordResponse,
+  getContactRecord,
+  updateContactRecord,
+  nameComponentValue,
+  withAnniversary,
+  getOrganizationFields,
+  withOrganization,
+  getTitleField,
+  withTitles,
   getContactProfilePicture,
   deleteContact,
   uploadProfilePicture,
@@ -60,29 +69,17 @@ import { ApiError } from './api/client';
 import { handleFetchError } from './utils/errorHandler';
 import { useDateFormat } from './DateFormatProvider';
 
-// Extended Contact type with optional relations for local state
-interface ContactWithRelations extends Contact {
-  notes?: Note[];
-  activities?: Activity[];
-}
-
-const CONTACT_FIELDS = [
-  'ID', 'firstname', 'lastname', 'nickname', 'gender',
-  'email', 'phone', 'birthday', 'address', 'how_we_met',
-  'food_preference', 'work_information', 'contact_information',
-  'circles', 'photo', 'custom_fields', 'archived',
-  'emails', 'phones', 'addresses', 'urls', 'impps',
-  'prefix', 'middle_name', 'suffix', 'organization', 'department',
-  'job_title', 'role', 'anniversary'
-];
-
 export default function ContactDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showError } = useSnackbar();
   const { formatBirthdayForInput, parseBirthdayInput, autoFormatBirthdayInput } = useDateFormat();
-  const [contact, setContact] = useState<ContactWithRelations | null>(null);
+  // record is the single source of truth, fetched/written directly against
+  // the nested Card/CRM wire shape -- see docs/fork-plan/95.
+  const [record, setRecord] = useState<ContactRecordResponse | null>(null);
+  const firstname = record ? nameComponentValue(record.card?.name?.components, 'given') || '' : '';
+  const lastname = record ? nameComponentValue(record.card?.name?.components, 'surname') || '' : '';
   const [profilePic, setProfilePic] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -160,7 +157,7 @@ export default function ContactDetailPage() {
     handleDeleteNote,
     handleDeleteActivity,
     setEditTimelineValues
-  } = useTimelineEditing(contact?.ID, refreshNotesAndActivities, { showError });
+  } = useTimelineEditing(record?.id, refreshNotesAndActivities, { showError });
 
   const {
     reminders,
@@ -216,8 +213,8 @@ export default function ContactDetailPage() {
     const fetchData = async () => {
       try {
         // First batch: parallel fetch of core data
-        const [contactData, notesData, activitiesData, completionsData, user] = await Promise.all([
-          getContact(id, CONTACT_FIELDS),
+        const [recordData, notesData, activitiesData, completionsData, user] = await Promise.all([
+          getContactRecord(id),
           getContactNotes(id),
           getContactActivities(id),
           getCompletionsForContact(parseInt(id)),
@@ -227,7 +224,7 @@ export default function ContactDetailPage() {
           })
         ]);
 
-        setContact(contactData);
+        setRecord(recordData);
         setNotes(notesData.notes || []);
         setActivities(activitiesData.activities || []);
         setCompletions(completionsData || []);
@@ -241,7 +238,7 @@ export default function ContactDetailPage() {
         ]);
 
         // Only fetch profile picture if contact has one (avoid unnecessary 404)
-        if (contactData.photo) {
+        if (recordData.photo) {
           try {
             const blob = await getContactProfilePicture(id);
             if (blob) {
@@ -328,8 +325,54 @@ export default function ContactDetailPage() {
     setValidationError('');
   };
 
+  // Maps one of ContactInformation's scalar field names to the Card/CRM
+  // patch it corresponds to. Lives here (not in ContactInformation) because
+  // building an organization/title patch needs to know the *other* half of
+  // the pair (department when editing organization, and vice versa) --
+  // which only the current `record` has.
+  const buildRecordPatch = (field: string, value: string): { card?: Partial<CardModel>; crm?: Partial<CRMEnvelope> } => {
+    const card = record?.card || {};
+    const crm = record?.crm || {};
+    switch (field) {
+      case 'birthday':
+        return { card: { anniversaries: withAnniversary(card.anniversaries, 'birth', value) } };
+      case 'anniversary':
+        return { card: { anniversaries: withAnniversary(card.anniversaries, 'wedding', value) } };
+      case 'organization': {
+        const { department } = getOrganizationFields(card.organizations);
+        return { card: { organizations: withOrganization(value, department || '') } };
+      }
+      case 'department': {
+        const { organization } = getOrganizationFields(card.organizations);
+        return { card: { organizations: withOrganization(organization || '', value) } };
+      }
+      case 'job_title': {
+        const role = getTitleField(card.titles, 'role');
+        return { card: { titles: withTitles(value, role || '') } };
+      }
+      case 'role': {
+        const jobTitle = getTitleField(card.titles, 'title');
+        return { card: { titles: withTitles(jobTitle || '', value) } };
+      }
+      case 'work_information':
+        return { crm: { work_information: value } };
+      case 'food_preference':
+        return { crm: { food_preference: value } };
+      case 'how_we_met':
+        return { crm: { how_we_met: value } };
+      case 'contact_information':
+        return { crm: { contact_information: value } };
+      default:
+        if (field.startsWith('custom_field_')) {
+          const name = field.replace('custom_field_', '');
+          return { crm: { custom_fields: { ...crm.custom_fields, [name]: value } } };
+        }
+        return {};
+    }
+  };
+
   const handleEditSave = async (field: string) => {
-    if (!contact) return;
+    if (!record) return;
 
     let valueToSave = editValue;
 
@@ -343,42 +386,15 @@ export default function ContactDetailPage() {
       valueToSave = parsed || '';
     }
 
-    // Handle custom fields
-    if (field.startsWith('custom_field_')) {
-      const customFieldName = field.replace('custom_field_', '');
-      const updatedCustomFields = {
-        ...(contact.custom_fields || {}),
-        [customFieldName]: valueToSave
-      };
-
-      try {
-        const updatedContact = await updateContact(id!, {
-          ...contact,
-          custom_fields: updatedCustomFields
-        });
-        setContact(updatedContact);
-        setEditingField(null);
-        setEditValue('');
-        setValidationError('');
-      } catch (err) {
-        console.error('Error updating contact custom field:', err);
-        if (err instanceof ApiError) {
-          const errorMessage = err.getDisplayMessage();
-          setValidationError(errorMessage);
-          showError(errorMessage);
-        } else {
-          showError(t('contactDetail.updateError'));
-        }
-      }
-      return;
-    }
+    const patch = buildRecordPatch(field, valueToSave);
 
     try {
-      const updatedContact = await updateContact(id!, {
-        ...contact,
-        [field]: valueToSave
+      const updated = await updateContactRecord(id!, {
+        gender: record.gender,
+        card: { ...record.card, ...patch.card },
+        crm: { ...record.crm, ...patch.crm },
       });
-      setContact(updatedContact);
+      setRecord(updated);
       setEditingField(null);
       setEditValue('');
       setValidationError('');
@@ -394,12 +410,16 @@ export default function ContactDetailPage() {
     }
   };
 
-  // Persist multi-valued / structured field updates (emails, phones, addresses, urls, impps)
-  const handleUpdateContactFields = async (partial: Partial<Contact>) => {
-    if (!contact) return;
+  // Persist multi-valued / structured field updates (emails, phones, addresses, links, imppAddresses)
+  const handleUpdateCard = async (patch: Partial<CardModel>) => {
+    if (!record) return;
     try {
-      const updatedContact = await updateContact(id!, { ...contact, ...partial });
-      setContact(updatedContact);
+      const updated = await updateContactRecord(id!, {
+        gender: record.gender,
+        card: { ...record.card, ...patch },
+        crm: record.crm,
+      });
+      setRecord(updated);
     } catch (err) {
       console.error('Error updating contact:', err);
       if (err instanceof ApiError) {
@@ -413,10 +433,10 @@ export default function ContactDetailPage() {
 
   const handleAddCircle = async (circleName?: string) => {
     const circleToAdd = circleName || newCircleName;
-    if (!contact || !circleToAdd.trim()) return;
+    if (!record || !circleToAdd.trim()) return;
 
     const trimmedCircleName = circleToAdd.trim();
-    const existingCircles = contact.circles || [];
+    const existingCircles = record.crm?.circles || [];
 
     // Check if the circle already exists (case-insensitive)
     if (existingCircles.some(circle => circle.toLowerCase() === trimmedCircleName.toLowerCase())) {
@@ -426,11 +446,12 @@ export default function ContactDetailPage() {
     const updatedCircles = [...existingCircles, trimmedCircleName];
 
     try {
-      const updatedContact = await updateContact(id!, {
-        ...contact,
-        circles: updatedCircles
+      const updated = await updateContactRecord(id!, {
+        gender: record.gender,
+        card: record.card,
+        crm: { ...record.crm, circles: updatedCircles },
       });
-      setContact(updatedContact);
+      setRecord(updated);
       setNewCircleName('');
       // Refresh available circles in case a new one was added
       await fetchCircles();
@@ -445,16 +466,17 @@ export default function ContactDetailPage() {
   };
 
   const handleDeleteCircle = async (circleToDelete: string) => {
-    if (!contact) return;
+    if (!record) return;
 
-    const updatedCircles = (contact.circles || []).filter(circle => circle !== circleToDelete);
+    const updatedCircles = (record.crm?.circles || []).filter(circle => circle !== circleToDelete);
 
     try {
-      const updatedContact = await updateContact(id!, {
-        ...contact,
-        circles: updatedCircles
+      const updated = await updateContactRecord(id!, {
+        gender: record.gender,
+        card: record.card,
+        crm: { ...record.crm, circles: updatedCircles },
       });
-      setContact(updatedContact);
+      setRecord(updated);
     } catch (err) {
       console.error('Error deleting circle:', err);
       if (err instanceof ApiError) {
@@ -466,15 +488,16 @@ export default function ContactDetailPage() {
   };
 
   const handleStartEditProfile = () => {
-    if (!contact) return;
+    if (!record) return;
+    const components = record.card?.name?.components;
     setProfileValues({
-      prefix: contact.prefix || '',
-      firstname: contact.firstname || '',
-      middle_name: contact.middle_name || '',
-      lastname: contact.lastname || '',
-      suffix: contact.suffix || '',
-      nickname: contact.nickname || '',
-      gender: contact.gender ? contact.gender.toLowerCase() : ''
+      prefix: nameComponentValue(components, 'title') || '',
+      firstname: nameComponentValue(components, 'given') || '',
+      middle_name: nameComponentValue(components, 'given2') || '',
+      lastname: nameComponentValue(components, 'surname') || '',
+      suffix: nameComponentValue(components, 'generation') || '',
+      nickname: record.card?.nicknames?.[0]?.name || '',
+      gender: record.gender ? record.gender.toLowerCase() : ''
     });
     setEditingProfile(true);
   };
@@ -485,23 +508,29 @@ export default function ContactDetailPage() {
   };
 
   const handleSaveProfile = async () => {
-    if (!contact || !profileValues.firstname.trim()) {
+    if (!record || !profileValues.firstname.trim()) {
       alert(t('contactDetail.firstNameRequired'));
       return;
     }
 
+    const nameComponents: NameComponent[] = [];
+    if (profileValues.prefix.trim()) nameComponents.push({ kind: 'title', value: profileValues.prefix.trim() });
+    nameComponents.push({ kind: 'given', value: profileValues.firstname.trim() });
+    if (profileValues.middle_name.trim()) nameComponents.push({ kind: 'given2', value: profileValues.middle_name.trim() });
+    nameComponents.push({ kind: 'surname', value: profileValues.lastname.trim() });
+    if (profileValues.suffix.trim()) nameComponents.push({ kind: 'generation', value: profileValues.suffix.trim() });
+
     try {
-      const updatedContact = await updateContact(id!, {
-        ...contact,
-        prefix: profileValues.prefix.trim(),
-        firstname: profileValues.firstname.trim(),
-        middle_name: profileValues.middle_name.trim(),
-        lastname: profileValues.lastname.trim(),
-        suffix: profileValues.suffix.trim(),
-        nickname: profileValues.nickname.trim(),
-        gender: profileValues.gender
+      const updated = await updateContactRecord(id!, {
+        gender: profileValues.gender,
+        card: {
+          ...record.card,
+          name: { components: nameComponents },
+          nicknames: profileValues.nickname.trim() ? [{ name: profileValues.nickname.trim() }] : undefined,
+        },
+        crm: record.crm,
       });
-      setContact(updatedContact);
+      setRecord(updated);
       setEditingProfile(false);
     } catch (err) {
       console.error('Error updating profile:', err);
@@ -514,10 +543,10 @@ export default function ContactDetailPage() {
   };
 
   const handleDeleteContact = async () => {
-    if (!contact || !id) return;
+    if (!record || !id) return;
 
     const confirmMessage = t('contactDetail.confirmDeleteContact', {
-      name: `${contact.firstname} ${contact.lastname}`
+      name: `${firstname} ${lastname}`
     });
 
     if (!window.confirm(confirmMessage)) {
@@ -534,7 +563,7 @@ export default function ContactDetailPage() {
   };
 
   const handleArchiveContact = async () => {
-    if (!contact || !id) return;
+    if (!record || !id) return;
 
     const confirmMessage = t('contactDetail.archiveConfirmation');
     if (!window.confirm(confirmMessage)) {
@@ -543,7 +572,7 @@ export default function ContactDetailPage() {
 
     try {
       const updatedContact = await archiveContact(id);
-      setContact({ ...contact, archived: updatedContact.archived });
+      setRecord({ ...record, archived: updatedContact.archived });
     } catch (err) {
       console.error('Error archiving contact:', err);
       if (err instanceof ApiError) {
@@ -555,11 +584,11 @@ export default function ContactDetailPage() {
   };
 
   const handleUnarchiveContact = async () => {
-    if (!contact || !id) return;
+    if (!record || !id) return;
 
     try {
       const updatedContact = await unarchiveContact(id);
-      setContact({ ...contact, archived: updatedContact.archived });
+      setRecord({ ...record, archived: updatedContact.archived });
     } catch (err) {
       console.error('Error unarchiving contact:', err);
       if (err instanceof ApiError) {
@@ -571,8 +600,8 @@ export default function ContactDetailPage() {
   };
 
   const handleStayInTouch = () => {
-    if (!contact) return;
-    const contactName = `${contact.firstname}${contact.lastname ? ' ' + contact.lastname : ''}`;
+    if (!record) return;
+    const contactName = `${firstname}${lastname ? ' ' + lastname : ''}`;
     setReminderInitialValues({
       message: t('contactDetail.catchUpWith', { name: contactName }),
       recurrence: 'quarterly'
@@ -616,7 +645,7 @@ export default function ContactDetailPage() {
     );
   }
 
-  if (!contact) {
+  if (!record) {
     return (
       <Box sx={{ maxWidth: 800, mx: 'auto', mt: 2, p: 2 }}>
         <Typography variant="h6">{t('contactDetail.notFound')}</Typography>
@@ -629,7 +658,7 @@ export default function ContactDetailPage() {
 
       {/* Contact Header Card */}
       <ContactHeader
-        contact={contact}
+        record={record}
         profilePic={profilePic}
         editingProfile={editingProfile}
         profileValues={profileValues}
@@ -647,9 +676,9 @@ export default function ContactDetailPage() {
         onDeleteCircle={handleDeleteCircle}
         onNewCircleNameChange={setNewCircleName}
         onUploadProfilePicture={() => setProfilePictureDialogOpen(true)}
-        onStayInTouch={contact.archived ? undefined : handleStayInTouch}
-        onArchiveContact={contact.archived ? undefined : handleArchiveContact}
-        onUnarchiveContact={contact.archived ? handleUnarchiveContact : undefined}
+        onStayInTouch={record.archived ? undefined : handleStayInTouch}
+        onArchiveContact={record.archived ? undefined : handleArchiveContact}
+        onUnarchiveContact={record.archived ? handleUnarchiveContact : undefined}
       />
 
       {/* General Information and Timeline - Two Column Layout */}
@@ -660,7 +689,8 @@ export default function ContactDetailPage() {
       }}>
         {/* General Information */}
         <ContactInformation
-          contact={contact}
+          card={record.card}
+          crm={record.crm}
           editingField={editingField}
           editValue={editValue}
           validationError={validationError}
@@ -675,7 +705,7 @@ export default function ContactDetailPage() {
             );
             setValidationError('');
           }}
-          onUpdateContact={handleUpdateContactFields}
+          onUpdateCard={handleUpdateCard}
           enabledFields={enabledFields}
           relationships={relationships}
           incomingRelationships={incomingRelationships}
@@ -761,7 +791,7 @@ export default function ContactDetailPage() {
         open={activityDialogOpen}
         onClose={() => setActivityDialogOpen(false)}
         onSave={handleSaveActivity}
-        preselectedContactId={contact?.ID}
+        preselectedContactId={record?.id}
       />
 
       <ReminderDialog
@@ -773,7 +803,7 @@ export default function ContactDetailPage() {
         }}
         onSave={handleSaveReminder}
         reminder={editingReminder}
-        contactId={contact?.ID || 0}
+        contactId={record?.id || 0}
         initialValues={reminderInitialValues}
       />
 
@@ -816,7 +846,7 @@ export default function ContactDetailPage() {
         }}
         onSave={handleSaveRelationship}
         relationship={editingRelationship}
-        currentContactId={contact?.ID || 0}
+        currentContactId={record?.id || 0}
       />
     </Box>
   );

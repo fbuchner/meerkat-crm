@@ -212,6 +212,7 @@
     "department": "Département",
     "jobTitle": "Poste",
     "role": "Rôle",
+    "titles": "Poste / Rôle",
     "anniversary": "Anniversaire de mariage",
     "fieldType": "Type",
     "types": {

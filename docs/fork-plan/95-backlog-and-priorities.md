@@ -1,0 +1,157 @@
+# 95 — Backlog and priorities
+
+> **Unlike `00`–`94`, this file is a living document, not a historical planning record.** Re-groom it
+> whenever priorities shift. It is the durable source of truth for "what's next" — the in-session task
+> tool is used only for tracking the one or two items actively being worked on right now, since it has
+> repeatedly lost its full contents mid-session and should not be trusted as the backlog's home.
+>
+> Last groomed: 2026-07-28.
+
+## How to read this
+
+Tiers are ordered by "best use of time for immediate impact," not by when the idea was conceived.
+Within a tier, do items top-to-bottom. Re-groom (re-run this judgment call) whenever a tier completes,
+a security concern surfaces, or the user's priorities change — don't treat the ordering below as fixed
+forever.
+
+## Tier 0 — DONE: WP-72 frontend nested-model remodel
+
+**All 7 items done as of `eb7549d` (2026-07-28).** No contact-editing component depends on the flat
+`Contact` adapter shape anymore; every one reads/writes `Card`/`CRMEnvelope` (or the raw
+`ContactRecordResponse`) directly. The shim functions (`getContact`/`createContact`/`updateContact`/
+`toLegacyContact`) are deleted. `Contact`/`ContactValue`/`ContactAddress`/`summaryToLegacyContact`/
+`toContactRecordInput` survive deliberately, not as leftover debt — see the item 7 note below for why
+each one is a legitimate permanent use rather than shim residue.
+
+| Order | Item | Size | Status | Why here |
+|---|---|---|---|---|
+| 1 | `contactFields.ts` field-key registry → nested keys | 93 lines | **done** (`8b1cd71`) | Prerequisite for everything below; cheap |
+| 2 | `MultiValueField.tsx` / `AddressFields.tsx` → real Card arrays | ~250 lines | **done — no code change needed** | Turned out already correct on investigation; see note below |
+| 3 | `ContactInformation.tsx` migration | 421 lines | **done** (`18e68dc`) | Not just a payoff feature — turned out to be architectural, see note below |
+| 4 | `AddContactDialog.tsx` migration | 494 lines | **done** (`eb7549d`) | Same shape of work, on the creation path |
+| 5 | `ContactHeader.tsx` migration | 422 lines | **done** (`eb7549d`) | Coupled to item 6, same as item 3 was to item 6 — see note below |
+| 6 | `ContactDetailPage.tsx` orchestration — remainder | 813 lines | **done** (`eb7549d`) | Landed alongside item 5; every handler and prop now reads `record` directly, the derived `contact` view is gone |
+| 7 | Migrate remaining peripheral consumers + retire the adapter shim | — | **done** (`eb7549d`) | `getContact`/`createContact`/`updateContact`/`toLegacyContact` deleted — see note below for what stayed and why |
+| ongoing | Unit test coverage for the migrated contact-editing surface | — | 68 tests in `api/contacts.test.ts` | Revisit if a future change touches this surface again; not tracked as a standalone item anymore now that Tier 0 is closed |
+
+Branch: `feature/frontend-nested-model` — ready to merge to `main` and open a PR whenever the user wants.
+
+**Note on item 2 (2026-07-27):** this item's original sizing assumed `MultiValueField.tsx`/
+`AddressFields.tsx` didn't yet support multiple entries. Re-investigation (reading the adapter in
+`api/contacts.ts` alongside the backend's `contactmodel`/`vcard4` packages) found they already do —
+`toLegacyContact`/`toContactRecordInput` already map the *full* `card.emails`/`phones`/`addresses`/
+`links`/`imppAddresses` arrays, not just a first entry, and both components already support add/remove
+rows. Two smaller vocabulary mismatches were found and traced end-to-end, and turned out to be harmless:
+- The frontend stores context tokens as `'home'` where the backend's internal vocabulary is `'private'`,
+  and stores phone `'cell'`/`'fax'` selections into `Contexts` rather than `Features`. Both look like bugs
+  on paper, but `backend/vcard4/adapter.go`'s `contextsToTypeTokens` falls back to passing unrecognized
+  tokens through verbatim — so vCard4/CardDAV export produces the correct `TYPE=home`/`TYPE=cell` either
+  way. No functional or data-loss bug; left as-is rather than adding a translation layer to fix something
+  that isn't broken.
+- `AddressFields`/`toLegacyContact` only round-trip 5 address component kinds (street/locality/region/
+  postcode/country). A CardDAV-imported address using other JSContact component kinds (apartment, floor,
+  district, ...) would have those silently dropped on the next edit-and-save through this app's UI. Real
+  but narrow (only affects externally-imported addresses with non-standard structure) and the fix belongs
+  in the adapter (`api/contacts.ts`), not these components — noted here rather than fixed now; revisit if
+  CardDAV-imported addresses turn out to actually use these in practice.
+
+**Note on items 3/6 (2026-07-27):** verified empirically (not just from reading code) that multi-value
+editing already worked end-to-end *before* any of this migration work — created a contact with 2 emails
+and 2 phones via the API, confirmed both displayed correctly through the old shimmed UI, then added a
+third via the UI and confirmed all three persisted. So item 3's real value isn't "unlocking a hidden
+feature" (nothing was hidden) — it's genuinely retiring this component's dependency on the flat `Contact`
+shim, which is architecture work, not a user-facing feature.
+
+That surfaced a real coupling the original item ordering didn't account for: `ContactInformation.tsx`
+can't consume `Card`/`CRMEnvelope` directly unless its parent (`ContactDetailPage.tsx`, item 6) *also*
+holds nested state, since that's where the fetched record lives and gets threaded down as props. Item 3
+ended up including the minimal slice of item 6 needed to unblock it — `ContactDetailPage`'s `contact`
+state became `record` (the raw `ContactRecordResponse`, now the single source of truth for every
+mutation: circles, profile name/nickname/gender, archive), with `contact` demoted to a value derived from
+it via `toLegacyContact` purely for the consumers that haven't migrated yet (`ContactHeader`, delete
+confirmation, note/activity/reminder dialogs). This is a strangler-fig approach — old and new shapes
+coexist, with `record` as the one source of truth — rather than a big-bang rewrite of everything at once.
+Item 6 is now "partially done": the state-shape work landed, what's left is migrating the *other*
+consumers (`ContactHeader` in item 5) off the derived `contact` view.
+
+**Note on items 4/5/6/7 (2026-07-28):** items 5 and 6 turned out coupled exactly like 3 and 6 were —
+`ContactHeader.tsx` couldn't take `Card`/`CRMEnvelope` without `ContactDetailPage.tsx`'s last remaining
+derived `contact` value (kept after item 3 specifically for `ContactHeader`, delete/archive confirmation
+text, and dialog `contactId` props) going away too. Both landed together; item 6 has no remainder left.
+
+Item 7 ("retire the adapter shim") turned out to mean something narrower than the phrase suggests, once
+it was time to actually do it: the shim isn't one thing to delete, it's two different uses that happened
+to share a type.
+- **Genuinely retired**: `getContact`/`createContact`/`updateContact`/`toLegacyContact` — the
+  record-shaped round-trip through the flat `Contact` type. Zero production callers once
+  `DashboardPage.tsx`'s one remaining `getContact()` call (backfilling a reminder's contact name when
+  that contact isn't in the "random 5" dashboard widget) was rewritten to read straight off
+  `getContactRecord` via `nameComponentValue`. Deleted outright, not deprecated-and-kept.
+- **Deliberately kept, not shim debt**: `Contact`/`ContactValue`/`ContactAddress` remain the permanent
+  shape for (a) the `GET /contacts` *list* endpoint, which is genuinely flat on the wire
+  (`ContactSummaryDTO` via `summaryToLegacyContact`) — there's no nested shape to migrate to there, and
+  (b) `MultiValueField`/`AddressFields`' editing-UI contract (item 2's finding: these were already
+  correct, no reason to touch them). `toContactRecordInput` stays too — `e2e/fixtures.ts` and
+  `e2e/global-setup.ts` still use it to build nested payloads from simple flat test data, which remains
+  the most convenient way to do that regardless of what the app itself does.
+
+Verified end-to-end via `docker-compose.test.yml`: full Playwright suite (28/28) plus two manual checks
+the suite doesn't cover — a contact created through every `AddContactDialog` field group including the
+birthday-reminder-on-create flow, and a seeded scenario (8 contacts, 6 reminders) specifically
+engineered to force the `DashboardPage` backfill path to fire, confirming it still resolves names
+correctly post-migration.
+
+## Tier 1 — Security review, before the data model grows further
+
+Cheap relative to new feature work (a review pass, not new implementation), and better done *before*
+Tier 2 (relationship graph, households) adds more PII surface than *after*. Also motivated by known
+upstream issues and the general "don't assume inherited Meerkat code is correct" audit the user asked
+for.
+
+1. **Security audit of the core backend** (not just RFC 9553 additions) — Meerkat is still a dependency;
+   evaluate it as a risk surface now that more sensitive personal data is going into this database.
+2. **OIDC/OAuth implementation evaluation** — known issue areas upstream in Meerkat. Explicitly should
+   not block client work, hence not Tier 0, but shouldn't wait for the full P5–P10 backend expansion either.
+3. **Injection audit** — the other "actual exposure" item from the original backend-hardening brainstorm.
+
+## Tier 2 — P5: Core relationship & event model (WP-80..84b)
+
+Full detail already lives in `92-delivery-roadmap.md §92.1` — not duplicated here. Hard gate: nothing in
+P6+ starts until this is green, since search, timeline, cadence, and integrations all read these
+entities. Depends on P1/P0 (done), not on Tier 0/1 above — but sequenced after them here because it's a
+large net-new backend surface, and finishing the client (Tier 0) plus a security pass (Tier 1) on the
+*current* surface is worth more right now than starting the *next* one.
+
+## Tier 3 — Remaining backend hardening/audits
+
+Lower urgency than Tier 1's security-relevant items — risk-reduction and correctness, not exposure:
+- Correctness audit
+- Data-lifecycle audit
+- Backup audit
+- Silent-failure audit
+- Single-instance-assumption audit
+- CVE sweep of dependencies
+- Broader test-coverage closure (Phase 3, remaining tiers beyond what `45-test-coverage-closure.md` already closed)
+
+## Tier 4 — P6–P10 (search, CalDAV export, external links/Immich, sync, relationship-maintenance)
+
+Unchanged from `92-delivery-roadmap.md §92.2–92.6` — gated behind Tier 2 (P5) by that doc's own hard
+gate. See that file for the full WP breakdown and dependency graph (`§92.8`).
+
+## Tier 5 — Contact sharing between users (standalone, big)
+
+Two users on the same instance (e.g. spouses) should be able to share contacts directly — opting which
+fields to include — rather than round-tripping through lossy VCF export/import. Explicitly a "revisit on
+the roadmap at some point" item per the user, not scheduled. Comparable in scope to a P8-or-later phase;
+needs its own design pass (data model for shared-vs-private fields, permission model) before it can be
+broken into WPs.
+
+## Deferred / someday
+
+Unchanged from `92-delivery-roadmap.md §92.7`: other integrations (Dawarich/GeoPulse, Jellyfin,
+Audiobookshelf, Paperless-ngx, Nextcloud), AI/Ollama layer. Pulled in only when a concrete need arises.
+
+## Explicitly not re-ranked here
+
+`80-local-model-pilot.md`'s deferral is independent of this backlog (re-enters when mobile client work
+begins, per `92.9`).

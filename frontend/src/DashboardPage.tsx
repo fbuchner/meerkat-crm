@@ -23,7 +23,7 @@ import EmailIcon from '@mui/icons-material/Email';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import WarningIcon from '@mui/icons-material/Warning';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import { Contact, Birthday, getRandomContacts, getUpcomingBirthdays, getContact } from './api/contacts';
+import { Contact, Birthday, getRandomContacts, getUpcomingBirthdays, getContactRecord, nameComponentValue } from './api/contacts';
 import { Reminder, getUpcomingReminders, completeReminder, skipReminder } from './api/reminders';
 import { ContactListSkeleton } from './components/LoadingSkeletons';
 import { handleFetchError, handleError } from './utils/errorHandler';
@@ -69,9 +69,24 @@ function DashboardPage() {
       const uniqueMissingIds = Array.from(new Set(missingContactIds));
 
       if (uniqueMissingIds.length > 0) {
-        const minimalFields = ['ID', 'firstname', 'lastname', 'nickname'];
+        // Only firstname/lastname/nickname are needed here (getContactName's
+        // display logic below) -- read straight off the nested record rather
+        // than going through the retired getContact/toLegacyContact shim.
         const fetchedContacts = await Promise.all(
-          uniqueMissingIds.map(id => getContact(id, minimalFields).catch(() => null))
+          uniqueMissingIds.map(async (id): Promise<Contact | null> => {
+            try {
+              const record = await getContactRecord(id);
+              const components = record.card?.name?.components;
+              return {
+                ID: record.id,
+                firstname: nameComponentValue(components, 'given') || '',
+                lastname: nameComponentValue(components, 'surname') || '',
+                nickname: record.card?.nicknames?.[0]?.name,
+              };
+            } catch {
+              return null;
+            }
+          })
         );
         fetchedContacts.forEach(c => {
           if (c) newContactsMap[c.ID] = c;

@@ -212,6 +212,7 @@
     "department": "Departamento",
     "jobTitle": "Cargo",
     "role": "Rol",
+    "titles": "Cargo / Rol",
     "anniversary": "Aniversario",
     "fieldType": "Tipo",
     "types": {

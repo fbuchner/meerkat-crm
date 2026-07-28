@@ -212,6 +212,7 @@
     "department": "Reparto",
     "jobTitle": "Posizione",
     "role": "Ruolo",
+    "titles": "Posizione / Ruolo",
     "anniversary": "Anniversario",
     "fieldType": "Tipo",
     "types": {

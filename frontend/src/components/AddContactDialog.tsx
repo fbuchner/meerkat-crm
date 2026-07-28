@@ -17,7 +17,20 @@ import {
 import AppDialog from './AppDialog';
 import MultiValueField from './MultiValueField';
 import AddressFields from './AddressFields';
-import { createContact, ContactValue, ContactAddress } from '../api/contacts';
+import {
+  createContactRecord,
+  ContactValue,
+  ContactAddress,
+  NameComponent,
+  valuesToCardEmails,
+  valuesToCardPhones,
+  valuesToCardLinks,
+  valuesToCardImpp,
+  valuesToCardAddresses,
+  withAnniversary,
+  withOrganization,
+  withTitles,
+} from '../api/contacts';
 import { createReminder } from '../api/reminders';
 import { useSnackbar } from '../context/SnackbarContext';
 import { handleError, getErrorMessage } from '../utils/errorHandler';
@@ -144,46 +157,45 @@ export default function AddContactDialog({
         }
       }
 
-      // Drop empty rows from the multi-value fields
-      const cleanEmails = emails.filter(e => e.value.trim());
-      const cleanPhones = phones.filter(p => p.value.trim());
-      const cleanUrls = urls.filter(u => u.value.trim());
-      const cleanImpps = impps.filter(i => i.value.trim());
-      const cleanAddresses = addresses.filter(
-        a => a.street.trim() || a.city.trim() || a.region.trim() || a.postal.trim() || a.country.trim()
-      );
+      const nameComponents: NameComponent[] = [];
+      if (formData.prefix.trim()) nameComponents.push({ kind: 'title', value: formData.prefix.trim() });
+      nameComponents.push({ kind: 'given', value: formData.firstname.trim() });
+      if (formData.middle_name.trim()) nameComponents.push({ kind: 'given2', value: formData.middle_name.trim() });
+      if (formData.lastname.trim()) nameComponents.push({ kind: 'surname', value: formData.lastname.trim() });
+      if (formData.suffix.trim()) nameComponents.push({ kind: 'generation', value: formData.suffix.trim() });
 
-      const contactData = {
-        firstname: formData.firstname,
-        lastname: formData.lastname,
-        prefix: formData.prefix,
-        middle_name: formData.middle_name,
-        suffix: formData.suffix,
-        nickname: formData.nickname,
+      const cardEmails = valuesToCardEmails(emails);
+      const cardPhones = valuesToCardPhones(phones);
+      const cardLinks = valuesToCardLinks(urls);
+      const cardImpp = valuesToCardImpp(impps);
+      const cardAddresses = valuesToCardAddresses(addresses);
+      const anniversaries = withAnniversary(withAnniversary(undefined, 'birth', birthdayISO), 'wedding', anniversaryISO);
+      const organizations = withOrganization(formData.organization, formData.department);
+      const titles = withTitles(formData.job_title, formData.role);
+
+      const newRecord = await createContactRecord({
         gender: formData.gender,
-        birthday: birthdayISO,
-        anniversary: anniversaryISO,
-        organization: formData.organization,
-        department: formData.department,
-        job_title: formData.job_title,
-        role: formData.role,
-        how_we_met: formData.how_we_met,
-        food_preference: formData.food_preference,
-        work_information: formData.work_information,
-        contact_information: formData.contact_information,
-        emails: cleanEmails,
-        phones: cleanPhones,
-        addresses: cleanAddresses,
-        urls: cleanUrls,
-        impps: cleanImpps,
-        // Derived primary scalars keep search/list and the backend in sync
-        email: cleanEmails[0]?.value || '',
-        phone: cleanPhones[0]?.value || '',
-        circles: selectedCircles.length > 0 ? selectedCircles : undefined,
-        custom_fields: Object.keys(filteredCustomFields).length > 0 ? filteredCustomFields : undefined
-      };
-
-      const newContact = await createContact(contactData);
+        card: {
+          name: { components: nameComponents },
+          nicknames: formData.nickname.trim() ? [{ name: formData.nickname.trim() }] : undefined,
+          emails: cardEmails.length > 0 ? cardEmails : undefined,
+          phones: cardPhones.length > 0 ? cardPhones : undefined,
+          links: cardLinks.length > 0 ? cardLinks : undefined,
+          imppAddresses: cardImpp.length > 0 ? cardImpp : undefined,
+          addresses: cardAddresses.length > 0 ? cardAddresses : undefined,
+          anniversaries: anniversaries.length > 0 ? anniversaries : undefined,
+          organizations: organizations.length > 0 ? organizations : undefined,
+          titles: titles.length > 0 ? titles : undefined,
+        },
+        crm: {
+          how_we_met: formData.how_we_met,
+          food_preference: formData.food_preference,
+          work_information: formData.work_information,
+          contact_information: formData.contact_information,
+          circles: selectedCircles.length > 0 ? selectedCircles : undefined,
+          custom_fields: Object.keys(filteredCustomFields).length > 0 ? filteredCustomFields : undefined,
+        },
+      });
 
       if (createBirthdayReminder && birthdayISO) {
         let day: number | undefined;
@@ -210,18 +222,18 @@ export default function AddContactDialog({
 
           nextBirthday.setHours(9, 0, 0, 0);
 
-          await createReminder(newContact.ID, {
-            message: t('reminders.birthdayMessage', { name: `${newContact.firstname} ${newContact.lastname}` }),
+          await createReminder(newRecord.id, {
+            message: t('reminders.birthdayMessage', { name: `${formData.firstname} ${formData.lastname}` }),
             by_mail: true,
             remind_at: nextBirthday.toISOString(),
             recurrence: 'yearly',
             reoccur_from_completion: false,
-            contact_id: newContact.ID
+            contact_id: newRecord.id
           });
         }
       }
 
-      onContactAdded(newContact.ID);
+      onContactAdded(newRecord.id);
       showSuccess(t('contacts.add.success'));
       handleClose();
     } catch (err) {
@@ -320,10 +332,10 @@ export default function AddContactDialog({
           {isOn('addresses') && (
             <AddressFields label={t('contacts.address')} value={addresses} onChange={setAddresses} />
           )}
-          {isOn('urls') && (
+          {isOn('links') && (
             <MultiValueField label={t('contacts.urls')} value={urls} onChange={setUrls} valueType="url" defaultType="home" />
           )}
-          {isOn('impps') && (
+          {isOn('imppAddresses') && (
             <MultiValueField label={t('contacts.impps')} value={impps} onChange={setImpps} defaultType="" freeTextType />
           )}
 
@@ -361,17 +373,17 @@ export default function AddContactDialog({
             />
           )}
 
-          {isOn('organization') && (
-            <TextField label={t('contacts.organization')} fullWidth value={formData.organization} onChange={handleChange('organization')} />
+          {isOn('organizations') && (
+            <>
+              <TextField label={t('contacts.organization')} fullWidth value={formData.organization} onChange={handleChange('organization')} />
+              <TextField label={t('contacts.department')} fullWidth value={formData.department} onChange={handleChange('department')} />
+            </>
           )}
-          {isOn('department') && (
-            <TextField label={t('contacts.department')} fullWidth value={formData.department} onChange={handleChange('department')} />
-          )}
-          {isOn('job_title') && (
-            <TextField label={t('contacts.jobTitle')} fullWidth value={formData.job_title} onChange={handleChange('job_title')} />
-          )}
-          {isOn('role') && (
-            <TextField label={t('contacts.role')} fullWidth value={formData.role} onChange={handleChange('role')} />
+          {isOn('titles') && (
+            <>
+              <TextField label={t('contacts.jobTitle')} fullWidth value={formData.job_title} onChange={handleChange('job_title')} />
+              <TextField label={t('contacts.role')} fullWidth value={formData.role} onChange={handleChange('role')} />
+            </>
           )}
           {isOn('work_information') && (
             <TextField

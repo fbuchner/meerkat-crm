@@ -22,12 +22,31 @@ import MultiValueField from './MultiValueField';
 import AddressFields from './AddressFields';
 import RelationshipList from './RelationshipList';
 import { Relationship, IncomingRelationship } from '../api/relationships';
-import { Contact, ContactValue, ContactAddress } from '../api/contacts';
+import {
+  Card as CardModel,
+  CRMEnvelope,
+  ContactValue,
+  ContactAddress,
+  cardEmailsToValues,
+  valuesToCardEmails,
+  cardPhonesToValues,
+  valuesToCardPhones,
+  cardLinksToValues,
+  valuesToCardLinks,
+  cardImppToValues,
+  valuesToCardImpp,
+  cardAddressesToValues,
+  valuesToCardAddresses,
+  getAnniversaryField,
+  getOrganizationFields,
+  getTitleField,
+} from '../api/contacts';
 import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
 import { useDateFormat } from '../DateFormatProvider';
 
 interface ContactInformationProps {
-  contact: Partial<Contact>;
+  card: CardModel;
+  crm: CRMEnvelope;
   editingField: string | null;
   editValue: string;
   validationError: string;
@@ -35,7 +54,7 @@ interface ContactInformationProps {
   onEditCancel: () => void;
   onEditSave: (field: string) => void;
   onEditValueChange: (value: string) => void;
-  onUpdateContact: (partial: Partial<Contact>) => Promise<void>;
+  onUpdateCard: (patch: Partial<CardModel>) => Promise<void>;
   enabledFields?: Set<ContactFieldKey>;
   // Relationship props
   relationships?: Relationship[];
@@ -51,7 +70,8 @@ const iconSx = { mr: 1, color: 'text.secondary', fontSize: '1.2rem' };
 const cloneValues = <T extends object>(v: T[]): T[] => v.map((x) => ({ ...x }));
 
 export default function ContactInformation({
-  contact,
+  card,
+  crm,
   editingField,
   editValue,
   validationError,
@@ -59,7 +79,7 @@ export default function ContactInformation({
   onEditCancel,
   onEditSave,
   onEditValueChange,
-  onUpdateContact,
+  onUpdateCard,
   enabledFields,
   relationships = [],
   incomingRelationships = [],
@@ -74,12 +94,18 @@ export default function ContactInformation({
   const enabled = enabledFields ?? resolveEnabledFields(null);
   const isOn = (key: ContactFieldKey) => enabled.has(key);
 
+  const birthday = getAnniversaryField(card.anniversaries, 'birth') || '';
+  const anniversary = getAnniversaryField(card.anniversaries, 'wedding') || '';
+  const { organization = '', department = '' } = getOrganizationFields(card.organizations);
+  const jobTitle = getTitleField(card.titles, 'title') || '';
+  const role = getTitleField(card.titles, 'role') || '';
+
   const birthdayAgeSuffix = useMemo(() => {
-    if (!contact.birthday) return undefined;
-    const age = calculateAge(contact.birthday);
+    if (!birthday) return undefined;
+    const age = calculateAge(birthday);
     if (age === null) return undefined;
     return t('dashboard.yearsOld', { age });
-  }, [contact.birthday, t, calculateAge]);
+  }, [birthday, t, calculateAge]);
 
   const renderValueList = (rows: ContactValue[] | undefined) => {
     if (!rows || rows.length === 0) return <Typography variant="body2" color="text.disabled">—</Typography>;
@@ -126,16 +152,13 @@ export default function ContactInformation({
               <EditableArrayField<ContactValue[]>
                 icon={<EmailIcon sx={iconSx} />}
                 label={t('contactDetail.email')}
-                value={contact.emails || []}
+                value={cardEmailsToValues(card.emails)}
                 cloneValue={cloneValues}
                 renderDisplay={renderValueList}
                 renderEditor={(draft, setDraft) => (
                   <MultiValueField label={t('contacts.email')} value={draft} onChange={setDraft} valueType="email" defaultType="home" />
                 )}
-                onSave={(draft) => {
-                  const clean = draft.filter((e) => e.value.trim());
-                  return onUpdateContact({ emails: clean, email: clean[0]?.value || '' });
-                }}
+                onSave={(draft) => onUpdateCard({ emails: valuesToCardEmails(draft) })}
               />
             )}
 
@@ -143,16 +166,13 @@ export default function ContactInformation({
               <EditableArrayField<ContactValue[]>
                 icon={<PhoneIcon sx={iconSx} />}
                 label={t('contactDetail.phone')}
-                value={contact.phones || []}
+                value={cardPhonesToValues(card.phones)}
                 cloneValue={cloneValues}
                 renderDisplay={renderValueList}
                 renderEditor={(draft, setDraft) => (
                   <MultiValueField label={t('contacts.phone')} value={draft} onChange={setDraft} valueType="tel" defaultType="cell" />
                 )}
-                onSave={(draft) => {
-                  const clean = draft.filter((p) => p.value.trim());
-                  return onUpdateContact({ phones: clean, phone: clean[0]?.value || '' });
-                }}
+                onSave={(draft) => onUpdateCard({ phones: valuesToCardPhones(draft) })}
               />
             )}
 
@@ -160,18 +180,13 @@ export default function ContactInformation({
               <EditableArrayField<ContactAddress[]>
                 icon={<HomeIcon sx={iconSx} />}
                 label={t('contactDetail.address')}
-                value={contact.addresses || []}
+                value={cardAddressesToValues(card.addresses)}
                 cloneValue={cloneValues}
                 renderDisplay={renderAddressList}
                 renderEditor={(draft, setDraft) => (
                   <AddressFields label={t('contacts.address')} value={draft} onChange={setDraft} />
                 )}
-                onSave={(draft) => {
-                  const clean = draft.filter(
-                    (a) => a.street.trim() || a.city.trim() || a.region.trim() || a.postal.trim() || a.country.trim()
-                  );
-                  return onUpdateContact({ addresses: clean, address: clean.length === 0 ? '' : undefined });
-                }}
+                onSave={(draft) => onUpdateCard({ addresses: valuesToCardAddresses(draft) })}
               />
             )}
 
@@ -179,13 +194,13 @@ export default function ContactInformation({
               <EditableArrayField<ContactValue[]>
                 icon={<LanguageIcon sx={iconSx} />}
                 label={t('contacts.urls')}
-                value={contact.urls || []}
+                value={cardLinksToValues(card.links)}
                 cloneValue={cloneValues}
                 renderDisplay={renderValueList}
                 renderEditor={(draft, setDraft) => (
                   <MultiValueField label={t('contacts.urls')} value={draft} onChange={setDraft} valueType="url" defaultType="home" />
                 )}
-                onSave={(draft) => onUpdateContact({ urls: draft.filter((u) => u.value.trim()) })}
+                onSave={(draft) => onUpdateCard({ links: valuesToCardLinks(draft) })}
               />
             )}
 
@@ -193,13 +208,13 @@ export default function ContactInformation({
               <EditableArrayField<ContactValue[]>
                 icon={<ChatIcon sx={iconSx} />}
                 label={t('contacts.impps')}
-                value={contact.impps || []}
+                value={cardImppToValues(card.imppAddresses)}
                 cloneValue={cloneValues}
                 renderDisplay={renderValueList}
                 renderEditor={(draft, setDraft) => (
                   <MultiValueField label={t('contacts.impps')} value={draft} onChange={setDraft} defaultType="" freeTextType />
                 )}
-                onSave={(draft) => onUpdateContact({ impps: draft.filter((i) => i.value.trim()) })}
+                onSave={(draft) => onUpdateCard({ imppAddresses: valuesToCardImpp(draft) })}
               />
             )}
 
@@ -208,8 +223,8 @@ export default function ContactInformation({
                 icon={<CakeIcon sx={iconSx} />}
                 label={t('contactDetail.birthday')}
                 field="birthday"
-                value={contact.birthday || ''}
-                formattedDisplayValue={contact.birthday ? formatBirthday(contact.birthday) : undefined}
+                value={birthday}
+                formattedDisplayValue={birthday ? formatBirthday(birthday) : undefined}
                 placeholder={getBirthdayPlaceholder()}
                 displaySuffix={birthdayAgeSuffix}
                 isEditing={editingField === 'birthday'}
@@ -227,8 +242,8 @@ export default function ContactInformation({
                 icon={<CelebrationIcon sx={iconSx} />}
                 label={t('contacts.anniversary')}
                 field="anniversary"
-                value={contact.anniversary || ''}
-                formattedDisplayValue={contact.anniversary ? formatBirthday(contact.anniversary) : undefined}
+                value={anniversary}
+                formattedDisplayValue={anniversary ? formatBirthday(anniversary) : undefined}
                 placeholder={getBirthdayPlaceholder()}
                 isEditing={editingField === 'anniversary'}
                 editValue={editValue}
@@ -246,7 +261,7 @@ export default function ContactInformation({
                   icon={<BusinessIcon sx={iconSx} />}
                   label={t('contacts.organization')}
                   field="organization"
-                  value={contact.organization || ''}
+                  value={organization}
                   isEditing={editingField === 'organization'}
                   editValue={editValue}
                   validationError={validationError}
@@ -259,7 +274,7 @@ export default function ContactInformation({
                   icon={<BusinessIcon sx={iconSx} />}
                   label={t('contacts.department')}
                   field="department"
-                  value={contact.department || ''}
+                  value={department}
                   isEditing={editingField === 'department'}
                   editValue={editValue}
                   validationError={validationError}
@@ -277,7 +292,7 @@ export default function ContactInformation({
                   icon={<BadgeIcon sx={iconSx} />}
                   label={t('contacts.jobTitle')}
                   field="job_title"
-                  value={contact.job_title || ''}
+                  value={jobTitle}
                   isEditing={editingField === 'job_title'}
                   editValue={editValue}
                   validationError={validationError}
@@ -290,7 +305,7 @@ export default function ContactInformation({
                   icon={<BadgeIcon sx={iconSx} />}
                   label={t('contacts.role')}
                   field="role"
-                  value={contact.role || ''}
+                  value={role}
                   isEditing={editingField === 'role'}
                   editValue={editValue}
                   validationError={validationError}
@@ -307,7 +322,7 @@ export default function ContactInformation({
                 icon={<WorkIcon sx={{ ...iconSx, mt: 0.5 }} />}
                 label={t('contactDetail.workInfo')}
                 field="work_information"
-                value={contact.work_information || ''}
+                value={crm.work_information || ''}
                 multiline
                 isEditing={editingField === 'work_information'}
                 editValue={editValue}
@@ -324,7 +339,7 @@ export default function ContactInformation({
                 icon={<RestaurantIcon sx={{ ...iconSx, mt: 0.5 }} />}
                 label={t('contactDetail.foodPreferences')}
                 field="food_preference"
-                value={contact.food_preference || ''}
+                value={crm.food_preference || ''}
                 multiline
                 isEditing={editingField === 'food_preference'}
                 editValue={editValue}
@@ -341,7 +356,7 @@ export default function ContactInformation({
                 icon={<PeopleIcon sx={{ ...iconSx, mt: 0.5 }} />}
                 label={t('contactDetail.howWeMet')}
                 field="how_we_met"
-                value={contact.how_we_met || ''}
+                value={crm.how_we_met || ''}
                 multiline
                 isEditing={editingField === 'how_we_met'}
                 editValue={editValue}
@@ -358,7 +373,7 @@ export default function ContactInformation({
                 icon={<NotesIcon sx={{ ...iconSx, mt: 0.5 }} />}
                 label={t('contactDetail.additionalInfo')}
                 field="contact_information"
-                value={contact.contact_information || ''}
+                value={crm.contact_information || ''}
                 multiline
                 isEditing={editingField === 'contact_information'}
                 editValue={editValue}
@@ -377,7 +392,7 @@ export default function ContactInformation({
                 icon={<ClearAllIcon sx={{ ...iconSx, mt: 0.5 }} />}
                 label={fieldName}
                 field={`custom_field_${fieldName}`}
-                value={contact.custom_fields?.[fieldName] || ''}
+                value={crm.custom_fields?.[fieldName] || ''}
                 multiline
                 isEditing={editingField === `custom_field_${fieldName}`}
                 editValue={editValue}

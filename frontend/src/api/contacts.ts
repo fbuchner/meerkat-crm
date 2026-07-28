@@ -70,87 +70,87 @@ export interface Contact {
 // missing here.
 // ---------------------------------------------------------------------------
 
-interface NameComponent {
+export interface NameComponent {
   kind: 'title' | 'given' | 'given2' | 'surname' | 'surname2' | 'credential' | 'generation' | 'separator';
   value: string;
 }
 
-interface CardName {
+export interface CardName {
   components?: NameComponent[];
   full?: string;
 }
 
-interface CardNickname {
+export interface CardNickname {
   name: string;
 }
 
-interface CardOrgUnit {
+export interface CardOrgUnit {
   name: string;
 }
 
-interface CardOrganization {
+export interface CardOrganization {
   id?: string;
   name?: string;
   units?: CardOrgUnit[];
 }
 
-interface CardTitle {
+export interface CardTitle {
   name: string;
   kind?: 'title' | 'role';
 }
 
-interface CardEmail {
+export interface CardEmail {
   address: string;
   contexts?: string[];
 }
 
-interface CardPhone {
+export interface CardPhone {
   number: string;
   features?: string[];
   contexts?: string[];
 }
 
-interface CardOnlineService {
+export interface CardOnlineService {
   uri?: string;
   service?: string;
   contexts?: string[];
 }
 
-interface CardResource {
+export interface CardResource {
   uri: string;
   kind?: string;
   mediaType?: string;
   contexts?: string[];
 }
 
-interface CardAddressComponent {
+export interface CardAddressComponent {
   kind: string;
   value: string;
 }
 
-interface CardAddress {
+export interface CardAddress {
   components?: CardAddressComponent[];
   countryCode?: string;
   contexts?: string[];
 }
 
-interface CardPartialDate {
+export interface CardPartialDate {
   year?: number | null;
   month?: number | null;
   day?: number | null;
 }
 
-interface CardAnniversaryDate {
+export interface CardAnniversaryDate {
   partial?: CardPartialDate;
   timestamp?: string | null;
 }
 
-interface CardAnniversary {
+export interface CardAnniversary {
   kind: 'birth' | 'death' | 'wedding';
   date: CardAnniversaryDate;
 }
 
-interface Card {
+export interface Card {
   name?: CardName;
   nicknames?: CardNickname[];
   organizations?: CardOrganization[];
@@ -165,7 +165,7 @@ interface Card {
   links?: CardResource[];
 }
 
-interface CRMEnvelope {
+export interface CRMEnvelope {
   circles?: string[];
   how_we_met?: string;
   food_preference?: string;
@@ -224,7 +224,7 @@ function nameComponentValue(components: NameComponent[] | undefined, kind: NameC
 // / year-less --MM-DD string convention used throughout this app for
 // birthday/anniversary fields (never a full RFC3339 timestamp for a
 // date-only field).
-function formatAnniversaryDate(date: CardAnniversaryDate | undefined): string | undefined {
+export function formatAnniversaryDate(date: CardAnniversaryDate | undefined): string | undefined {
   if (!date) return undefined;
   if (date.partial) {
     const { year, month, day } = date.partial;
@@ -242,7 +242,7 @@ function formatAnniversaryDate(date: CardAnniversaryDate | undefined): string | 
 
 // parseAnniversaryDate is formatAnniversaryDate's inverse: a
 // YYYY-MM-DD or --MM-DD string into a CardAnniversaryDate.
-function parseAnniversaryDate(value: string): CardAnniversaryDate {
+export function parseAnniversaryDate(value: string): CardAnniversaryDate {
   const yearLess = /^--(\d{2})-(\d{2})$/.exec(value);
   if (yearLess) {
     return { partial: { month: parseInt(yearLess[1], 10), day: parseInt(yearLess[2], 10) } };
@@ -256,17 +256,44 @@ function parseAnniversaryDate(value: string): CardAnniversaryDate {
   return { timestamp: value };
 }
 
-// toLegacyContact maps a full ContactRecordResponse (GET/POST/PUT
-// /contacts/{id}) down into the flat Contact shape.
-export function toLegacyContact(record: ContactRecordResponse): Contact {
-  const card = record.card || {};
-  const crm = record.crm || {};
+// ---------------------------------------------------------------------------
+// Per-concept Card <-> ContactValue/ContactAddress helpers. Shared by
+// toLegacyContact/toContactRecordInput below AND by components that have
+// migrated to reading/writing Card/CRMEnvelope directly (ContactInformation)
+// -- a single source of truth for the mapping rules so a migrated
+// component's edits can never drift from what the shim itself would produce.
+// ---------------------------------------------------------------------------
 
-  const emails = (card.emails || []).map((e) => ({ type: e.contexts?.[0] || '', value: e.address }));
-  const phones = (card.phones || []).map((p) => ({ type: p.features?.[0] || p.contexts?.[0] || '', value: p.number }));
-  const urls = (card.links || []).map((l) => ({ type: l.contexts?.[0] || '', value: l.uri }));
-  const impps = (card.imppAddresses || []).map((i) => ({ type: i.contexts?.[0] || '', value: i.uri || '' }));
-  const addresses = (card.addresses || []).map((a) => {
+export function cardEmailsToValues(emails: CardEmail[] | undefined): ContactValue[] {
+  return (emails || []).map((e) => ({ type: e.contexts?.[0] || '', value: e.address }));
+}
+export function valuesToCardEmails(values: ContactValue[]): CardEmail[] {
+  return values.filter((e) => e.value.trim()).map((e) => ({ address: e.value, contexts: e.type ? [e.type] : undefined }));
+}
+
+export function cardPhonesToValues(phones: CardPhone[] | undefined): ContactValue[] {
+  return (phones || []).map((p) => ({ type: p.features?.[0] || p.contexts?.[0] || '', value: p.number }));
+}
+export function valuesToCardPhones(values: ContactValue[]): CardPhone[] {
+  return values.filter((p) => p.value.trim()).map((p) => ({ number: p.value, contexts: p.type ? [p.type] : undefined }));
+}
+
+export function cardLinksToValues(links: CardResource[] | undefined): ContactValue[] {
+  return (links || []).map((l) => ({ type: l.contexts?.[0] || '', value: l.uri }));
+}
+export function valuesToCardLinks(values: ContactValue[]): CardResource[] {
+  return values.filter((u) => u.value.trim()).map((u) => ({ uri: u.value, contexts: u.type ? [u.type] : undefined }));
+}
+
+export function cardImppToValues(impps: CardOnlineService[] | undefined): ContactValue[] {
+  return (impps || []).map((i) => ({ type: i.contexts?.[0] || '', value: i.uri || '' }));
+}
+export function valuesToCardImpp(values: ContactValue[]): CardOnlineService[] {
+  return values.filter((i) => i.value.trim()).map((i) => ({ uri: i.value, contexts: i.type ? [i.type] : undefined }));
+}
+
+export function cardAddressesToValues(addresses: CardAddress[] | undefined): ContactAddress[] {
+  return (addresses || []).map((a) => {
     const comps = a.components || [];
     const find = (kind: string) => comps.find((c) => c.kind === kind)?.value || '';
     return {
@@ -278,13 +305,71 @@ export function toLegacyContact(record: ContactRecordResponse): Contact {
       country: find('country') || a.countryCode || '',
     };
   });
+}
+export function valuesToCardAddresses(values: ContactAddress[]): CardAddress[] {
+  return values
+    .filter((a) => a.street.trim() || a.city.trim() || a.region.trim() || a.postal.trim() || a.country.trim())
+    .map((a) => {
+      const components: CardAddressComponent[] = [];
+      if (a.street) components.push({ kind: 'name', value: a.street });
+      if (a.city) components.push({ kind: 'locality', value: a.city });
+      if (a.region) components.push({ kind: 'region', value: a.region });
+      if (a.postal) components.push({ kind: 'postcode', value: a.postal });
+      if (a.country) components.push({ kind: 'country', value: a.country });
+      return { components, contexts: a.type ? [a.type] : undefined };
+    });
+}
 
-  const birthAnniversary = (card.anniversaries || []).find((a) => a.kind === 'birth');
-  const weddingAnniversary = (card.anniversaries || []).find((a) => a.kind === 'wedding');
+export function getAnniversaryField(anniversaries: CardAnniversary[] | undefined, kind: 'birth' | 'wedding'): string | undefined {
+  return formatAnniversaryDate((anniversaries || []).find((a) => a.kind === kind)?.date);
+}
+// withAnniversary replaces the single entry of `kind` (if any) with one
+// parsed from `value`, or drops it entirely when `value` is empty -- the
+// other kind (birth vs. wedding) is left untouched.
+export function withAnniversary(
+  anniversaries: CardAnniversary[] | undefined,
+  kind: 'birth' | 'wedding',
+  value: string
+): CardAnniversary[] {
+  const rest = (anniversaries || []).filter((a) => a.kind !== kind);
+  return value ? [...rest, { kind, date: parseAnniversaryDate(value) }] : rest;
+}
 
-  const org = card.organizations?.[0];
-  const titleEntry = card.titles?.find((t) => t.kind === 'title' || !t.kind);
-  const roleEntry = card.titles?.find((t) => t.kind === 'role');
+// Only the first organization/title entries are surfaced -- this app's UI
+// (like the legacy Contact shape it grew from) only ever edits one
+// organization and one title/role pair, even though the nested model
+// supports arrays of both.
+export function getOrganizationFields(organizations: CardOrganization[] | undefined): { organization?: string; department?: string } {
+  const org = organizations?.[0];
+  return { organization: org?.name, department: org?.units?.[0]?.name };
+}
+export function withOrganization(organization: string, department: string): CardOrganization[] {
+  return organization ? [{ name: organization, units: department ? [{ name: department }] : undefined }] : [];
+}
+
+export function getTitleField(titles: CardTitle[] | undefined, kind: 'title' | 'role'): string | undefined {
+  if (kind === 'title') return titles?.find((t) => t.kind === 'title' || !t.kind)?.name;
+  return titles?.find((t) => t.kind === 'role')?.name;
+}
+export function withTitles(jobTitle: string, role: string): CardTitle[] {
+  const titles: CardTitle[] = [];
+  if (jobTitle) titles.push({ name: jobTitle, kind: 'title' });
+  if (role) titles.push({ name: role, kind: 'role' });
+  return titles;
+}
+
+// toLegacyContact maps a full ContactRecordResponse (GET/POST/PUT
+// /contacts/{id}) down into the flat Contact shape.
+export function toLegacyContact(record: ContactRecordResponse): Contact {
+  const card = record.card || {};
+  const crm = record.crm || {};
+
+  const emails = cardEmailsToValues(card.emails);
+  const phones = cardPhonesToValues(card.phones);
+  const urls = cardLinksToValues(card.links);
+  const impps = cardImppToValues(card.imppAddresses);
+  const addresses = cardAddressesToValues(card.addresses);
+  const { organization, department } = getOrganizationFields(card.organizations);
 
   return {
     ID: record.id,
@@ -297,8 +382,8 @@ export function toLegacyContact(record: ContactRecordResponse): Contact {
     gender: record.gender,
     email: emails[0]?.value,
     phone: phones[0]?.value,
-    birthday: formatAnniversaryDate(birthAnniversary?.date),
-    anniversary: formatAnniversaryDate(weddingAnniversary?.date),
+    birthday: getAnniversaryField(card.anniversaries, 'birth'),
+    anniversary: getAnniversaryField(card.anniversaries, 'wedding'),
     photo: record.photo,
     photo_thumbnail: record.photo_thumbnail,
     address: addresses[0]?.street,
@@ -314,10 +399,10 @@ export function toLegacyContact(record: ContactRecordResponse): Contact {
     addresses,
     urls,
     impps,
-    organization: org?.name,
-    department: org?.units?.[0]?.name,
-    job_title: titleEntry?.name,
-    role: roleEntry?.name,
+    organization,
+    department,
+    job_title: getTitleField(card.titles, 'title'),
+    role: getTitleField(card.titles, 'role'),
   };
 }
 
@@ -350,48 +435,28 @@ export function toContactRecordInput(data: Partial<Contact>): ContactRecordInput
   if (data.lastname) nameComponents.push({ kind: 'surname', value: data.lastname });
   if (data.suffix) nameComponents.push({ kind: 'generation', value: data.suffix });
 
-  const emails: CardEmail[] = (data.emails && data.emails.length > 0
-    ? data.emails
-    : data.email
-      ? [{ type: '', value: data.email }]
-      : []
-  ).map((e) => ({ address: e.value, contexts: e.type ? [e.type] : undefined }));
-
-  const phones: CardPhone[] = (data.phones && data.phones.length > 0
-    ? data.phones
-    : data.phone
-      ? [{ type: '', value: data.phone }]
-      : []
-  ).map((p) => ({ number: p.value, contexts: p.type ? [p.type] : undefined }));
-
-  const links: CardResource[] = (data.urls || []).map((u) => ({ uri: u.value, contexts: u.type ? [u.type] : undefined }));
-  const imppAddresses: CardOnlineService[] = (data.impps || []).map((i) => ({ uri: i.value, contexts: i.type ? [i.type] : undefined }));
-
-  const addresses: CardAddress[] = (data.addresses && data.addresses.length > 0
+  const emailValues = data.emails && data.emails.length > 0 ? data.emails : data.email ? [{ type: '', value: data.email }] : [];
+  const phoneValues = data.phones && data.phones.length > 0 ? data.phones : data.phone ? [{ type: '', value: data.phone }] : [];
+  const addressValues = data.addresses && data.addresses.length > 0
     ? data.addresses
     : data.address
       ? [{ type: '', street: data.address, city: '', region: '', postal: '', country: '' }]
-      : []
-  ).map((a) => {
-    const components: CardAddressComponent[] = [];
-    if (a.street) components.push({ kind: 'name', value: a.street });
-    if (a.city) components.push({ kind: 'locality', value: a.city });
-    if (a.region) components.push({ kind: 'region', value: a.region });
-    if (a.postal) components.push({ kind: 'postcode', value: a.postal });
-    if (a.country) components.push({ kind: 'country', value: a.country });
-    return { components, contexts: a.type ? [a.type] : undefined };
-  });
+      : [];
 
-  const anniversaries: CardAnniversary[] = [];
-  if (data.birthday) anniversaries.push({ kind: 'birth', date: parseAnniversaryDate(data.birthday) });
-  if (data.anniversary) anniversaries.push({ kind: 'wedding', date: parseAnniversaryDate(data.anniversary) });
+  const emails = valuesToCardEmails(emailValues);
+  const phones = valuesToCardPhones(phoneValues);
+  const links = valuesToCardLinks(data.urls || []);
+  const imppAddresses = valuesToCardImpp(data.impps || []);
+  const addresses = valuesToCardAddresses(addressValues);
 
-  const organizations: CardOrganization[] = data.organization
-    ? [{ name: data.organization, units: data.department ? [{ name: data.department }] : undefined }]
-    : [];
-  const titles: CardTitle[] = [];
-  if (data.job_title) titles.push({ name: data.job_title, kind: 'title' });
-  if (data.role) titles.push({ name: data.role, kind: 'role' });
+  const anniversaries = withAnniversary(
+    withAnniversary(undefined, 'birth', data.birthday || ''),
+    'wedding',
+    data.anniversary || ''
+  );
+
+  const organizations = withOrganization(data.organization || '', data.department || '');
+  const titles = withTitles(data.job_title || '', data.role || '');
 
   return {
     gender: data.gender,
@@ -499,6 +564,40 @@ export async function getContact(
 
   const record: ContactRecordResponse = await response.json();
   return toLegacyContact(record);
+}
+
+// getContactRecord/updateContactRecord are the pre-shim counterparts of
+// getContact/updateContact above -- for components that read/write
+// Card/CRMEnvelope directly (ContactInformation) instead of going through
+// toLegacyContact/toContactRecordInput.
+export async function getContactRecord(id: string | number): Promise<ContactRecordResponse> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/contacts/${id}`,
+    { headers: getAuthHeaders() }
+  );
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  return response.json();
+}
+
+export async function updateContactRecord(id: string | number, input: ContactRecordInput): Promise<ContactRecordResponse> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/contacts/${id}`,
+    {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(input),
+    }
+  );
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  return response.json();
 }
 
 // Create contact

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"mycorrhizal/config"
+	"mycorrhizal/httputil"
 	"mycorrhizal/i18n"
 	"mycorrhizal/logger"
 	"mycorrhizal/models"
@@ -94,27 +95,17 @@ func NewCalendarSyncService(blockPrivateURLs bool) *CalendarSyncService {
 	}
 }
 
+// privateBlockingDialContext refuses to connect to non-public addresses,
+// pinning the resolved IP so DNS rebinding cannot redirect the dial inward.
+// The address classification is shared with the photo-fetch and contact-sync
+// paths (httputil.IsPublicIP) so all three enforce the same reserved ranges;
+// only the sentinel errors stay calendar-specific.
 func privateBlockingDialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	host, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		return nil, err
-	}
-	ips, err := net.DefaultResolver.LookupIP(ctx, "ip", host)
-	if err != nil {
-		return nil, fmt.Errorf("%w: could not resolve host", ErrCalendarUnreachable)
-	}
-	var safeIP net.IP
-	for _, ip := range ips {
-		if !ip.IsLoopback() && !ip.IsPrivate() && !ip.IsLinkLocalUnicast() && !ip.IsLinkLocalMulticast() && !ip.IsUnspecified() {
-			safeIP = ip
-			break
-		}
-	}
-	if safeIP == nil {
-		return nil, ErrCalendarPrivateAddress
-	}
-	dialer := &net.Dialer{Timeout: 10 * time.Second, KeepAlive: 10 * time.Second}
-	return dialer.DialContext(ctx, network, net.JoinHostPort(safeIP.String(), port))
+	dial := httputil.SafeDialContext(
+		fmt.Errorf("%w: could not resolve host", ErrCalendarUnreachable),
+		ErrCalendarPrivateAddress,
+	)
+	return dial(ctx, network, addr)
 }
 
 // calendarRoundTripper maps HTTP auth/not-found responses to sentinel errors and

@@ -14,6 +14,9 @@ Mycorrhizal CRM (Contact Relationship Management) is a  self-hosted solution to 
 
 At this point, this repo is still in the exploration phase. If you're looking for a well-maintained CRM, check out [Meerkat](https://github.com/fbuchner/meerkat-crm)
 
+## Mycorrhizal?
+Mycorrhizal (*my-core-high-zal*) relationships are mutually beneficial relationships between a special kind of fungi, [Mycorrhizae](https://hort.extension.wisc.edu/articles/mycorrhizae/), and plants. Mycorrhiza refers specifically to the fungal side of the relationship where hyphae of the fungus form networks to gather nutrients that are shared with the plant(s).
+
 ## Features
 - Contact management
     - add and search contacts

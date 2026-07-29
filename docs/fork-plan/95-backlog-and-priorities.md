@@ -324,6 +324,12 @@ ordering constraint between them beyond priority.
 Unchanged from `92-delivery-roadmap.md §92.2–92.6` — gated behind Tier 2 (P5) by that doc's own hard
 gate. See that file for the full WP breakdown and dependency graph (`§92.8`).
 
+**Exception: WP-97, selective field export (vCard 3/4, JSContact)** (`92-delivery-roadmap.md §92.6b`,
+added 2026-07-29 at the user's request — Google Contacts' "choose fields to export" is the reference).
+Depends only on P0 + WP-73 (both done), **not** on P5's graph work, so it is not actually gated behind the
+rest of this tier and could be picked up independently whenever convenient. Its field-selection UI and
+filter function are meant to be **reused, not rebuilt**, by Tier 5 below.
+
 ## Tier 5 — Contact sharing between users (standalone, big)
 
 Two users on the same instance (e.g. spouses) should be able to share contacts directly — opting which
@@ -331,6 +337,12 @@ fields to include — rather than round-tripping through lossy VCF export/import
 the roadmap at some point" item per the user, not scheduled. Comparable in scope to a P8-or-later phase;
 needs its own design pass (data model for shared-vs-private fields, permission model) before it can be
 broken into WPs.
+
+**The "opting which fields to include" half is already scheduled**: Tier 4's WP-97 (above) builds a
+reusable field-selection UI and filter function for export, at the user's explicit request that the same
+system be reused here rather than built twice. When this tier gets its design pass, start from WP-97's
+selection model/UI and add the sharing-specific parts (persistence for a live share vs. a one-time export,
+and the permission model) rather than re-deriving field selection from scratch.
 
 ## Deferred / someday
 

@@ -87,6 +87,30 @@ The "personal relationship OS" payoff features. All read the timeline (`91.8`) a
 | **WP-95** | Preferences (`91.9`, migrate `FoodPreference`; project `hobby` to `Card.PersonalInfo`) + Gift tracking (`91.11`). | WP-84 |
 | **WP-96** | ConversationAgenda (`91.11`) — contextual memory surfaced on contact view, not date-scheduled. | WP-84 |
 
+## 92.6b Selective field export (vCard 3/4, JSContact)
+
+Not part of the `90.5` step sequence — added after Tier 4 was originally scoped, at the user's request
+(Google Contacts' "choose which fields to export" is the reference feature). Depends only on P0 (the
+neutral `Card` model) and WP-73 (vCard 3/4 export adapters) — both done — so unlike P6–P10 it does **not**
+depend on P5's relationship graph and could be picked up independently of the rest of this tier.
+
+| WP | Scope | Depends on |
+|---|---|---|
+| **WP-97** | A field-selection representation over `contactmodel.Card`'s top-level sections (emails, phones, addresses, organizations, media/photo, personal info, related-to, ...) — coarse-grained like Google's own picker, not per-value. Applied by filtering the `Record`/`Card` *before* it reaches an exporter, not inside each exporter — since `vcard3.Adapter`, `vcard4.Adapter`, and `jscontact.Adapter` (`controllers/export_controller.go`'s `ExportContactsAsVCF`/`ExportContactsAsJSContact`) all already consume the same neutral `Card`, one filter function makes the selection apply to all three formats identically, with zero changes to any of the three adapters themselves. Frontend: a field-picker UI (checkboxes per section, sensible "select all" default) wired into the existing export flow. | P0, WP-73 |
+
+**Reused, not rebuilt, by Tier 5** (`95-backlog-and-priorities.md`'s contact-sharing-between-users item):
+that item's own description already calls for "opting which fields to include" when sharing a contact to
+another user on the same instance — the same field-selection UI and filter function this WP builds, not a
+second implementation. Tier 5 will need its own persistence for a saved/default selection (per-share, not
+per-export-click), but the selection *model* and *UI* are the reusable part. Whoever picks up Tier 5
+should check whether WP-97 already covers the field-selection half before re-scoping it.
+
+Distinct from `91.13` (Sensitivity — `normal|private|secret` on relationships/tags/life-events): sensitivity
+governs whether an item is excluded from *every* export/share by default regardless of format; this WP's
+field selection governs which otherwise-normal categories go into *one specific* export or share action.
+Complementary axes, not overlapping — a field can be both normal-sensitivity and excluded from a given
+export by the user's field selection.
+
 ## 92.7 Deferred / someday — `90.5` step 8
 
 Explicitly not scheduled; nice-to-have, pulled in only when a concrete need arises and the above have
@@ -104,6 +128,7 @@ landed:
 ```
 P1(done) ─┬─ P2/WP-71 ─── P3/WP-72
           │       └────────────────────────┐
+          ├─ P0/WP-73 ── WP-97 (selective field export) ── reused by Tier 5 (contact sharing)
           └─ P5/WP-80 ─┬─ WP-81 (migrate)   │
                         ├─ WP-82 (kind) ─ WP-83 (household)
                         └─ WP-84 (interaction/circle/lifeevent) ─┬─ P6 (search: WP-85→86)

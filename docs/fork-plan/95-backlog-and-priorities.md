@@ -5,8 +5,7 @@
 > tool is used only for tracking the one or two items actively being worked on right now, since it has
 > repeatedly lost its full contents mid-session and should not be trusted as the backlog's home.
 >
-> Last groomed: 2026-07-28 (Tier 1 closed, auth follow-ups scheduled as Tier 3a; Tier 2/P5 underway —
-> WP-80 done, WP-81/WP-82 next).
+> Last groomed: 2026-07-29 (Tier 1 closed; Tier 2/P5 underway — WP-80 and WP-81 done, WP-82 next).
 
 ## How to read this
 
@@ -184,8 +183,8 @@ field allowlists (no mass assignment).
 CardDAV authenticates with the account password rather than app-specific credentials, so a synced-device
 leak is full account compromise (**Tier 3a item 1**, which also unblocks SSO users). `contact.Photo`
 reaches `filepath.Join` unguarded on the delete path, but is only ever set to a server-generated UUID,
-so it is not reachable (**Tier 3b**). `golang.org/x/crypto`'s `openpgp` subpackage carries a standing
-advisory with no fixed version; govulncheck confirms it is not called (**Tier 3b**, CVE sweep).
+so it is not reachable (**Tier 3c**). `golang.org/x/crypto`'s `openpgp` subpackage carries a standing
+advisory with no fixed version; govulncheck confirms it is not called (**Tier 3c**, CVE sweep).
 
 ## Tier 2 — IN PROGRESS: P5 core relationship & event model (WP-80..84b)
 
@@ -202,9 +201,33 @@ assertions. Backend-only by design: no new HTTP routes, the existing `/contacts/
 still serves the legacy `models.Relationship` table unchanged. `RecordForContact` and
 `NewContactRecordResponse` both gained a `*gorm.DB` parameter to run the projection query.
 
-Next: **WP-81** (migrate legacy `models.Relationship` data onto the graph, incl. promoting name-only
-endpoints to thin Contacts — irreversible, dry-run-gated) can now start, and **WP-82** (`Contact.kind` +
-thin-entity relaxation) is independent and can run in parallel since it only depends on P1.
+**WP-81 — DONE (`e09440f`, merged to `main` `a493255`, 2026-07-29).** `cmd/backfill-relationship-edges` —
+the data migration: every legacy `models.Relationship` row becomes a `RelationshipEdge`, with name-only
+rows (no `RelatedContactID`) promoted into new thin Contacts per `90` D3. Same dry-run/idempotent/fail-fast
+discipline as `cmd/backfill-contact-records` (WP-70), but — unlike that precedent, which has no CLI-level
+test coverage — this one does, since it creates new user-visible `Contact` rows rather than just a backend
+JSON column. That coverage caught two real bugs before they shipped: `-force` initially tried to `INSERT`
+a duplicate edge (fixed by updating the existing row in place) and then, once fixed, still lost the
+edge's own `CreatedAt` (a full-column `Save()` from a fresh struct zeroes it) and separately created a
+second, orphaned thin Contact on every forced re-run instead of reusing the first one — both caught by
+running the real CLI against a seeded scratch database, not just the unit tests. Backend-only, matching
+WP-80: the legacy API and every other consumer (`graph_controller.go`, `birthday_service.go`,
+`export_controller.go`'s CSV section) still read `models.Relationship` unchanged.
+
+Free-text `Relationship.Type` values are matched to registry tokens via the type registry's own
+`Synonyms` field (extended, and now with its first real consumer — previously earmarked for WP-86 search
+and unused); anything unmatched (confirmed against this repo's own test fixtures: `"Work"`, `"Family"`)
+falls back to a new `related_to` token rather than being dropped, preserving the original text in
+`Metadata["legacy_type"]` for later manual reclassification.
+
+**Known, accepted limitation:** a migrated name-only relationship's birthday can now produce a duplicate
+reminder — one from the new thin Contact's normal birthday path, one from the old, untouched
+`Relationship`-based path in `birthday_service.go` — until a later WP retires that legacy read path.
+Scheduled below as a Tier 3b follow-up rather than fixed by expanding WP-81 into a consumer file, which
+would repeat the same scope question already settled for WP-80.
+
+Next: **WP-82** (`Contact.kind` + thin-entity relaxation) is independent and can start now — it only
+depends on P1. **WP-83** (households) depends on both WP-80 and WP-82.
 
 ## Tier 3 — Remaining backend hardening/audits + auth follow-ups
 
@@ -233,7 +256,18 @@ one change, so they should not be scheduled separately.
 Sequencing note: item 1 touches the CardDAV auth path, which P5 (Tier 2) does not, so there is no
 ordering constraint between them beyond priority.
 
-### 3b. Standing audits
+### 3b. WP-81 follow-up
+
+- **Retire `birthday_service.go`'s legacy `Relationship`-based birthday reminder path.** Since WP-81,
+  every name-only legacy relationship with a birthday has an equivalent thin Contact carrying that same
+  birthday, so the general contact-birthday-reminder path already covers it — the old
+  `related_contact_id IS NULL` query in `birthday_service.go` is now redundant and produces a duplicate
+  reminder for any such row until removed. Small, but real bugs live at the day boundary, so keep the
+  legacy read path's own tests passing until this specific removal lands. Blocked on nothing — could be
+  done any time after WP-81, sequenced here (not touched then) because it edits a consumer file, the same
+  scope line WP-80/WP-81 both held.
+
+### 3c. Standing audits
 
 - Correctness audit
 - Data-lifecycle audit

@@ -5,7 +5,7 @@
 > tool is used only for tracking the one or two items actively being worked on right now, since it has
 > repeatedly lost its full contents mid-session and should not be trusted as the backlog's home.
 >
-> Last groomed: 2026-07-29 (Tier 1 closed; Tier 2/P5 underway — WP-80/81/82 done, WP-83 next).
+> Last groomed: 2026-07-29 (Tier 1 closed; Tier 2/P5 underway — WP-80/81/82/83 done, WP-84/84b next).
 
 ## How to read this
 
@@ -241,7 +241,30 @@ observation. Also fixed in passing: the shared `controllers` package test fixtur
 `RelationshipEdge` from its `AutoMigrate` call since WP-80 merged, silently logging a swallowed "no such
 table" warning on every contact-creating test in the package.
 
-**WP-83** (households) depends on both WP-80 and WP-82, both now done, and can start next.
+**WP-83 — DONE (`64d7cbc`, merged to `main` `872200f`, 2026-07-29).** `Household`/`HouseholdMember`
+(`models/household.go` — the second UUID-string-PK entity after `RelationshipEdge`) and
+`services.GenerateHouseholdSuggestions` (§91.4's mechanism): re-scans a household's current membership and
+idempotently ensures a suggested `RelationshipEdge` exists for every applicable pair, never treated as
+fact until a user confirms it in a review surface this WP doesn't build (P-later, per the roadmap).
+Member classification is `HouseholdMember.Role` + `Contact.CRM.Kind` only (confirmed during planning) — no
+birthday/age inference, since birthdays are frequently unknown, especially for WP-81's thin entities.
+Backend-only: no API, no controller, no frontend, no standards projection (`Household` → vCard
+`KIND:group`+`MEMBER`, which §91.3 mentions but this WP's own roadmap line doesn't) — all future work.
+
+Two real bugs found and fixed before merge, both caught by tests rather than inspection: (1) GORM's
+default column-naming derived `HouseholdMember.MemberVCardUID` to `member_v_card_uid`, silently
+mismatching the raw-SQL migration's real `member_vcard_uid` column — fixed with an explicit `gorm:"column:
+..."` tag; (2) the suggestion-engine tests initially set `Contact.CRM.Kind` by direct field mutation
+before `Create`, which doesn't survive `BeforeSave` (the same bug WP-81's passthrough test hit for the
+same reason) — every "pet" test contact was silently classified as an adult until fixed via
+`ApplyRecordToContact`. That investigation also caught a real arithmetic error in this WP's own plan: the
+worked example (2 adults + 1 child + 1 pet) was planned as producing 2 `owned_by` edges, but §91.4 says
+"every human → household pet `owned_by`," not "every adult" — the child gets one too, for 3. The shipped
+test asserts the correct count, not the plan's.
+
+Next: **WP-84** (`Activity`→Interaction generalization + Circle/Tag remodel + LifeEvent — bundles three
+sub-projects, the largest of what's left in this tier) and **WP-84b** (typed custom fields, independent of
+the graph work). Both only depend on P1, so either can go first; picking up next session.
 
 ## Tier 3 — Remaining backend hardening/audits + auth follow-ups
 

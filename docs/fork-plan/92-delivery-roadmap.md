@@ -96,7 +96,7 @@ depend on P5's relationship graph and could be picked up independently of the re
 
 | WP | Scope | Depends on |
 |---|---|---|
-| **WP-97** | A field-selection representation over `contactmodel.Card`'s top-level sections (emails, phones, addresses, organizations, media/photo, personal info, related-to, ...) — coarse-grained like Google's own picker, not per-value. Applied by filtering the `Record`/`Card` *before* it reaches an exporter, not inside each exporter — since `vcard3.Adapter`, `vcard4.Adapter`, and `jscontact.Adapter` (`controllers/export_controller.go`'s `ExportContactsAsVCF`/`ExportContactsAsJSContact`) all already consume the same neutral `Card`, one filter function makes the selection apply to all three formats identically, with zero changes to any of the three adapters themselves. **Sensitivity-marked items (`91.13`) default unchecked, with an explicit per-export opt-in override — see the note below the table, including the real change this forces in WP-80's projection.** Frontend: a field-picker UI (checkboxes per section, sensible "select all" default, sensitive items visibly distinct from an ordinary unchecked box) wired into the existing export flow. | P0, WP-73 |
+| **WP-97** | A field-selection representation over `contactmodel.Card`'s top-level sections (emails, phones, addresses, organizations, media/photo, personal info, related-to, ...) — coarse-grained like Google's own picker, not per-value. Applied by filtering the `Record`/`Card` *before* it reaches an exporter, not inside each exporter — since `vcard3.Adapter`, `vcard4.Adapter`, and `jscontact.Adapter` (`controllers/export_controller.go`'s `ExportContactsAsVCF`/`ExportContactsAsJSContact`) all already consume the same neutral `Card`, one filter function makes the selection apply to all three formats identically, with zero changes to any of the three adapters themselves. **Sensitivity-marked items (`91.13`) default unchecked AND gated behind a deliberate extra action before they're even selectable — not just a pre-unchecked box, a real foot-gun guard — see the two notes below the table, including the real change this forces in WP-80's projection.** Frontend: a field-picker UI (checkboxes per section, sensible "select all" default for ordinary fields) wired into the existing export flow. | P0, WP-73 |
 
 **Reused, not rebuilt, by Tier 5** (`95-backlog-and-priorities.md`'s contact-sharing-between-users item):
 that item's own description already calls for "opting which fields to include" when sharing a contact to
@@ -121,6 +121,19 @@ the user override the default for one export means that function (or an equivale
 a way to say "also include these specific sensitive edges this time," not just a per-format Card filter
 sitting in front of an otherwise-unchanged projection. Small, but worth flagging now so whoever scopes
 WP-97 in detail doesn't discover it mid-implementation.
+
+**Second user clarification (2026-07-30): unchecked-by-default is not enough on its own — the override
+must cost the user deliberate effort, not just an ordinary click, so including a sensitive item is never a
+misclick.** A sensitive item sitting in the same checkbox list as everything else, merely starting
+unchecked, doesn't meet this — it's still a single accidental click away from being shared. This WP's field
+picker needs a real gating step in front of a sensitive item becoming selectable at all: visually flagged
+as sensitive (not just "unchecked" — a distinct treatment, e.g. a warning color/icon) *and* behind some
+extra deliberate action before its checkbox is even interactive — a per-item "unlock to include" toggle, a
+confirmation prompt on check ("This field is marked sensitive — include it anyway?"), or a single
+"reveal sensitive fields" step that un-hides the whole sensitive group before any of them can be checked.
+The exact mechanism is a UI-design call for whoever implements this, not decided here, but "gated behind an
+extra action, not just a pre-unchecked box" is the binding requirement — a foot-gun-prevention feature, not
+a decoration.
 
 ## 92.7 Deferred / someday — `90.5` step 8
 

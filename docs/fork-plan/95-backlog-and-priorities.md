@@ -351,6 +351,14 @@ other person on the instance, not just out to a file. Worth confirming this defa
 this tier's permission model exists (e.g. whether a standing/live share should re-apply the default on
 every sync, or only at share-creation time).
 
+Carries WP-97's foot-gun-prevention requirement too, and it matters *more* here than for export: a
+sensitive item must be gated behind a deliberate extra action before it's even selectable for a share, not
+just unchecked by default — a misclick here doesn't just produce an unwanted file, it discloses the data to
+another live person on the instance, likely without either party noticing until later. If this tier ends
+up supporting a *standing* share (auto-syncing, not a one-time send), the gating should arguably re-confirm
+on every field newly marked sensitive after the share was created, not just at creation time — flagged here
+as a design question, not decided.
+
 ## Deferred / someday
 
 Unchanged from `92-delivery-roadmap.md §92.7`: other integrations (Dawarich/GeoPulse, Jellyfin,

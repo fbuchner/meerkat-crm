@@ -5,22 +5,23 @@ mobile clients (which should use the TTFs here directly rather than duplicating 
 
 - **EB Garamond** — branding only (the wordmark in the web app's top bar). Weights: Regular (400),
   Medium (500), SemiBold (600). No italic.
-- **Source Sans 3** — everything else (all functional UI). Weights: Regular (400), Medium (500),
+- **IBM Plex Sans** — everything else (all functional UI). Weights: Regular (400), Medium (500),
   SemiBold (600), Bold (700), plus italic for all four.
 
-Both are SIL Open Font License 1.1 (`OFL.txt` in each directory) — free to embed and redistribute,
-including in a mobile app bundle.
+Both are SIL Open Font License 1.1 — free to embed and redistribute, including in a mobile app bundle.
 
 ## Provenance
 
-Source: the variable-font files Google Fonts actually serves, from the
-[google/fonts](https://github.com/google/fonts) repo (`ofl/ebgaramond/`, `ofl/sourcesans3/`) — these are
-the canonical, production-hinted OFL sources, not a hand-built subset.
+Source: the font files from [google/fonts](https://github.com/google/fonts) repo (`ofl/ebgaramond/`, 
+`ofl/ibmplexsans/`) — canonical, production-hinted OFL sources.
 
-Both ship upstream only as variable fonts (a single file covering a weight range via a `wght` axis).
-The static per-weight files here were extracted with [fonttools](https://github.com/fonttools/fonttools)'
+EB Garamond ships upstream as a variable font (single file covering a weight range via a `wght` axis).
+The static per-weight files were extracted with [fonttools](https://github.com/fonttools/fonttools)'
 instancer, which pins the axis to a fixed value without touching glyph coverage (unlike subsetting, this
 doesn't drop any characters — full latin/accented-character coverage for all five UI locales is intact).
+
+IBM Plex Sans ships as static per-weight files upstream; these were converted directly to WOFF2 without
+subsetting, retaining full glyph coverage.
 
 ```bash
 pip install fonttools brotli

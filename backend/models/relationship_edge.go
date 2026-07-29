@@ -106,6 +106,14 @@ type RelationshipEdge struct {
 	// contact_record.go's projection step), external sync, and shared views.
 	// Ships as a column now rather than being retrofitted later.
 	Sensitivity string `gorm:"not null;default:normal;index" json:"sensitivity" validate:"required,oneof=normal private secret"`
+
+	// LegacyRelationshipID is WP-81 migration bookkeeping: the legacy
+	// models.Relationship.ID this edge was migrated from, or nil for every
+	// edge created any other way (user-created, WP-83 household-suggested,
+	// ...). Unique where non-null so cmd/backfill-relationship-edges can tell
+	// "already migrated" from "not yet" and be safely re-run. Not read by any
+	// application code — only by that tool.
+	LegacyRelationshipID *uint `gorm:"uniqueIndex" json:"-"`
 }
 
 // BeforeCreate generates a UUID for new edges, mirroring Contact.VCardUID's

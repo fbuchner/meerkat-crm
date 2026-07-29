@@ -78,6 +78,51 @@ func TestRelationTypeRegistryInversesAreConsistent(t *testing.T) {
 	}
 }
 
+// MatchLegacyRelationType is what WP-81's migration uses to resolve legacy
+// free-text Relationship.Type values to a registered token.
+func TestMatchLegacyRelationType(t *testing.T) {
+	tests := []struct {
+		name string
+		text string
+		want string
+	}{
+		{"registry key verbatim", "parent_of", "parent_of"},
+		{"case-insensitive plain noun", "Sibling", "sibling_of"},
+		{"the real test-fixture value Friendship", "Friendship", "friend_of"},
+		{"plain noun with different casing", "MOTHER", "parent_of"},
+		{"simple plural tolerance", "Friends", "friend_of"},
+		{"compound synonym", "married_to", "spouse_of"},
+		{"leading/trailing whitespace", "  friend  ", "friend_of"},
+		{"pet ownership synonym", "Owner", "owns"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			token, ok := MatchLegacyRelationType(tt.text)
+			require.True(t, ok, "expected a match for %q", tt.text)
+			assert.Equal(t, tt.want, token)
+		})
+	}
+}
+
+// The two real unmapped legacy values found in this codebase's own test
+// fixtures (relationship_controller_test.go) — confirms the fallback path
+// this migration relies on is real, not hypothetical.
+func TestMatchLegacyRelationTypeNoMatch(t *testing.T) {
+	for _, text := range []string{"Work", "Family", "", "   ", "asdfghjkl"} {
+		t.Run(text, func(t *testing.T) {
+			_, ok := MatchLegacyRelationType(text)
+			assert.False(t, ok, "expected no match for %q", text)
+		})
+	}
+}
+
+func TestRelatedToFallbackToken(t *testing.T) {
+	assert.True(t, IsKnownRelationType("related_to"))
+	assert.Equal(t, "related_to", InverseRelationType("related_to"))
+	assert.Equal(t, "contact", RelationVCardTypeTag("related_to"),
+		"related_to must still project something on export, unlike every other non-projecting fallback")
+}
+
 // --- Projection integration tests -------------------------------------------
 
 func setupRelationshipTestDB(t *testing.T) *gorm.DB {

@@ -28,7 +28,7 @@ func setupRouter() (*gorm.DB, *gin.Engine) {
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(1)
 
-	db.AutoMigrate(&models.Contact{}, &models.Activity{}, &models.Note{}, models.Relationship{}, models.Reminder{}, models.User{}, models.Webhook{}, models.WebhookDelivery{}, models.ContactSubscription{}, models.ContactSyncLink{})
+	db.AutoMigrate(&models.Contact{}, &models.Activity{}, &models.Note{}, models.Relationship{}, models.Reminder{}, models.User{}, models.Webhook{}, models.WebhookDelivery{}, models.ContactSubscription{}, models.ContactSyncLink{}, models.RelationshipEdge{})
 
 	user := models.User{Username: "tester", Password: "password123", Email: "tester@example.com"}
 	if err := db.Create(&user).Error; err != nil {

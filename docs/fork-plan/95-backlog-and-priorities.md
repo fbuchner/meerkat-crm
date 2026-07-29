@@ -7,8 +7,12 @@
 >
 > Last groomed: 2026-07-29 (Tier 1 closed; Tier 2/P5 — WP-80/81/82/83/84/84b/84c(backend) all done; the
 > triage-UI/migration/frontend half of WP-84c is now filed under Tier 4, and P5's own acceptance gate is
-> technically still waiting on that piece — see Tier 2's note. New Tier 6 added: UI polish, explicitly
-> last-priority, after everything else is ready).
+> technically still waiting on that piece — see Tier 2's note. Tier 3 fully re-scoped against real code
+> (sizes corrected, most "standing audits" converted from vague labels into concrete fixes — two turned out
+> to be real, currently-live bugs: user/contact deletion doesn't clean up ~13 newer tables, and SQLite FK
+> enforcement is actually off at the connection level so the migrations' own `ON DELETE CASCADE` doesn't
+> apply). Tier 6 broadened from UI-only to also carry non-critical test-coverage expansion, both still
+> explicitly last-priority, after everything else is ready).
 
 ## How to read this
 
@@ -386,11 +390,14 @@ releasing, so none of these block anything. They are correctness gaps in a *seco
 the distinction from what Tier 1 actually fixed — `email_verified` and `azp` were outright blockers for
 affected providers, whereas everything below degrades an otherwise working login.
 
-| # | Item | Size | Why deferred, not dropped |
+**Re-scoped 2026-07-29** against the actual code rather than the original grooming-time guesses — sizes
+below are corrected, not the original estimates.
+
+| # | Item | Size | Notes |
 |---|---|---|---|
-| 1 | **App-specific passwords for CardDAV** | large | Solves two problems at once, which is why it is one item rather than two — see below |
-| 2 | **RP-initiated logout (OIDC RP-Initiated Logout 1.0)** | medium | `/logout` clears the local cookie only; the IdP session survives, so "Sign in with SSO" silently re-authenticates without a prompt. On a shared machine, logging out does not fully log you out. Needs `end_session_endpoint` discovery, a retained `id_token_hint`, and a registered `post_logout_redirect_uri` |
-| 3 | **Configurable OIDC scopes** | small | `openid`/`email`/`profile` are hardcoded in `InitOIDCProvider`. Providers needing an extra scope (groups, or a non-standard email scope) cannot be configured without a code change. Only worth doing if a real provider actually needs it — do not add config for a hypothetical |
+| 1 | **App-specific passwords for CardDAV** | **small–medium** (was: large) | A full `ApiToken` system (`models/api_token.go`, `controllers/api_token_controller.go`, `frontend/src/ApiTokensPage.tsx`) already exists end-to-end and `AuthMiddleware` already accepts these tokens as bearer credentials — the only missing piece is teaching `carddav/auth.go`'s `BasicAuthMiddleware` to also check one when the bcrypt check fails (~20-40 lines, mirroring already-tested logic). Open design question that could push size back up: should CardDAV accept *any* API token (currently near-full REST access) or does it need a scoped, CardDAV-only token type? Decide before implementing. |
+| 2 | **RP-initiated logout (OIDC RP-Initiated Logout 1.0)** | **medium–large** (was: medium) | `/logout` clears the local cookie only; the IdP session survives, so "Sign in with SSO" silently re-authenticates without a prompt. Discovering `end_session_endpoint` is trivial (~5 lines — the OIDC provider metadata is already a cached long-lived singleton). The real cost: retaining the raw `id_token` through to logout (a new cookie), and reworking logout from today's background `fetch()` into a full-page redirect to the IdP plus a new return-trip route for `post_logout_redirect_uri` — a real backend+frontend contract change, not just added params. |
+| 3 | **Configurable OIDC scopes** | small (confirmed) | `openid`/`email`/`profile` hardcoded at `oidc_service.go:48`. Confirmed genuinely small: ~15-25 lines across 4 files (config, service, 2 docs). Only worth doing if a real provider actually needs it — do not add config for a hypothetical. |
 
 **On item 1 — why the two CardDAV problems are one piece of work.** Tier 1 recorded that CardDAV
 authenticates with the account password, so a synced-device credential leak is full account compromise.
@@ -408,25 +415,80 @@ ordering constraint between them beyond priority.
   every name-only legacy relationship with a birthday has an equivalent thin Contact carrying that same
   birthday, so the general contact-birthday-reminder path already covers it — the old
   `related_contact_id IS NULL` query in `birthday_service.go` is now redundant and produces a duplicate
-  reminder for any such row until removed. Small, but real bugs live at the day boundary, so keep the
-  legacy read path's own tests passing until this specific removal lands. Blocked on nothing — could be
-  done any time after WP-81, sequenced here (not touched then) because it edits a consumer file, the same
-  scope line WP-80/WP-81 both held.
+  reminder for any such row until removed. **Confirmed small (2026-07-29 re-scope)**: it's a clean ~55-line
+  block deletion (`birthday_service.go:58-114`) with **zero existing test coverage** on that path to
+  carefully preserve — the backlog's original "keep the legacy path's own tests passing" caveat doesn't
+  actually apply, there are no dedicated tests to keep green. One thing the original grooming missed:
+  `frontend/src/DashboardPage.tsx:294` has a live `birthday.type === 'relationship'` rendering branch that
+  becomes permanently dead code once this lands — include its removal in the same WP for full closure, not
+  just the backend deletion. Blocked on nothing — could be done any time after WP-81.
 
 ### 3c. Standing audits
 
-- Correctness audit
-- Data-lifecycle audit
-- Backup audit
-- Silent-failure audit (a known instance: `db.Updates()`/`db.Save()` return values go unchecked in the
-  note, reminder and relationship update handlers)
-- Single-instance-assumption audit
-- CVE sweep of dependencies (post-Tier 1 state: only `golang.org/x/crypto`'s `openpgp` advisory remains,
-  which has no fixed version and is not called — confirm that still holds rather than re-deriving it)
-- Broader test-coverage closure (Phase 3, remaining tiers beyond what `45-test-coverage-closure.md` already closed)
-- Defense-in-depth: `contact.Photo` reaches `filepath.Join` unguarded on the delete path
-  (`contact_controller.go`). Not currently reachable — it is only ever set to a server-generated UUID —
-  so this is a guard against a future writer, not a live fix
+**Re-scoped 2026-07-29**: these were unsized placeholder bullets at grooming time. Actually researching
+each turned two of them into confirmed, currently-live bugs (not hypothetical audit findings) and fully
+converted the rest from "go audit this" into concrete, ready-to-implement fixes — so most of these should
+stop being framed as open-ended audits at all.
+
+- **Correctness audit** — re-scoped per the user's own framing (2026-07-29): the intent is a holistic
+  review of existing code for functional correctness, and the right *methodology* for that is **writing
+  tests**, not reading code looking for bugs. This matches this session's own repeated experience across
+  WP-80 through WP-84c: nearly every real bug found (GORM column-naming mismatches, `Contact.CRM` mutations
+  that silently didn't persist, the WP-81 `-force` edge-duplication chain) was caught by writing a test that
+  exercised the real behavior, not by inspection. Distinct from "Broader test-coverage closure" below: that
+  item chases specific named functions/packages already known to have zero coverage (mechanical, itemized
+  in `45-test-coverage-closure.md`); this one is about writing tests *at business-logic decision points*
+  specifically to verify correctness (e.g. suggestion-engine edge cases, projection/sensitivity filtering,
+  validation dispatch) even where some coverage already exists — exploratory, not mechanical. Still needs a
+  first pass to identify which specific business-logic areas are highest-risk/least-verified before it can
+  be sized; **unsized**, but no longer directionless.
+- **Data-lifecycle audit — confirmed real, live gap, not a hypothetical (medium, was: unsized).** Split into
+  two: (a) `DeleteUser`/`DeleteContact` (`admin_user_controller.go`, `contact_controller.go`) don't clean up
+  ~13 newer tables — `relationship_edges`, `households`/`household_members`, `circles`/`circle_members`,
+  `tags`/`contact_tags`, `life_events`, `field_definitions`/`field_values`, plus pre-existing
+  `webhooks`/`webhook_deliveries`/`contact_subscriptions`/`contact_sync_links` — mechanical, low-risk fix:
+  extend the explicit-delete lists. (b) The `ON DELETE CASCADE` in those tables' migrations that should
+  cover this gap is **decorative**: SQLite's `foreign_keys` pragma is never enabled on the app's actual DB
+  connection (`database/migrate.go`'s `sql.Open`/`gorm.Open` calls pass a bare path, no
+  `_pragma=foreign_keys(1)`), so none of those constraints enforce, and haven't since at least migration 19.
+  Whether to turn FK enforcement on app-wide is a real policy decision (touches every delete path going
+  forward) — split it out from (a) as its own review rather than bundling a schema-enforcement change into
+  a "just add some deletes" PR.
+- **Silent-failure audit — fully scoped, no longer an audit (small, was: unsized).** Confirmed exactly 3
+  unchecked call sites, precisely the ones already named: `reminder_controller.go:138`,
+  `note_controller.go:237`, `relationship_controller.go:195` (`db.Updates()`/`db.Save()` with no `.Error`
+  check). Grepped every `.Updates(`/`.Save(` call site in `backend/controllers` and `backend/services` (37
+  total) — no more lurking anywhere else. Just fix the 3 sites.
+- **Single-instance-assumption audit — fully scoped (small + trivial, was: unsized).** Reminders and
+  calendar sync already have a real DB-backed job lock (`reminder_service.go`'s `acquireJobLock`) protecting
+  against double-run across instances/restarts. Webhook retries (`webhook_service.go`'s
+  `ProcessWebhookRetries`) don't have it — same bug class, just not yet applied there: **small**, copy the
+  existing pattern. Rate limiters (`middleware/rate_limiter.go`) are in-memory per-process — weaker limits
+  under multiple replicas, not a correctness bug, worth a **trivial** one-sentence doc note. SQLite itself
+  (single-writer, file-based) already structurally prevents true horizontal scaling regardless of app code.
+- **CVE sweep of dependencies — backend confirmed clean (done), frontend has a real gap (small).** Ran
+  `govulncheck` for real: 0 exploitable vulnerabilities, confirms the existing claim about the unused
+  `golang.org/x/crypto/openpgp` advisory exactly — close backend as verified, no further work. Frontend:
+  `.github/dependabot.yml` currently only watches `gomod`/backend — `npm_and_yarn`/frontend and
+  `bundler`/docs were dropped at some point despite both ecosystems having real CVE-fix history here (a
+  `yarn audit` run found 36 current advisories, mostly build-tooling-only, but the monitoring gap itself is
+  the real finding). Fix: restore the 2 missing dependabot.yml entries.
+- **Broader test-coverage closure — not open-ended (medium).** `45-test-coverage-closure.md` already fully
+  itemizes what's left as Phase 3a (security-sensitive, dispatch first: `httputil/fetch.go`,
+  `webhook_service.go`, `oidc_service.go`, `password_reset_service.go`) and Phase 3b (lower-risk: mailer,
+  email templates, remaining reminder/birthday gaps, several 0%-covered controllers) — it was scoped once
+  already and just never executed. Re-dispatch as originally authored, 3a before 3b. (The packages `45`
+  never covered at all — `config`, `database`, `routes`, `errors`, `i18n`, `logger`, `cmd/*` — are **moved
+  to Tier 6** below, since none of them are security-sensitive and the user's own call is that non-critical
+  coverage expansion belongs in the last-priority polish tier, not here.)
+- **Defense-in-depth: `contact.Photo` reaches `filepath.Join` unguarded on the delete path — confirmed,
+  trivial (was: unsized).** `contact_controller.go`'s `deleteContactPhotos` (called from `DeleteContact`)
+  has no guard before `filepath.Join(uploadDir, contact.Photo)`. Confirmed via grep of every assignment to
+  `Contact.Photo`: it is genuinely always a server-generated UUID (traced all 3 assignment sites back to
+  `photostore.SaveContactPhoto`'s `uuid.New()` call) — not currently reachable, exactly as originally
+  claimed. A ready-made guard template already exists in the same codebase
+  (`photo_controller.go:94-98`'s `strings.Contains(..., "..")`/`filepath.IsAbs(...)` check) — apply the same
+  pattern twice (Photo, PhotoThumbnail), ~4-8 lines total. Ready to implement exactly as scoped.
 
 ## Tier 4 — P6–P10 (search, CalDAV export, external links/Immich, sync, relationship-maintenance)
 
@@ -482,9 +544,15 @@ up supporting a *standing* share (auto-syncing, not a one-time send), the gating
 on every field newly marked sensitive after the share was created, not just at creation time — flagged here
 as a design question, not decided.
 
-## Tier 6 — UI polish (fonts, icons, strings)
+## Tier 6 — Polish (UI + non-critical test coverage)
 
 Explicitly last priority — polish after everything else (Tiers 1–5) is ready, per the user's own framing.
+Originally UI-only (fonts/icons/strings, items 1–4 below); broadened 2026-07-29 to also carry non-critical
+test-coverage expansion (item 5), since both share the same "do this once everything that actually matters
+is done" priority, even though one is frontend and one is backend.
+
+### UI polish (fonts, icons, strings)
+
 Not a fixed checklist: the task is to actually walk through the app's flows page by page and find places
 where the typography, iconography, or copy could be clearer or more consistent, using the examples below as
 a starting calibration for what "better" looks like, not an exhaustive list to check off.
@@ -506,6 +574,20 @@ a starting calibration for what "better" looks like, not an exhaustive list to c
    actual running app, flow by flow, and note/fix anything that reads as unpolished (inconsistent icon
    style, a label that's technically accurate but not clear, a font that doesn't match its surroundings),
    similar in spirit to the three examples above.
+
+### Non-critical test coverage expansion
+
+5. **Expand test coverage outside the already-scoped security and critical-path tests** (added 2026-07-29,
+   split out of Tier 3c's "broader test-coverage closure" during that item's re-scoping — see the note
+   there). `docs/fork-plan/45-test-coverage-closure.md`'s own Phase 3 scope (Tier 3, higher priority)
+   doesn't cover these packages at all; real `go test ./... -cover` numbers as of 2026-07-29: `config`
+   24.2%, `database` 37.8%, `routes` 0.0%, `errors` 0.0%, `i18n` 0.0%, `logger` 0.0%, and the one-shot
+   `cmd/backfill-custom-fields` 33.7% / `cmd/backfill-relationship-edges` 55.6% / `cmd/backfill-contact-records`
+   0.0% / `cmd/migrate` 0.0%. None of these are security-sensitive (config loading, route registration,
+   logging, i18n string loading, already-run one-off migration scripts) — that's exactly why this is Tier 6
+   and not Tier 3. Needs a fresh scoping pass to decide which of these are actually worth covering versus
+   accepted as low-value (e.g. `cmd/migrate`'s `main.go` may just be a thin CLI wrapper not worth testing in
+   isolation) — don't chase the percentage for its own sake.
 
 ## Deferred / someday
 

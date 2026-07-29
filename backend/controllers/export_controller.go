@@ -428,7 +428,7 @@ func ExportContactsAsVCF(c *gin.Context, photoDir string) {
 	// (the standard shape for a multi-contact .vcf file).
 	var buf bytes.Buffer
 	for _, contact := range contacts {
-		record := models.RecordForContact(&contact, photoDir)
+		record := models.RecordForContact(&contact, photoDir, db)
 		data, diags, err := exporter.Export(record)
 		if err != nil {
 			log.Error().Err(err).Uint("contact_id", contact.ID).Msg("Failed to encode contact as vCard")
@@ -491,7 +491,7 @@ func ExportContactsAsJSContact(c *gin.Context) {
 	adapter := jscontact.Adapter{}
 	cards := make([]json.RawMessage, 0, len(contacts))
 	for _, contact := range contacts {
-		record := models.RecordForContact(&contact, photoDir)
+		record := models.RecordForContact(&contact, photoDir, db)
 		data, diags, err := adapter.Export(record)
 		if err != nil {
 			log.Error().Err(err).Uint("contact_id", contact.ID).Msg("Failed to encode contact as JSContact")

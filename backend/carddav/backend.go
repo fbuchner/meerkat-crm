@@ -435,7 +435,7 @@ func (b *Backend) contactToAddressObject(ctx context.Context, contact *models.Co
 	}
 
 	version := requestedVCardVersion(ctx)
-	record := models.RecordForContact(contact, b.getPhotoDir(ctx))
+	record := models.RecordForContact(contact, b.getPhotoDir(ctx), b.db)
 	data, diags, err := exporterForVersion(version).Export(record)
 
 	card := make(vcard.Card)

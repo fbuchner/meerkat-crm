@@ -1,6 +1,10 @@
 package models
 
-import "mycorrhizal/contactmodel"
+import (
+	"mycorrhizal/contactmodel"
+
+	"gorm.io/gorm"
+)
 
 // ContactSummary is the slim per-item shape for GET /api/v1/contacts (list).
 // Per docs/fork-plan/50-integration-and-rebrand.md WP-71 ("Mobile-CRUD-real"
@@ -176,9 +180,10 @@ type ContactRecordResponse struct {
 // comment. photoDir (config.Config.ProfilePhotoDir) is forwarded through it
 // so the response's Card.Media carries the contact's photo (WP-73's
 // photo-bridging prerequisite) in addition to the existing top-level
-// Photo/PhotoThumbnail fields below.
-func NewContactRecordResponse(c *Contact, photoDir string) ContactRecordResponse {
-	record := RecordForContact(c, photoDir)
+// Photo/PhotoThumbnail fields below. db is forwarded to RecordForContact for
+// relationship-graph projection (WP-80); pass nil to skip it.
+func NewContactRecordResponse(c *Contact, photoDir string, db *gorm.DB) ContactRecordResponse {
+	record := RecordForContact(c, photoDir, db)
 	return ContactRecordResponse{
 		ID:             c.ID,
 		UID:            record.UID,

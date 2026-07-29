@@ -3,6 +3,7 @@ package middleware
 import (
 	apperrors "mycorrhizal/errors"
 	"mycorrhizal/logger"
+	"mycorrhizal/models"
 	"reflect"
 	"regexp"
 	"strings"
@@ -25,6 +26,7 @@ func init() {
 	validate.RegisterValidation("unique_circles", validateUniqueCircles)
 	validate.RegisterValidation("no_at_sign", validateNoAtSign)
 	validate.RegisterValidation("safeurl", validateSafeURL)
+	validate.RegisterValidation("relation_type", validateRelationType)
 }
 
 // ValidationError represents a validation error response
@@ -77,6 +79,8 @@ func formatValidationError(err validator.FieldError) string {
 		return field + " must be a valid URL"
 	case "safeurl":
 		return field + " uses an unsafe URL scheme"
+	case "relation_type":
+		return field + " must be a known relationship type"
 	default:
 		return field + " is invalid"
 	}
@@ -215,6 +219,14 @@ func validateUniqueCircles(fl validator.FieldLevel) bool {
 func validateNoAtSign(fl validator.FieldLevel) bool {
 	value := fl.Field().String()
 	return !strings.Contains(value, "@")
+}
+
+// validateRelationType checks a RelationshipEdge.Type value against
+// models.IsKnownRelationType, so the type registry (models/relationship_
+// type_registry.go) stays the single source of truth for valid tokens
+// rather than a second hardcoded list drifting out of sync with it.
+func validateRelationType(fl validator.FieldLevel) bool {
+	return models.IsKnownRelationType(fl.Field().String())
 }
 
 // ValidateEmail validates email format with regex

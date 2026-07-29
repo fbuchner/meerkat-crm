@@ -35,6 +35,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 )
 
@@ -131,6 +132,88 @@ func TestCreateContact_RealValidation_EmptyGenderAccepted(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &respBody))
 	contact := respBody["contact"].(map[string]any)
 	assert.Equal(t, "", contact["gender"])
+}
+
+// TestCreateContact_RealValidation_ThinEntityAccepted is WP-82's locking-in
+// test for the "nothing but name required" thin-entity invariant (docs/
+// fork-plan/90-vision-and-reconciliation.md D3, docs/fork-plan/
+// 91-envelope-data-model.md §91.1) — investigation during WP-82's planning
+// found this already worked end-to-end (both here and in the frontend's
+// AddContactDialog), so this asserts that finding rather than building
+// anything new. A request carrying only a given-name component — no email,
+// phone, address, gender, or any CRM field — must succeed and produce a
+// Contact with that name and nothing else, exactly what a pet or a minor
+// child's relationship-graph node (WP-80/81) needs to exist as.
+func TestCreateContact_RealValidation_ThinEntityAccepted(t *testing.T) {
+	db, router := newValidatedContactRouter()
+
+	body := []byte(`{"card":{"name":{"components":[{"kind":"given","value":"Fluffy"}]}}}`)
+
+	w := doJSONRequest(router, "POST", "/contacts", body)
+
+	if !assert.Equal(t, http.StatusCreated, w.Code, "a name-only contact must be accepted, body: %s", w.Body.String()) {
+		return
+	}
+
+	// ContactRecordResponse has no top-level firstname/lastname (the name
+	// lives in card.name.components) — check the response shape actually
+	// returned, not an assumed flat one.
+	var respBody map[string]any
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &respBody))
+	contact := respBody["contact"].(map[string]any)
+	assert.Equal(t, "", contact["gender"])
+	card := contact["card"].(map[string]any)
+	name := card["name"].(map[string]any)
+	components := name["components"].([]any)
+	require.Len(t, components, 1)
+	given := components[0].(map[string]any)
+	assert.Equal(t, "given", given["kind"])
+	assert.Equal(t, "Fluffy", given["value"])
+
+	// The stronger assertion: the persisted row itself has nothing but the
+	// name — this is what actually makes a bare-name Contact valid as a
+	// WP-80/81 relationship-graph node.
+	var stored models.Contact
+	require.NoError(t, db.First(&stored).Error)
+	assert.Equal(t, "Fluffy", stored.Firstname)
+	assert.Equal(t, "", stored.Lastname)
+	assert.Equal(t, "", stored.Email)
+	assert.Equal(t, "", stored.Phone)
+	assert.Equal(t, "", stored.Gender)
+}
+
+// TestCreateContact_RealValidation_KindAccepted proves CRMEnvelope.Kind
+// (WP-82, contactmodel/envelope.go) round-trips through the real create path
+// with zero extra wiring — CRM is copied wholesale between Contact.CRM and
+// contactmodel.Record.Envelope, so a new field needs no code change anywhere
+// in that path, only in the struct definition itself. Also exercises an
+// unrecognized value ("robot") to confirm the field is deliberately
+// unvalidated, matching every other CRMEnvelope field's degradation policy
+// (see this file's header) rather than a hardcoded enum.
+func TestCreateContact_RealValidation_KindAccepted(t *testing.T) {
+	for _, kind := range []string{"pet", "animal", "robot"} {
+		t.Run(kind, func(t *testing.T) {
+			_, router := newValidatedContactRouter()
+
+			input := models.ContactRecordInput{
+				Card: baseValidCardJSON(),
+				CRM:  contactmodel.CRMEnvelope{Kind: kind},
+			}
+			body, _ := json.Marshal(input)
+
+			w := doJSONRequest(router, "POST", "/contacts", body)
+
+			if !assert.Equal(t, http.StatusCreated, w.Code, "kind=%q must be accepted, body: %s", kind, w.Body.String()) {
+				return
+			}
+
+			var respBody map[string]any
+			assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &respBody))
+			contact := respBody["contact"].(map[string]any)
+			crm := contact["crm"].(map[string]any)
+			assert.Equal(t, kind, crm["kind"])
+		})
+	}
 }
 
 func TestCreateContact_RealValidation_MalformedJSON(t *testing.T) {

@@ -344,6 +344,13 @@ system be reused here rather than built twice. When this tier gets its design pa
 selection model/UI and add the sharing-specific parts (persistence for a live share vs. a one-time export,
 and the permission model) rather than re-deriving field selection from scratch.
 
+Also carries WP-97's sensitivity-default rule (see `92-delivery-roadmap.md §92.6b`): sensitivity-marked
+relationships/tags/life-events (`91.13`) default excluded from a share, with an explicit per-share opt-in
+override — arguably higher-stakes here than for a file export, since sharing hands the data to a specific
+other person on the instance, not just out to a file. Worth confirming this default still feels right once
+this tier's permission model exists (e.g. whether a standing/live share should re-apply the default on
+every sync, or only at share-creation time).
+
 ## Deferred / someday
 
 Unchanged from `92-delivery-roadmap.md §92.7`: other integrations (Dawarich/GeoPulse, Jellyfin,

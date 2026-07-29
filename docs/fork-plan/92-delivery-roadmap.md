@@ -96,7 +96,7 @@ depend on P5's relationship graph and could be picked up independently of the re
 
 | WP | Scope | Depends on |
 |---|---|---|
-| **WP-97** | A field-selection representation over `contactmodel.Card`'s top-level sections (emails, phones, addresses, organizations, media/photo, personal info, related-to, ...) — coarse-grained like Google's own picker, not per-value. Applied by filtering the `Record`/`Card` *before* it reaches an exporter, not inside each exporter — since `vcard3.Adapter`, `vcard4.Adapter`, and `jscontact.Adapter` (`controllers/export_controller.go`'s `ExportContactsAsVCF`/`ExportContactsAsJSContact`) all already consume the same neutral `Card`, one filter function makes the selection apply to all three formats identically, with zero changes to any of the three adapters themselves. Frontend: a field-picker UI (checkboxes per section, sensible "select all" default) wired into the existing export flow. | P0, WP-73 |
+| **WP-97** | A field-selection representation over `contactmodel.Card`'s top-level sections (emails, phones, addresses, organizations, media/photo, personal info, related-to, ...) — coarse-grained like Google's own picker, not per-value. Applied by filtering the `Record`/`Card` *before* it reaches an exporter, not inside each exporter — since `vcard3.Adapter`, `vcard4.Adapter`, and `jscontact.Adapter` (`controllers/export_controller.go`'s `ExportContactsAsVCF`/`ExportContactsAsJSContact`) all already consume the same neutral `Card`, one filter function makes the selection apply to all three formats identically, with zero changes to any of the three adapters themselves. **Sensitivity-marked items (`91.13`) default unchecked, with an explicit per-export opt-in override — see the note below the table, including the real change this forces in WP-80's projection.** Frontend: a field-picker UI (checkboxes per section, sensible "select all" default, sensitive items visibly distinct from an ordinary unchecked box) wired into the existing export flow. | P0, WP-73 |
 
 **Reused, not rebuilt, by Tier 5** (`95-backlog-and-priorities.md`'s contact-sharing-between-users item):
 that item's own description already calls for "opting which fields to include" when sharing a contact to
@@ -105,11 +105,22 @@ second implementation. Tier 5 will need its own persistence for a saved/default 
 per-export-click), but the selection *model* and *UI* are the reusable part. Whoever picks up Tier 5
 should check whether WP-97 already covers the field-selection half before re-scoping it.
 
-Distinct from `91.13` (Sensitivity — `normal|private|secret` on relationships/tags/life-events): sensitivity
-governs whether an item is excluded from *every* export/share by default regardless of format; this WP's
-field selection governs which otherwise-normal categories go into *one specific* export or share action.
-Complementary axes, not overlapping — a field can be both normal-sensitivity and excluded from a given
-export by the user's field selection.
+**Relationship to `91.13` (Sensitivity — `normal|private|secret` on relationships/tags/life-events), per
+user clarification (2026-07-30):** not two independent axes — this WP's field-selection UI is the concrete
+mechanism for `91.13`'s own "revealed-only-explicitly" rule in the export/share context. Sensitive items
+default to **excluded** (unchecked), same direction as the default-exclude rule `91.13` already states, but
+the UI must offer an **explicit opt-in override** per export/share action, not a hard, un-overridable
+block. Ordinary (`normal`-sensitivity) categories are opt-*out* (on by default, can be excluded);
+sensitive items are opt-*in* (off by default, can be included) — same UI, opposite default, not two
+separate controls.
+
+**Real consequence for this WP's scope, not just UI:** WP-80's projection (`RecordForContact` in
+`models/contact_record.go`, `projectRelationshipEdges`) currently enforces `Sensitivity: normal` as an
+unconditional SQL filter with no override parameter at all — confirmed by reading it, not assumed. Letting
+the user override the default for one export means that function (or an equivalent path WP-97 adds) needs
+a way to say "also include these specific sensitive edges this time," not just a per-format Card filter
+sitting in front of an otherwise-unchanged projection. Small, but worth flagging now so whoever scopes
+WP-97 in detail doesn't discover it mid-implementation.
 
 ## 92.7 Deferred / someday — `90.5` step 8
 

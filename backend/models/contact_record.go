@@ -49,18 +49,21 @@ func RecordForContact(c *Contact, photoDir string, db *gorm.DB) *contactmodel.Re
 		card := c.Card
 		card.RelatedTo = projectRelationshipEdges(db, c.VCardUID, card.RelatedTo)
 		card.Keywords = projectTags(db, c.VCardUID, card.Keywords)
+		passthrough := c.Passthrough
+		passthrough.VCard = projectCustomFields(db, c.VCardUID, passthrough.VCard)
 		return &contactmodel.Record{
 			UID:         c.VCardUID,
 			ETag:        c.ETag,
 			Card:        card,
 			Envelope:    c.CRM,
-			Passthrough: c.Passthrough,
+			Passthrough: passthrough,
 		}
 	}
 	record := RecordFromContact(c, photoDir)
 	if record != nil {
 		record.Card.RelatedTo = projectRelationshipEdges(db, record.UID, record.Card.RelatedTo)
 		record.Card.Keywords = projectTags(db, record.UID, record.Card.Keywords)
+		record.Passthrough.VCard = projectCustomFields(db, record.UID, record.Passthrough.VCard)
 	}
 	return record
 }
@@ -193,6 +196,62 @@ func projectTags(db *gorm.DB, vcardUID string, existing []string) []string {
 		}
 		seen[tag.Name] = true
 		result = append(result, tag.Name)
+	}
+
+	return result
+}
+
+// projectCustomFields is WP-84b's FieldValue -> Passthrough.VCard projection
+// (docs/fork-plan/94-custom-fields.md §94.5): a definition whose Projection
+// is "vcard:X-<NAME>" rides the existing JCardProp/passthrough machinery,
+// exactly like an imported unknown vCard property, except the CRM itself is
+// the source rather than an external file. "internal-only" definitions (the
+// default) never appear here. Structurally identical to projectTags/
+// projectRelationshipEdges above — nil-safe, best-effort, sensitivity
+// filtered in the query itself (only sensitivity='normal' definitions
+// project, matching projectRelationshipEdges' own §91.13 discipline), and
+// returns a new slice rather than mutating existing.
+//
+// Note the target is Passthrough.VCard, a Record-level field (sibling of
+// Card), not something nested under Card — unlike projectTags/
+// projectRelationshipEdges above, which both write into card.* fields.
+func projectCustomFields(db *gorm.DB, vcardUID string, existing []contactmodel.JCardProp) []contactmodel.JCardProp {
+	if db == nil || vcardUID == "" {
+		return existing
+	}
+
+	type projectedField struct {
+		FieldValue
+		Projection string
+	}
+	var fields []projectedField
+	err := db.Table("field_values").
+		Select("field_values.*, field_definitions.projection").
+		Joins("JOIN field_definitions ON field_definitions.id = field_values.field_definition_id").
+		Where("field_values.entity_id = ? AND field_definitions.sensitivity = ? AND field_definitions.projection LIKE ?",
+			vcardUID, RelationshipSensitivityNormal, "vcard:%").
+		Find(&fields).Error
+	if err != nil {
+		logger.Warn().Err(err).Str("vcard_uid", vcardUID).Msg("projectCustomFields: failed to load field values")
+		return existing
+	}
+	if len(fields) == 0 {
+		return existing
+	}
+
+	seen := make(map[string]bool, len(existing))
+	for _, p := range existing {
+		seen[p.Name] = true
+	}
+
+	result := append([]contactmodel.JCardProp(nil), existing...)
+	for _, f := range fields {
+		name := strings.TrimPrefix(f.Projection, "vcard:")
+		if name == "" || seen[name] {
+			continue
+		}
+		seen[name] = true
+		result = append(result, contactmodel.JCardProp{Name: name, Type: "text", Value: f.Value})
 	}
 
 	return result

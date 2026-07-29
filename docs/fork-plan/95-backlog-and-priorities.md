@@ -5,8 +5,8 @@
 > tool is used only for tracking the one or two items actively being worked on right now, since it has
 > repeatedly lost its full contents mid-session and should not be trusted as the backlog's home.
 >
-> Last groomed: 2026-07-29 (Tier 1 closed; Tier 2/P5 underway — WP-80/81/82/83/84 done, WP-84b next;
-> WP-84c newly added, unscheduled).
+> Last groomed: 2026-07-29 (Tier 1 closed; Tier 2/P5's own work done — WP-80/81/82/83/84/84b all done;
+> WP-84c is the one remaining descendant, still unscheduled into a tier).
 
 ## How to read this
 
@@ -187,11 +187,13 @@ reaches `filepath.Join` unguarded on the delete path, but is only ever set to a 
 so it is not reachable (**Tier 3c**). `golang.org/x/crypto`'s `openpgp` subpackage carries a standing
 advisory with no fixed version; govulncheck confirms it is not called (**Tier 3c**, CVE sweep).
 
-## Tier 2 — IN PROGRESS: P5 core relationship & event model (WP-80..84b)
+## Tier 2 — IN PROGRESS: P5 core relationship & event model (WP-80..84b done, WP-84c remaining)
 
 Full detail already lives in `92-delivery-roadmap.md §92.1` — not duplicated here. Hard gate: nothing in
 P6+ starts until this is green, since search, timeline, cadence, and integrations all read these
-entities.
+entities. **Not yet fully green**: `92.1`'s own P5 acceptance line requires "legacy relationship + circle
+data migrated (dry-run-verified)" — the relationship half is done (WP-81), but the circle half is WP-84c,
+still unscheduled.
 
 **WP-80 — DONE (`cc67a07`, merged to `main` `c8fdc1f`, 2026-07-28).** Relationship graph entity
 (`RelationshipEdge`, `models/relationship_edge.go` — the first UUID-string-primary-key entity in this
@@ -302,8 +304,44 @@ circles/tags/groups/labels synonym-mapping onto the one flat field) and the ~17 
 consuming `circles` as a flat string array (chips, filters, graph nodes, dashboard, import dialog). This is
 the highest-blast-radius piece of the original WP-84 scope, deliberately deferred rather than rushed.
 
-Next: **WP-84b** (typed custom fields, independent of the graph work) — depends only on P1, picking up
-next session. WP-84c above is also unblocked but not yet scheduled into a tier.
+**WP-84b — DONE (2026-07-29).** `FieldDefinition`/`FieldValue` (`models/field_definition.go` — the
+schema/data two-part model from §94.3), generalizing the untyped v1 (`User.CustomFieldNames` +
+`Contact.CustomFields`, both left fully intact and untouched — CSV export and the two frontend pages that
+read them keep working exactly as before). Scoped **backend-only**, matching the roadmap's own "full UX
+depends on P3" note and WP-80–84's no-routes precedent.
+- **Validation** (§94.4): a new `services.ValidateFieldValue`, dispatching per `Type` to a mix of reused
+  validators (`middleware.ValidateEmail`, and a new `middleware.ValidateVar` primitive that exposes the
+  existing `phone`/`birthday`/`safeurl` custom validators plus the validator library's built-ins to a
+  single runtime value rather than only a tagged struct field) and small native Go checks (string
+  length/pattern, RFC3339 datetime) where the validator library has no dynamic-tag equivalent.
+  `FieldConstraints.Multi` (not a 10th `Type` token) makes any scalar type a validated list, per §94.4's own
+  wording.
+- **Standards projection** (§94.5): only `internal-only` and `vcard:X-<NAME>` are implemented — the doc's
+  third option, a raw `jscontact:<pointer>` projection, is deliberately **not built**: JSContact's
+  `Card.VCardProps` already *is* `Passthrough.VCard` copied through verbatim, so a `vcard:`-projected field
+  already reaches vCard3, vCard4, *and* JSContact through the one existing mechanism. New
+  `projectCustomFields` in `models/contact_record.go`, structurally identical to WP-84's `projectTags`,
+  filtering `sensitivity='normal'` in the query itself (§91.13 discipline, verified: a `secret`-sensitivity
+  field with a `vcard:` mapping does **not** project).
+- **v1 migration** (§94.6, explicitly in this WP's own roadmap line, unlike WP-84's Circle/Tag split):
+  `cmd/backfill-custom-fields`, following `cmd/backfill-relationship-edges`'s dry-run/idempotent/fail-fast
+  template exactly. Two passes (definitions, then values, since a value references its definition) — a
+  documented, non-bug consequence of this split: a **dry-run** report cannot show pass-2 successes for
+  names pass 1 would create, since pass 1 makes no real writes to look up in dry-run mode (confirmed during
+  manual verification — pass 2 reports "no field definition found" for every value on a dry run against a
+  fresh DB, then succeeds normally once `-write` actually runs). `-force` exists only for the values pass
+  (a value can drift from v1 after a first migration); definitions have no `-force`, since a migrated
+  `Key`/`Label`/`Type` never changes out from under it.
+
+No bugs found this time — verified against a real migrated SQLite DB (`database.InitDB`): an invalid
+`phone` value is rejected, a valid one accepted; a `vcard:X-PRONOUNS`-projected, non-sensitive `enum`+
+`Multi` value appears correctly in `RecordForContact(...).Passthrough.VCard`; a `secret`-sensitivity
+`vcard:`-mapped field does not; the backfill tool's dry-run → `-write` → re-run sequence against a seeded
+DB with real v1 data produced exactly 2 definitions + 3 values, then zero further writes on re-run.
+
+Next: **WP-84c** (the deferred Circle/Tag data migration + CRUD routes + frontend rewiring, scheduled
+above) is now the only unscheduled item directly descended from Tier 2/P5's work. Time to re-groom Tier 3
+and beyond for what's next.
 
 ## Tier 3 — Remaining backend hardening/audits + auth follow-ups
 

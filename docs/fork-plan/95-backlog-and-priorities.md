@@ -5,7 +5,8 @@
 > tool is used only for tracking the one or two items actively being worked on right now, since it has
 > repeatedly lost its full contents mid-session and should not be trusted as the backlog's home.
 >
-> Last groomed: 2026-07-29 (Tier 1 closed; Tier 2/P5 underway — WP-80/81/82/83 done, WP-84/84b next).
+> Last groomed: 2026-07-29 (Tier 1 closed; Tier 2/P5 underway — WP-80/81/82/83/84 done, WP-84b next;
+> WP-84c newly added, unscheduled).
 
 ## How to read this
 
@@ -262,9 +263,47 @@ worked example (2 adults + 1 child + 1 pet) was planned as producing 2 `owned_by
 "every human → household pet `owned_by`," not "every adult" — the child gets one too, for 3. The shipped
 test asserts the correct count, not the plan's.
 
-Next: **WP-84** (`Activity`→Interaction generalization + Circle/Tag remodel + LifeEvent — bundles three
-sub-projects, the largest of what's left in this tier) and **WP-84b** (typed custom fields, independent of
-the graph work). Both only depend on P1, so either can go first; picking up next session.
+**WP-84 — DONE (2026-07-29).** Bundled all three sub-projects, scoped **backend-only/additive** (confirmed
+during planning): `Contact.Circles`, the existing `Activity` API, and every current controller/frontend
+consumer keep working exactly as before, untouched — no new routes, no frontend changes, matching
+WP-80–83's own precedent.
+- **Interaction** (§91.7): extended `Activity` in place (`models/activity.go`) rather than replacing it —
+  kept the existing int PK, added `UUID`/`Type`/`ExternalRef` as new columns, following
+  `Contact.VCardUID`'s own precedent for adding a stable UUID identity to a table with existing production
+  rows. Existing rows backfilled via `migrations/000030`'s `UPDATE` statement, the same
+  `000008`/`000009`-style split used historically for `contacts.vcard_uid`. Added `Activity.Qualifying()`
+  (§91.7's "derived, not stored" field) with no consumer yet — cadence (WP-94) is future work.
+- **LifeEvent** (§91.6): new UUID-PK entity (`models/life_event.go`, `migrations/000032`), following
+  `Household`'s exact template. `Date` reuses `contactmodel.PartialDate` per the spec's own instruction.
+  `RelatedEntityIDs` is a single JSON-array field (not a join table) covering both "secondary participants"
+  (e.g. both spouses in a `married` event) and "related entity" (the new child/pet/org) — a deliberate
+  simplification since nothing needs to query from the related-entity side yet, the same proportionality
+  call `Household.Address` made.
+- **Circle + Tag** (§91.5): two new small entity pairs (`models/circle.go`, `models/tag.go`,
+  `migrations/000031`), following `Household`/`HouseholdMember`'s exact template. Tag projects onto
+  `Card.Keywords` via a new `projectTags` in `models/contact_record.go`, structurally identical to WP-80's
+  `projectRelationshipEdges` — wired into `RecordForContact` alongside the existing `RelatedTo` projection.
+  No data migration of existing `Contact.Circles` strings into these new tables — that's WP-84c below.
+
+No new bugs this time (the `MemberVCardUID`-column-naming and `ApplyRecordToContact`-vs-direct-mutation
+traps WP-83 hit were both known going in and avoided from the start). Verified against a real migrated
+SQLite DB (`database.InitDB`, the actual production migration path, not just `AutoMigrate`): a fresh
+`Activity` gets a `BeforeCreate` UUID, the migration's own backfill statement recovers a cleared one, two
+`Tag`s merge into `RecordForContact`'s `Card.Keywords` alongside an existing passthrough keyword without
+duplication, a `LifeEvent` with a year-only `PartialDate` and a `RelatedEntityIDs` entry round-trips
+exactly, and `CircleMember`'s unique constraint is enforced by the real DB.
+
+**New — WP-84c** (depends on WP-84, not yet sized/prioritized into a tier): migrate existing
+`Contact.Circles` strings into real `Circle`/`Tag` rows via a **user-assisted triage UI** — the spec is
+explicit this is "a light user-assisted step," not an automated heuristic — plus CRUD routes for
+Circle/Tag/LifeEvent/Interaction, and updating the ~5 backend call sites currently reading/writing the flat
+field (`contact_controller.go`'s `GetCircles` and JSON-array filtering, `import_service.go`'s
+circles/tags/groups/labels synonym-mapping onto the one flat field) and the ~17 frontend files currently
+consuming `circles` as a flat string array (chips, filters, graph nodes, dashboard, import dialog). This is
+the highest-blast-radius piece of the original WP-84 scope, deliberately deferred rather than rushed.
+
+Next: **WP-84b** (typed custom fields, independent of the graph work) — depends only on P1, picking up
+next session. WP-84c above is also unblocked but not yet scheduled into a tier.
 
 ## Tier 3 — Remaining backend hardening/audits + auth follow-ups
 

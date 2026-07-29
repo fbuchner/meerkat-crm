@@ -5,8 +5,8 @@
 > tool is used only for tracking the one or two items actively being worked on right now, since it has
 > repeatedly lost its full contents mid-session and should not be trusted as the backlog's home.
 >
-> Last groomed: 2026-07-28 (Tier 1 closed; its auth follow-ups scheduled as Tier 3a; next actionable
-> tier is Tier 2 / P5).
+> Last groomed: 2026-07-28 (Tier 1 closed, auth follow-ups scheduled as Tier 3a; Tier 2/P5 underway —
+> WP-80 done, WP-81/WP-82 next).
 
 ## How to read this
 
@@ -187,13 +187,24 @@ reaches `filepath.Join` unguarded on the delete path, but is only ever set to a 
 so it is not reachable (**Tier 3b**). `golang.org/x/crypto`'s `openpgp` subpackage carries a standing
 advisory with no fixed version; govulncheck confirms it is not called (**Tier 3b**, CVE sweep).
 
-## Tier 2 — NEXT: P5 core relationship & event model (WP-80..84b)
+## Tier 2 — IN PROGRESS: P5 core relationship & event model (WP-80..84b)
 
 Full detail already lives in `92-delivery-roadmap.md §92.1` — not duplicated here. Hard gate: nothing in
 P6+ starts until this is green, since search, timeline, cadence, and integrations all read these
-entities. Depends on P1/P0 (done), not on Tier 0/1 above — but sequenced after them here because it's a
-large net-new backend surface, and finishing the client (Tier 0) plus a security pass (Tier 1) on the
-*current* surface is worth more right now than starting the *next* one.
+entities.
+
+**WP-80 — DONE (`cc67a07`, merged to `main` `c8fdc1f`, 2026-07-28).** Relationship graph entity
+(`RelationshipEdge`, `models/relationship_edge.go` — the first UUID-string-primary-key entity in this
+codebase), type registry (`models/relationship_type_registry.go`, a Go map seeded with every relation
+from `91.2`'s worked examples), and `Card.RelatedTo` projection wiring in `RecordForContact`
+(`models/contact_record.go`) — verified end-to-end against the real vCard4 exporter, not just Go struct
+assertions. Backend-only by design: no new HTTP routes, the existing `/contacts/:id/relationships` API
+still serves the legacy `models.Relationship` table unchanged. `RecordForContact` and
+`NewContactRecordResponse` both gained a `*gorm.DB` parameter to run the projection query.
+
+Next: **WP-81** (migrate legacy `models.Relationship` data onto the graph, incl. promoting name-only
+endpoints to thin Contacts — irreversible, dry-run-gated) can now start, and **WP-82** (`Contact.kind` +
+thin-entity relaxation) is independent and can run in parallel since it only depends on P1.
 
 ## Tier 3 — Remaining backend hardening/audits + auth follow-ups
 

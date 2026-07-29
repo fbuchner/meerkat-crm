@@ -48,6 +48,7 @@ func RecordForContact(c *Contact, photoDir string, db *gorm.DB) *contactmodel.Re
 	if c != nil && !reflect.DeepEqual(c.Card, contactmodel.Card{}) {
 		card := c.Card
 		card.RelatedTo = projectRelationshipEdges(db, c.VCardUID, card.RelatedTo)
+		card.Keywords = projectTags(db, c.VCardUID, card.Keywords)
 		return &contactmodel.Record{
 			UID:         c.VCardUID,
 			ETag:        c.ETag,
@@ -59,6 +60,7 @@ func RecordForContact(c *Contact, photoDir string, db *gorm.DB) *contactmodel.Re
 	record := RecordFromContact(c, photoDir)
 	if record != nil {
 		record.Card.RelatedTo = projectRelationshipEdges(db, record.UID, record.Card.RelatedTo)
+		record.Card.Keywords = projectTags(db, record.UID, record.Card.Keywords)
 	}
 	return record
 }
@@ -144,6 +146,53 @@ func projectRelationshipEdges(db *gorm.DB, vcardUID string, existing []contactmo
 			// A->B, read from B's side).
 			appendIfNew(edge.SourceID, RelationVCardTypeTag(edge.Type))
 		}
+	}
+
+	return result
+}
+
+// projectTags is WP-84's Tag -> Card.Keywords projection (§91.5): tags are
+// "an attribute a set of people share" and have a clean standards home
+// (vCard CATEGORIES / JSContact keywords), unlike Circles which stay
+// internal-only. Structurally identical to projectRelationshipEdges above —
+// nil-safe, best-effort (a query failure degrades to "just the existing
+// keywords" rather than failing the whole read), and returns a new slice
+// rather than mutating existing.
+func projectTags(db *gorm.DB, vcardUID string, existing []string) []string {
+	if db == nil || vcardUID == "" {
+		return existing
+	}
+
+	var taggings []ContactTag
+	if err := db.Where("contact_vcard_uid = ?", vcardUID).Find(&taggings).Error; err != nil {
+		logger.Warn().Err(err).Str("vcard_uid", vcardUID).Msg("projectTags: failed to load taggings")
+		return existing
+	}
+	if len(taggings) == 0 {
+		return existing
+	}
+
+	tagIDs := make([]string, len(taggings))
+	for i, tagging := range taggings {
+		tagIDs[i] = tagging.TagID
+	}
+	var tags []Tag
+	if err := db.Where("id IN ?", tagIDs).Find(&tags).Error; err != nil {
+		logger.Warn().Err(err).Str("vcard_uid", vcardUID).Msg("projectTags: failed to load tags")
+		return existing
+	}
+
+	seen := make(map[string]bool, len(existing))
+	result := append([]string(nil), existing...)
+	for _, kw := range existing {
+		seen[kw] = true
+	}
+	for _, tag := range tags {
+		if tag.Name == "" || seen[tag.Name] {
+			continue
+		}
+		seen[tag.Name] = true
+		result = append(result, tag.Name)
 	}
 
 	return result

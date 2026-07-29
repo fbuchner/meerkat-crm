@@ -400,7 +400,7 @@ below are corrected, not the original estimates.
 |---|---|---|---|
 | 1 | **App-specific passwords for CardDAV** | **small–medium** (was: large) | A full `ApiToken` system (`models/api_token.go`, `controllers/api_token_controller.go`, `frontend/src/ApiTokensPage.tsx`) already exists end-to-end and `AuthMiddleware` already accepts these tokens as bearer credentials — the only missing piece is teaching `carddav/auth.go`'s `BasicAuthMiddleware` to also check one when the bcrypt check fails (~20-40 lines, mirroring already-tested logic). Open design question that could push size back up: should CardDAV accept *any* API token (currently near-full REST access) or does it need a scoped, CardDAV-only token type? Decide before implementing. |
 | 2 | **RP-initiated logout (OIDC RP-Initiated Logout 1.0)** | **medium–large** (was: medium) | `/logout` clears the local cookie only; the IdP session survives, so "Sign in with SSO" silently re-authenticates without a prompt. Discovering `end_session_endpoint` is trivial (~5 lines — the OIDC provider metadata is already a cached long-lived singleton). The real cost: retaining the raw `id_token` through to logout (a new cookie), and reworking logout from today's background `fetch()` into a full-page redirect to the IdP plus a new return-trip route for `post_logout_redirect_uri` — a real backend+frontend contract change, not just added params. |
-| 3 | **Configurable OIDC scopes** | small (confirmed) | `openid`/`email`/`profile` hardcoded at `oidc_service.go:48`. Confirmed genuinely small: ~15-25 lines across 4 files (config, service, 2 docs). Only worth doing if a real provider actually needs it — do not add config for a hypothetical. |
+| 3 | **Configurable OIDC scopes** | small (confirmed) | **DONE** (2026-07-29). `OIDC_SCOPES` env var (comma-separated, defaults to `openid,email,profile`), `config.getScopesEnv` following the existing `getProxies` list-parsing pattern, wired into `InitOIDCProvider`'s `oauth2.Config.Scopes`. `.env.example` and `docs/getting-started.md` updated; unit-tested in `config_test.go`. |
 
 **On item 1 — why the two CardDAV problems are one piece of work.** Tier 1 recorded that CardDAV
 authenticates with the account password, so a synced-device credential leak is full account compromise.
@@ -412,10 +412,10 @@ one change, so they should not be scheduled separately.
 Sequencing note: item 1 touches the CardDAV auth path, which P5 (Tier 2) does not, so there is no
 ordering constraint between them beyond priority.
 
-**Recommended pickup order**: 1 (App-specific passwords) → 3 (Configurable OIDC scopes, only if a real
-provider needs it — otherwise skip) → 2 (RP-Initiated Logout). Item 1 first because it's now the smallest
-*and* highest-value (fixes an actual account-compromise blast-radius issue and unblocks SSO+CardDAV in one
-change); item 2 last because it's the biggest and most cross-stack of the three.
+**Recommended pickup order**: 1 (App-specific passwords) → ~~3 (Configurable OIDC scopes)~~ **done** → 2
+(RP-Initiated Logout). Item 1 is next: smallest remaining *and* highest-value (fixes an actual
+account-compromise blast-radius issue and unblocks SSO+CardDAV in one change); item 2 after that — biggest
+and most cross-stack of the three.
 
 ### 3b. WP-81 follow-up
 

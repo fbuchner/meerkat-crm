@@ -25,6 +25,7 @@ type OIDCConfig struct {
 	RedirectURL        string // derived from FrontendURL, not configurable
 	AllowAutoProvision bool
 	TrustEmail         bool // skip email_verified requirement when linking accounts (for trusted self-hosted providers)
+	Scopes             []string
 }
 
 // Config is the fully-loaded application configuration, populated once by
@@ -129,6 +130,7 @@ func LoadConfig() *Config {
 		RedirectURL:        cfg.FrontendURL + "/api/v1/auth/oidc/callback",
 		AllowAutoProvision: getBoolEnv("OIDC_AUTO_PROVISION", false),
 		TrustEmail:         getBoolEnv("OIDC_TRUST_EMAIL", false),
+		Scopes:             getScopesEnv(getEnv("OIDC_SCOPES", "")),
 	}
 
 	return cfg
@@ -175,6 +177,20 @@ func getProxies(proxies string) []string {
 		proxyList[i] = strings.TrimSpace(proxy) // Remove whitespaces
 	}
 	return proxyList
+}
+
+// getScopesEnv parses a comma-separated OIDC scope list, defaulting to
+// openid/email/profile when unset since scopes must never end up empty.
+func getScopesEnv(scopes string) []string {
+	if scopes == "" {
+		return []string{"openid", "email", "profile"}
+	}
+
+	scopeList := strings.Split(scopes, ",")
+	for i, scope := range scopeList {
+		scopeList[i] = strings.TrimSpace(scope)
+	}
+	return scopeList
 }
 
 // ValidationError represents a configuration validation error

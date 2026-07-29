@@ -45,7 +45,7 @@ func InitOIDCProvider(ctx context.Context, cfg *config.Config) (*OIDCProvider, e
 		ClientSecret: cfg.OIDC.ClientSecret,
 		Endpoint:     provider.Endpoint(),
 		RedirectURL:  cfg.OIDC.RedirectURL,
-		Scopes:       []string{oidc.ScopeOpenID, "email", "profile"},
+		Scopes:       cfg.OIDC.Scopes,
 	}
 
 	verifier := provider.Verifier(&oidc.Config{ClientID: cfg.OIDC.ClientID})

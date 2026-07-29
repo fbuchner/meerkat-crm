@@ -87,3 +87,21 @@ func TestValidate_EmptyFrontendURLStillRejected(t *testing.T) {
 
 	assert.True(t, hasFieldError(errs, "FRONTEND_URL"), "empty FRONTEND_URL should still be rejected regardless of GIN_MODE, got: %v", errs)
 }
+
+func TestGetScopesEnv(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{name: "empty defaults to openid/email/profile", input: "", expected: []string{"openid", "email", "profile"}},
+		{name: "single scope", input: "openid", expected: []string{"openid"}},
+		{name: "comma-separated with whitespace trimmed", input: " openid, email ", expected: []string{"openid", "email"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, getScopesEnv(tt.input))
+		})
+	}
+}

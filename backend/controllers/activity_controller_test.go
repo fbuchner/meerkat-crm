@@ -28,7 +28,7 @@ func setupRouter() (*gorm.DB, *gin.Engine) {
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(1)
 
-	db.AutoMigrate(&models.Contact{}, &models.Activity{}, &models.Note{}, models.Relationship{}, models.Reminder{}, models.User{}, models.Webhook{}, models.WebhookDelivery{}, models.ContactSubscription{}, models.ContactSyncLink{}, models.RelationshipEdge{})
+	db.AutoMigrate(&models.Contact{}, &models.Activity{}, &models.Note{}, models.Relationship{}, models.Reminder{}, models.User{}, models.Webhook{}, models.WebhookDelivery{}, models.ContactSubscription{}, models.ContactSyncLink{}, models.RelationshipEdge{}, models.Circle{}, models.CircleMember{}, models.Tag{}, models.ContactTag{}, models.LifeEvent{})
 
 	user := models.User{Username: "tester", Password: "password123", Email: "tester@example.com"}
 	if err := db.Create(&user).Error; err != nil {
@@ -308,6 +308,61 @@ func TestUpdateActivity(t *testing.T) {
 	var responseBody models.Activity
 	json.Unmarshal(w.Body.Bytes(), &responseBody)
 	assert.Equal(t, activityUpdate.Title, responseBody.Title)
+}
+
+// WP-84c gap fix: Type/ExternalRef (added to Activity in WP-84) previously
+// round-tripped on read but could never be set via the API — Create/Update
+// never copied them from ActivityInput onto the model.
+func TestCreateActivitySetsTypeAndExternalRef(t *testing.T) {
+	_, router := setupRouter()
+	router.POST("/activities", withValidated(func() any { return &models.ActivityInput{} }), CreateActivity)
+
+	payload := models.ActivityInput{
+		Title: "Coffee", Date: time.Now().AddDate(0, 0, 1),
+		Type: models.InteractionTypeMeal, ExternalRef: "caldav:abc123",
+	}
+	jsonValue, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest("POST", "/activities", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var responseBody map[string]any
+	json.Unmarshal(w.Body.Bytes(), &responseBody)
+	activity := responseBody["activity"].(map[string]any)
+	assert.Equal(t, models.InteractionTypeMeal, activity["type"])
+	assert.Equal(t, "caldav:abc123", activity["external_ref"])
+}
+
+func TestUpdateActivitySetsTypeAndExternalRef(t *testing.T) {
+	db, router := setupRouter()
+	var user models.User
+	db.First(&user)
+	router.PUT("/activities/:id", withValidated(func() any { return &models.ActivityInput{} }), UpdateActivity)
+
+	activity := models.Activity{UserID: user.ID, Title: "Coffee", Date: time.Now().AddDate(0, 0, 1)}
+	db.Create(&activity)
+
+	payload := models.ActivityInput{
+		Title: "Coffee", Date: time.Now(),
+		Type: models.InteractionTypeVisit, ExternalRef: "caldav:xyz789",
+	}
+	jsonValue, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest("PUT", "/activities/"+strconv.Itoa(int(activity.ID)), bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var reloaded models.Activity
+	db.First(&reloaded, activity.ID)
+	assert.Equal(t, models.InteractionTypeVisit, reloaded.Type)
+	assert.Equal(t, "caldav:xyz789", reloaded.ExternalRef)
 }
 
 func TestDeleteActivity(t *testing.T) {

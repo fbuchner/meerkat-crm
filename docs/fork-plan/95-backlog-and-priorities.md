@@ -5,8 +5,9 @@
 > tool is used only for tracking the one or two items actively being worked on right now, since it has
 > repeatedly lost its full contents mid-session and should not be trusted as the backlog's home.
 >
-> Last groomed: 2026-07-29 (Tier 1 closed; Tier 2/P5's own work done — WP-80/81/82/83/84/84b all done;
-> WP-84c is the one remaining descendant, still unscheduled into a tier).
+> Last groomed: 2026-07-29 (Tier 1 closed; Tier 2/P5 — WP-80/81/82/83/84/84b/84c(backend) all done; the
+> triage-UI/migration/frontend half of WP-84c is now filed under Tier 4, and P5's own acceptance gate is
+> technically still waiting on that piece — see Tier 2's note).
 
 ## How to read this
 
@@ -187,13 +188,15 @@ reaches `filepath.Join` unguarded on the delete path, but is only ever set to a 
 so it is not reachable (**Tier 3c**). `golang.org/x/crypto`'s `openpgp` subpackage carries a standing
 advisory with no fixed version; govulncheck confirms it is not called (**Tier 3c**, CVE sweep).
 
-## Tier 2 — IN PROGRESS: P5 core relationship & event model (WP-80..84b done, WP-84c remaining)
+## Tier 2 — IN PROGRESS: P5 core relationship & event model (WP-80..84c backend slice done)
 
 Full detail already lives in `92-delivery-roadmap.md §92.1` — not duplicated here. Hard gate: nothing in
 P6+ starts until this is green, since search, timeline, cadence, and integrations all read these
 entities. **Not yet fully green**: `92.1`'s own P5 acceptance line requires "legacy relationship + circle
-data migrated (dry-run-verified)" — the relationship half is done (WP-81), but the circle half is WP-84c,
-still unscheduled.
+data migrated (dry-run-verified)" — the relationship half is done (WP-81), but the circle half needs the
+user-assisted triage UI that was split out of WP-84c and re-filed under Tier 4 (see that section) — so P5's
+hard gate technically waits on a piece of Tier 4 work, not just Tier 2 work. Worth keeping in mind when
+re-grooming: P6+ isn't actually unblockable purely by finishing what's left in this tier's own list.
 
 **WP-80 — DONE (`cc67a07`, merged to `main` `c8fdc1f`, 2026-07-28).** Relationship graph entity
 (`RelationshipEdge`, `models/relationship_edge.go` — the first UUID-string-primary-key entity in this
@@ -295,14 +298,42 @@ SQLite DB (`database.InitDB`, the actual production migration path, not just `Au
 duplication, a `LifeEvent` with a year-only `PartialDate` and a `RelatedEntityIDs` entry round-trips
 exactly, and `CircleMember`'s unique constraint is enforced by the real DB.
 
-**New — WP-84c** (depends on WP-84, not yet sized/prioritized into a tier): migrate existing
-`Contact.Circles` strings into real `Circle`/`Tag` rows via a **user-assisted triage UI** — the spec is
-explicit this is "a light user-assisted step," not an automated heuristic — plus CRUD routes for
-Circle/Tag/LifeEvent/Interaction, and updating the ~5 backend call sites currently reading/writing the flat
-field (`contact_controller.go`'s `GetCircles` and JSON-array filtering, `import_service.go`'s
-circles/tags/groups/labels synonym-mapping onto the one flat field) and the ~17 frontend files currently
-consuming `circles` as a flat string array (chips, filters, graph nodes, dashboard, import dialog). This is
-the highest-blast-radius piece of the original WP-84 scope, deliberately deferred rather than rushed.
+**WP-84c (backend CRUD slice) — DONE (2026-07-29).** Confirmed with you: split WP-84c rather than build it
+as one bundle — the backend CRUD API happens now, the triage UI, `Contact.Circles` data migration, and all
+frontend rewiring move to Tier 4 (see below), since "no one is using this yet" and breaking changes there
+are fine to defer without urgency. This is also the **first** WP in this series to add real HTTP surface —
+WP-80 through WP-84b were deliberately backend-model-only.
+
+Full CRUD (`controllers/circle_controller.go`, `tag_controller.go`, `life_event_controller.go`) for
+`Circle`/`Tag`/`LifeEvent`, following `activity_controller.go`'s existing conventions exactly (
+`currentUserID`/`.Where("user_id = ?", ...)` ownership, `middleware.GetValidated[T]`, `apperrors.
+AbortWithError`, `GetPaginationParams`). No existing precedent covered join-row (`CircleMember`/
+`ContactTag`) endpoints, so this WP had to decide one: real nested sub-resource endpoints (`POST/DELETE
+/circles/:id/members`, `POST/DELETE /tags/:id/contacts`) rather than folding membership into a bulk-replace
+DTO field the way `Activity.Contacts` does — membership add/remove is its own action with its own
+lifecycle, not a field of "editing the circle's name." A duplicate add is a clear `409 ErrAlreadyExists`
+(checked by querying first, not by sniffing a unique-constraint error string).
+
+Also closed a real, separate gap found during research: `Activity`/"Interaction" already had full CRUD, but
+its `Type`/`ExternalRef` fields (added in WP-84) were never wired into `ActivityInput` — they round-tripped
+on read but could never be set via the API. Fixed alongside this WP since it directly completes "CRUD
+routes for Interaction" from WP-84c's own original description.
+
+No bugs found beyond the confirmed Activity DTO gap above. Verified two ways: the full Go test suite
+(27 new/modified tests across `circle_controller_test.go`/`tag_controller_test.go`/
+`life_event_controller_test.go`/`activity_controller_test.go`), and — since this is the first WP with real
+routes — an actual running server against a scratch SQLite DB, driven with real `curl` requests through
+cookie-based auth: registered a user, created a contact, created a Circle and added/removed a member
+(confirming the 409 on a duplicate add), tagged/untagged a contact, created a `LifeEvent` with a partial
+date and listed it back filtered by `entity_id`, and confirmed an Activity's `Type`/`ExternalRef` persist
+through a real `POST`+`GET` round trip.
+
+**Deferred to Tier 4 as its own item** (see below): the triage UI, the `Contact.Circles` → `Circle`/`Tag`
+data migration (which genuinely needs that UI, not a heuristic — §91.5 is explicit this is "a light
+user-assisted step"), and rewiring the ~5 backend call sites (`contact_controller.go`'s `GetCircles` and
+JSON-array filtering, `import_service.go`'s circles/tags/groups/labels synonym-mapping) and ~17 frontend
+files currently consuming `circles` as a flat string array (chips, filters, graph nodes, dashboard, import
+dialog) — the highest-blast-radius piece of the original WP-84c scope.
 
 **WP-84b — DONE (2026-07-29).** `FieldDefinition`/`FieldValue` (`models/field_definition.go` — the
 schema/data two-part model from §94.3), generalizing the untyped v1 (`User.CustomFieldNames` +
@@ -406,6 +437,20 @@ added 2026-07-29 at the user's request — Google Contacts' "choose fields to ex
 Depends only on P0 + WP-73 (both done), **not** on P5's graph work, so it is not actually gated behind the
 rest of this tier and could be picked up independently whenever convenient. Its field-selection UI and
 filter function are meant to be **reused, not rebuilt**, by Tier 5 below.
+
+**Exception: WP-84c's deferred frontend/migration half** (split out 2026-07-29 — the backend CRUD slice of
+WP-84c is done, see Tier 2 above). Three pieces, likely worth splitting further when picked up rather than
+doing as one PR, given how large WP-84's own frontend blast-radius estimate was:
+1. A user-assisted triage UI for classifying each existing `Contact.Circles` string as a `Circle` or a
+   `Tag` (§91.5 is explicit this must not be an automated heuristic) — this is also the piece Tier 2/P5's
+   own acceptance criteria is technically still waiting on (see the note in that section).
+2. Rewiring the ~5 backend call sites still reading/writing the flat field directly: `contact_controller.
+   go`'s `GetCircles` and its `json_each`-based JSON-array filtering, and `import_service.go`'s
+   circles/tags/groups/labels synonym-mapping (which currently maps ALL of those onto the one flat
+   `circles` field — once Tag exists as a real destination, this mapping needs to split by target, not just
+   change where it writes).
+3. Rewiring the ~17 frontend files currently consuming `circles` as a flat string array (chips, filters,
+   graph nodes, dashboard, import dialog) to use the new Circle/Tag entities and their CRUD API instead.
 
 ## Tier 5 — Contact sharing between users (standalone, big)
 

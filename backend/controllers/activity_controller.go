@@ -51,6 +51,8 @@ func CreateActivity(c *gin.Context) {
 		Date:        activityInput.Date,
 		Description: activityInput.Description,
 		Location:    activityInput.Location,
+		Type:        activityInput.Type,
+		ExternalRef: activityInput.ExternalRef,
 	}
 	if err := db.Create(&activity).Error; err != nil {
 		logger.FromContext(c).Error().Err(err).Msg("Error saving activity to database")
@@ -209,6 +211,8 @@ func UpdateActivity(c *gin.Context) {
 	activity.Description = activityInput.Description
 	activity.Location = activityInput.Location
 	activity.Date = activityInput.Date
+	activity.Type = activityInput.Type
+	activity.ExternalRef = activityInput.ExternalRef
 
 	// Update contacts association if contact_ids are provided
 	if activityInput.ContactIDs != nil {

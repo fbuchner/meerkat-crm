@@ -27,6 +27,7 @@ func init() {
 	validate.RegisterValidation("no_at_sign", validateNoAtSign)
 	validate.RegisterValidation("safeurl", validateSafeURL)
 	validate.RegisterValidation("relation_type", validateRelationType)
+	validate.RegisterValidation("fielddefprojection", validateFieldDefinitionProjection)
 }
 
 // ValidationError represents a validation error response
@@ -229,10 +230,42 @@ func validateRelationType(fl validator.FieldLevel) bool {
 	return models.IsKnownRelationType(fl.Field().String())
 }
 
+// fieldDefinitionProjectionPattern matches FieldDefinition.Projection (WP-84b,
+// docs/fork-plan/94-custom-fields.md §94.5): "internal-only" (default, never
+// exported) or "vcard:X-<NAME>" (projects via the existing JCardProp/
+// Passthrough machinery -- see models/contact_record.go's projectCustomFields).
+// The doc's third option, a raw "jscontact:<pointer>" projection, is
+// deliberately not supported: JSContact's Card.VCardProps already *is*
+// Passthrough.VCard copied through verbatim (jscontact/adapter.go), so a
+// vcard:-projected field already reaches vCard3, vCard4, and JSContact via
+// this one mechanism -- a separate JSContact-only path has no current
+// justification.
+var fieldDefinitionProjectionPattern = regexp.MustCompile(`^(internal-only|vcard:X-[A-Za-z0-9-]+)$`)
+
+// validateFieldDefinitionProjection checks a FieldDefinition.Projection value
+// against fieldDefinitionProjectionPattern, following validateRelationType's
+// own registration style for a cross-cutting, registry-backed custom check.
+func validateFieldDefinitionProjection(fl validator.FieldLevel) bool {
+	return fieldDefinitionProjectionPattern.MatchString(fl.Field().String())
+}
+
 // ValidateEmail validates email format with regex
 func ValidateEmail(email string) bool {
 	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 	return emailRegex.MatchString(email)
+}
+
+// ValidateVar validates a single value against a validator tag string,
+// through the same package-level validate singleton ValidateStruct uses --
+// so it sees the same registered custom validators (phone, birthday,
+// safeurl, ...) plus the validator library's built-ins (min, max, oneof,
+// uri, ...). This is the primitive WP-84b's definition-driven FieldValue
+// validation (services/custom_field_service.go) needs: ValidateStruct only
+// works against a whole tagged Go struct known at compile time, but a custom
+// field's validation rule comes from a FieldDefinition row at runtime, not a
+// struct tag.
+func ValidateVar(value interface{}, tag string) bool {
+	return validate.Var(value, tag) == nil
 }
 
 // GetValidated retrieves and type-asserts the validated struct from context.

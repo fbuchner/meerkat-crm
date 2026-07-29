@@ -7,12 +7,15 @@
 >
 > Last groomed: 2026-07-29 (Tier 1 closed; Tier 2/P5 — WP-80/81/82/83/84/84b/84c(backend) all done; the
 > triage-UI/migration/frontend half of WP-84c is now filed under Tier 4, and P5's own acceptance gate is
-> technically still waiting on that piece — see Tier 2's note. Tier 3 fully re-scoped against real code
-> (sizes corrected, most "standing audits" converted from vague labels into concrete fixes — two turned out
-> to be real, currently-live bugs: user/contact deletion doesn't clean up ~13 newer tables, and SQLite FK
-> enforcement is actually off at the connection level so the migrations' own `ON DELETE CASCADE` doesn't
-> apply). Tier 6 broadened from UI-only to also carry non-critical test-coverage expansion, both still
-> explicitly last-priority, after everything else is ready).
+> technically still waiting on that piece — see Tier 2's note. **Tier 3 fully re-scoped and broken down
+> against real code** — sizes corrected, 3c's "standing audits" split into 11 pickup-ready items in
+> recommended order (§3c's table), two of which are confirmed real, currently-live bugs (user/contact
+> deletion doesn't clean up ~13 newer tables; SQLite FK enforcement is actually off at the connection level
+> so the migrations' own `ON DELETE CASCADE` doesn't apply — kept as a separate, later item since it's a
+> policy decision, not bundled with the mechanical delete-list fix). Tier 6 broadened from UI-only to also
+> carry non-critical test-coverage expansion, both still explicitly last-priority, after everything else is
+> ready. **Next session starting Tier 3 should be able to go straight to 3c's table, item 1, without
+> re-deriving scope.**).
 
 ## How to read this
 
@@ -409,6 +412,11 @@ one change, so they should not be scheduled separately.
 Sequencing note: item 1 touches the CardDAV auth path, which P5 (Tier 2) does not, so there is no
 ordering constraint between them beyond priority.
 
+**Recommended pickup order**: 1 (App-specific passwords) → 3 (Configurable OIDC scopes, only if a real
+provider needs it — otherwise skip) → 2 (RP-Initiated Logout). Item 1 first because it's now the smallest
+*and* highest-value (fixes an actual account-compromise blast-radius issue and unblocks SSO+CardDAV in one
+change); item 2 last because it's the biggest and most cross-stack of the three.
+
 ### 3b. WP-81 follow-up
 
 - **Retire `birthday_service.go`'s legacy `Relationship`-based birthday reminder path.** Since WP-81,
@@ -423,72 +431,28 @@ ordering constraint between them beyond priority.
   becomes permanently dead code once this lands — include its removal in the same WP for full closure, not
   just the backend deletion. Blocked on nothing — could be done any time after WP-81.
 
-### 3c. Standing audits
+### 3c. Standing audits — broken down into pickup-ready items
 
-**Re-scoped 2026-07-29**: these were unsized placeholder bullets at grooming time. Actually researching
-each turned two of them into confirmed, currently-live bugs (not hypothetical audit findings) and fully
-converted the rest from "go audit this" into concrete, ready-to-implement fixes — so most of these should
-stop being framed as open-ended audits at all.
+**Re-scoped and broken down 2026-07-29**: these were unsized placeholder bullets at grooming time. Actually
+researching each turned two into confirmed, currently-live bugs (not hypothetical audit findings) and fully
+converted the rest from "go audit this" into concrete, ready-to-implement fixes — so almost none of these
+should be framed as open-ended audits anymore, and several split into independently-pickable pieces. Table
+is in **recommended pickup order** (small/high-value/low-risk first, the still-unsized item last), not the
+original listing order.
 
-- **Correctness audit** — re-scoped per the user's own framing (2026-07-29): the intent is a holistic
-  review of existing code for functional correctness, and the right *methodology* for that is **writing
-  tests**, not reading code looking for bugs. This matches this session's own repeated experience across
-  WP-80 through WP-84c: nearly every real bug found (GORM column-naming mismatches, `Contact.CRM` mutations
-  that silently didn't persist, the WP-81 `-force` edge-duplication chain) was caught by writing a test that
-  exercised the real behavior, not by inspection. Distinct from "Broader test-coverage closure" below: that
-  item chases specific named functions/packages already known to have zero coverage (mechanical, itemized
-  in `45-test-coverage-closure.md`); this one is about writing tests *at business-logic decision points*
-  specifically to verify correctness (e.g. suggestion-engine edge cases, projection/sensitivity filtering,
-  validation dispatch) even where some coverage already exists — exploratory, not mechanical. Still needs a
-  first pass to identify which specific business-logic areas are highest-risk/least-verified before it can
-  be sized; **unsized**, but no longer directionless.
-- **Data-lifecycle audit — confirmed real, live gap, not a hypothetical (medium, was: unsized).** Split into
-  two: (a) `DeleteUser`/`DeleteContact` (`admin_user_controller.go`, `contact_controller.go`) don't clean up
-  ~13 newer tables — `relationship_edges`, `households`/`household_members`, `circles`/`circle_members`,
-  `tags`/`contact_tags`, `life_events`, `field_definitions`/`field_values`, plus pre-existing
-  `webhooks`/`webhook_deliveries`/`contact_subscriptions`/`contact_sync_links` — mechanical, low-risk fix:
-  extend the explicit-delete lists. (b) The `ON DELETE CASCADE` in those tables' migrations that should
-  cover this gap is **decorative**: SQLite's `foreign_keys` pragma is never enabled on the app's actual DB
-  connection (`database/migrate.go`'s `sql.Open`/`gorm.Open` calls pass a bare path, no
-  `_pragma=foreign_keys(1)`), so none of those constraints enforce, and haven't since at least migration 19.
-  Whether to turn FK enforcement on app-wide is a real policy decision (touches every delete path going
-  forward) — split it out from (a) as its own review rather than bundling a schema-enforcement change into
-  a "just add some deletes" PR.
-- **Silent-failure audit — fully scoped, no longer an audit (small, was: unsized).** Confirmed exactly 3
-  unchecked call sites, precisely the ones already named: `reminder_controller.go:138`,
-  `note_controller.go:237`, `relationship_controller.go:195` (`db.Updates()`/`db.Save()` with no `.Error`
-  check). Grepped every `.Updates(`/`.Save(` call site in `backend/controllers` and `backend/services` (37
-  total) — no more lurking anywhere else. Just fix the 3 sites.
-- **Single-instance-assumption audit — fully scoped (small + trivial, was: unsized).** Reminders and
-  calendar sync already have a real DB-backed job lock (`reminder_service.go`'s `acquireJobLock`) protecting
-  against double-run across instances/restarts. Webhook retries (`webhook_service.go`'s
-  `ProcessWebhookRetries`) don't have it — same bug class, just not yet applied there: **small**, copy the
-  existing pattern. Rate limiters (`middleware/rate_limiter.go`) are in-memory per-process — weaker limits
-  under multiple replicas, not a correctness bug, worth a **trivial** one-sentence doc note. SQLite itself
-  (single-writer, file-based) already structurally prevents true horizontal scaling regardless of app code.
-- **CVE sweep of dependencies — backend confirmed clean (done), frontend has a real gap (small).** Ran
-  `govulncheck` for real: 0 exploitable vulnerabilities, confirms the existing claim about the unused
-  `golang.org/x/crypto/openpgp` advisory exactly — close backend as verified, no further work. Frontend:
-  `.github/dependabot.yml` currently only watches `gomod`/backend — `npm_and_yarn`/frontend and
-  `bundler`/docs were dropped at some point despite both ecosystems having real CVE-fix history here (a
-  `yarn audit` run found 36 current advisories, mostly build-tooling-only, but the monitoring gap itself is
-  the real finding). Fix: restore the 2 missing dependabot.yml entries.
-- **Broader test-coverage closure — not open-ended (medium).** `45-test-coverage-closure.md` already fully
-  itemizes what's left as Phase 3a (security-sensitive, dispatch first: `httputil/fetch.go`,
-  `webhook_service.go`, `oidc_service.go`, `password_reset_service.go`) and Phase 3b (lower-risk: mailer,
-  email templates, remaining reminder/birthday gaps, several 0%-covered controllers) — it was scoped once
-  already and just never executed. Re-dispatch as originally authored, 3a before 3b. (The packages `45`
-  never covered at all — `config`, `database`, `routes`, `errors`, `i18n`, `logger`, `cmd/*` — are **moved
-  to Tier 6** below, since none of them are security-sensitive and the user's own call is that non-critical
-  coverage expansion belongs in the last-priority polish tier, not here.)
-- **Defense-in-depth: `contact.Photo` reaches `filepath.Join` unguarded on the delete path — confirmed,
-  trivial (was: unsized).** `contact_controller.go`'s `deleteContactPhotos` (called from `DeleteContact`)
-  has no guard before `filepath.Join(uploadDir, contact.Photo)`. Confirmed via grep of every assignment to
-  `Contact.Photo`: it is genuinely always a server-generated UUID (traced all 3 assignment sites back to
-  `photostore.SaveContactPhoto`'s `uuid.New()` call) — not currently reachable, exactly as originally
-  claimed. A ready-made guard template already exists in the same codebase
-  (`photo_controller.go:94-98`'s `strings.Contains(..., "..")`/`filepath.IsAbs(...)` check) — apply the same
-  pattern twice (Photo, PhotoThumbnail), ~4-8 lines total. Ready to implement exactly as scoped.
+| # | Item | Size | Notes |
+|---|---|---|---|
+| 1 | **Extend `DeleteUser`/`DeleteContact` cascade deletes** (data-lifecycle audit, part a) | small–medium | **Confirmed live bug, not hypothetical.** `admin_user_controller.go`/`contact_controller.go` don't clean up ~13 newer tables: `relationship_edges`, `households`/`household_members`, `circles`/`circle_members`, `tags`/`contact_tags`, `life_events`, `field_definitions`/`field_values`, plus pre-existing `webhooks`/`webhook_deliveries`/`contact_subscriptions`/`contact_sync_links`. Mechanical fix: extend the explicit-delete lists to match, following the pattern the existing entries already use. Pick this one first — real orphaned-row bug, low implementation risk, no design decision needed. |
+| 2 | **Fix the 3 unchecked `db.Updates()`/`db.Save()` call sites** (silent-failure audit) | small | Fully scoped, no more auditing needed: `reminder_controller.go:138`, `note_controller.go:237`, `relationship_controller.go:195`. Grepped all 37 `.Updates(`/`.Save(` sites across `controllers`/`services` — these are the only 3 missing an `.Error` check. Quick, independent, no dependencies. |
+| 3 | **Guard `contact.Photo`/`PhotoThumbnail` before `filepath.Join` on delete** (defense-in-depth) | trivial | `contact_controller.go`'s `deleteContactPhotos`. Not currently reachable by user input (confirmed — always a server-generated UUID), so this is prophylactic, not an active fix. A ready-made guard template already exists in the same codebase (`photo_controller.go:94-98`) — copy it twice, ~4-8 lines. |
+| 4 | **Add the missing job lock to `ProcessWebhookRetries`** (single-instance audit, part a) | small | `webhook_service.go`. Reminders and calendar sync already use `reminder_service.go`'s `acquireJobLock`/`releaseJobLock` pattern against multi-instance double-run; webhook retries never got it. Direct copy of an existing, already-tested pattern in the same package. |
+| 5 | **Restore `npm_and_yarn`/`bundler` to `.github/dependabot.yml`** (CVE sweep, part b) | small | Currently only `gomod`/backend is watched; frontend and docs dependency ecosystems both have real CVE-fix history here and are silently unmonitored. Backend itself (part a) is already confirmed clean via a real `govulncheck` run — no code fix needed there, just this config restore for frontend/docs. |
+| 6 | **Correct or implement the WAL-mode claim in `docs/deployment.md:88`** (backup audit spinoff) | trivial | The backup *audit* itself closes as not-applicable — procedure is already correctly documented (copy the SQLite file) and VCF/JSContact export can't substitute as a backup mechanism (contacts-only). But the doc claims hot-copying is safe "because SQLite WAL mode" and nothing in the code actually enables WAL — either add the `_pragma=journal_mode(WAL)` DSN parameter (small code change, genuinely improves hot-copy safety) or soften the doc claim. Pick one; don't leave the doc asserting something untrue. |
+| 7 | **Add a doc note on in-memory rate limiters** (single-instance audit, part b) | trivial | `middleware/rate_limiter.go`'s limiters are per-process — under multiple replicas, effective limits multiply by N. Not a correctness bug (SQLite's own single-writer nature already prevents true horizontal scaling regardless), just worth one documented sentence so it's a known tradeoff, not a surprise. |
+| 8 | **Decide + implement SQLite FK-enforcement policy** (data-lifecycle audit, part b) | medium | Deliberately **not** bundled with item 1. The `ON DELETE CASCADE` clauses already declared in every newer table's migration (relationship_edges, households, circles, tags, life_events, field_definitions/values) are currently decorative — `foreign_keys` is never turned on for the app's actual DB connection (`database/migrate.go`'s bare `sql.Open`/`gorm.Open` path), and has been off since at least migration 19. Turning it on app-wide is a real policy call (it would start enforcing on every delete path, not just the ones item 1 touches) — needs a deliberate decision, not a drive-by change alongside item 1. Do this once item 1 has landed and had a chance to prove the explicit-delete approach is sufficient on its own. |
+| 9 | **Re-dispatch `45-test-coverage-closure.md` Phase 3a** (test-coverage closure, security-sensitive half) | medium | `httputil/fetch.go`, `webhook_service.go`, `oidc_service.go`, `password_reset_service.go` — already fully itemized in that doc, just never executed. Security-sensitive, so ahead of Phase 3b. |
+| 10 | **Re-dispatch `45-test-coverage-closure.md` Phase 3b** (test-coverage closure, lower-risk half) | medium | Mailer, email templates, remaining reminder/birthday gaps, several 0%-covered controllers — also already itemized in that doc. After item 9. (Coverage for packages `45` never covered at all — `config`/`database`/`routes`/`errors`/`i18n`/`logger`/`cmd/*` — moved to Tier 6, not here; see that section.) |
+| 11 | **Correctness audit — needs its own scoping pass before it can be broken down further** | **unsized** | Re-scoped per the user's clarification: the methodology is **writing tests at business-logic decision points**, not code review — matching this session's own experience that nearly every real bug (GORM column-naming mismatches, `Contact.CRM` mutations that silently didn't persist, the WP-81 `-force` edge-duplication chain) was caught by writing a test exercising real behavior, not by inspection. Distinct from items 9-10: those chase specific named zero-coverage functions (mechanical); this one is exploratory — writing tests at the riskiest/least-verified business-logic points even where some coverage exists (e.g. suggestion-engine edge cases, projection/sensitivity filtering, validation dispatch). **Do this last, and treat "identify the 5-10 highest-risk business-logic areas" as its own first step** before it can be split into pickable pieces the way items 1-10 already are.
 
 ## Tier 4 — P6–P10 (search, CalDAV export, external links/Immich, sync, relationship-maintenance)
 

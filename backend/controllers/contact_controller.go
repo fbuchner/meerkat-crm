@@ -70,7 +70,7 @@ func CreateContact(c *gin.Context) {
 	}
 
 	go services.TriggerWebhooks(db, currentConfig(c), userID, "contact.created", contact)
-	c.JSON(http.StatusCreated, gin.H{"message": "Contact created successfully", "contact": models.NewContactRecordResponse(&contact, currentConfig(c).ProfilePhotoDir)})
+	c.JSON(http.StatusCreated, gin.H{"message": "Contact created successfully", "contact": models.NewContactRecordResponse(&contact, currentConfig(c).ProfilePhotoDir, db)})
 }
 
 // filters a contacts query by a free-text term
@@ -342,7 +342,7 @@ func GetContact(c *gin.Context) {
 		}
 		return
 	}
-	c.JSON(http.StatusOK, models.NewContactRecordResponse(&contact, currentConfig(c).ProfilePhotoDir))
+	c.JSON(http.StatusOK, models.NewContactRecordResponse(&contact, currentConfig(c).ProfilePhotoDir, db))
 }
 
 func UpdateContact(c *gin.Context) {
@@ -386,7 +386,7 @@ func UpdateContact(c *gin.Context) {
 	}
 
 	go services.TriggerWebhooks(db, currentConfig(c), userID, "contact.updated", contact)
-	c.JSON(http.StatusOK, models.NewContactRecordResponse(&contact, currentConfig(c).ProfilePhotoDir))
+	c.JSON(http.StatusOK, models.NewContactRecordResponse(&contact, currentConfig(c).ProfilePhotoDir, db))
 }
 
 func DeleteContact(c *gin.Context) {

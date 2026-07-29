@@ -25,7 +25,7 @@ func TestNewContactRecordResponse_PreservesPersistedCardOnlyData(t *testing.T) {
 		},
 	}
 
-	resp := NewContactRecordResponse(c, "")
+	resp := NewContactRecordResponse(c, "", nil)
 
 	if resp.Card.SpeakToAs == nil || len(resp.Card.SpeakToAs.Pronouns) != 1 || resp.Card.SpeakToAs.Pronouns[0].Pronouns != "she/her" {
 		t.Errorf("ContactRecordResponse.Card.SpeakToAs = %+v, want the persisted she/her preserved in the API response", resp.Card.SpeakToAs)

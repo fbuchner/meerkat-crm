@@ -8,7 +8,10 @@ import (
 	"strings"
 
 	"mycorrhizal/contactmodel"
+	"mycorrhizal/logger"
 	"mycorrhizal/photostore"
+
+	"gorm.io/gorm"
 )
 
 // RecordForContact returns the authoritative Record for a Contact that is
@@ -35,17 +38,115 @@ import (
 // cmd/backfill-contact-records yet, or a Contact that was never saved (so
 // BeforeSave never ran). This protects those cases from exporting/serving a
 // near-empty Card instead of the best-effort flat-field reconstruction.
-func RecordForContact(c *Contact, photoDir string) *contactmodel.Record {
+// db is used to project confirmed relationship-graph edges (WP-80, docs/
+// fork-plan/91-envelope-data-model.md §91.2) into the returned Record's
+// Card.RelatedTo — see projectRelationshipEdges below. Passing nil skips
+// projection entirely (Card.RelatedTo is returned exactly as stored), which
+// existing callers that predate WP-80 and don't have a *gorm.DB handy can
+// rely on rather than being forced to thread one through immediately.
+func RecordForContact(c *Contact, photoDir string, db *gorm.DB) *contactmodel.Record {
 	if c != nil && !reflect.DeepEqual(c.Card, contactmodel.Card{}) {
+		card := c.Card
+		card.RelatedTo = projectRelationshipEdges(db, c.VCardUID, card.RelatedTo)
 		return &contactmodel.Record{
 			UID:         c.VCardUID,
 			ETag:        c.ETag,
-			Card:        c.Card,
+			Card:        card,
 			Envelope:    c.CRM,
 			Passthrough: c.Passthrough,
 		}
 	}
-	return RecordFromContact(c, photoDir)
+	record := RecordFromContact(c, photoDir)
+	if record != nil {
+		record.Card.RelatedTo = projectRelationshipEdges(db, record.UID, record.Card.RelatedTo)
+	}
+	return record
+}
+
+// projectRelationshipEdges is WP-80's "Card.RelatedTo projection wiring": it
+// synthesizes graph-derived contactmodel.Relation entries for every
+// confirmed, normal-sensitivity RelationshipEdge touching vcardUID, and
+// returns them appended to a COPY of existing (imported/passthrough)
+// entries. It never mutates existing's backing array and the result is never
+// written back to Contact.Card — this is pure read-time synthesis, so
+// Card.RelatedTo's passthrough entries stay exactly as imported regardless
+// of how many times a Record is read (docs/fork-plan/90-vision-and-
+// reconciliation.md D3: the graph is the source of truth, Card.RelatedTo is
+// "the export projection... not a second source of truth").
+//
+// A single edge can project onto BOTH endpoints' cards, because vCard
+// RELATED is inherently one-sided (it describes what the *other* entity is
+// *to the card holder*): edge (source=A, target=B, type=parent_of) means
+// "on B's card, A is my parent" (RelationVCardTypeTag("parent_of")) AND "on
+// A's card, B is my child" (RelationVCardTypeTag(InverseRelationType(
+// "parent_of"))). Only emitted where the relevant side's vCard TYPE tag is
+// non-empty — types with no standard equivalent (co_parent_of, the affinity
+// edges, ...) simply never appear here, per §91.2's "deliberately lossy"
+// export rule.
+//
+// Suggested-status edges are never projected (§91.2: "only confirmed edges
+// are authoritative"), and neither are edges above normal sensitivity
+// (§91.13's default-exclude-from-export rule) — both filtered in the query
+// itself rather than after loading, so a query failure can't accidentally
+// leak a suggested or sensitive edge into an export.
+func projectRelationshipEdges(db *gorm.DB, vcardUID string, existing []contactmodel.Relation) []contactmodel.Relation {
+	if db == nil || vcardUID == "" {
+		return existing
+	}
+
+	var edges []RelationshipEdge
+	if err := db.Where(
+		"(source_id = ? OR target_id = ?) AND status = ? AND sensitivity = ?",
+		vcardUID, vcardUID, RelationshipStatusConfirmed, RelationshipSensitivityNormal,
+	).Find(&edges).Error; err != nil {
+		// Projection is best-effort enrichment of an already-valid export
+		// payload — RecordForContact has no error return (matching
+		// RecordFromContact's "never panics" contract), so a query failure
+		// degrades to "just the passthrough entries" rather than failing the
+		// whole read/export.
+		logger.Warn().Err(err).Str("vcard_uid", vcardUID).Msg("projectRelationshipEdges: failed to load confirmed edges")
+		return existing
+	}
+	if len(edges) == 0 {
+		return existing
+	}
+
+	seen := make(map[[2]string]bool, len(existing))
+	for _, rel := range existing {
+		for _, tag := range rel.Relations {
+			seen[[2]string{rel.Target, tag}] = true
+		}
+	}
+
+	result := append([]contactmodel.Relation(nil), existing...)
+	appendIfNew := func(targetUID, tag string) {
+		if tag == "" {
+			return
+		}
+		target := "urn:uuid:" + targetUID
+		key := [2]string{target, tag}
+		if seen[key] {
+			return
+		}
+		seen[key] = true
+		result = append(result, contactmodel.Relation{Target: target, Relations: []string{tag}})
+	}
+
+	for _, edge := range edges {
+		if edge.SourceID == vcardUID {
+			// This contact is the source: describe the target using this
+			// edge's own type (e.g. "B is my child" for parent_of A->B).
+			appendIfNew(edge.TargetID, RelationVCardTypeTag(InverseRelationType(edge.Type)))
+		}
+		if edge.TargetID == vcardUID {
+			// This contact is the target: describe the source using the
+			// edge's type directly (e.g. "A is my parent" for parent_of
+			// A->B, read from B's side).
+			appendIfNew(edge.SourceID, RelationVCardTypeTag(edge.Type))
+		}
+	}
+
+	return result
 }
 
 // RecordFromContact is the single, shared mapping from a *Contact's current,

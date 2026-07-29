@@ -344,7 +344,7 @@ func TestRecordForContact_PrefersPersistedCardOverFreshDerivation(t *testing.T) 
 		},
 	}
 
-	record := RecordForContact(c, "")
+	record := RecordForContact(c, "", nil)
 
 	if record.Card.SpeakToAs == nil || len(record.Card.SpeakToAs.Pronouns) != 1 || record.Card.SpeakToAs.Pronouns[0].Pronouns != "she/her" {
 		t.Errorf("RecordForContact's Card.SpeakToAs = %+v, want the persisted she/her preserved (a fresh RecordFromContact call would drop it — no flat field holds pronouns)", record.Card.SpeakToAs)
@@ -362,7 +362,7 @@ func TestRecordForContact_FallsBackWhenCardIsZeroValue(t *testing.T) {
 		Email:     "bob@example.com",
 	}
 
-	record := RecordForContact(c, "")
+	record := RecordForContact(c, "", nil)
 
 	if len(record.Card.Emails) != 1 || record.Card.Emails[0].Address != "bob@example.com" {
 		t.Errorf("RecordForContact's Card.Emails = %+v, want a fallback-derived entry for bob@example.com (Card was zero-value, should behave like RecordFromContact)", record.Card.Emails)

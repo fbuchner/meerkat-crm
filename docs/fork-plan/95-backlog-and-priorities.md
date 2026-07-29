@@ -5,7 +5,7 @@
 > tool is used only for tracking the one or two items actively being worked on right now, since it has
 > repeatedly lost its full contents mid-session and should not be trusted as the backlog's home.
 >
-> Last groomed: 2026-07-29 (Tier 1 closed; Tier 2/P5 underway — WP-80 and WP-81 done, WP-82 next).
+> Last groomed: 2026-07-29 (Tier 1 closed; Tier 2/P5 underway — WP-80/81/82 done, WP-83 next).
 
 ## How to read this
 
@@ -226,8 +226,22 @@ reminder — one from the new thin Contact's normal birthday path, one from the 
 Scheduled below as a Tier 3b follow-up rather than fixed by expanding WP-81 into a consumer file, which
 would repeat the same scope question already settled for WP-80.
 
-Next: **WP-82** (`Contact.kind` + thin-entity relaxation) is independent and can start now — it only
-depends on P1. **WP-83** (households) depends on both WP-80 and WP-82.
+**WP-82 — DONE (`6f6ae5d`, merged to `main` `8e512d4`, 2026-07-29).** `CRMEnvelope.Kind`
+(`contactmodel/envelope.go` — `individual`/`pet`/`animal`), deliberately separate from the pre-existing
+standards-side `Card.Kind` (which has no pet/animal value) and deliberately unvalidated, matching this
+codebase's own documented policy of accepting-and-preserving unrecognized nested `Card`/`CRM` values
+rather than a hardcoded `oneof`. No migration needed — `CRM` is a JSON blob copied wholesale everywhere
+it's touched, so the new field required zero changes outside its own struct definition. No export-time
+synthesis for pets: `Card.Kind` stays pure passthrough, exactly as today.
+
+The other half of this WP's scope, "thin entities: nothing but name required," turned out to already work
+end-to-end — both backend and frontend — confirmed during planning rather than assumed, and locked in with
+a new test (`TestCreateContact_RealValidation_ThinEntityAccepted`) rather than left as a one-time
+observation. Also fixed in passing: the shared `controllers` package test fixture had been missing
+`RelationshipEdge` from its `AutoMigrate` call since WP-80 merged, silently logging a swallowed "no such
+table" warning on every contact-creating test in the package.
+
+**WP-83** (households) depends on both WP-80 and WP-82, both now done, and can start next.
 
 ## Tier 3 — Remaining backend hardening/audits + auth follow-ups
 

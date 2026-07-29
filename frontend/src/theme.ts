@@ -38,7 +38,7 @@ export const lightTheme = createTheme({
 
     // Mushroom-themed status colors -- see assets/colors/README.md for the
     // two corrections made before wiring these in (moss/success was too
-    // close in hue to mycelium/lichen; inkyCap/info's light value didn't
+    // close in hue to mycelium/lichen; laccaria/info's light value didn't
     // clear 4.5:1 with any label color).
     success: {
       main: "#0D844C", // moss
@@ -56,8 +56,8 @@ export const lightTheme = createTheme({
       contrastText: "#FFFFFF",
     },
     info: {
-      main: "#7B6B98", // inky-cap (corrected from the original oklch(0.60 0.070 300))
-      dark: "#6C5D89", // inky-cap hover
+      main: "#7B6B98", // laccaria (corrected from the original oklch(0.60 0.070 300))
+      dark: "#6C5D89", // laccaria hover
       contrastText: "#FFFFFF",
     },
   },
@@ -186,8 +186,8 @@ export const darkTheme = createTheme({
       contrastText: "#1E1A13", // bone
     },
     info: {
-      main: "#9F8FBE", // inky-cap
-      dark: "#8F80AE", // inky-cap hover
+      main: "#9F8FBE", // laccaria
+      dark: "#8F80AE", // laccaria hover
       contrastText: "#1E1A13", // bone
     },
   },

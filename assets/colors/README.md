@@ -74,7 +74,7 @@ actually computing hex/contrast rather than eyeballing the OKLCH values:
 
 `contrastOnStatusColors` in `tokens.json` records the verified label per token per mode. Two are
 mode-dependent in the same way `mycelium`'s `contrastText` is (light label in light mode, dark `bone`
-label in dark mode, since dark-mode fills sit at a higher `L`): `russula` and `inkyCap`. `chanterelle` is
+label in dark mode, since dark-mode fills sit at a higher `L`): `russula` and `laccaria`. `chanterelle` is
 dark-label in *both* modes (it's light in both: `L` 0.75/0.78). `moss` follows the same white/dark-`bone`
 split as `mycelium`.
 

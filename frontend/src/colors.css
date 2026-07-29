@@ -29,8 +29,8 @@
   --color-russula-hover: #9C443B;
   --color-chanterelle: #D3A563;
   --color-chanterelle-hover: #C39553;
-  --color-inky-cap: #7B6B98;
-  --color-inky-cap-hover: #6C5D89;
+  --color-laccaria: #7B6B98;
+  --color-laccaria-hover: #6C5D89;
   --color-moss: #0D844C;
   --color-moss-hover: #0B7643;
 }
@@ -65,8 +65,8 @@
   --color-russula-hover: #B3584E;
   --color-chanterelle: #DDAE6C;
   --color-chanterelle-hover: #CD9F5D;
-  --color-inky-cap: #9F8FBE;
-  --color-inky-cap-hover: #8F80AE;
+  --color-laccaria: #9F8FBE;
+  --color-laccaria-hover: #8F80AE;
   --color-moss: #349D62;
   --color-moss-hover: #318F5A;
 }
@@ -107,8 +107,8 @@
   --color-status-error-hover: var(--color-russula-hover);
   --color-status-warning: var(--color-chanterelle);
   --color-status-warning-hover: var(--color-chanterelle-hover);
-  --color-status-info: var(--color-inky-cap);
-  --color-status-info-hover: var(--color-inky-cap-hover);
+  --color-status-info: var(--color-laccaria);
+  --color-status-info-hover: var(--color-laccaria-hover);
   --color-status-success: var(--color-moss);
   --color-status-success-hover: var(--color-moss-hover);
 }
@@ -117,12 +117,12 @@
 :root {
   --color-on-russula: #FFFFFF;
   --color-on-chanterelle: #30271F;
-  --color-on-inky-cap: #FFFFFF;
+  --color-on-laccaria: #FFFFFF;
   --color-on-moss: #FFFFFF;
 }
 :root[data-color-mode="dark"] {
   --color-on-russula: #1E1A13;
   --color-on-chanterelle: #1E1A13;
-  --color-on-inky-cap: #1E1A13;
+  --color-on-laccaria: #1E1A13;
   --color-on-moss: #1E1A13;
 }

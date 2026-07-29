@@ -7,7 +7,8 @@
 >
 > Last groomed: 2026-07-29 (Tier 1 closed; Tier 2/P5 — WP-80/81/82/83/84/84b/84c(backend) all done; the
 > triage-UI/migration/frontend half of WP-84c is now filed under Tier 4, and P5's own acceptance gate is
-> technically still waiting on that piece — see Tier 2's note).
+> technically still waiting on that piece — see Tier 2's note. New Tier 6 added: UI polish, explicitly
+> last-priority, after everything else is ready).
 
 ## How to read this
 
@@ -480,6 +481,31 @@ another live person on the instance, likely without either party noticing until 
 up supporting a *standing* share (auto-syncing, not a one-time send), the gating should arguably re-confirm
 on every field newly marked sensitive after the share was created, not just at creation time — flagged here
 as a design question, not decided.
+
+## Tier 6 — UI polish (fonts, icons, strings)
+
+Explicitly last priority — polish after everything else (Tiers 1–5) is ready, per the user's own framing.
+Not a fixed checklist: the task is to actually walk through the app's flows page by page and find places
+where the typography, iconography, or copy could be clearer or more consistent, using the examples below as
+a starting calibration for what "better" looks like, not an exhaustive list to check off.
+
+1. **Typography audit** — review which font is used where across the app (headings, body, labels, monospace
+   if any) and confirm it's consistent and intentional, not just whatever a component happened to inherit.
+2. **Icon library**: the frontend currently uses `@mui/icons-material` only (confirmed via `package.json` —
+   no `@mdi/js`/`@mdi/react` dependency exists yet). Add MDI (Material Design Icons, Pictogrammers) as a
+   dependency and use it where it has a more specific/better semantic match than MUI's own set — doesn't
+   require ripping out every existing MUI icon at once. Named examples to start from: notes list icon →
+   `mdi-note-multiple-outline`, "add note" action → `mdi-note-plus-outline`, network/graph page →
+   `mdi-graph-outline`.
+3. **String/copy review** — walk each flow (contacts, network, notes, activities, settings, import/export,
+   ...) and fix labels that don't clearly describe what they do. Named example: the Settings page's
+   "Profile" sub-label doesn't make sense — it's just Settings, not a distinct "Profile" section within it;
+   needs either a clearer label or removing the redundant sub-naming. (Exact current location wasn't
+   pre-located — finding it by walking the real UI is part of this task, not done ahead of time here.)
+4. General instruction for whoever picks this up: treat 1–3 as a method, not a checklist — go through the
+   actual running app, flow by flow, and note/fix anything that reads as unpolished (inconsistent icon
+   style, a label that's technically accurate but not clear, a font that doesn't match its surroundings),
+   similar in spirit to the three examples above.
 
 ## Deferred / someday
 

@@ -121,6 +121,31 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			protected.PUT("/activities/:id", middleware.ValidateJSONMiddleware(&models.ActivityInput{}), controllers.UpdateActivity)
 			protected.DELETE("/activities/:id", controllers.DeleteActivity)
 
+			// Circle routes (WP-84c)
+			protected.POST("/circles", middleware.ValidateJSONMiddleware(&models.CircleInput{}), controllers.CreateCircle)
+			protected.GET("/circles", controllers.ListCircles)
+			protected.GET("/circles/:id", controllers.GetCircle)
+			protected.PUT("/circles/:id", middleware.ValidateJSONMiddleware(&models.CircleInput{}), controllers.UpdateCircle)
+			protected.DELETE("/circles/:id", controllers.DeleteCircle)
+			protected.POST("/circles/:id/members", middleware.ValidateJSONMiddleware(&models.CircleMemberInput{}), controllers.AddCircleMember)
+			protected.DELETE("/circles/:id/members/:vcard_uid", controllers.RemoveCircleMember)
+
+			// Tag routes (WP-84c)
+			protected.POST("/tags", middleware.ValidateJSONMiddleware(&models.TagInput{}), controllers.CreateTag)
+			protected.GET("/tags", controllers.ListTags)
+			protected.GET("/tags/:id", controllers.GetTag)
+			protected.PUT("/tags/:id", middleware.ValidateJSONMiddleware(&models.TagInput{}), controllers.UpdateTag)
+			protected.DELETE("/tags/:id", controllers.DeleteTag)
+			protected.POST("/tags/:id/contacts", middleware.ValidateJSONMiddleware(&models.ContactTagInput{}), controllers.AddContactTag)
+			protected.DELETE("/tags/:id/contacts/:vcard_uid", controllers.RemoveContactTag)
+
+			// LifeEvent routes (WP-84c)
+			protected.POST("/life-events", middleware.ValidateJSONMiddleware(&models.LifeEventInput{}), controllers.CreateLifeEvent)
+			protected.GET("/life-events", controllers.ListLifeEvents)
+			protected.GET("/life-events/:id", controllers.GetLifeEvent)
+			protected.PUT("/life-events/:id", middleware.ValidateJSONMiddleware(&models.LifeEventInput{}), controllers.UpdateLifeEvent)
+			protected.DELETE("/life-events/:id", controllers.DeleteLifeEvent)
+
 			// Reminder routes
 			protected.GET("/reminders", controllers.GetAllReminders)
 			protected.GET("/reminders/upcoming", controllers.GetUpcomingReminders)

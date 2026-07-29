@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"mycorrhizal/contactmodel"
+	"time"
+)
 
 // ActivityInput represents the DTO for creating/updating activities
 type ActivityInput struct {
@@ -9,6 +12,45 @@ type ActivityInput struct {
 	Location    string    `json:"location" validate:"max=300"`
 	Date        time.Time `json:"date" validate:"required"`
 	ContactIDs  []uint    `json:"contact_ids"` // Accept an array of contact IDs for many-to-many association
+	// Type/ExternalRef are WP-84's Interaction fields (activity.go) -- open/
+	// conventional, no oneof validation, matching Activity.Type's own doc
+	// comment on why it's deliberately unvalidated.
+	Type        string `json:"type,omitempty"`
+	ExternalRef string `json:"external_ref,omitempty"`
+}
+
+// CircleInput is the DTO for creating/updating a Circle (circle.go). Only
+// Name is editable here -- membership lifecycle lives in its own
+// AddCircleMember/RemoveCircleMember endpoints, not folded into update.
+type CircleInput struct {
+	Name string `json:"name" validate:"required,min=1,max=200"`
+}
+
+// CircleMemberInput is the DTO for POST /circles/:id/members.
+type CircleMemberInput struct {
+	MemberVCardUID string `json:"member_vcard_uid" validate:"required,uuid4"`
+}
+
+// TagInput is the DTO for creating/updating a Tag (tag.go). Only Name is
+// editable here -- tagging lifecycle lives in its own AddContactTag/
+// RemoveContactTag endpoints, not folded into update.
+type TagInput struct {
+	Name string `json:"name" validate:"required,min=1,max=200"`
+}
+
+// ContactTagInput is the DTO for POST /tags/:id/contacts.
+type ContactTagInput struct {
+	ContactVCardUID string `json:"contact_vcard_uid" validate:"required,uuid4"`
+}
+
+// LifeEventInput is the DTO for creating/updating a LifeEvent (life_event.go).
+type LifeEventInput struct {
+	EntityID         string                    `json:"entity_id" validate:"required,uuid4"`
+	Type             string                    `json:"type,omitempty"`
+	Date             *contactmodel.PartialDate `json:"date,omitempty"`
+	Description      string                    `json:"description,omitempty" validate:"max=2000"`
+	Source           string                    `json:"source,omitempty" validate:"omitempty,oneof=user imported ai-suggested"`
+	RelatedEntityIDs []string                  `json:"related_entity_ids,omitempty"`
 }
 
 // CalendarSubscriptionInput is the DTO for creating/updating a calendar subscription.

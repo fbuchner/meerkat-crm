@@ -33,12 +33,14 @@
 > but left the `Phone` scalar stale when a contact's phones were removed, unlike its sibling `applyEmails`
 > — fixed (`8e13ffc`). **11b** (reminder eligibility filter) and **11c** (import-merge array-field policy)
 > both confirmed correct, not buggy, and are now behaviorally pinned (`b1d3d92`, `15bcf69`). **11d**
-> (`graph_controller.go`'s `GetGraph` reading only the legacy `models.Relationship` table, blind to
-> `RelationshipEdge`) was rescoped per the user: since there's no production data and migration to this
-> fork happens via CardDAV/vCard export-import rather than DB carryover, and WP-81's migration tool already
-> proves `RelationshipEdge` captures everything the legacy table could, the old representation should be
-> **removed outright**, not run in parallel — deferred to the pre-v0.1 release consolidation pass after
-> Phase 6 (`c17bda6`). **All of Tier 3c is now done.** Four real, unrelated bugs found in passing this
+> (`graph_controller.go`'s `GetGraph` reading only the legacy `models.Relationship` table) turned out bigger
+> than a rewire once fully scoped: `RelationshipEdge` has **zero CRUD API or frontend today**, so the legacy
+> model is the CRM's only working relationship-management feature, not a redundant parallel one — deleting it
+> without a replacement would remove real functionality. Superseded and moved to a new, fully-scoped **3d**
+> section (5 WPs: new `RelationshipEdge` CRUD API, `GetGraph` rewire, new frontend UI, rewiring the other
+> legacy-model dependents, then removal) — **sized `large`, explicitly scheduled before Tier 4** per the user
+> (do it while it's still safe, before Phase 6 completes and production data exists). **All of Tier 3c
+> (items 1-11) is now done; 3d is scoped and next up.** Four real, unrelated bugs found in passing this
 > session were spawned as separate background tasks; three are **already fixed and merged**: the stale
 > `dashboardsInfo` copy left over from Tier 3b (`3e88d36`), `ContactSyncLink.ETag`'s GORM column-name
 > mismatch that would have broken CardDAV incremental sync writes (`ac17691`), and a handful of older
@@ -489,7 +491,58 @@ original listing order.
 | 11a | `services/contact_sync_service.go`'s `reconcileContactSync` — on any remote CardDAV change, `ApplyRecordToContact` fully overwrites the local row; no test proves whether a local-only edit to a field untouched by the remote vCard survives a sync or is silently discarded | small | **DONE** (2026-07-29). The full-overwrite behavior itself is confirmed intentional (documented in `ApplyRecordToContact`'s own doc comment, shared with the REST PUT path; no model tracks per-field modified-since-sync state, so field-level merge isn't a small fix) — pinned down with `TestReconcileContactSyncOverwritesLocalEditsOnRemoteChange` plus a doc comment at the call site. **Writing that test surfaced a real, live, previously-unknown bug**, not the hypothesized one: `models.applyPhones` cleared `c.Phones` but left the `c.Phone` scalar untouched whenever the incoming Record had no phones at all — unlike its sibling `applyEmails`, which always resets `c.Email` (falling back to `proj.PrimaryEmail`). A contact whose last phone number was removed via REST PUT, CardDAV sync, or VCF import kept a stale `Phone` scalar even though `Phones` correctly went empty. Fixed by mirroring `applyEmails`'s pattern with the already-computed-but-unused `proj.PrimaryPhone`. Hand-verified: reverted the fix, confirmed the new test fails, restored. |
 | 11b | `services/reminder_service.go`'s `SendReminders` eligibility filter (`completed=false AND email_sent=false`) — only ever tested with reminders already in the eligible state; no test seeds an already-completed/already-sent reminder alongside an eligible one to prove exclusion | small | **DONE** (2026-07-29, `b1d3d92`). Filter confirmed **correct, not buggy** — `TestSendReminders_ExcludesCompletedAndAlreadySentReminders` seeds all three states in one pass and asserts only the eligible reminder is picked up and the other two are left untouched. Hand-verified: temporarily broadened the WHERE clause to drop the `completed`/`email_sent` conditions, confirmed the test fails (all 3 reminders picked up, already-completed one gets mutated), restored. |
 | 11c | `services/import_service.go`'s `MergeImportedContact` — "incoming wins" policy asserted for exactly one scalar field, one direction; untested against array fields (Emails/Phones/Addresses/Circles) and the "existing survives when incoming blank" path | small | **DONE** (2026-07-29, `15bcf69`). Policy confirmed **correct and uniform, not buggy** — every field (scalar and array) follows the same "incoming wins if non-empty, existing survives if blank" guard. `TestMergeImportedContact_ArrayFieldsOverwriteWhenIncomingNonEmpty` and `TestMergeImportedContact_ExistingSurvivesWhenIncomingBlank` cover both directions for every multi-valued field (Emails/Phones/Addresses/URLs/IMPPs/Circles), not just the one scalar field the pre-existing test covered. Hand-verified: temporarily removed the `Phones` guard (unconditional overwrite), confirmed the blank-incoming test fails, restored. |
-| 11d | `controllers/graph_controller.go`'s `GetGraph` reads only the legacy `models.Relationship` table — structurally blind to `RelationshipEdge` (the WP-80+ graph model). **Decided 2026-07-29, not a test-writing item**: per the user, there's no production data and no planned migration path that would need the old table preserved (a Meerkat→Mycorrhizal migration goes through CardDAV or vCard 3.0 export/import, not a DB-level carryover) — so once `RelationshipEdge` provably captures everything `Relationship` could express, the old representation should be **removed outright**, not kept running in parallel. That "provably captures everything" condition already holds: `cmd/backfill-relationship-edges/migrate.go` (WP-81) is a working, tested migration that promotes even name-only relationships (no linked Contact — just Name/Gender/Birthday) into a thin Contact + `RelationshipEdge`, so nothing expressible in the legacy shape is lossy under the new one. Removal scope (not yet started): `models/relationship.go` (model + its migration), the 3 controllers still constructing `models.Relationship{}` (`relationship_controller.go`, `contact_controller.go`, `admin_user_controller.go`), `graph_controller.go`'s `GetGraph` (needs to read `RelationshipEdge` instead), any remaining frontend consumers, and a migration to drop the table. **Deferred to the pre-v0.1 release consolidation pass, after Phase 6** (the user's explicit sequencing) — not picked up as part of this item-11 batch. |
+| 11d | `controllers/graph_controller.go`'s `GetGraph` reads only the legacy `models.Relationship` table — structurally blind to `RelationshipEdge` (the WP-80+ graph model). **Superseded 2026-07-29 — moved to its own section, `3d` below**, once scoping revealed this is a feature-migration WP, not a cleanup: `RelationshipEdge` has no CRUD API or frontend at all today, so the legacy model is currently the CRM's only working way to manage relationships, not a redundant parallel one. See `3d` for the real breakdown. |
+
+### 3d. Relationship model consolidation — retire the legacy `models.Relationship` in favor of `RelationshipEdge`
+
+**Scoped 2026-07-29, sized `large`, scheduled before Tier 4** (the user's explicit sequencing — do this while
+it's still safe/cheap, i.e. before Phase 6 completes and production data starts existing). Originated from
+item 11d above: closing `GetGraph`'s blindness to `RelationshipEdge` looked like a small rewire until full
+scoping (2 parallel research agents, backend + frontend) found the real picture is inverted from what the
+original 11d framing assumed.
+
+**Why this is a feature migration, not a cleanup:** `RelationshipEdge` (the WP-80+ graph model — confirmed/
+suggested status, directional edges, a real relation-type registry) has **zero CRUD API and zero frontend
+consumers today**. It's currently written only by the one-way `cmd/backfill-relationship-edges` migration
+tool and by `household_service.go`'s auto-suggestion engine. Meanwhile the legacy `models.Relationship` is
+the CRM's **only working relationship-management feature**: a full 5-route REST API
+(`relationship_controller.go`), a full frontend UI (`AddRelationshipDialog.tsx`, `RelationshipList.tsx`, the
+"Relationships" tab in `ContactInformation.tsx`, wired up in `ContactDetailPage.tsx`), and even the `/graph`
+endpoint itself still reads the legacy table, not `RelationshipEdge`. Removing the legacy stack today, without
+building the replacement first, would delete the app's only way to record who's related to whom — not a
+safe cleanup. WP-81's migration tool already proves the *data shape* is a lossless superset (promotes even
+name-only relationships into a thin Contact + edge), so nothing here is about data loss risk — it's about
+missing functionality that has to be built before the old functionality can go.
+
+**Work packages, in order:**
+
+1. **Backend: `RelationshipEdge` CRUD controller + routes** — mirror `relationship_controller.go`'s 5
+   endpoints (list outgoing, list incoming, create, update, delete) against `RelationshipEdge`, reusing the
+   existing `relation_type` validator/registry (already built in WP-80, no new validation logic needed). Two
+   design decisions to make going in: does a user-created edge default to `confirmed` status (as opposed to
+   `suggested`, which `household_service.go` already produces for household-inferred edges), and is
+   `Directional` user-facing or purely registry-default-driven?
+2. **Backend: rewire `GetGraph`** (`graph_controller.go`) to read `RelationshipEdge` instead of
+   `models.Relationship`. Keep the `GraphEdge`/`GraphResponse` DTO shape (`type: "relationship"`) the frontend
+   already consumes so `NetworkGraph.tsx`/`NetworkLegend.tsx` don't need to change.
+3. **Frontend: new CRUD UI** replacing `AddRelationshipDialog.tsx`/`RelationshipList.tsx`/the Relationships
+   tab in `ContactInformation.tsx` — a relation-type picker sourced from the registry, a review/accept flow
+   for `suggested` (household-inferred) edges surfaced for the first time, directional display.
+4. **Rewire the other legacy-model dependents**: `contact_controller.go`/`admin_user_controller.go`'s
+   `Preload("Relationships")` + cascade-delete code, and `export_controller.go`'s CSV "RELATIONSHIPS" section
+   — move onto `RelationshipEdge`, checking first whether item 1's existing cascade-delete coverage (scoped by
+   `Contact.VCardUID` for every WP-80+ entity) already reaches `RelationshipEdge` or still needs extending.
+5. **Removal**: `models/relationship.go`, `relationship_controller.go`, its 5 routes, the `RelationshipInput`
+   DTO, the migrations that created/altered the `relationships` table (a clean drop migration is fine — no
+   production data to preserve, per the user), the frontend files listed in WP3 plus `api/relationships.ts`,
+   `hooks/useRelationships.ts`, the dead/duplicate `Relationship` type scaffolding in `types/index.ts`/
+   `types/api.ts` that a prior audit turned up as apparently already-unused, `e2e/relationships.spec.ts`
+   (replace with a new e2e against the new UI), and every `_test.go` file referencing `models.Relationship`
+   (`relationship_controller_test.go`, plus the legacy-relationship parts of `admin_user_controller_test.go`,
+   `graph_controller_test.go`, `export_controller_test.go`, `contact_controller_test.go`).
+
+Not required for this WP: no live data migration run (WP-81's tool exists for a real carryover if ever
+needed later, but there's no production data to carry over now).
 
 ## Tier 4 — P6–P10 (search, CalDAV export, external links/Immich, sync, relationship-maintenance)
 

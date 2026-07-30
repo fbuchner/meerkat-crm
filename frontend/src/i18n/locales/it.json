@@ -29,7 +29,7 @@
     "noReminders": "Nessun promemoria imminente",
     "error": "Impossibile caricare i dati del cruscotto",
     "yearsOld": "({{age}} anni)",
-    "birthdaysInfo": "Mostra i compleanni per almeno le prossime due settimane, inclusi i compleanni dei rapporti collegati ai tuoi contatti.",
+    "birthdaysInfo": "Mostra i compleanni per almeno le prossime due settimane.",
     "remindersInfo": "Mostra tutti i promemoria in scadenza fino a oggi incluso. I promemoria rimarranno visibili finché non vengono segnati come completati.",
     "stayInTouchInfo": "Mostra cinque contatti casuali per aiutarti a restare connesso. L'elenco viene aggiornato ad ogni ricarica della pagina."
   },

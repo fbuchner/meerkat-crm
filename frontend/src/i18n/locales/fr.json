@@ -29,7 +29,7 @@
     "noReminders": "Aucun rappel à venir",
     "error": "Échec du chargement des données du tableau de bord",
     "yearsOld": "({{age}} ans)",
-    "birthdaysInfo": "Affiche les anniversaires pour au moins les deux prochaines semaines, y compris les anniversaires des relations liées à vos contacts.",
+    "birthdaysInfo": "Affiche les anniversaires pour au moins les deux prochaines semaines.",
     "remindersInfo": "Affiche tous les rappels échéants jusqu'à aujourd'hui inclus. Les rappels restent visibles jusqu'à ce qu'ils soient marqués comme terminés.",
     "stayInTouchInfo": "Affiche cinq contacts au hasard pour vous aider à rester en contact. La liste est actualisée à chaque rechargement de page."
   },

@@ -644,7 +644,7 @@ export async function getRandomContacts(): Promise<Contact[]> {
   return data.contacts || [];
 }
 
-// Get upcoming birthdays (returns up to 10 birthdays for contacts and relationships)
+// Get upcoming birthdays (returns up to 10 birthdays for contacts)
 export async function getUpcomingBirthdays(): Promise<Birthday[]> {
   const response = await apiFetch(
     `${API_BASE_URL}/contacts/birthdays`,

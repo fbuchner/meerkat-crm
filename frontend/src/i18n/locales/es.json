@@ -29,7 +29,7 @@
     "noReminders": "No hay recordatorios próximos",
     "error": "Error al cargar los datos del panel",
     "yearsOld": "({{age}} años)",
-    "birthdaysInfo": "Muestra los cumpleaños de al menos las próximas dos semanas, incluidos los cumpleaños de las relaciones vinculadas a tus contactos.",
+    "birthdaysInfo": "Muestra los cumpleaños de al menos las próximas dos semanas.",
     "remindersInfo": "Muestra todos los recordatorios pendientes hasta hoy incluido. Los recordatorios permanecerán visibles hasta que se marquen como completados.",
     "stayInTouchInfo": "Muestra cinco contactos aleatorios para ayudarte a mantenerte conectado. La lista se actualiza en cada recarga de página."
   },

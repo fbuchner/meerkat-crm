@@ -57,12 +57,21 @@
 > prompted directly by §3d turning out bigger than expected, and deliberately scheduled *first* within Tier 6
 > (ahead of UI polish) since its safe window closes once real production data exists, unlike the other two
 > Tier 6 items which have no such deadline.
-> **§3d WP1+WP2+WP3 done and merged** (2026-07-30, merged `4b27794`) — `RelationshipEdge` now has a full
-> CRUD API and a full frontend UI — the legacy relationship UI is now fully unreferenced (dead, not yet
-> removed). `GetGraph` reads `RelationshipEdge`
-> instead of the legacy table. **Next up: §3d WP4+WP5 (rewire the remaining legacy-model dependents —
-> `contact_controller.go`/`admin_user_controller.go`/`export_controller.go` — then remove the legacy model/
-> routes/frontend files entirely)**, then item 12 (trivial, can slot in anytime), then Tier 4.).
+> **§3d fully done and merged** (2026-07-30, WP1+WP2+WP3 in `4b27794`, WP4+WP5 in `3b0d42d`) —
+> `RelationshipEdge` is now the CRM's sole relationship representation end to end: full CRUD API, full
+> frontend UI, `GetGraph`, and the CSV data export all read/write it. The legacy `models.Relationship`
+> stack (model, controller, 5 routes, `AddRelationshipDialog.tsx`/`RelationshipList.tsx`/
+> `useRelationships.ts`/`api/relationships.ts`, and its one-time `cmd/backfill-relationship-edges` backfill
+> CLI) is fully removed, including a new migration (`000035_drop_relationships_table`) dropping the table
+> itself. WP4 found `admin_user_controller.go`'s cascade-delete already covered `RelationshipEdge` (added
+> by the earlier Tier 3c cascade-delete sweep, before this WP existed) — nothing to rewire there. A real
+> scope correction surfaced during WP5: the backlog's Tier 6 audit had filed `cmd/backfill-relationship-
+> edges`'s removal as later, deferrable cleanup, but that's not actually deferrable — it references
+> `models.Relationship` directly and would not compile once the model is gone, so its removal was folded
+> into WP5 out of necessity. `RelationshipEdge.LegacyRelationshipID` has no such compile dependency and
+> stays, genuinely deferrable to that Tier 6 audit as originally planned. **All of Tier 3 (3a/3b/3c/3d) is
+> now done.** Remaining open item: **12** (trivial, `i18n.IsValidLanguage` fix — can slot in anytime), then
+> Tier 4.
 
 ## How to read this
 
@@ -579,18 +588,34 @@ missing functionality that has to be built before the old functionality can go.
    held by a concurrent session) — every scenario the new spec (`relationshipEdges.spec.ts`) covers was
    instead verified by hand in a real running browser, except the delete step (blocked by native
    `window.confirm` auto-dismiss under browser automation, already covered by WP1's real-DB `Delete` tests).
-4. **Rewire the other legacy-model dependents**: `contact_controller.go`/`admin_user_controller.go`'s
-   `Preload("Relationships")` + cascade-delete code, and `export_controller.go`'s CSV "RELATIONSHIPS" section
-   — move onto `RelationshipEdge`, checking first whether item 1's existing cascade-delete coverage (scoped by
-   `Contact.VCardUID` for every WP-80+ entity) already reaches `RelationshipEdge` or still needs extending.
-5. **Removal**: `models/relationship.go`, `relationship_controller.go`, its 5 routes, the `RelationshipInput`
-   DTO, the migrations that created/altered the `relationships` table (a clean drop migration is fine — no
-   production data to preserve, per the user), the frontend files listed in WP3 plus `api/relationships.ts`,
-   `hooks/useRelationships.ts`, the dead/duplicate `Relationship` type scaffolding in `types/index.ts`/
-   `types/api.ts` that a prior audit turned up as apparently already-unused, `e2e/relationships.spec.ts`
-   (replace with a new e2e against the new UI), and every `_test.go` file referencing `models.Relationship`
-   (`relationship_controller_test.go`, plus the legacy-relationship parts of `admin_user_controller_test.go`,
-   `graph_controller_test.go`, `export_controller_test.go`, `contact_controller_test.go`).
+4. **Rewire the other legacy-model dependents** — **DONE** (2026-07-30, `1f43752`, merged `3b0d42d`).
+   `admin_user_controller.go`'s cascade-delete needed no change: already covered `RelationshipEdge`, added
+   by the earlier Tier 3c cascade-delete sweep before this WP existed. `contact_controller.go`'s
+   `includes=relationships`/`Preload("Relationships")` (`GetContacts`/`GetContact`) turned out to be dead,
+   not something to rewire — zero remaining frontend callers once WP3's `RelationshipEdgeList` shipped
+   (it fetches via its own `/relationship-edges` endpoint, never off this response) — removed instead,
+   matching this file's own `fields=` no-op-rather-than-reject precedent. `export_controller.go`'s CSV
+   "RELATIONSHIPS" section was the one genuine rewire (real, still-reachable functionality): now reads
+   `RelationshipEdge`, resolving source/target names via a `VCardUID`→contact map, deliberately including
+   every status/sensitivity since this is the user's own full personal backup, not a share.
+5. **Removal** — **DONE** (2026-07-30, `25b142b`, merged `3b0d42d`). `models/relationship.go`,
+   `relationship_controller.go` (+ test), the 5 legacy routes, the `RelationshipInput` DTO,
+   `Contact.Relationships`, the legacy cascade-delete calls in `DeleteContact`/`DeleteUser`, a new
+   `000035_drop_relationships_table` migration (clean drop, down recreates the cumulative schema), the
+   frontend files listed in WP3 plus `api/relationships.ts`/`hooks/useRelationships.ts`, and the dead
+   duplicate `Relationship`/`GetRelationshipsResponse`/`CreateRelationshipResponse`/
+   `DeleteRelationshipResponse` types in `types/index.ts`/`types/api.ts`. `e2e/relationships.spec.ts` was
+   already gone (deleted during WP3). **Real scope correction found while implementing, not anticipated
+   by this plan**: `cmd/backfill-relationship-edges` (WP-81's one-time migration tool) references
+   `models.Relationship` directly and would not compile once the model was deleted — the backlog's Tier 6
+   audit had filed its removal as later, deferrable cleanup, but that's not actually optional once WP5
+   runs, so its removal was folded in here. `RelationshipEdge.LegacyRelationshipID` has no such compile
+   dependency and stays, genuinely deferrable to that Tier 6 audit as originally planned. New
+   `TestMigrationDropsLegacyRelationshipsTable` (real-DB check against the actual `InitDB` migration
+   chain) confirms `000035` drops the table and `relationship_edges` is unaffected. Verified end-to-end in
+   a real running browser too: created two contacts and a `parent_of` edge via the API, confirmed the
+   contact detail page's Relationships tab renders the correct inverse label ("Child"), and confirmed the
+   CSV export's new RELATIONSHIPS section renders the edge correctly.
 
 Not required for this WP: no live data migration run (WP-81's tool exists for a real carryover if ever
 needed later, but there's no production data to carry over now).

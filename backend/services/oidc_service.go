@@ -86,24 +86,42 @@ func (p *OIDCProvider) BuildAuthURL(state, nonce, pkceVerifier string) string {
 
 // ExchangeAndVerify exchanges an authorization code for tokens and verifies the
 // ID token. The OAuth2 token is returned alongside it because the UserInfo
-// request needs its access token — see ClaimsFor.
-func (p *OIDCProvider) ExchangeAndVerify(ctx context.Context, code, pkceVerifier string) (*oidc.IDToken, *oauth2.Token, error) {
+// request needs its access token — see ClaimsFor. The raw ID token JWT is also
+// returned so callers can retain it as an id_token_hint for RP-Initiated
+// Logout (OIDC RP-Initiated Logout 1.0) — it is otherwise discarded once
+// verified.
+func (p *OIDCProvider) ExchangeAndVerify(ctx context.Context, code, pkceVerifier string) (*oidc.IDToken, *oauth2.Token, string, error) {
 	token, err := p.oauth2Cfg.Exchange(ctx, code, oauth2.VerifierOption(pkceVerifier))
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to exchange code: %w", err)
+		return nil, nil, "", fmt.Errorf("failed to exchange code: %w", err)
 	}
 
 	rawIDToken, ok := token.Extra("id_token").(string)
 	if !ok {
-		return nil, nil, errors.New("missing id_token in token response")
+		return nil, nil, "", errors.New("missing id_token in token response")
 	}
 
 	idToken, err := p.verifier.Verify(ctx, rawIDToken)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to verify id_token: %w", err)
+		return nil, nil, "", fmt.Errorf("failed to verify id_token: %w", err)
 	}
 
-	return idToken, token, nil
+	return idToken, token, rawIDToken, nil
+}
+
+// EndSessionEndpoint returns the provider's RP-Initiated Logout endpoint from
+// its cached discovery document, or "" if the provider doesn't advertise one
+// (the field is optional per OpenID Connect Session Management / RP-Initiated
+// Logout 1.0). No network I/O — the discovery document was already fetched
+// once at startup (InitOIDCProvider).
+func (p *OIDCProvider) EndSessionEndpoint() (string, error) {
+	var metadata struct {
+		EndSessionEndpoint string `json:"end_session_endpoint"`
+	}
+	if err := p.provider.Claims(&metadata); err != nil {
+		return "", fmt.Errorf("failed to read end_session_endpoint from discovery document: %w", err)
+	}
+	return metadata.EndSessionEndpoint, nil
 }
 
 // OIDCClaims holds the normalized user identity from an ID token.

@@ -51,7 +51,12 @@ Mycorrhizal CRM supports SSO via any OpenID Connect provider (Keycloak, Google, 
    ```
    https://mycorrhizal.example.com/api/v1/auth/oidc/callback
    ```
-   This is derived automatically from `FRONTEND_URL`, no separate variable needed.
+   This is derived automatically from `FRONTEND_URL`, no separate variable needed. If your provider
+   supports RP-Initiated Logout and requires a `post_logout_redirect_uri` to be pre-registered too, it's
+   likewise derived from `FRONTEND_URL`:
+   ```
+   https://mycorrhizal.example.com/login
+   ```
 
 2.  Set the OIDC environment variables in the docker compose. See [Getting-Started → Environment variables](getting-started.html#environment-variables) for details. SSO is disabled if any of the first three variables are missing.
 

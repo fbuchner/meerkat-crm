@@ -33,7 +33,7 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			controllers.LoginUser(c, cfg)
 		})
 		v1.POST("/logout", func(c *gin.Context) {
-			controllers.LogoutUser(c, cfg)
+			controllers.LogoutUser(c, cfg, oidcProvider)
 		})
 		v1.POST("/check-password-strength", middleware.AuthRateLimitMiddleware(), controllers.CheckPasswordStrength)
 		v1.POST("/password-reset/request", middleware.AuthRateLimitMiddleware(), middleware.ValidateJSONMiddleware(&models.PasswordResetRequestInput{}), func(c *gin.Context) {

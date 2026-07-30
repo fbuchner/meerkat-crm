@@ -98,7 +98,7 @@ func OIDCCallbackHandler(provider *services.OIDCProvider, cfg *config.Config) gi
 			return
 		}
 
-		idToken, oauthToken, err := provider.ExchangeAndVerify(c.Request.Context(), code, pkceCookie)
+		idToken, oauthToken, rawIDToken, err := provider.ExchangeAndVerify(c.Request.Context(), code, pkceCookie)
 		if err != nil {
 			log.Error().Err(err).Msg("OIDC token exchange/verification failed")
 			c.Redirect(http.StatusFound, "/login?error=oidc_error")
@@ -146,6 +146,9 @@ func OIDCCallbackHandler(provider *services.OIDCProvider, cfg *config.Config) gi
 		maxAge := cfg.JWTExpiryHours * 3600
 		c.SetSameSite(http.SameSiteLaxMode)
 		c.SetCookie("auth_token", tokenString, maxAge, "/", cfg.CookieDomain, cfg.CookieSecure, true)
+		// Retained for RP-Initiated Logout's id_token_hint (LogoutUser) — its
+		// presence is also how logout knows this session came via SSO at all.
+		c.SetCookie("id_token", rawIDToken, maxAge, "/", cfg.CookieDomain, cfg.CookieSecure, true)
 
 		c.Redirect(http.StatusFound, "/")
 	}

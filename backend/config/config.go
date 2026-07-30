@@ -18,14 +18,15 @@ import (
 
 // OIDCConfig holds optional OIDC provider settings.
 type OIDCConfig struct {
-	Enabled            bool
-	ProviderURL        string
-	ClientID           string
-	ClientSecret       string
-	RedirectURL        string // derived from FrontendURL, not configurable
-	AllowAutoProvision bool
-	TrustEmail         bool // skip email_verified requirement when linking accounts (for trusted self-hosted providers)
-	Scopes             []string
+	Enabled               bool
+	ProviderURL           string
+	ClientID              string
+	ClientSecret          string
+	RedirectURL           string // derived from FrontendURL, not configurable
+	AllowAutoProvision    bool
+	TrustEmail            bool // skip email_verified requirement when linking accounts (for trusted self-hosted providers)
+	Scopes                []string
+	PostLogoutRedirectURL string // derived from FrontendURL, not configurable — see RedirectURL
 }
 
 // Config is the fully-loaded application configuration, populated once by
@@ -123,14 +124,15 @@ func LoadConfig() *Config {
 	oidcClientID := getEnv("OIDC_CLIENT_ID", "")
 	oidcClientSecret := getEnv("OIDC_CLIENT_SECRET", "")
 	cfg.OIDC = OIDCConfig{
-		Enabled:            oidcProviderURL != "" && oidcClientID != "" && oidcClientSecret != "",
-		ProviderURL:        oidcProviderURL,
-		ClientID:           oidcClientID,
-		ClientSecret:       oidcClientSecret,
-		RedirectURL:        cfg.FrontendURL + "/api/v1/auth/oidc/callback",
-		AllowAutoProvision: getBoolEnv("OIDC_AUTO_PROVISION", false),
-		TrustEmail:         getBoolEnv("OIDC_TRUST_EMAIL", false),
-		Scopes:             getScopesEnv(getEnv("OIDC_SCOPES", "")),
+		Enabled:               oidcProviderURL != "" && oidcClientID != "" && oidcClientSecret != "",
+		ProviderURL:           oidcProviderURL,
+		ClientID:              oidcClientID,
+		ClientSecret:          oidcClientSecret,
+		RedirectURL:           cfg.FrontendURL + "/api/v1/auth/oidc/callback",
+		AllowAutoProvision:    getBoolEnv("OIDC_AUTO_PROVISION", false),
+		TrustEmail:            getBoolEnv("OIDC_TRUST_EMAIL", false),
+		Scopes:                getScopesEnv(getEnv("OIDC_SCOPES", "")),
+		PostLogoutRedirectURL: cfg.FrontendURL + "/login",
 	}
 
 	return cfg

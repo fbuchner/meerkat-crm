@@ -3,6 +3,7 @@ package controllers
 import (
 	"errors"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -189,19 +190,58 @@ func LoginUser(context *gin.Context, cfg *config.Config) {
 	})
 }
 
-// LogoutUser clears the auth cookie to log out the user
-func LogoutUser(context *gin.Context, cfg *config.Config) {
+// LogoutUser clears the auth cookies to log out the user, and — if this
+// session was authenticated via OIDC — also returns a redirect_url to the
+// provider's RP-Initiated Logout endpoint so the IdP's own session ends too
+// (otherwise "Sign in with SSO" would silently re-authenticate without a
+// prompt). Local logout always succeeds regardless of whether the IdP round
+// trip can be built.
+func LogoutUser(context *gin.Context, cfg *config.Config, oidcProvider *services.OIDCProvider) {
+	log := logger.FromContext(context)
+
 	context.SetSameSite(http.SameSiteLaxMode)
-	context.SetCookie(
-		"auth_token",     // name
-		"",               // value (empty)
-		-1,               // maxAge -1 = delete cookie
-		"/",              // path
-		cfg.CookieDomain, // domain
-		cfg.CookieSecure, // secure
-		true,             // httpOnly
-	)
+	context.SetCookie("auth_token", "", -1, "/", cfg.CookieDomain, cfg.CookieSecure, true)
+
+	idTokenCookie, idTokenErr := context.Cookie("id_token")
+	context.SetCookie("id_token", "", -1, "/", cfg.CookieDomain, cfg.CookieSecure, true)
+
+	if oidcProvider != nil && idTokenErr == nil && idTokenCookie != "" {
+		redirectURL, err := buildEndSessionRedirect(oidcProvider, cfg, idTokenCookie)
+		if err != nil {
+			log.Warn().Err(err).Msg("OIDC: failed to build RP-Initiated Logout redirect, falling back to local-only logout")
+		} else if redirectURL != "" {
+			context.JSON(http.StatusOK, gin.H{"message": "Logged out successfully", "redirect_url": redirectURL})
+			return
+		}
+	}
+
 	context.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
+}
+
+// buildEndSessionRedirect builds the provider's RP-Initiated Logout URL
+// (id_token_hint + post_logout_redirect_uri). Returns "" (no error) if the
+// provider doesn't advertise an end_session_endpoint — not every IdP
+// supports RP-Initiated Logout.
+func buildEndSessionRedirect(provider *services.OIDCProvider, cfg *config.Config, idTokenHint string) (string, error) {
+	endSessionEndpoint, err := provider.EndSessionEndpoint()
+	if err != nil {
+		return "", err
+	}
+	if endSessionEndpoint == "" {
+		return "", nil
+	}
+
+	u, err := url.Parse(endSessionEndpoint)
+	if err != nil {
+		return "", err
+	}
+
+	q := u.Query()
+	q.Set("id_token_hint", idTokenHint)
+	q.Set("post_logout_redirect_uri", cfg.OIDC.PostLogoutRedirectURL)
+	u.RawQuery = q.Encode()
+
+	return u.String(), nil
 }
 
 // CheckPasswordStrength evaluates password strength without registration

@@ -7,19 +7,19 @@
 >
 > Last groomed: 2026-07-29 (Tier 1 closed; Tier 2/P5 — WP-80/81/82/83/84/84b/84c(backend) all done; the
 > triage-UI/migration/frontend half of WP-84c is now filed under Tier 4, and P5's own acceptance gate is
-> technically still waiting on that piece — see Tier 2's note. **Tier 3a fully done except item 2**
-> (RP-Initiated Logout — biggest and most cross-stack of the three, deliberately deferred): item 1
-> (CardDAV-scoped API tokens) and item 3 (configurable OIDC scopes) both landed. **Tier 3c items 1-7 all
-> done** — the confirmed live cascade-delete bug (14 tables, wider than originally scoped), the 3 unchecked
-> `db.Updates`/`db.Save` sites, the webhook-retry job lock, dependabot ecosystem coverage, real WAL mode
-> (not just a doc claim), and the rate-limiter doc note; item 3's guard turned out already satisfied. Items
-> 8-11 remain: item 8 (SQLite FK-enforcement policy) is now concretely unblocked by item 1 landing but
-> stays a separate, deliberate policy decision; items 9-10 are medium test-coverage dispatches; item 11
-> needs its own scoping pass. A real, unrelated bug (`ContactSyncLink.ETag` GORM column-name mismatch,
-> would break CardDAV incremental sync writes) was found in passing during item 1's verification and
-> spawned as a separate task rather than fixed inline. Tier 6 broadened from UI-only to also carry
-> non-critical test-coverage expansion, both still explicitly last-priority, after everything else is
-> ready. **Next up: Tier 3a item 2 (RP-Initiated Logout) or Tier 3c items 8-11.**).
+> technically still waiting on that piece — see Tier 2's note. **Tier 3a fully done** — CardDAV-scoped API
+> tokens, configurable OIDC scopes, and RP-Initiated Logout (retained `id_token` cookie, `end_session_endpoint`
+> resolved from the already-cached discovery document, real end-to-end verified with a genuine
+> RS256-signed fake IdP). **Tier 3c items 1-7 all done** — the confirmed live cascade-delete bug (14
+> tables, wider than originally scoped), the 3 unchecked `db.Updates`/`db.Save` sites, the webhook-retry
+> job lock, dependabot ecosystem coverage, real WAL mode (not just a doc claim), and the rate-limiter doc
+> note; item 3's guard turned out already satisfied. Items 8-11 remain: item 8 (SQLite FK-enforcement
+> policy) is now concretely unblocked by item 1 landing but stays a separate, deliberate policy decision;
+> items 9-10 are medium test-coverage dispatches; item 11 needs its own scoping pass. A real, unrelated bug
+> (`ContactSyncLink.ETag` GORM column-name mismatch, would break CardDAV incremental sync writes) was found
+> in passing during item 1's verification and spawned as a separate task rather than fixed inline. Tier 6
+> broadened from UI-only to also carry non-critical test-coverage expansion, both still explicitly
+> last-priority, after everything else is ready. **Next up: Tier 3c items 8-11, or Tier 4.**).
 
 ## How to read this
 
@@ -403,7 +403,7 @@ below are corrected, not the original estimates.
 | # | Item | Size | Notes |
 |---|---|---|---|
 | 1 | **App-specific passwords for CardDAV** | **medium** (actual; was: small–medium) | **DONE** (2026-07-29). Open design question resolved: added a `carddav`-scoped token type rather than accepting any general-purpose token (`full` ⊇ `carddav` — a `full` token still works for CardDAV, but a `carddav`-scoped token is rejected by the general REST bearer-auth path, so a leaked synced-device credential is confined to contact sync). `ApiToken.Scope` column (migration 000034), `middleware.LookupAPIToken`/`TouchAPIToken` extracted and shared between `AuthMiddleware` and `carddav/auth.go`'s new token fallback, `ApiTokensPage.tsx` gained a scope selector + column. Actual size landed at `medium` (schema + backend + frontend + 5 locale files), not the original `small–medium` estimate, since the scoped-token decision (rather than "accept any token") pulled in the frontend create-dialog and column work too. Real-DB verified: password auth unchanged, both token scopes work for CardDAV, a `carddav`-scoped token is rejected 403 against the general REST API, SSO/OIDC users (empty password) authenticate CardDAV via a token, wrong-username/expired/revoked tokens all rejected. |
-| 2 | **RP-initiated logout (OIDC RP-Initiated Logout 1.0)** | **medium–large** (was: medium) | `/logout` clears the local cookie only; the IdP session survives, so "Sign in with SSO" silently re-authenticates without a prompt. Discovering `end_session_endpoint` is trivial (~5 lines — the OIDC provider metadata is already a cached long-lived singleton). The real cost: retaining the raw `id_token` through to logout (a new cookie), and reworking logout from today's background `fetch()` into a full-page redirect to the IdP plus a new return-trip route for `post_logout_redirect_uri` — a real backend+frontend contract change, not just added params. |
+| 2 | **RP-initiated logout (OIDC RP-Initiated Logout 1.0)** | **medium–large** (confirmed) | **DONE** (2026-07-29). `ExchangeAndVerify` now also returns the raw ID token JWT (previously discarded once verified), retained via a new `id_token` cookie (same flags/lifetime as `auth_token`) — its presence is also the signal for whether *this* session came via SSO at all, so a local-password login even with OIDC enabled never attempts an IdP round trip. New `OIDCProvider.EndSessionEndpoint()` reads the already-cached discovery claims (zero extra network I/O). `LogoutUser` always clears both cookies first (local logout never depends on IdP reachability), then — only when an `id_token` cookie was present — builds the full `end_session_endpoint` URL (`id_token_hint` + `post_logout_redirect_uri`, via `net/url`, not string concatenation) and returns it as `redirect_url`; any failure (unsupported by the IdP, parse error) logs a warning and falls back to today's plain response. New `OIDCConfig.PostLogoutRedirectURL` derived from `FrontendURL` (`.../login`), mirroring `RedirectURL`'s existing precedent — reuses the existing unauthenticated catch-all route, so no new frontend route was needed. Frontend `logoutAndRedirect()` now does a real top-level navigation to the IdP when a `redirect_url` comes back (a `fetch` can't clear the IdP's own first-party cookie), else keeps today's client-side `/login` redirect. Real end-to-end flow verified against a real migrated DB with a fake IdP doing genuine RS256-signed JWT issuance: login sets both cookies, logout's `redirect_url` carries the exact same `id_token_hint` and a correctly URL-encoded `post_logout_redirect_uri`, both cookies cleared. Closes Tier 3a. |
 | 3 | **Configurable OIDC scopes** | small (confirmed) | **DONE** (2026-07-29). `OIDC_SCOPES` env var (comma-separated, defaults to `openid,email,profile`), `config.getScopesEnv` following the existing `getProxies` list-parsing pattern, wired into `InitOIDCProvider`'s `oauth2.Config.Scopes`. `.env.example` and `docs/getting-started.md` updated; unit-tested in `config_test.go`. |
 
 **On item 1 — why the two CardDAV problems are one piece of work.** Tier 1 recorded that CardDAV
@@ -416,9 +416,8 @@ one change, so they should not be scheduled separately.
 Sequencing note: item 1 touches the CardDAV auth path, which P5 (Tier 2) does not, so there is no
 ordering constraint between them beyond priority.
 
-**Recommended pickup order**: ~~1 (App-specific passwords)~~ **done** → ~~3 (Configurable OIDC scopes)~~
-**done** → 2 (RP-Initiated Logout). Item 2 is the only one left in 3a — biggest and most cross-stack of the
-three (a real backend+frontend logout-flow rework, not just added params).
+**Tier 3a — all three items done** (2026-07-29): 1 (App-specific passwords), 3 (Configurable OIDC scopes),
+2 (RP-Initiated Logout).
 
 ### 3b. WP-81 follow-up
 

@@ -13,6 +13,10 @@ export interface LoginResponse {
   date_format?: string;
 }
 
+export interface LogoutResponse {
+  redirect_url?: string;
+}
+
 export interface UserInfo {
   user_id: number;
   username: string;
@@ -83,21 +87,31 @@ export function isAuthenticated(): boolean {
   return localStorage.getItem(USER_INFO_KEY) !== null;
 }
 
-export async function logoutUser() {
+// Returns the provider's RP-Initiated Logout URL when this session was
+// authenticated via OIDC, so the caller can navigate there to also end the
+// IdP's own session (otherwise "Sign in with SSO" silently re-authenticates
+// without a prompt).
+export async function logoutUser(): Promise<string | undefined> {
+  let redirectURL: string | undefined;
   try {
-    await fetch(`${API_BASE_URL}/logout`, {
+    const response = await fetch(`${API_BASE_URL}/logout`, {
       method: 'POST',
       credentials: 'include',
     });
+    const data: LogoutResponse | null = await response.json().catch(() => null);
+    redirectURL = data?.redirect_url;
   } catch {
     // Ignore errors - clear local state anyway
   }
   localStorage.removeItem(USER_INFO_KEY);
+  return redirectURL;
 }
 
 export async function logoutAndRedirect() {
-  await logoutUser();
-  window.location.href = '/login';
+  const redirectURL = await logoutUser();
+  // A real top-level navigation (not fetch) is required so the IdP can clear
+  // its own first-party session cookie.
+  window.location.href = redirectURL || '/login';
 }
 
 interface DecodedToken {

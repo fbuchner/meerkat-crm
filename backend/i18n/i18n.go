@@ -136,13 +136,32 @@ func interpolate(s string, params ...map[string]string) string {
 	return result
 }
 
-// IsValidLanguage checks if a language code is supported
-func IsValidLanguage(lang string) bool {
-	normalized := normalizeLanguage(lang)
+// NormalizeSupportedLanguage validates and normalizes a user-supplied
+// language code: lowercases and takes the first BCP-47 subtag (e.g.
+// "EN-US" -> "en"), then checks membership in SupportedLanguages.
+//
+// Deliberately does not use normalizeLanguage's fallback-to-DefaultLanguage
+// behavior. That fallback is correct for T()'s "always return something
+// displayable" use case, but reused here it would make IsValidLanguage
+// return true for any input, including garbage -- this is the validity gate
+// for user-supplied input (UpdateLanguage), not a display-lookup path, so an
+// empty or unrecognized code must genuinely fail (ok=false), not silently
+// normalize to "en".
+func NormalizeSupportedLanguage(lang string) (normalized string, ok bool) {
+	if lang == "" {
+		return "", false
+	}
+	normalized = strings.ToLower(strings.Split(lang, "-")[0])
 	for _, supported := range SupportedLanguages {
 		if normalized == supported {
-			return true
+			return normalized, true
 		}
 	}
-	return false
+	return "", false
+}
+
+// IsValidLanguage checks if a language code is supported.
+func IsValidLanguage(lang string) bool {
+	_, ok := NormalizeSupportedLanguage(lang)
+	return ok
 }

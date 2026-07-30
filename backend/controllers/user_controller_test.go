@@ -15,6 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -526,13 +527,74 @@ func TestUpdateLanguage_Succeeds(t *testing.T) {
 	assert.Equal(t, "de", updated.Language)
 }
 
+// TestUpdateLanguage_RejectsUnsupportedCode is the regression test for
+// backlog item 12 (docs/fork-plan/95-backlog-and-priorities.md):
+// i18n.IsValidLanguage used to normalize via i18n.normalizeLanguage, which
+// falls back to "en" for any unrecognized input, so the rejection branch
+// below was unreachable for any input at all. i18n.NormalizeSupportedLanguage
+// (i18n/i18n.go) fixes this by never falling back -- a genuinely unsupported
+// code must now be rejected.
+func TestUpdateLanguage_RejectsUnsupportedCode(t *testing.T) {
+	db, router := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	router.PATCH("/language", func(c *gin.Context) {
+		c.Set("username", user.Username)
+		UpdateLanguage(c)
+	})
+
+	req, _ := http.NewRequest("PATCH", "/language", bytes.NewBufferString(`{"language":"xx"}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
+
+	var response map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &response)
+	errorDetail := response["error"].(map[string]interface{})
+	assert.Equal(t, "INVALID_INPUT", errorDetail["code"])
+
+	// The garbage value must not have been persisted either.
+	var reloaded models.User
+	require.NoError(t, db.First(&reloaded, user.ID).Error)
+	assert.NotEqual(t, "xx", reloaded.Language)
+}
+
+// TestUpdateLanguage_NormalizesBeforePersisting is the other half of item 12:
+// UpdateLanguage used to persist input.Language raw/unnormalized even when
+// valid, so e.g. "DE-AT" would be stored verbatim instead of as "de".
+func TestUpdateLanguage_NormalizesBeforePersisting(t *testing.T) {
+	db, router := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	router.PATCH("/language", func(c *gin.Context) {
+		c.Set("username", user.Username)
+		UpdateLanguage(c)
+	})
+
+	req, _ := http.NewRequest("PATCH", "/language", bytes.NewBufferString(`{"language":"DE-AT"}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var responseBody map[string]string
+	json.Unmarshal(w.Body.Bytes(), &responseBody)
+	assert.Equal(t, "de", responseBody["language"])
+
+	var updated models.User
+	require.NoError(t, db.First(&updated, user.ID).Error)
+	assert.Equal(t, "de", updated.Language)
+}
+
 // TestUpdateLanguage_RejectsMalformedJSON exercises UpdateLanguage's bind-failure
-// branch. Note: a genuinely-unsupported-but-well-formed code like "xx" cannot
-// reach the IsValidLanguage rejection branch here — i18n.normalizeLanguage falls
-// back to the default "en" for any unrecognized code, so IsValidLanguage always
-// returns true. That looks like a latent bug in i18n.IsValidLanguage/normalizeLanguage,
-// but it lives outside the three controller files this task is scoped to, so it's
-// left unmodified and just noted here.
+// branch.
 func TestUpdateLanguage_RejectsMalformedJSON(t *testing.T) {
 	db, router := setupRouter()
 	var user models.User

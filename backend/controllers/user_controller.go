@@ -427,8 +427,10 @@ func UpdateLanguage(context *gin.Context) {
 		return
 	}
 
-	// Validate language is supported
-	if !i18n.IsValidLanguage(input.Language) {
+	// Validate language is supported, and normalize it (e.g. "EN-US" -> "en")
+	// -- the raw, unnormalized value must never be persisted.
+	normalizedLang, validLang := i18n.NormalizeSupportedLanguage(input.Language)
+	if !validLang {
 		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("language", "Unsupported language. Supported: "+strings.Join(i18n.SupportedLanguages, ", ")))
 		return
 	}
@@ -459,7 +461,7 @@ func UpdateLanguage(context *gin.Context) {
 		return
 	}
 
-	user.Language = input.Language
+	user.Language = normalizedLang
 	if err := db.Save(&user).Error; err != nil {
 		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to update user language")
 		apperrors.AbortWithError(context, apperrors.ErrDatabase("update user").WithError(err))

@@ -305,6 +305,70 @@ func TestSendReminders(t *testing.T) {
 	assert.NotNil(t, updatedReminder.LastSent, "LastSent should be set after email is sent")
 }
 
+// TestSendReminders_ExcludesCompletedAndAlreadySentReminders pins down Tier
+// 3c item 11b (docs/fork-plan/95-backlog-and-priorities.md): SendReminders'
+// eligibility filter (`completed = false AND email_sent = false`) had never
+// been exercised with an already-completed or already-sent reminder sitting
+// alongside a genuinely eligible one — only ever tested against reminders
+// already in the eligible state. A broken filter here means silent
+// re-spamming (already-sent reminders re-emailed) or silent starvation
+// (eligible reminders wrongly excluded), neither of which shows up in normal
+// monitoring.
+func TestSendReminders_ExcludesCompletedAndAlreadySentReminders(t *testing.T) {
+	db, _ := setupRouter()
+
+	user := models.User{Username: "reminder-filter-user", Password: "password123", Email: "owner2@example.com"}
+	require.NoError(t, db.Create(&user).Error)
+
+	contact := models.Contact{UserID: user.ID, Firstname: "Jane", Lastname: "Doe"}
+	require.NoError(t, db.Create(&contact).Error)
+
+	reoccurFalse := false
+	byMailTrue := true
+	makeReminder := func(message string, completed, emailSent bool) models.Reminder {
+		r := models.Reminder{
+			UserID:                user.ID,
+			ContactID:             &contact.ID,
+			Message:               message,
+			ByMail:                &byMailTrue,
+			RemindAt:              time.Now().Add(-1 * time.Hour),
+			Recurrence:            "once",
+			ReoccurFromCompletion: &reoccurFalse,
+			Completed:             completed,
+			EmailSent:             emailSent,
+		}
+		require.NoError(t, db.Create(&r).Error)
+		return r
+	}
+
+	eligible := makeReminder("eligible", false, false)
+	alreadyCompleted := makeReminder("already completed", true, false)
+	alreadySent := makeReminder("already sent", false, true)
+
+	var calledReminders []models.Reminder
+	originalSender := sendReminderEmailFn
+	sendReminderEmailFn = func(u models.User, reminders []models.Reminder, cfg config.Config, db *gorm.DB) error {
+		calledReminders = reminders
+		return nil
+	}
+	defer func() { sendReminderEmailFn = originalSender }()
+
+	cfg := config.Config{UseResend: true, ResendAPIKey: "test_api_key", ResendFromEmail: "noreply@example.com", ReminderTime: "12:00"}
+	require.NoError(t, SendReminders(db, cfg))
+
+	if assert.Len(t, calledReminders, 1, "only the genuinely eligible reminder must be picked up") {
+		assert.Equal(t, eligible.ID, calledReminders[0].ID)
+	}
+
+	var stillCompleted models.Reminder
+	require.NoError(t, db.First(&stillCompleted, alreadyCompleted.ID).Error)
+	assert.False(t, stillCompleted.EmailSent, "an already-completed reminder must not be touched by the send pass")
+
+	var stillSent models.Reminder
+	require.NoError(t, db.First(&stillSent, alreadySent.ID).Error)
+	assert.False(t, stillSent.Completed, "an already-sent reminder must not be marked completed by the send pass")
+}
+
 func TestSendRemindersWithRateLimit_FirstRun(t *testing.T) {
 	db, _ := setupRouter()
 

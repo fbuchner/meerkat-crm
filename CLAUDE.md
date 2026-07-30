@@ -84,7 +84,24 @@ These are real bugs that shipped, not hypotheticals.
    `DeleteUser` enumerate every dependent table explicitly — if you add an entity, add it there. Use
    `contact_controller.go`'s `DeleteContact` as the canonical checklist.
 
-7. **`gorm.DB.Transaction` returns the closure's error verbatim**, so you can return a typed
+   Note `admin_user_controller_test.go`'s `assertGone` helper counts with `db.Model(...).Count()`, which
+   **excludes soft-deleted rows** — so it passes whether a row is gone or merely marked. If you need the
+   distinction pinned, assert with `Unscoped()`.
+
+7. **Soft delete vs hard delete is a convention, not an accident.** When adding an entity:
+   - **Content the user authored** (`Contact`, `Note`, `Activity`, `Reminder`, `LifeEvent`) →
+     **soft delete**. It is recoverable, and it gives sync a free tombstone (see the ticket for T17).
+   - **Edge- and join-shaped rows** (`RelationshipEdge`, `CircleMember`, `ContactTag`,
+     `HouseholdMember`, `ContactSyncLink`, `CalendarEventLink`) → **hard delete**, per
+     `RelationshipEdge`'s own doc comment. These are small and bounded, so a client re-pulls them rather
+     than tracking their deaths.
+
+   `gorm.Model` gives soft delete for free, **but only works on uint-PK entities**. The UUID-string-PK
+   entities have their own explicit `ID`/`CreatedAt`/`UpdatedAt`, so embedding `gorm.Model` there adds a
+   conflicting `ID uint` and breaks them. Add the one field instead:
+   `DeletedAt gorm.DeletedAt \`gorm:"index" json:"-"\``.
+
+8. **`gorm.DB.Transaction` returns the closure's error verbatim**, so you can return a typed
    `*apperrors.AppError` from inside and type-assert it after to preserve a 404/400 instead of
    flattening to 500. `relationship_edge_controller.go` does this.
 

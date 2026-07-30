@@ -28,6 +28,42 @@ T20b (gifts), T21 (agenda) and N2 (prep view), all of which read the timeline.
 
 ## What to build
 
+### 0. Backend prerequisite — give `LifeEvent` a soft delete (decided 2026-07-30)
+
+`LifeEvent` currently **hard-deletes**, but this ticket puts life events into the timeline alongside notes
+and activities, which both soft-delete. Without this, a replica client (mobile, offline) would show a
+deleted life event on the timeline while a deleted note vanishes immediately — and
+[T17](17-T17-change-feeds.md)'s change feed has no way to tell it otherwise, since a hard-deleted row
+leaves nothing to report.
+
+The "no soft delete" precedent was set for **edge- and join-shaped rows** (`RelationshipEdge`'s doc
+comment cites `ContactSyncLink`/`CalendarEventLink`). `LifeEvent` is not one of those — it is
+first-class user-authored content, the same shape as `Note`. Adding soft delete is additive and cheap
+while no production data exists, and it gets tombstones for free.
+
+- **Migration** `000036_add_life_event_deleted_at` (hand-written up/down pair): add `deleted_at DATETIME`
+  to `life_events` plus `CREATE INDEX idx_life_events_deleted_at`. Follow `000032_add_life_events`'s
+  style.
+- **⚠ Do NOT embed `gorm.Model` to get this.** `LifeEvent` has a **UUID string PK** (`ID string`) with its
+  own explicit `CreatedAt`/`UpdatedAt`; embedding `gorm.Model` would add a conflicting `ID uint` and break
+  the entity. Add the single field instead:
+  ```go
+  DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+  ```
+  That is all GORM needs — `gorm.Model` is only a convenience wrapper around the same field.
+- **⚠ This silently changes both cascade-delete paths.** `contact_controller.go`'s `DeleteContact`
+  (`entity_id = ? AND user_id = ?`) and `admin_user_controller.go`'s `DeleteUser` (`user_id = ?`) both
+  call plain `tx.Delete(&models.LifeEvent{})`, which becomes a *soft* delete the moment the field exists.
+  For `DeleteContact` that is consistent (the contact soft-deletes too). For `DeleteUser`, decide whether
+  rows should be `Unscoped()`-hard-deleted — note that every other content entity there (Note, Activity,
+  Reminder) already soft-deletes, so joining them is consistent, not a regression.
+- **⚠ The existing cascade test will not catch this either way.** `admin_user_controller_test.go`'s
+  `assertGone` helper counts via `db.Model(...).Count()`, and **GORM excludes soft-deleted rows from
+  that count** — so it stays green whether the rows are gone or merely marked. If you want the behaviour
+  pinned, assert with `Unscoped()`.
+
+### 1. Frontend
+
 1. **`frontend/src/api/lifeEvents.ts`** — types + CRUD calls. Mirror the structure of
    `api/relationshipEdges.ts`, which is the most recent complete example of this pattern.
    Check the controller for the exact response envelope (create may wrap, update may not — that asymmetry
@@ -59,7 +95,11 @@ T20b (gifts), T21 (agenda) and N2 (prep view), all of which read the timeline.
 - `npx tsc --noEmit` clean, `npx vitest run` green, with component tests covering the dialog and list.
 - Verified in a real browser: create a life event with a **year-only** date, edit it, delete it, and see
   it in the contact's timeline in date order.
-- Backend untouched (or `go test ./...` green if you had to adjust the controller).
+- `go build ./... && go vet ./... && gofmt -l . && go test ./...` green after step 0.
+- A **real-DB test** (`database.InitDB`, not `AutoMigrate`) proves the new `deleted_at` column exists in
+  the real migrated schema and that deleting a life event soft-deletes it — i.e. it disappears from a
+  normal query but is still present under `Unscoped()`. That round trip is what T17's change feed will
+  rely on.
 
 ## Next
 

@@ -63,8 +63,8 @@ This works cleanly because of how the split falls out — verified by auditing w
 
 | | Entities | Volume per user | Sync strategy |
 |---|---|---|---|
-| **Soft delete** (`deleted_at`, free tombstone) | Contact, Note, Activity, Reminder, ReminderCompletion, User, ApiToken, Webhook, WebhookDelivery, ContactSubscription, CalendarSubscription | **Large and growing** — notes and activities accumulate for years | Incremental. `?since=` returns updated *and* soft-deleted rows; the client applies the deletion. |
-| **Hard delete** (no soft delete) | RelationshipEdge, Circle, CircleMember, Tag, ContactTag, Household, HouseholdMember, LifeEvent, FieldDefinition, FieldValue, ContactSyncLink, CalendarEventLink | **Bounded small** — hundreds to low thousands | **Full resync of the collection.** Cheap enough to just re-pull. |
+| **Soft delete** (`deleted_at`, free tombstone) | Contact, Note, Activity, Reminder, ReminderCompletion, User, ApiToken, Webhook, WebhookDelivery, ContactSubscription, CalendarSubscription, **LifeEvent** (added by [T5](03-T5-lifeevent-frontend.md) step 0) | **Large and growing** — notes and activities accumulate for years | Incremental. `?since=` returns updated *and* soft-deleted rows; the client applies the deletion. |
+| **Hard delete** (no soft delete) | RelationshipEdge, Circle, CircleMember, Tag, ContactTag, Household, HouseholdMember, FieldDefinition, FieldValue, ContactSyncLink, CalendarEventLink | **Bounded small** — hundreds to low thousands | **Full resync of the collection.** Cheap enough to just re-pull. |
 
 **The split is favourable, which is why this works:** every big, unboundedly-growing table already has
 soft delete, and every hard-delete table is small. A client can pull all of a user's relationship edges,
@@ -81,17 +81,18 @@ deliberate — `RelationshipEdge`'s own doc comment records the reasoning, match
    `ContactTimeline.tsx` composes it client-side from notes and activities, **both of which are
    soft-delete**. So the timeline stays correct under pure incremental sync, with no special handling.
 
-2. **⚠ `LifeEvent` is the exception worth revisiting.** T5 puts life events *into* the timeline, and
-   `LifeEvent` hard-deletes — so once T5 ships, a replica client would show a deleted life event on the
-   timeline until its next resync, while notes and activities disappear immediately. Inconsistent.
+2. **`LifeEvent` was the one exception — resolved 2026-07-30: it gets a soft delete.** T5 puts life
+   events *into* the timeline, and `LifeEvent` hard-deleted, so a replica would have shown a deleted life
+   event while notes and activities vanished immediately.
 
    The "no soft delete" precedent was set for **edge/join-shaped rows**; `LifeEvent` is not one — it is
-   first-class user-authored content, the same shape as `Note`. **Recommend giving `LifeEvent` a soft
-   delete** (an additive migration, cheap pre-alpha) so every timeline input behaves the same way. The
-   container entities (Circle, Tag, Household) and the join rows are genuinely fine on resync.
+   first-class user-authored content, the same shape as `Note`. Adding `deleted_at` is additive, cheap
+   pre-alpha, and buys a free tombstone.
 
-   Decide this in [T5](03-T5-lifeevent-frontend.md) or here, but decide it — do not discover it when a
-   phone shows a deleted event.
+   **[T5](03-T5-lifeevent-frontend.md) owns the work** (its step 0), including the trap that `LifeEvent`
+   has a UUID string PK so `gorm.Model` must **not** be embedded. By the time this ticket is picked up,
+   every timeline input soft-deletes and the table above is accurate as written. The container entities
+   (Circle, Tag, Household) and the join rows stay hard-delete and are genuinely fine on resync.
 
 ### What the client contract must say
 

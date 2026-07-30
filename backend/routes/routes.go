@@ -93,6 +93,15 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			protected.PUT("/contacts/:id/relationships/:rid", middleware.ValidateJSONMiddleware(&models.RelationshipInput{}), controllers.UpdateRelationship)
 			protected.DELETE("/contacts/:id/relationships/:rid", controllers.DeleteRelationship)
 
+			// RelationshipEdge routes (graph-model relationship API; legacy
+			// /contacts/:id/relationships above is untouched pending its own cutover, §3d WP4/5)
+			protected.POST("/relationship-edges", middleware.ValidateJSONMiddleware(&models.RelationshipEdgeInput{}), controllers.CreateRelationshipEdge)
+			protected.GET("/relationship-edges", controllers.ListRelationshipEdges)
+			protected.GET("/relationship-edges/:id", controllers.GetRelationshipEdge)
+			protected.PUT("/relationship-edges/:id", middleware.ValidateJSONMiddleware(&models.RelationshipEdgeInput{}), controllers.UpdateRelationshipEdge)
+			protected.DELETE("/relationship-edges/:id", controllers.DeleteRelationshipEdge)
+			protected.PATCH("/relationship-edges/:id/accept", controllers.AcceptRelationshipEdge)
+
 			// Profile picture routes
 			protected.POST("/contacts/:id/profile_picture", func(c *gin.Context) {
 				controllers.AddPhotoToContact(c, cfg)

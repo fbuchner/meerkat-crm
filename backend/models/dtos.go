@@ -166,6 +166,42 @@ type RelationshipInput struct {
 	RelatedContactID *uint  `json:"related_contact_id"`
 }
 
+// ThinContactInput creates a not-yet-existing "thin" Contact inline as one
+// endpoint of a RelationshipEdge — the graph-model equivalent of the legacy
+// Relationship{Name, Gender, Birthday, RelatedContactID: nil} case, using
+// the same field mapping cmd/backfill-relationship-edges/migrate.go already
+// establishes when promoting a legacy name-only row.
+type ThinContactInput struct {
+	Name     string `json:"name" validate:"required,min=1,max=100"`
+	Gender   string `json:"gender" validate:"omitempty,oneof=male female other prefer_not_to_say"`
+	Birthday string `json:"birthday" validate:"omitempty,birthday"`
+}
+
+// RelationshipEdgeInput is the DTO for creating/updating a RelationshipEdge.
+// Each endpoint is either an existing Contact (SourceID/TargetID, a
+// Contact.VCardUID) or a not-yet-existing person described inline
+// (SourceThin/TargetThin) — exactly one of the pair per endpoint, enforced
+// in the controller (not via validate tags — this codebase has no existing
+// precedent for required_without/excluded_with, and a controller-level
+// check gives a much more precise per-field error).
+//
+// Directional/Source/Confidence/Status are deliberately absent: the server
+// always derives Directional from Type (!IsSymmetricRelationType), and
+// always sets Source/Confidence/Status itself — a client can never
+// mass-assign a fabricated provenance or self-confirm a status. A
+// user-created edge is always Source: user-confirmed, Confidence: 1.0,
+// Status: confirmed. Status only ever changes via AcceptRelationshipEdge.
+type RelationshipEdgeInput struct {
+	SourceID   string            `json:"source_id,omitempty" validate:"omitempty,uuid4"`
+	SourceThin *ThinContactInput `json:"source_thin,omitempty"`
+	TargetID   string            `json:"target_id,omitempty" validate:"omitempty,uuid4"`
+	TargetThin *ThinContactInput `json:"target_thin,omitempty"`
+
+	Type        string                 `json:"type" validate:"required,relation_type"`
+	Sensitivity string                 `json:"sensitivity,omitempty" validate:"omitempty,oneof=normal private secret"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+}
+
 // ContactResponse represents the DTO returned from GET /contacts with photo thumbnail
 type ContactResponse struct {
 	Contact

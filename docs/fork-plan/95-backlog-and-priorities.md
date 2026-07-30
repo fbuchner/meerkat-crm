@@ -101,6 +101,14 @@ Everything still open, from this file **and** `92-delivery-roadmap.md`, merged i
 tickets. One ticket per feature/enhancement/change, each independently completable on its own branch
 (per the branch-per-concern discipline used throughout).
 
+> **📁 Each ticket has its own file in [`tickets/`](tickets/README.md)**, written to be implementable
+> without reading this document — what exists today with real file paths, what to build, which existing
+> patterns to copy, the traps specific to that ticket, and a definition of done. The table below is the
+> index and the rationale; the ticket files are the work.
+>
+> **Read [`/CLAUDE.md`](../../CLAUDE.md) first** — it carries the repo-wide conventions and recurring
+> bug classes every ticket assumes and none of them repeat.
+
 **Note on "Phase A/B/C/D".** Those labels survive in the ticket details and in the superseded-tier
 pointers below as *conceptual groupings* (Phase A = activate what's built, D = alpha readiness, and so
 on). The board itself is no longer organised by them — it is one dependency-and-value ordering, so a

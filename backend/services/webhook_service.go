@@ -227,7 +227,28 @@ func saveDelivery(db *gorm.DB, webhookID uint, eventType, payload string, status
 }
 
 // ProcessWebhookRetries retries failed deliveries where NextRetryAt <= now and Attempts < maxDeliveryAttempts.
+// Guarded by a job lock (matching reminders/calendar sync) so multiple
+// instances don't double-process the same retry window.
 func ProcessWebhookRetries(db *gorm.DB, cfg config.Config) {
+	// Shorter than the 5-minute cron cadence (main.go) so the lock doesn't
+	// suppress every other tick, unlike reminders/calendar sync which run far
+	// less often.
+	const minInterval = 4 * time.Minute
+	acquired, err := acquireJobLock(db, models.JobNameWebhookRetries, minInterval)
+	if err != nil {
+		logger.Error().Err(err).Msg("Error checking webhook retry job lock")
+		return
+	}
+	if !acquired {
+		logger.Info().Msg("Skipping webhook retry job - rate limited")
+		return
+	}
+	defer func() {
+		if err := releaseJobLock(db, models.JobNameWebhookRetries, true); err != nil {
+			logger.Error().Err(err).Msg("Error releasing webhook retry job lock")
+		}
+	}()
+
 	now := time.Now()
 	var deliveries []models.WebhookDelivery
 	if err := db.Where("next_retry_at <= ? AND attempts < ? AND deleted_at IS NULL", now, maxDeliveryAttempts).Find(&deliveries).Error; err != nil {

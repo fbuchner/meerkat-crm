@@ -25,4 +25,7 @@ const (
 
 	// JobNameCalendarSync is the job name for the scheduled calendar sync job
 	JobNameCalendarSync = "calendar_sync"
+
+	// JobNameWebhookRetries is the job name for the scheduled webhook retry job
+	JobNameWebhookRetries = "webhook_retries"
 )

@@ -158,6 +158,60 @@ func TestReconcileContactSyncUpdatesExistingLinkedContact(t *testing.T) {
 	assert.Equal(t, "bob.new@example.com", contact.Email)
 }
 
+// TestReconcileContactSyncOverwritesLocalEditsOnRemoteChange pins down Tier
+// 3c item 11a (docs/fork-plan/95-backlog-and-priorities.md): does a local
+// edit to a field the remote vCard doesn't touch survive a sync, or get
+// silently discarded? Confirmed intentional, not a bug: models.
+// ApplyRecordToContact (its own doc comment) treats the incoming Record as
+// the full-fidelity source of truth and fully repopulates every flat field
+// from it — the same function CreateContact/UpdateContact use for a REST
+// PUT — and no model anywhere in this codebase tracks per-field
+// modified-since-sync state, so there is no mechanism by which a
+// field-level merge could even be attempted. This test exists to catch a
+// regression in the *other* direction (a future field-level merge
+// accidentally applied only here, diverging from REST's full-replace
+// semantics), not to permit the current behavior to drift unnoticed.
+func TestReconcileContactSyncOverwritesLocalEditsOnRemoteChange(t *testing.T) {
+	db := setupContactSyncTestDB(t)
+	cfg := contactSyncTestConfig()
+	user := createContactSyncTestUser(t, db)
+	sub := newContactTestSubscription(t, db, cfg, user.ID, "https://example.com/addressbooks/test/", "", "")
+
+	href := "/addressbooks/test/carol.vcf"
+	first := carddav.AddressObject{Path: href, ETag: "\"etag-1\"", Card: testCard(t, "carol-uid", "Carol", "Danvers", "carol@example.com")}
+	stats, err := reconcileContactSync(db, sub, []carddav.AddressObject{first}, nil, false, "")
+	require.NoError(t, err)
+	require.Equal(t, 1, stats.Created)
+
+	var link models.ContactSyncLink
+	require.NoError(t, db.Where("subscription_id = ? AND href = ?", sub.ID, href).First(&link).Error)
+
+	// Simulate a local-only edit made through the REST API to a field the
+	// synced vCard never carries (testVCard4Template has no phone/job-title
+	// field at all): the phone number is not present in the vCard before or
+	// after, so a field-level merge would have no reason to touch it. Loads
+	// the row first rather than a bare Where-scoped bulk Updates — the
+	// established pattern in this codebase (see e.g. import_session.go's
+	// ConfirmVCF fix) since a zero-value receiver breaks Contact.AfterSave's
+	// own ETag-recompute sub-update.
+	var editTarget models.Contact
+	require.NoError(t, db.First(&editTarget, link.ContactID).Error)
+	require.NoError(t, db.Model(&editTarget).
+		Updates(map[string]any{"phone": "555-0100", "job_title": "Local Edit"}).Error)
+
+	// A remote change to an unrelated field (email) triggers a sync.
+	second := carddav.AddressObject{Path: href, ETag: "\"etag-2\"", Card: testCard(t, "carol-uid", "Carol", "Danvers", "carol.new@example.com")}
+	stats, err = reconcileContactSync(db, sub, []carddav.AddressObject{second}, nil, false, "")
+	require.NoError(t, err)
+	require.Equal(t, ContactSyncStats{Updated: 1}, stats)
+
+	var contact models.Contact
+	require.NoError(t, db.First(&contact, link.ContactID).Error)
+	assert.Equal(t, "carol.new@example.com", contact.Email, "the remote change must still apply")
+	assert.Empty(t, contact.Phone, "local-only edit to a field absent from the remote vCard is discarded by design (full-replace semantics, no per-field merge)")
+	assert.Empty(t, contact.JobTitle, "same as Phone above")
+}
+
 // TestContactSyncLinkETagSavesAgainstRealMigratedSchema guards against Go
 // struct tags drifting from the actual migration SQL: ContactSyncLink.ETag
 // had no explicit gorm column tag, so GORM's default naming strategy

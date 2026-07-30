@@ -431,6 +431,14 @@ func reconcileContactSync(db *gorm.DB, sub *models.ContactSubscription, updated 
 					return cErr
 				}
 
+				// Full-replace, not a field-level merge: ApplyRecordToContact
+				// repopulates every flat field from the incoming Record,
+				// so a local-only edit to a field the remote vCard doesn't
+				// carry is silently discarded here. Confirmed intentional
+				// (docs/fork-plan/95-backlog-and-priorities.md Tier 3c item
+				// 11a) — no model tracks per-field modified-since-sync
+				// state, so a real merge isn't a small fix; pinned down by
+				// TestReconcileContactSyncOverwritesLocalEditsOnRemoteChange.
 				models.ApplyRecordToContact(&contact, record, photoDir)
 				if err := tx.Save(&contact).Error; err != nil {
 					return err

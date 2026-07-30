@@ -64,7 +64,7 @@ func ApplyRecordToContact(c *Contact, r *contactmodel.Record, photoDir string) {
 	applyOrganization(c, card)
 	applyTitles(c, card)
 	applyEmails(c, card, proj)
-	applyPhones(c, card)
+	applyPhones(c, card, proj)
 	applyImpp(c, card)
 	applyLinks(c, card)
 	applyAddresses(c, card)
@@ -212,14 +212,21 @@ func applyEmails(c *Contact, card contactmodel.Card, proj contactmodel.Projectio
 }
 
 // applyPhones mirrors applyEmails for the "phone" row (Card.Phones[] ->
-// Phones[], Label -> Type).
-func applyPhones(c *Contact, card contactmodel.Card) {
+// Phones[], Label -> Type), including the empty-case fallback: found by
+// Tier 3c item 11a's audit (docs/fork-plan/95-backlog-and-priorities.md) as
+// a real, live bug — this function cleared c.Phones but left the c.Phone
+// scalar untouched when card.Phones was empty, so removing a contact's last
+// phone number (via REST PUT, CardDAV sync, or VCF import) silently left a
+// stale value on the scalar column while the array correctly went empty.
+func applyPhones(c *Contact, card contactmodel.Card, proj contactmodel.Projection) {
 	c.Phones = nil
 	for _, p := range card.Phones {
 		c.Phones = append(c.Phones, ContactPhone{Type: p.Label, Value: p.Number})
 	}
 	if len(c.Phones) > 0 {
 		c.Phone = c.Phones[0].Value
+	} else {
+		c.Phone = proj.PrimaryPhone
 	}
 }
 

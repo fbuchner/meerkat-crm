@@ -234,3 +234,26 @@ func TestApplyRecordToContact_PreservesUnmappedCardData(t *testing.T) {
 		t.Errorf("c.Card.SpeakToAs after BeforeSave = %+v, want it still preserved (BeforeSave must not re-derive Card when cardSetDirectly was set)", c.Card.SpeakToAs)
 	}
 }
+
+// TestApplyRecordToContact_ClearsPhoneScalarWhenPhonesRemoved is the
+// regression guard for a real bug found by Tier 3c item 11a's audit
+// (docs/fork-plan/95-backlog-and-priorities.md): applyPhones cleared
+// c.Phones but left the c.Phone scalar untouched when the incoming Record
+// had no phones at all, unlike its sibling applyEmails (which always
+// resets c.Email, falling back to proj.PrimaryEmail). A contact whose last
+// phone number was removed via REST PUT, CardDAV sync, or VCF import kept a
+// stale c.Phone value even though c.Phones correctly went empty.
+func TestApplyRecordToContact_ClearsPhoneScalarWhenPhonesRemoved(t *testing.T) {
+	c := &Contact{Phone: "555-0100", Phones: []ContactPhone{{Type: "home", Value: "555-0100"}}}
+
+	ApplyRecordToContact(c, &contactmodel.Record{Card: contactmodel.Card{
+		Name: &contactmodel.Name{Components: []contactmodel.NameComponent{{Kind: "given", Value: "Ada"}}},
+	}}, "")
+
+	if len(c.Phones) != 0 {
+		t.Errorf("c.Phones = %+v, want empty (incoming Record has no phones)", c.Phones)
+	}
+	if c.Phone != "" {
+		t.Errorf("c.Phone = %q, want empty — must not retain a stale value once Phones is cleared", c.Phone)
+	}
+}

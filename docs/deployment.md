@@ -12,6 +12,8 @@ For initial setup see [Getting Started](getting-started.html). This page covers 
 
 Mycorrhizal CRM runs as a single all-in-one container. Inside it, nginx serves the React SPA and proxies all `/api/`, `/carddav/`, and `/.well-known/carddav` requests to the Go backend on `127.0.0.1:8080`; the backend is never exposed to the host directly. Only the nginx port is published (default `7300`). This same-origin proxy is built in, so nothing extra is required.
 
+Rate limiters (auth, API, CardDAV, account lockout) are in-memory and per-process; they reset on restart and are not shared across replicas if you run more than one backend instance.
+
 You only need an external reverse proxy for TLS termination. Point it at the published port (default `7300`):
 
 ```nginx

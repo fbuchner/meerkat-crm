@@ -54,6 +54,12 @@ duplicate sprawl across real data that then has to be untangled manually. The co
 4. **Delete the loser** using the existing `DeleteContact` cleanup path *after* re-pointing, so nothing
    is left orphaned.
 5. **Write a merge note** on the keeper via `CreateMergeNote` so the merge is auditable.
+
+   Note the loser **soft-deletes** (per the rule in `/CLAUDE.md`), so its `vcard_uid` stays reserved by
+   `idx_contacts_vcard_uid_user` until purge — meaning a later CardDAV re-sync or re-import of that same
+   contact would collide. [T26](08b-T26-delete-semantics.md) makes that index partial
+   (`AND deleted_at IS NULL`), which is what fixes it. If T26 has not landed yet, expect that collision
+   in testing and do not work around it here.
 6. **Frontend**: a merge entry point (contacts list multi-select, or a "find duplicates" view driven by
    `DetectDuplicate`), plus a preview showing which value wins per field before confirming.
 

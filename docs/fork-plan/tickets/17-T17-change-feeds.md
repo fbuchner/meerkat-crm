@@ -94,10 +94,21 @@ deliberate — `RelationshipEdge`'s own doc comment records the reasoning, match
    every timeline input soft-deletes and the table above is accurate as written. The container entities
    (Circle, Tag, Household) and the join rows stay hard-delete and are genuinely fine on resync.
 
+### ⚠ The retention window is the sync horizon
+
+[T26](08b-T26-delete-semantics.md) adds a purge job that hard-deletes soft-deleted rows after a retention
+window (default 30 days). **That window is therefore the maximum age of a usable cursor**: a client
+offline longer than it has missed tombstones that no longer exist, and cannot converge by incremental
+sync alone — it must full-resync everything, not just the hard-delete collections.
+
+Design for this explicitly rather than discovering it: the feed needs a *"your cursor is older than the
+retention window — full resync required"* response, and the retention setting and the sync horizon must
+be the same number, not two independently-configured ones that can drift apart.
+
 ### What the client contract must say
 
 Whatever you build, the feed has to tell a client **which collections are incremental and which need
-resync**, and give it a "your cursor is too old, resync" answer. A client cannot infer that.
+resync**, plus the "your cursor is too old" answer above. A client cannot infer any of it.
 
 ## Traps
 

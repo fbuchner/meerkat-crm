@@ -22,6 +22,7 @@ dependency → pre/post-alpha risk → usefulness rating → size.
 | [06](06-T3-circle-tag-backend.md) | T3 · Circle/Tag backend rewiring | 4 | S–M |
 | [07](07-T4-circle-tag-frontend.md) | T4 · Circle/Tag frontend rewiring | 4 | L |
 | [08](08-T25-known-gaps.md) | T25 · Known small functional gaps | 3 | S |
+| [08b](08b-T26-delete-semantics.md) | T26 · Delete semantics — purge job + constraint fixes | 3 | M |
 | [09](09-T1-households.md) | T1 · Household CRUD + suggestion trigger | 3 | M |
 | [10](10-T20a-preferences.md) | T20a · Preferences migration | 3 | M |
 | [11](11-T6-custom-fields-api.md) | T6 · Custom fields v2 — API | 3 | M |

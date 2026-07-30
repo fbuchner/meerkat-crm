@@ -49,6 +49,10 @@ Found in passing rather than by a dedicated sweep — expect to find more.
 - The squashed baseline must produce a schema **byte-for-byte equivalent** to running all ~35 in order.
   Prove it: build a DB both ways and diff `sqlite_master` (plus `PRAGMA table_info` per table). Do not
   eyeball it.
+- **Carry [T26](08b-T26-delete-semantics.md)'s partial-index change into the baseline**
+  (`idx_contacts_vcard_uid_user ... WHERE vcard_uid IS NOT NULL AND deleted_at IS NULL`) and
+  [T5](03-T5-lifeevent-frontend.md)'s `life_events.deleted_at`, rather than replaying them as separate
+  steps on top. Both are pre-alpha schema decisions that belong in the clean baseline.
 - Preserve the `schema_migrations` bookkeeping so a DB that already ran the old chain is not re-migrated.
   If that is not cleanly possible, say so — with no prod data, "recreate from scratch" is an acceptable
   answer, but it must be a stated decision.

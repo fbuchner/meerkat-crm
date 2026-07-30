@@ -40,6 +40,13 @@ matters to you during alpha, this belongs earlier.
 3. **Undo** — replay an event backwards. Note this is genuinely hard for deletes that cascaded across ~14
    tables; scope what is undoable rather than promising everything. A realistic first cut is undo for
    updates and single-entity deletes only.
+
+   **⚠ Undo of a delete cannot reach further back than [T26](08b-T26-delete-semantics.md)'s retention
+   window** — after the purge job runs, the soft-deleted row is genuinely gone and there is nothing to
+   restore *to*. Either bound the undo affordance to that window and say so in the UI, or have the audit
+   trail keep its own full snapshot of deleted rows (which makes it the recovery store, with all the
+   volume and secret-handling consequences noted below). Decide which; do not let a user click "undo" and
+   get silence.
 4. **Webhook event coverage** for the newer entities, reusing `services/webhook_service.go` (signing,
    retry, delivery records, and the job-locked retry processor all exist).
 

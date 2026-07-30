@@ -46,6 +46,11 @@ work and covers the case that actually loses data.
   `VCardUID` instead, and note the export must therefore include it — **check whether it currently
   does**, because the contacts section exports `ID`, not `uid`.
 - Idempotency: re-running a restore must not duplicate.
+- **Soft-deleted rows.** A file-level backup contains them; an app-level export probably should not.
+  Either way, a restore must not resurrect rows that were sitting in
+  [T26](08b-T26-delete-semantics.md)'s purge queue — decide whether restore excludes
+  `deleted_at IS NOT NULL` rows, and document it. Restoring a contact the user deleted is a surprising
+  and arguably privacy-relevant failure.
 
 ## Done when
 

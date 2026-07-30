@@ -54,9 +54,12 @@ while no production data exists, and it gets tombstones for free.
 - **⚠ This silently changes both cascade-delete paths.** `contact_controller.go`'s `DeleteContact`
   (`entity_id = ? AND user_id = ?`) and `admin_user_controller.go`'s `DeleteUser` (`user_id = ?`) both
   call plain `tx.Delete(&models.LifeEvent{})`, which becomes a *soft* delete the moment the field exists.
-  For `DeleteContact` that is consistent (the contact soft-deletes too). For `DeleteUser`, decide whether
-  rows should be `Unscoped()`-hard-deleted — note that every other content entity there (Note, Activity,
-  Reminder) already soft-deletes, so joining them is consistent, not a regression.
+  For `DeleteContact` that is correct and consistent (the contact soft-deletes too). **`DeleteUser` is
+  settled by [T26](08b-T26-delete-semantics.md)**, which converts that whole path to `Unscoped()` —
+  so leave the plain `tx.Delete` here and do not special-case it. If T26 has already landed, follow what
+  it established.
+- `life_events` has **no unique constraint**, so soft delete introduces no index collision — unlike
+  `contacts` and `users`, which T26 fixes.
 - **⚠ The existing cascade test will not catch this either way.** `admin_user_controller_test.go`'s
   `assertGone` helper counts via `db.Model(...).Count()`, and **GORM excludes soft-deleted rows from
   that count** — so it stays green whether the rows are gone or merely marked. If you want the behaviour

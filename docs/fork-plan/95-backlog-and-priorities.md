@@ -73,8 +73,18 @@
 > now done. Item 12 also done** (2026-07-30, `33113c2`) — `i18n.IsValidLanguage` genuinely rejects
 > unsupported/empty language codes now instead of silently accepting anything. **Tier 3 is fully closed.**
 >
+> **Delete semantics decided 2026-07-30** (new ticket **T26**): soft vs hard delete is a property of the
+> *model*, decided once, never varying by call site — operation-based variance ("cascades hard, single
+> deletes soft") was considered and rejected, since it makes every future cascade site a chance to forget
+> an `Unscoped()` and this codebase already missed 14 such tables once. The existing split turns out to
+> line up with where unique constraints live (join rows hard-delete, so a dead one never blocks
+> re-creating the same pair). The audit surfaced two live bugs — a soft-deleted user blocks re-registering
+> that email forever, and a soft-deleted contact reserves its `vcard_uid` against re-import — plus the
+> fact that **nothing ever purges**, so T26 adds the retention job that makes soft delete bounded rather
+> than permanent accumulation.
+>
 > **Re-groomed 2026-07-30 into a single ticket board** (see the next section) merging everything still
-> open here with the remaining WPs in `92-delivery-roadmap.md` — **19 tickets to alpha, 22 after**.
+> open here with the remaining WPs in `92-delivery-roadmap.md` — **20 tickets to alpha, 22 after**.
 > Tiers 4/5/6 are superseded as a *plan* by that board and retained only for their detail. Three passes
 > produced it: (1) a survey finding five backend entities fully built but unreachable by any user
 > (Household, Circle/Tag, LifeEvent, custom-fields v2) — activating those dominates the early order and
@@ -172,6 +182,7 @@ each side — so a high rating does not by itself pull a ticket before alpha, an
 | 6 | **T3** Circle/Tag backend call-site rewiring | 4 | S–M | T2 | WP-84c-ii |
 | 7 | **T4** Circle/Tag frontend rewiring (~18 files) | 4 | L | T3 | WP-84c-iii |
 | 8 | **T25** Known small functional gaps sweep | 3 | S | — | Tier 0 notes |
+| 8b | **T26** Delete semantics — purge job + constraint fixes | 3 | M | — | new (design, 2026-07-30) |
 | 9 | **T1** Household CRUD + suggestion trigger + review wiring | 3 | M | — | WP-83, §3d WP3 |
 | 10 | **T20a** Preferences — migrate `FoodPreference`, project `hobby` | 3 | M | — | `92.6`, `91.9` |
 | 11 | **T6** Custom fields v2 — API surface | 3 | M | — | WP-84b, `94` |

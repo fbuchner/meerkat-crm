@@ -88,18 +88,34 @@ These are real bugs that shipped, not hypotheticals.
    **excludes soft-deleted rows** — so it passes whether a row is gone or merely marked. If you need the
    distinction pinned, assert with `Unscoped()`.
 
-7. **Soft delete vs hard delete is a convention, not an accident.** When adding an entity:
+7. **Soft vs hard delete is a property of the model, not of the call site.** Decide it once when you
+   create the entity; never make `tx.Delete(x)` mean different things in different functions.
    - **Content the user authored** (`Contact`, `Note`, `Activity`, `Reminder`, `LifeEvent`) →
-     **soft delete**. It is recoverable, and it gives sync a free tombstone (see the ticket for T17).
+     **soft delete**. Gives sync a free tombstone and undo something to work with.
    - **Edge- and join-shaped rows** (`RelationshipEdge`, `CircleMember`, `ContactTag`,
-     `HouseholdMember`, `ContactSyncLink`, `CalendarEventLink`) → **hard delete**, per
-     `RelationshipEdge`'s own doc comment. These are small and bounded, so a client re-pulls them rather
-     than tracking their deaths.
+     `HouseholdMember`, `ContactSyncLink`, `CalendarEventLink`, `FieldValue`) → **hard delete**, per
+     `RelationshipEdge`'s own doc comment. Small and bounded, so a client re-pulls them rather than
+     tracking their deaths.
+
+   **The rule is not arbitrary — check your unique constraints.** A soft-deleted row still occupies every
+   unique index it is in, so a lingering dead one blocks re-creating the same key. Every table with a
+   natural-key composite unique index hard-deletes for exactly this reason (a join row *is* its
+   endpoints). If your new entity has a natural key, that is a strong signal it should hard-delete. Where
+   an entity must soft-delete *and* carry a unique key, make the index partial —
+   `... WHERE deleted_at IS NULL` — the way `idx_contacts_vcard_uid_user` does.
+
+   **Operation-based variance was considered and rejected** ("cascades hard, single deletes soft"): it
+   makes every future cascade site a chance to forget an `Unscoped()`, and the failure is silent. Tier 3c
+   item 1 found 14 tables `DeleteUser`/`DeleteContact` had already missed. See the T26 ticket.
 
    `gorm.Model` gives soft delete for free, **but only works on uint-PK entities**. The UUID-string-PK
    entities have their own explicit `ID`/`CreatedAt`/`UpdatedAt`, so embedding `gorm.Model` there adds a
    conflicting `ID uint` and breaks them. Add the one field instead:
    `DeletedAt gorm.DeletedAt \`gorm:"index" json:"-"\``.
+
+   **`DeleteUser` is the single deliberate exception** — it hard-deletes via `Unscoped()`, because
+   `users.email`/`username` are unique and a soft-deleted account would block re-registration forever.
+   If you find yourself adding a second exception, re-read this section first.
 
 8. **`gorm.DB.Transaction` returns the closure's error verbatim**, so you can return a typed
    `*apperrors.AppError` from inside and type-assert it after to preserve a 404/400 instead of

@@ -47,18 +47,63 @@ slip. Decide explicitly rather than discovering the conflict mid-ticket.
    tables and is the usual thing cursor pagination gives up. If you drop it, the frontend's page-number
    UI has to become infinite-scroll or next/prev, which is real frontend work; scope it in.
 4. **Change feeds** — the `?since=<cursor>` half: "what changed since I last synced," which is what makes
-   this useful for a mobile client rather than just a pagination refactor. Deletes need to be
-   representable; a client that only ever sees creates and updates cannot converge. Soft-deleted rows
-   (`gorm.Model.DeletedAt`) can carry this — check each entity, since the UUID-PK entities deliberately
-   have **no** soft delete.
+   this useful for a mobile client rather than just a pagination refactor. See **Delete handling** below;
+   that decision is already made.
 5. **Index support** — a composite index on `(user_id, updated_at, id)` per paginated table, or the
    cursor query degrades to a scan.
 
+## Delete handling — decided 2026-07-30
+
+**No tombstone table.** `deleted_at` provides tombstones where soft delete already exists; entities that
+hard-delete are handled by **periodic full resync of those collections**, not by tracking their deaths.
+Rationale: do not retain a marker for something we deliberately hard-delete.
+
+This works cleanly because of how the split falls out — verified by auditing which models actually embed
+`gorm.Model`:
+
+| | Entities | Volume per user | Sync strategy |
+|---|---|---|---|
+| **Soft delete** (`deleted_at`, free tombstone) | Contact, Note, Activity, Reminder, ReminderCompletion, User, ApiToken, Webhook, WebhookDelivery, ContactSubscription, CalendarSubscription | **Large and growing** — notes and activities accumulate for years | Incremental. `?since=` returns updated *and* soft-deleted rows; the client applies the deletion. |
+| **Hard delete** (no soft delete) | RelationshipEdge, Circle, CircleMember, Tag, ContactTag, Household, HouseholdMember, LifeEvent, FieldDefinition, FieldValue, ContactSyncLink, CalendarEventLink | **Bounded small** — hundreds to low thousands | **Full resync of the collection.** Cheap enough to just re-pull. |
+
+**The split is favourable, which is why this works:** every big, unboundedly-growing table already has
+soft delete, and every hard-delete table is small. A client can pull all of a user's relationship edges,
+tags, and life events in a handful of requests. Resyncing those on app foreground (or daily, or on
+demand) costs far less than maintaining a tombstone table and its retention policy.
+
+**Do not add soft delete to the hard-delete entities just to get tombstones.** Their lack of it is
+deliberate — `RelationshipEdge`'s own doc comment records the reasoning, matching
+`ContactSyncLink`/`CalendarEventLink`'s precedent for edge- and join-shaped rows.
+
+### Two things this leaves open
+
+1. **The timeline is derived, so it needs nothing.** Verified: there is no persisted timeline table —
+   `ContactTimeline.tsx` composes it client-side from notes and activities, **both of which are
+   soft-delete**. So the timeline stays correct under pure incremental sync, with no special handling.
+
+2. **⚠ `LifeEvent` is the exception worth revisiting.** T5 puts life events *into* the timeline, and
+   `LifeEvent` hard-deletes — so once T5 ships, a replica client would show a deleted life event on the
+   timeline until its next resync, while notes and activities disappear immediately. Inconsistent.
+
+   The "no soft delete" precedent was set for **edge/join-shaped rows**; `LifeEvent` is not one — it is
+   first-class user-authored content, the same shape as `Note`. **Recommend giving `LifeEvent` a soft
+   delete** (an additive migration, cheap pre-alpha) so every timeline input behaves the same way. The
+   container entities (Circle, Tag, Household) and the join rows are genuinely fine on resync.
+
+   Decide this in [T5](03-T5-lifeevent-frontend.md) or here, but decide it — do not discover it when a
+   phone shows a deleted event.
+
+### What the client contract must say
+
+Whatever you build, the feed has to tell a client **which collections are incremental and which need
+resync**, and give it a "your cursor is too old, resync" answer. A client cannot infer that.
+
 ## Traps
 
-- **Deletes are the hard part of any change feed.** Entities like `RelationshipEdge`, `CircleMember`, and
-  `ContactTag` hard-delete by design (matching `ContactSyncLink`'s precedent). Decide how a feed reports
-  those before writing code — a tombstone table, or accepting that clients must periodically full-sync.
+- **Soft-deleted rows must actually appear in the feed.** GORM excludes them from queries by default —
+  an incremental feed needs `Unscoped()` plus an explicit `deleted_at IS NOT NULL` marker in the
+  response, or deletes silently never propagate and the whole scheme above fails quietly. Test this
+  specifically; it is the single easiest thing to get wrong here.
 - `GetContacts` has a `?vcard_uid=` batch branch that **deliberately bypasses pagination entirely** and
   returns everything requested. Leave it alone; it is not a list view.
 - The count query in `GetContacts` duplicates the main query's filters. If `total` goes away, both go.
@@ -68,6 +113,8 @@ slip. Decide explicitly rather than discovering the conflict mid-ticket.
 - `go build ./... && go vet ./... && gofmt -l . && go test ./...` green.
 - Tests prove cursor pagination is stable across a concurrent insert at a page boundary — no dropped or
   duplicated row. This is the bug this scheme exists to prevent, so it is the test that matters.
-- A change-feed test proves `?since=` returns only rows changed after that cursor.
+- A change-feed test proves `?since=` returns only rows changed after that cursor, **and that a
+  soft-deleted row is returned as a deletion** rather than silently vanishing.
+- The response makes clear which collections are incremental and which require full resync.
 - Frontend updated and `npx tsc --noEmit` / `npx vitest run` green.
 - OpenAPI updated (or T8 sequenced to follow).

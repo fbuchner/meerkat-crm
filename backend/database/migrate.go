@@ -15,10 +15,20 @@ import (
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
+// walDSN appends the WAL journal-mode pragma to a plain file path. WAL is
+// what makes docs/deployment.md's backup instructions ("copy the database
+// file while the app is running") actually safe -- the default rollback
+// journal can leave a plain `cp` with a torn/inconsistent file mid-write.
+// WAL mode is persisted in the database file itself once set, so this only
+// needs to run against a real file, never ":memory:".
+func walDSN(dbPath string) string {
+	return dbPath + "?_pragma=journal_mode(WAL)"
+}
+
 // InitDB initializes the database connection and runs migrations
 func InitDB(dbPath string) (*gorm.DB, error) {
 	// Open database connection for migrations
-	sqlDB, err := sql.Open("sqlite", dbPath)
+	sqlDB, err := sql.Open("sqlite", walDSN(dbPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -29,7 +39,7 @@ func InitDB(dbPath string) (*gorm.DB, error) {
 	}
 
 	// Open GORM connection
-	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(walDSN(dbPath)), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect with GORM: %w", err)
 	}

@@ -80,12 +80,35 @@ func ExportData(c *gin.Context) {
 	// Fetch all user data
 	var contacts []models.Contact
 	if err := db.Where("user_id = ?", userID).
-		Preload("Relationships").
 		Order("firstname ASC, lastname ASC").
 		Find(&contacts).Error; err != nil {
 		log.Error().Err(err).Msg("Failed to fetch contacts for export")
 		apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to fetch contacts"))
 		return
+	}
+
+	// §3d WP4: relationships now come from RelationshipEdge, not the legacy
+	// models.Relationship table. Names are resolved via a VCardUID map built
+	// from the contacts already fetched above, since an edge only carries
+	// its endpoints' VCardUID, not a nested contact.
+	var relationshipEdges []models.RelationshipEdge
+	if err := db.Where("user_id = ?", userID).
+		Order("created_at ASC").
+		Find(&relationshipEdges).Error; err != nil {
+		log.Error().Err(err).Msg("Failed to fetch relationship edges for export")
+		apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to fetch relationship edges"))
+		return
+	}
+	type contactRef struct {
+		ID   uint
+		Name string
+	}
+	contactByVCardUID := make(map[string]contactRef, len(contacts))
+	for _, contact := range contacts {
+		contactByVCardUID[contact.VCardUID] = contactRef{
+			ID:   contact.ID,
+			Name: fmt.Sprintf("%s %s", contact.Firstname, contact.Lastname),
+		}
 	}
 
 	var activities []models.Activity
@@ -175,12 +198,17 @@ func ExportData(c *gin.Context) {
 	}
 	writer.Flush()
 
-	// Write relationships section
+	// Write relationships section. §3d WP4: reads RelationshipEdge, not the
+	// legacy models.Relationship table. Deliberately includes every
+	// status/sensitivity — this is the user's own full personal-data backup,
+	// not a share to another party, so unlike RecordForContact's vCard/
+	// JSContact export path (which filters non-normal sensitivity because
+	// that projection can leave the instance), nothing here is held back.
 	buf.WriteString("\n=== RELATIONSHIPS ===\n")
 
 	relationshipHeaders := []string{
-		"ID", "Contact ID", "Contact Name", "Name", "Type", "Gender", "Birthday",
-		"Related Contact ID", "Related Contact Name", "Created At", "Updated At",
+		"ID", "Source Contact ID", "Source Contact Name", "Type", "Target Contact ID",
+		"Target Contact Name", "Status", "Sensitivity", "Source", "Created At", "Updated At",
 	}
 	if err := writer.Write(relationshipHeaders); err != nil {
 		log.Error().Err(err).Msg("Failed to write relationship headers")
@@ -188,35 +216,37 @@ func ExportData(c *gin.Context) {
 		return
 	}
 
-	for _, contact := range contacts {
-		for _, rel := range contact.Relationships {
-			relatedContactName := ""
-			if rel.RelatedContact != nil {
-				relatedContactName = fmt.Sprintf("%s %s", rel.RelatedContact.Firstname, rel.RelatedContact.Lastname)
-			}
-			relatedContactID := ""
-			if rel.RelatedContactID != nil {
-				relatedContactID = fmt.Sprintf("%d", *rel.RelatedContactID)
-			}
+	for _, edge := range relationshipEdges {
+		sourceContactID := edge.SourceID
+		sourceContactName := edge.SourceID
+		if ref, ok := contactByVCardUID[edge.SourceID]; ok {
+			sourceContactID = fmt.Sprintf("%d", ref.ID)
+			sourceContactName = ref.Name
+		}
+		targetContactID := edge.TargetID
+		targetContactName := edge.TargetID
+		if ref, ok := contactByVCardUID[edge.TargetID]; ok {
+			targetContactID = fmt.Sprintf("%d", ref.ID)
+			targetContactName = ref.Name
+		}
 
-			record := []string{
-				fmt.Sprintf("%d", rel.ID),
-				fmt.Sprintf("%d", contact.ID),
-				fmt.Sprintf("%s %s", contact.Firstname, contact.Lastname),
-				rel.Name,
-				rel.Type,
-				rel.Gender,
-				rel.Birthday,
-				relatedContactID,
-				relatedContactName,
-				rel.CreatedAt.Format(time.RFC3339),
-				rel.UpdatedAt.Format(time.RFC3339),
-			}
-			if err := writer.Write(csvSafeRecord(record)); err != nil {
-				log.Error().Err(err).Msg("Failed to write relationship record")
-				apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to generate export"))
-				return
-			}
+		record := []string{
+			edge.ID,
+			sourceContactID,
+			sourceContactName,
+			edge.Type,
+			targetContactID,
+			targetContactName,
+			edge.Status,
+			edge.Sensitivity,
+			edge.Source,
+			edge.CreatedAt.Format(time.RFC3339),
+			edge.UpdatedAt.Format(time.RFC3339),
+		}
+		if err := writer.Write(csvSafeRecord(record)); err != nil {
+			log.Error().Err(err).Msg("Failed to write relationship record")
+			apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to generate export"))
+			return
 		}
 	}
 	writer.Flush()

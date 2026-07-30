@@ -848,47 +848,6 @@ func TestDeleteContact_CleansUpReferencingRows(t *testing.T) {
 	assertCount("FieldDefinition", &models.FieldDefinition{}, 1, "id = ?", fieldDef.ID)
 }
 
-// TestDeleteContact_ClearsRelatedContactIDOnOtherRelationships is part of the
-// same regression coverage: a Relationship row belonging to a DIFFERENT,
-// still-existing contact may optionally link to the deleted contact via
-// RelatedContactID. That link must be cleared, but the relationship row
-// itself (which belongs to the other contact, not the deleted one) must
-// survive.
-func TestDeleteContact_ClearsRelatedContactIDOnOtherRelationships(t *testing.T) {
-	db, router := setupRouter()
-
-	var user models.User
-	db.First(&user)
-
-	victim := models.Contact{UserID: user.ID, Firstname: "Victim", Lastname: "ToDelete"}
-	require.NoError(t, db.Create(&victim).Error)
-
-	survivor := models.Contact{UserID: user.ID, Firstname: "Survivor", Lastname: "Stays"}
-	require.NoError(t, db.Create(&survivor).Error)
-
-	rel := models.Relationship{
-		UserID:           user.ID,
-		Name:             "Victim ToDelete",
-		Type:             "friend",
-		ContactID:        survivor.ID,
-		RelatedContactID: &victim.ID,
-	}
-	require.NoError(t, db.Create(&rel).Error)
-
-	router.DELETE("/contacts/:id", DeleteContact)
-
-	req, _ := http.NewRequest("DELETE", "/contacts/"+strconv.Itoa(int(victim.ID)), nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
-
-	var reloaded models.Relationship
-	require.NoError(t, db.First(&reloaded, rel.ID).Error)
-	assert.Nil(t, reloaded.RelatedContactID, "related_contact_id should be cleared after the linked contact is deleted")
-	assert.Equal(t, survivor.ID, reloaded.ContactID, "the relationship row itself must survive since it belongs to the surviving contact")
-}
-
 func TestGetCircles(t *testing.T) {
 	db, router := setupRouter()
 

@@ -324,11 +324,6 @@ func DeleteUser(c *gin.Context) {
 			return err
 		}
 
-		// Delete relationships
-		if err := tx.Where("user_id = ?", userID).Delete(&models.Relationship{}).Error; err != nil {
-			return err
-		}
-
 		// Delete webhook deliveries, then webhooks (child before parent;
 		// WebhookDelivery has no direct UserID, only WebhookID)
 		if err := tx.Exec("DELETE FROM webhook_deliveries WHERE webhook_id IN (SELECT id FROM webhooks WHERE user_id = ?)", userID).Error; err != nil {

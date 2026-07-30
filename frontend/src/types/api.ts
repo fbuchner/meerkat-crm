@@ -11,7 +11,6 @@ import type {
   Note,
   Reminder,
   User,
-  Relationship,
 } from './index';
 
 /**
@@ -149,22 +148,6 @@ export interface UpdateReminderResponse {
 }
 
 export interface DeleteReminderResponse {
-  message: string;
-}
-
-/**
- * Relationship API responses
- */
-export interface GetRelationshipsResponse {
-  relationships: Relationship[];
-}
-
-export interface CreateRelationshipResponse {
-  message: string;
-  relationship: Relationship;
-}
-
-export interface DeleteRelationshipResponse {
   message: string;
 }
 

@@ -156,21 +156,12 @@ type ChangePasswordInput struct {
 	NewPassword     string `json:"new_password" validate:"required,min=8,strong_password"`
 }
 
-// RelationshipInput represents the DTO for creating/updating relationships
-// ContactID is not included as it comes from the URL parameter
-type RelationshipInput struct {
-	Name             string `json:"name" validate:"required,min=1,max=100"`
-	Type             string `json:"type" validate:"required,min=1,max=50"`
-	Gender           string `json:"gender" validate:"omitempty,oneof=male female other prefer_not_to_say"`
-	Birthday         string `json:"birthday" validate:"omitempty,birthday"`
-	RelatedContactID *uint  `json:"related_contact_id"`
-}
-
 // ThinContactInput creates a not-yet-existing "thin" Contact inline as one
 // endpoint of a RelationshipEdge — the graph-model equivalent of the legacy
-// Relationship{Name, Gender, Birthday, RelatedContactID: nil} case, using
-// the same field mapping cmd/backfill-relationship-edges/migrate.go already
-// establishes when promoting a legacy name-only row.
+// Relationship{Name, Gender, Birthday, RelatedContactID: nil} case (the
+// legacy model and its one-time migration tool are both gone as of §3d
+// WP5; this comment is kept only as historical context for the field
+// mapping's origin).
 type ThinContactInput struct {
 	Name     string `json:"name" validate:"required,min=1,max=100"`
 	Gender   string `json:"gender" validate:"omitempty,oneof=male female other prefer_not_to_say"`

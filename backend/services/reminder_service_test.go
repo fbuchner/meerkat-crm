@@ -24,7 +24,7 @@ func setupRouter() (*gorm.DB, *gin.Engine) {
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(1)
 
-	db.AutoMigrate(&models.Contact{}, &models.Activity{}, &models.Note{}, models.Relationship{}, models.Reminder{}, models.User{}, models.JobExecution{}, models.Webhook{}, models.WebhookDelivery{})
+	db.AutoMigrate(&models.Contact{}, &models.Activity{}, &models.Note{}, models.Reminder{}, models.User{}, models.JobExecution{}, models.Webhook{}, models.WebhookDelivery{})
 
 	router := gin.Default()
 	router.Use(func(c *gin.Context) {

@@ -43,6 +43,28 @@ func TestMigrationsApplyToEmptyDatabase(t *testing.T) {
 	require.NoError(t, sqlDB.Close())
 }
 
+// TestMigrationDropsLegacyRelationshipsTable is the regression test for §3d
+// WP5 (docs/fork-plan/95-backlog-and-priorities.md): migration 000035 must
+// actually remove the legacy `relationships` table against the real
+// migration chain, not just leave a Go model with no backing table.
+func TestMigrationDropsLegacyRelationshipsTable(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "drop-relationships.db")
+	db, err := InitDB(dbPath)
+	require.NoError(t, err)
+
+	var count int64
+	require.NoError(t, db.Raw(
+		"SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'relationships'",
+	).Scan(&count).Error)
+	assert.Zero(t, count, "relationships table should be dropped by migration 000035")
+
+	// relationship_edges (its replacement, WP-80) must still be present.
+	require.NoError(t, db.Raw(
+		"SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'relationship_edges'",
+	).Scan(&count).Error)
+	assert.Equal(t, int64(1), count, "relationship_edges table should still exist")
+}
+
 func TestMigrationsAddCredentialLifecycleColumns(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "columns.db")
 

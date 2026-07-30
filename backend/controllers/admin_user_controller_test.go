@@ -33,7 +33,6 @@ func TestDeleteUser_CleansUpAllOwnedRows(t *testing.T) {
 
 	require.NoError(t, db.Create(&models.Reminder{UserID: target.ID, ContactID: &contact.ID, Message: "m"}).Error)
 	require.NoError(t, db.Create(&models.Note{UserID: target.ID, ContactID: &contact.ID, Content: "n"}).Error)
-	require.NoError(t, db.Create(&models.Relationship{UserID: target.ID, ContactID: contact.ID, Name: "r", Type: "friend"}).Error)
 
 	webhook := models.Webhook{UserID: target.ID, URL: "https://example.com/hook", Events: []string{"contact.created"}}
 	require.NoError(t, db.Create(&webhook).Error)
@@ -89,7 +88,6 @@ func TestDeleteUser_CleansUpAllOwnedRows(t *testing.T) {
 
 	assertGone("Reminder", &models.Reminder{}, "user_id = ?", target.ID)
 	assertGone("Note", &models.Note{}, "user_id = ?", target.ID)
-	assertGone("Relationship", &models.Relationship{}, "user_id = ?", target.ID)
 	assertGone("Webhook", &models.Webhook{}, "user_id = ?", target.ID)
 	assertGone("WebhookDelivery", &models.WebhookDelivery{}, "webhook_id = ?", webhook.ID)
 	assertGone("ContactSubscription", &models.ContactSubscription{}, "user_id = ?", target.ID)

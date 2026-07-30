@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 )
 
@@ -491,4 +492,323 @@ func TestSendRemindersWithRateLimit_AllowsAfterInterval(t *testing.T) {
 	// Verify last run time was updated
 	db.Where("job_name = ?", models.JobNameDailyReminders).First(&job)
 	assert.True(t, job.LastRunAt.After(firstRunTime), "LastRunAt should be updated after second run")
+}
+
+// TestAcquireJobLock_LockedByAnotherInstance covers the branch where a
+// different instance currently holds a fresh (non-stale) lock: acquisition
+// must fail and leave the lock untouched.
+func TestAcquireJobLock_LockedByAnotherInstance(t *testing.T) {
+	db, _ := setupRouter()
+
+	now := time.Now()
+	lockedAt := now.Add(-1 * time.Minute) // fresh, well within the 5-minute stale timeout
+	job := models.JobExecution{
+		JobName:   models.JobNameDailyReminders,
+		LastRunAt: now.Add(-2 * time.Hour), // old enough to clear the min-interval check
+		LockedAt:  &lockedAt,
+		LockedBy:  "some-other-instance-12345",
+	}
+	require.NoError(t, db.Create(&job).Error)
+
+	acquired, err := acquireJobLock(db, models.JobNameDailyReminders, 1*time.Hour)
+	assert.NoError(t, err)
+	assert.False(t, acquired, "should not acquire a lock currently held by another instance")
+
+	var reloaded models.JobExecution
+	require.NoError(t, db.Where("job_name = ?", models.JobNameDailyReminders).First(&reloaded).Error)
+	assert.Equal(t, "some-other-instance-12345", reloaded.LockedBy, "lock owner should be unchanged")
+}
+
+// TestAcquireJobLock_TakesOverStaleLock covers the branch where another
+// instance's lock is older than the 5-minute staleness timeout: acquisition
+// must succeed and take over the lock.
+func TestAcquireJobLock_TakesOverStaleLock(t *testing.T) {
+	db, _ := setupRouter()
+
+	now := time.Now()
+	lockedAt := now.Add(-10 * time.Minute) // past the 5-minute stale timeout
+	job := models.JobExecution{
+		JobName:   models.JobNameDailyReminders,
+		LastRunAt: now.Add(-2 * time.Hour),
+		LockedAt:  &lockedAt,
+		LockedBy:  "crashed-instance-99999",
+	}
+	require.NoError(t, db.Create(&job).Error)
+
+	acquired, err := acquireJobLock(db, models.JobNameDailyReminders, 1*time.Hour)
+	assert.NoError(t, err)
+	assert.True(t, acquired, "should take over a stale lock from a crashed instance")
+
+	var reloaded models.JobExecution
+	require.NoError(t, db.Where("job_name = ?", models.JobNameDailyReminders).First(&reloaded).Error)
+	assert.NotEqual(t, "crashed-instance-99999", reloaded.LockedBy, "lock owner should have been taken over")
+}
+
+// TestReleaseJobLock_LockTakenByAnotherInstance covers the guard in
+// releaseJobLock where the lock is no longer held by the calling instance
+// (e.g. it was taken over as stale by someone else in the meantime): release
+// must no-op without error and without clobbering the new owner's lock.
+func TestReleaseJobLock_LockTakenByAnotherInstance(t *testing.T) {
+	db, _ := setupRouter()
+
+	now := time.Now()
+	job := models.JobExecution{
+		JobName:   models.JobNameDailyReminders,
+		LastRunAt: now.Add(-2 * time.Hour),
+		LockedAt:  &now,
+		LockedBy:  "a-different-instance",
+	}
+	require.NoError(t, db.Create(&job).Error)
+
+	err := releaseJobLock(db, models.JobNameDailyReminders, true)
+	assert.NoError(t, err, "releasing a lock held by another instance should be a no-op, not an error")
+
+	var reloaded models.JobExecution
+	require.NoError(t, db.Where("job_name = ?", models.JobNameDailyReminders).First(&reloaded).Error)
+	assert.Equal(t, "a-different-instance", reloaded.LockedBy, "lock owner should be unchanged by the no-op release")
+	assert.NotNil(t, reloaded.LockedAt, "lock should still be held since our instance never owned it")
+}
+
+// TestFormatDateForUser covers all three date-format branches.
+func TestFormatDateForUser(t *testing.T) {
+	ts := time.Date(2026, 3, 7, 0, 0, 0, 0, time.UTC)
+
+	assert.Equal(t, "03/07/2026", formatDateForUser(ts, "us"))
+	assert.Equal(t, "2026-03-07", formatDateForUser(ts, "iso"))
+	assert.Equal(t, "07.03.2026", formatDateForUser(ts, "eu"))
+	assert.Equal(t, "07.03.2026", formatDateForUser(ts, ""), "unrecognized/empty format should fall back to EU default")
+}
+
+// TestFormatBirthdayForUser covers the empty-string guard, both the
+// year-unknown (--MM-DD) and full (YYYY-MM-DD) branches across all three
+// date formats, and the too-short fallbacks that return the raw string.
+func TestFormatBirthdayForUser(t *testing.T) {
+	assert.Equal(t, "", formatBirthdayForUser("", "us"), "empty birthday returns empty string")
+
+	// Year-unknown format, all three date formats.
+	assert.Equal(t, "03/07", formatBirthdayForUser("--03-07", "us"))
+	assert.Equal(t, "03-07", formatBirthdayForUser("--03-07", "iso"))
+	assert.Equal(t, "07.03.", formatBirthdayForUser("--03-07", "eu"))
+
+	// Year-unknown but too short to extract month/day - returned as-is.
+	assert.Equal(t, "--03", formatBirthdayForUser("--03", "us"))
+
+	// Full YYYY-MM-DD format, all three date formats.
+	assert.Equal(t, "03/07/2020", formatBirthdayForUser("2020-03-07", "us"))
+	assert.Equal(t, "2020-03-07", formatBirthdayForUser("2020-03-07", "iso"))
+	assert.Equal(t, "07.03.2020", formatBirthdayForUser("2020-03-07", "eu"))
+
+	// Neither prefix pattern nor long enough - returned as-is.
+	assert.Equal(t, "2020-3-7", formatBirthdayForUser("2020-3-7", "us"))
+}
+
+// TestSendReminderEmail_MissingEmailSkips covers the early-return guard when
+// the user has no email address configured.
+func TestSendReminderEmail_MissingEmailSkips(t *testing.T) {
+	db, _ := setupRouter()
+	user := models.User{Username: "no-email-user", Password: "password123"}
+	require.NoError(t, db.Create(&user).Error)
+
+	cfg := config.Config{}
+
+	err := sendReminderEmail(user, nil, cfg, db)
+	assert.NoError(t, err, "missing email should be skipped silently, not an error")
+}
+
+// TestSendReminderEmail_NoChannelConfiguredRendersWithoutSending exercises
+// the full render path of sendReminderEmail (reminder items, birthday items
+// including today/tomorrow/future badge branches, contact name lookup) while
+// SendEmail's no-channel-configured guard prevents any real network call.
+func TestSendReminderEmail_NoChannelConfiguredRendersWithoutSending(t *testing.T) {
+	db, _ := setupRouter()
+
+	user := models.User{
+		Username:   "email-render-user",
+		Password:   "password123",
+		Email:      "render@example.com",
+		Language:   "en",
+		DateFormat: "iso",
+	}
+	require.NoError(t, db.Create(&user).Error)
+
+	contact := models.Contact{
+		UserID:    user.ID,
+		Firstname: "Jane",
+		Lastname:  "Doe",
+	}
+	require.NoError(t, db.Create(&contact).Error)
+
+	now := time.Now()
+	reminder := models.Reminder{
+		UserID:    user.ID,
+		ContactID: &contact.ID,
+		Message:   "Follow up",
+		RemindAt:  now,
+	}
+
+	cfg := config.Config{} // UseResend=false, UseSMTP=false -> EmailEnabled() == false
+
+	err := sendReminderEmail(user, []models.Reminder{reminder}, cfg, db)
+	assert.NoError(t, err, "no channel configured should render but not error")
+}
+
+// TestCalculateNextReminderTime_OnceReturnsOriginal covers the "once"
+// recurrence branch, which is a no-op (the reminder is deleted elsewhere).
+func TestCalculateNextReminderTime_OnceReturnsOriginal(t *testing.T) {
+	remindAt := time.Date(2026, 5, 1, 9, 0, 0, 0, time.UTC)
+	reminder := models.Reminder{
+		RemindAt:   remindAt,
+		Recurrence: "once",
+	}
+
+	result := CalculateNextReminderTime(reminder)
+	assert.Equal(t, remindAt, result)
+}
+
+// TestCalculateNextReminderTime_SixMonths covers the "six-months" recurrence
+// branch.
+func TestCalculateNextReminderTime_SixMonths(t *testing.T) {
+	reoccurFalse := false
+	reminder := models.Reminder{
+		RemindAt:              time.Date(2023, 8, 31, 12, 0, 0, 0, time.UTC),
+		Recurrence:            "six-months",
+		ReoccurFromCompletion: &reoccurFalse,
+	}
+
+	result := CalculateNextReminderTime(reminder)
+	assert.Equal(t, time.Date(2024, 2, 29, 12, 0, 0, 0, time.UTC), result) // 2024 is a leap year
+}
+
+// TestCalculateNextReminderTime_UnrecognizedRecurrence covers the default
+// branch for an unknown/invalid recurrence value.
+func TestCalculateNextReminderTime_UnrecognizedRecurrence(t *testing.T) {
+	reoccurFalse := false
+	remindAt := time.Date(2026, 5, 1, 9, 0, 0, 0, time.UTC)
+	reminder := models.Reminder{
+		RemindAt:              remindAt,
+		Recurrence:            "bogus",
+		ReoccurFromCompletion: &reoccurFalse,
+	}
+
+	result := CalculateNextReminderTime(reminder)
+	assert.Equal(t, remindAt, result, "unrecognized recurrence should return the original RemindAt unchanged")
+}
+
+// TestCalculateNextReminderTime_ReoccurFromCompletionDefaultTrue_FutureRemindAt
+// covers the reoccurFromCompletion=true path (including the nil-defaults-to-
+// true case) when RemindAt is still in the future: baseTime should be the
+// original RemindAt, not "now".
+func TestCalculateNextReminderTime_ReoccurFromCompletionDefaultTrue_FutureRemindAt(t *testing.T) {
+	remindAt := time.Now().UTC().Add(48 * time.Hour)
+	reminder := models.Reminder{
+		RemindAt:              remindAt,
+		Recurrence:            "weekly",
+		ReoccurFromCompletion: nil, // nil defaults to true
+	}
+
+	result := CalculateNextReminderTime(reminder)
+	expected := remindAt.AddDate(0, 0, 7)
+	assert.Equal(t, expected, result)
+}
+
+// TestCalculateNextReminderTime_ReoccurFromCompletionTrue_PastRemindAt covers
+// the reoccurFromCompletion=true path when RemindAt is in the past: baseTime
+// should be today (date only), not the stale original RemindAt.
+func TestCalculateNextReminderTime_ReoccurFromCompletionTrue_PastRemindAt(t *testing.T) {
+	reoccurTrue := true
+	remindAt := time.Now().UTC().Add(-48 * time.Hour)
+	reminder := models.Reminder{
+		RemindAt:              remindAt,
+		Recurrence:            "weekly",
+		ReoccurFromCompletion: &reoccurTrue,
+	}
+
+	result := CalculateNextReminderTime(reminder)
+
+	nowUTC := time.Now().UTC()
+	today := time.Date(nowUTC.Year(), nowUTC.Month(), nowUTC.Day(), 0, 0, 0, 0, time.UTC)
+	expected := today.AddDate(0, 0, 7)
+	assert.Equal(t, expected, result)
+}
+
+// TestSendReminders_BirthdayOnlyUserIncluded covers the branch in
+// SendReminders that scans all users for a birthday falling today even when
+// they have no due reminders, and includes them in the email/webhook run.
+func TestSendReminders_BirthdayOnlyUserIncluded(t *testing.T) {
+	db, _ := setupRouter()
+
+	user := models.User{Username: "birthday-only-user", Password: "password123", Email: "bdayonly@example.com"}
+	require.NoError(t, db.Create(&user).Error)
+
+	today := time.Now().UTC()
+	contact := models.Contact{
+		UserID:    user.ID,
+		Firstname: "Birthday",
+		Lastname:  "Person",
+		Birthday:  today.AddDate(-30, 0, 0).Format("2006-01-02"), // same month/day, 30 years ago
+	}
+	require.NoError(t, db.Create(&contact).Error)
+
+	var (
+		calledUser      models.User
+		calledReminders []models.Reminder
+		callCount       int
+	)
+	originalSender := sendReminderEmailFn
+	sendReminderEmailFn = func(u models.User, reminders []models.Reminder, cfg config.Config, db *gorm.DB) error {
+		calledUser = u
+		calledReminders = reminders
+		callCount++
+		return nil
+	}
+	defer func() { sendReminderEmailFn = originalSender }()
+
+	cfg := config.Config{
+		UseResend:       true,
+		ResendAPIKey:    "test_api_key",
+		ResendFromEmail: "noreply@example.com",
+		ReminderTime:    "12:00",
+	}
+
+	err := SendReminders(db, cfg)
+	assert.NoError(t, err)
+
+	assert.Equal(t, 1, callCount, "birthday-only user (no due reminders) should still trigger an email")
+	assert.Equal(t, user.ID, calledUser.ID)
+	assert.Empty(t, calledReminders, "user has no reminders, only a birthday")
+}
+
+// TestSendReminders_EmailDisabledPreservesReminders covers the
+// !config.EmailEnabled() branch: due reminders must be left with
+// EmailSent=false (not mutated) so they're picked up again once email is
+// configured.
+func TestSendReminders_EmailDisabledPreservesReminders(t *testing.T) {
+	db, _ := setupRouter()
+
+	user := models.User{Username: "email-disabled-user", Password: "password123", Email: "disabled@example.com"}
+	require.NoError(t, db.Create(&user).Error)
+
+	contact := models.Contact{UserID: user.ID, Firstname: "No", Lastname: "Email"}
+	require.NoError(t, db.Create(&contact).Error)
+
+	byMailTrue := true
+	reminder := models.Reminder{
+		UserID:     user.ID,
+		ContactID:  &contact.ID,
+		Message:    "Should not be sent",
+		ByMail:     &byMailTrue,
+		RemindAt:   time.Now().Add(-1 * time.Hour),
+		Recurrence: "once",
+	}
+	require.NoError(t, db.Create(&reminder).Error)
+
+	cfg := config.Config{} // no UseResend/UseSMTP -> EmailEnabled() == false
+
+	err := SendReminders(db, cfg)
+	assert.NoError(t, err)
+
+	var reloaded models.Reminder
+	require.NoError(t, db.First(&reloaded, reminder.ID).Error)
+	assert.False(t, reloaded.EmailSent, "reminder should be preserved (not marked sent) while email is disabled")
+	assert.Nil(t, reloaded.LastSent)
 }

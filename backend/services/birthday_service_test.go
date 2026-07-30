@@ -86,3 +86,90 @@ func TestGetUpcomingBirthdays_CapsAtMaxResultsWhenNoneWithinTwoWeeks(t *testing.
 	require.NoError(t, err)
 	assert.Len(t, birthdays, 5, "expected exactly maxResults=5 birthdays when none are within the two-week window")
 }
+
+// TestDaysUntilBirthday_ShortStringReturns999 covers the guard clause for
+// birthday strings too short to contain a month/day (len < 7), e.g. empty
+// string or malformed data.
+func TestDaysUntilBirthday_ShortStringReturns999(t *testing.T) {
+	now := time.Date(2026, 6, 15, 0, 0, 0, 0, time.UTC)
+
+	assert.Equal(t, 999, DaysUntilBirthday("", now))
+	assert.Equal(t, 999, DaysUntilBirthday("1990", now))
+	assert.Equal(t, 999, DaysUntilBirthday("--1-1", now)) // len 5, too short
+}
+
+// TestDaysUntilBirthday_UnparsableMonthOrDayReturns999 covers the parse-error
+// branch: a birthday string long enough to be parsed but with an
+// out-of-range month or day.
+func TestDaysUntilBirthday_UnparsableMonthOrDayReturns999(t *testing.T) {
+	now := time.Date(2026, 6, 15, 0, 0, 0, 0, time.UTC)
+
+	assert.Equal(t, 999, DaysUntilBirthday("1990-13-40", now), "month 13 and day 40 are both out of range")
+	assert.Equal(t, 999, DaysUntilBirthday("1990-99-99", now), "month and day out of range")
+	assert.Equal(t, 999, DaysUntilBirthday("--ab-cd", now), "non-numeric month/day")
+}
+
+// TestDaysUntilBirthday_DecemberToJanuaryBoundary is the explicit Dec 31 ->
+// Jan 1 boundary case called out in docs/fork-plan/45-test-coverage-closure.md
+// Phase 3b: today is Dec 31, birthday is Jan 1 (tomorrow). The birthday-this-
+// year (Jan 1 of the *current* now.Year()) is necessarily "before" today
+// (Dec 31 of that same year), so the function must wrap it forward into next
+// year rather than leaving it hundreds of days in the past.
+func TestDaysUntilBirthday_DecemberToJanuaryBoundary(t *testing.T) {
+	today := time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC)
+
+	// Full ISO date birthday.
+	assert.Equal(t, 1, DaysUntilBirthday("2020-01-01", today), "Jan 1 birthday should be 1 day away when today is Dec 31")
+
+	// Year-unknown (--MM-DD) birthday.
+	assert.Equal(t, 1, DaysUntilBirthday("--01-01", today), "Jan 1 birthday (year-unknown format) should be 1 day away when today is Dec 31")
+}
+
+// TestDaysUntilBirthday_JanuaryFirstBirthdayToday covers the other side of
+// the year boundary: today IS Jan 1 and the birthday is also Jan 1, so the
+// function must report 0 (today), not wrap forward a full year.
+func TestDaysUntilBirthday_JanuaryFirstBirthdayToday(t *testing.T) {
+	today := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	assert.Equal(t, 0, DaysUntilBirthday("2020-01-01", today))
+	assert.Equal(t, 0, DaysUntilBirthday("--01-01", today))
+}
+
+// TestDaysUntilBirthday_ForwardLookingNotRecentPast documents the direction
+// DaysUntilBirthday actually calculates in: it always returns days *until*
+// the next occurrence, never "days since it last happened". Checking on
+// Jan 2 for a birthday on Dec 31 does NOT report "1 day ago" (which a naive
+// signed diff might); it reports the number of days until the *next*
+// Dec 31, i.e. almost a full year away.
+func TestDaysUntilBirthday_ForwardLookingNotRecentPast(t *testing.T) {
+	today := time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC) // 2026 is not a leap year
+
+	got := DaysUntilBirthday("2020-12-31", today)
+
+	assert.Equal(t, 363, got, "should count forward to the next Dec 31 (365 - 2 days elapsed), not backward to the one that just passed")
+	assert.Positive(t, got, "DaysUntilBirthday must never return a negative 'days ago' value")
+}
+
+// TestDaysUntilBirthday_LeapYearFeb29CheckedInNonLeapYear documents current
+// behavior for a Feb 29 birthday when now.Year() is not a leap year: since
+// birthdayThisYear is built with time.Date(now.Year(), Feb, 29, ...) and Go's
+// time.Date normalizes out-of-range days, Feb 29 rolls forward to March 1 in
+// non-leap years rather than clamping to Feb 28.
+func TestDaysUntilBirthday_LeapYearFeb29CheckedInNonLeapYear(t *testing.T) {
+	today := time.Date(2025, 2, 20, 0, 0, 0, 0, time.UTC) // 2025 is not a leap year
+
+	got := DaysUntilBirthday("2000-02-29", today)
+
+	assert.Equal(t, 9, got, "Feb 29 normalizes to Mar 1 in a non-leap year (time.Date day-overflow), giving 9 days from Feb 20")
+}
+
+// TestDaysUntilBirthday_LeapYearFeb29CheckedInLeapYear sanity-checks the
+// Feb 29 birthday when now.Year() actually is a leap year, where no
+// normalization is needed.
+func TestDaysUntilBirthday_LeapYearFeb29CheckedInLeapYear(t *testing.T) {
+	today := time.Date(2024, 2, 20, 0, 0, 0, 0, time.UTC) // 2024 is a leap year
+
+	got := DaysUntilBirthday("2000-02-29", today)
+
+	assert.Equal(t, 9, got)
+}

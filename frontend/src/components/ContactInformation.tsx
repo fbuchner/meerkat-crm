@@ -20,11 +20,12 @@ import EditableField from './EditableField';
 import EditableArrayField from './EditableArrayField';
 import MultiValueField from './MultiValueField';
 import AddressFields from './AddressFields';
-import RelationshipList from './RelationshipList';
-import { Relationship, IncomingRelationship } from '../api/relationships';
+import RelationshipEdgeList from './RelationshipEdgeList';
+import { RelationshipEdge } from '../api/relationshipEdges';
 import {
   Card as CardModel,
   CRMEnvelope,
+  Contact,
   ContactValue,
   ContactAddress,
   cardEmailsToValues,
@@ -56,12 +57,16 @@ interface ContactInformationProps {
   onEditValueChange: (value: string) => void;
   onUpdateCard: (patch: Partial<CardModel>) => Promise<void>;
   enabledFields?: Set<ContactFieldKey>;
-  // Relationship props
-  relationships?: Relationship[];
-  incomingRelationships?: IncomingRelationship[];
-  onAddRelationship?: () => void;
-  onEditRelationship?: (relationship: Relationship) => void;
-  onDeleteRelationship?: (relationshipId: number) => void;
+  // RelationshipEdge props (§3d WP3)
+  confirmedEdges?: RelationshipEdge[];
+  suggestedEdges?: RelationshipEdge[];
+  contactsByUid?: Map<string, Contact>;
+  viewedContactUid?: string;
+  onAddRelationshipEdge?: () => void;
+  onEditRelationshipEdge?: (edge: RelationshipEdge) => void;
+  onDeleteRelationshipEdge?: (edgeId: string) => void;
+  onAcceptSuggestion?: (edgeId: string) => void;
+  onRejectSuggestion?: (edgeId: string) => void;
   // Custom fields
   customFieldNames?: string[];
 }
@@ -81,11 +86,15 @@ export default function ContactInformation({
   onEditValueChange,
   onUpdateCard,
   enabledFields,
-  relationships = [],
-  incomingRelationships = [],
-  onAddRelationship,
-  onEditRelationship,
-  onDeleteRelationship,
+  confirmedEdges = [],
+  suggestedEdges = [],
+  contactsByUid,
+  viewedContactUid,
+  onAddRelationshipEdge,
+  onEditRelationshipEdge,
+  onDeleteRelationshipEdge,
+  onAcceptSuggestion,
+  onRejectSuggestion,
   customFieldNames = [],
 }: ContactInformationProps) {
   const { t } = useTranslation();
@@ -413,7 +422,7 @@ export default function ContactInformation({
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
             <Button
               startIcon={<AddIcon />}
-              onClick={onAddRelationship}
+              onClick={onAddRelationshipEdge}
               variant="outlined"
               size="small"
             >
@@ -421,11 +430,15 @@ export default function ContactInformation({
             </Button>
           </Box>
           <Divider sx={{ mb: 1.5 }} />
-          <RelationshipList
-            relationships={relationships}
-            incomingRelationships={incomingRelationships}
-            onEdit={onEditRelationship || (() => {})}
-            onDelete={onDeleteRelationship || (() => {})}
+          <RelationshipEdgeList
+            confirmedEdges={confirmedEdges}
+            suggestedEdges={suggestedEdges}
+            contactsByUid={contactsByUid || new Map()}
+            viewedContactUid={viewedContactUid || ''}
+            onEdit={onEditRelationshipEdge || (() => {})}
+            onDelete={onDeleteRelationshipEdge || (() => {})}
+            onAccept={onAcceptSuggestion || (() => {})}
+            onReject={onRejectSuggestion || (() => {})}
           />
         </CardContent>
       )}

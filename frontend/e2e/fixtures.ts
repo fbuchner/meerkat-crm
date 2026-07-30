@@ -60,6 +60,7 @@ export async function searchContact(page: Page, query: string): Promise<void> {
 
 export interface CreatedContact {
   ID: number;
+  uid: string;
   firstname: string;
   lastname: string;
 }
@@ -84,7 +85,7 @@ export async function createTestContact(
   // this echoes back what was actually sent rather than re-deriving it.
   const body = await response.json();
   const created = body.contact || body;
-  return { ID: created.id ?? created.ID, firstname, lastname };
+  return { ID: created.id ?? created.ID, uid: created.uid, firstname, lastname };
 }
 
 /**

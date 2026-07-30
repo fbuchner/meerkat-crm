@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -62,8 +62,9 @@ import ProfilePictureUploadDialog from './components/ProfilePictureUploadDialog'
 import { useContactDialogs } from './hooks/useContactDialogs';
 import { useTimelineEditing } from './hooks/useTimelineEditing';
 import { useReminderManagement } from './hooks/useReminderManagement';
-import { useRelationships } from './hooks/useRelationships';
-import AddRelationshipDialog from './components/AddRelationshipDialog';
+import { useRelationshipEdges } from './hooks/useRelationshipEdges';
+import RelationshipEdgeDialog from './components/RelationshipEdgeDialog';
+import { getOtherPartyId } from './api/relationshipEdges';
 import { useSnackbar } from './context/SnackbarContext';
 import { ApiError } from './api/client';
 import { handleFetchError } from './utils/errorHandler';
@@ -180,18 +181,26 @@ export default function ContactDetailPage() {
   } | undefined>(undefined);
 
   const {
-    relationships,
-    incomingRelationships,
+    confirmedEdges,
+    suggestedEdges,
+    contactsByUid,
     relationshipDialogOpen,
-    editingRelationship,
-    refreshRelationships,
-    handleSaveRelationship,
-    handleEditRelationship,
-    handleDeleteRelationship,
-    handleAddRelationship,
+    editingEdge,
+    refreshRelationshipEdges,
+    handleSaveRelationshipEdge,
+    handleEditRelationshipEdge,
+    handleDeleteRelationshipEdge,
+    handleAcceptSuggestion,
+    handleRejectSuggestion,
+    handleAddRelationshipEdge,
     setRelationshipDialogOpen,
-    setEditingRelationship,
-  } = useRelationships(id, { showError });
+    setEditingEdge,
+  } = useRelationshipEdges(record?.uid, { showError });
+
+  const editingEdgeOtherParty = useMemo(() => {
+    if (!editingEdge || !record) return undefined;
+    return contactsByUid.get(getOtherPartyId(editingEdge, record.uid));
+  }, [editingEdge, record, contactsByUid]);
 
   // Fetch available circles
   const fetchCircles = useCallback(async () => {
@@ -231,10 +240,15 @@ export default function ContactDetailPage() {
         setCustomFieldNames(user?.custom_field_names ?? []);
         setEnabledFields(resolveEnabledFields(user?.enabled_contact_fields ?? null));
 
-        // Second batch: refresh reminders and relationships in parallel
+        // Second batch: refresh reminders and relationship edges in
+        // parallel. refreshRelationshipEdges is passed recordData.uid
+        // directly rather than relying on the `record` state var -- that
+        // state hasn't re-rendered yet at this point in the effect, so
+        // relying on it would silently fetch zero edges on every fresh
+        // page load.
         await Promise.all([
           refreshReminders(),
-          refreshRelationships()
+          refreshRelationshipEdges(recordData.uid)
         ]);
 
         // Only fetch profile picture if contact has one (avoid unnecessary 404)
@@ -268,7 +282,7 @@ export default function ContactDetailPage() {
         URL.revokeObjectURL(currentBlobUrl);
       }
     };
-  }, [id, refreshReminders, refreshRelationships]);
+  }, [id, refreshReminders, refreshRelationshipEdges]);
 
   // Combine and sort notes, activities, and completions for timeline
   const timelineItems: Array<{ type: 'note' | 'activity' | 'completion'; data: Note | Activity | ReminderCompletion; date: string }> = [
@@ -707,11 +721,15 @@ export default function ContactDetailPage() {
           }}
           onUpdateCard={handleUpdateCard}
           enabledFields={enabledFields}
-          relationships={relationships}
-          incomingRelationships={incomingRelationships}
-          onAddRelationship={handleAddRelationship}
-          onEditRelationship={handleEditRelationship}
-          onDeleteRelationship={handleDeleteRelationship}
+          confirmedEdges={confirmedEdges}
+          suggestedEdges={suggestedEdges}
+          contactsByUid={contactsByUid}
+          viewedContactUid={record?.uid}
+          onAddRelationshipEdge={handleAddRelationshipEdge}
+          onEditRelationshipEdge={handleEditRelationshipEdge}
+          onDeleteRelationshipEdge={handleDeleteRelationshipEdge}
+          onAcceptSuggestion={handleAcceptSuggestion}
+          onRejectSuggestion={handleRejectSuggestion}
           customFieldNames={customFieldNames}
         />
 
@@ -838,15 +856,16 @@ export default function ContactDetailPage() {
         onUpload={handleUploadProfilePicture}
       />
 
-      <AddRelationshipDialog
+      <RelationshipEdgeDialog
         open={relationshipDialogOpen}
         onClose={() => {
           setRelationshipDialogOpen(false);
-          setEditingRelationship(null);
+          setEditingEdge(null);
         }}
-        onSave={handleSaveRelationship}
-        relationship={editingRelationship}
-        currentContactId={record?.id || 0}
+        onSave={handleSaveRelationshipEdge}
+        edge={editingEdge}
+        viewedContactUid={record?.uid || ''}
+        otherPartyContact={editingEdgeOtherParty}
       />
     </Box>
   );

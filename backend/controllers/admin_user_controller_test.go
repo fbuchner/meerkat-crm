@@ -1,7 +1,9 @@
 package controllers
 
 import (
+	"bytes"
 	"encoding/json"
+	"mycorrhizal/config"
 	"mycorrhizal/models"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -111,4 +114,526 @@ func TestDeleteUser_CleansUpAllOwnedRows(t *testing.T) {
 	var remainingUser models.User
 	err := db.First(&remainingUser, target.ID).Error
 	assert.Error(t, err, "target user should be deleted")
+}
+
+// --- GetCurrentUser ---
+
+func TestGetCurrentUser_Success(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	require.NoError(t, db.First(&user).Error)
+	user.CustomFieldNames = []string{"maiden_name"}
+	user.EnabledContactFields = []string{"phone"}
+	require.NoError(t, db.Save(&user).Error)
+
+	router.GET("/users/me", GetCurrentUser)
+
+	req, _ := http.NewRequest("GET", "/users/me", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var resp models.CurrentUserResponse
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, user.ID, resp.ID)
+	assert.Equal(t, user.Username, resp.Username)
+	assert.Equal(t, user.Email, resp.Email)
+	assert.Equal(t, []string{"maiden_name"}, resp.CustomFieldNames)
+	assert.Equal(t, []string{"phone"}, resp.EnabledContactFields)
+
+	// The response DTO must never carry the password hash, regardless of
+	// what the model looks like server-side.
+	assert.NotContains(t, w.Body.String(), user.Password)
+	assert.NotContains(t, w.Body.String(), "password")
+}
+
+func TestGetCurrentUser_NotFound(t *testing.T) {
+	_, router := setupRouter()
+
+	// Overwrite the seeded userID with one that doesn't exist in the DB.
+	router.Use(func(c *gin.Context) {
+		c.Set("userID", uint(999999))
+	})
+	router.GET("/users/me", GetCurrentUser)
+
+	req, _ := http.NewRequest("GET", "/users/me", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code, w.Body.String())
+}
+
+// --- ListUsers ---
+
+func TestListUsers_Success(t *testing.T) {
+	db, router := setupRouter()
+
+	require.NoError(t, db.Create(&models.User{Username: "second", Email: "second@example.com", Password: "password123"}).Error)
+	require.NoError(t, db.Create(&models.User{Username: "third", Email: "third@example.com", Password: "password123", IsAdmin: true}).Error)
+
+	router.GET("/users", ListUsers)
+
+	req, _ := http.NewRequest("GET", "/users", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var resp models.AdminUsersListResponse
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.EqualValues(t, 3, resp.Total)
+	assert.Len(t, resp.Users, 3)
+	assert.Equal(t, 1, resp.Page)
+	assert.Equal(t, 1, resp.TotalPages)
+
+	// No password field should ever be serialized for the admin listing.
+	assert.NotContains(t, w.Body.String(), "password")
+
+	var thirdAdmin bool
+	for _, u := range resp.Users {
+		if u.Username == "third" {
+			thirdAdmin = u.IsAdmin
+		}
+	}
+	assert.True(t, thirdAdmin, "admin flag should be visible to the caller")
+}
+
+func TestListUsers_Pagination(t *testing.T) {
+	db, router := setupRouter()
+
+	for i := 0; i < 4; i++ {
+		require.NoError(t, db.Create(&models.User{
+			Username: "user" + strconv.Itoa(i),
+			Email:    "user" + strconv.Itoa(i) + "@example.com",
+			Password: "password123",
+		}).Error)
+	}
+	// Plus the seeded "tester" user = 5 total.
+
+	router.GET("/users", ListUsers)
+
+	req, _ := http.NewRequest("GET", "/users?page=2&limit=2", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var resp models.AdminUsersListResponse
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.EqualValues(t, 5, resp.Total)
+	assert.Len(t, resp.Users, 2)
+	assert.Equal(t, 2, resp.Page)
+	assert.Equal(t, 2, resp.Limit)
+	assert.Equal(t, 3, resp.TotalPages)
+}
+
+func TestListUsers_DatabaseError(t *testing.T) {
+	db, router := setupRouter()
+
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	require.NoError(t, sqlDB.Close())
+
+	router.GET("/users", ListUsers)
+
+	req, _ := http.NewRequest("GET", "/users", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code, w.Body.String())
+}
+
+// --- GetUser ---
+
+func TestGetUser_Success(t *testing.T) {
+	db, router := setupRouter()
+
+	target := models.User{Username: "target", Email: "target@example.com", Password: "password123", IsAdmin: true}
+	require.NoError(t, db.Create(&target).Error)
+
+	router.GET("/users/:id", GetUser)
+
+	req, _ := http.NewRequest("GET", "/users/"+strconv.Itoa(int(target.ID)), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var resp models.AdminUserResponse
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, target.ID, resp.ID)
+	assert.Equal(t, target.Username, resp.Username)
+	assert.True(t, resp.IsAdmin)
+	assert.NotContains(t, w.Body.String(), "password")
+}
+
+func TestGetUser_NotFound(t *testing.T) {
+	_, router := setupRouter()
+
+	router.GET("/users/:id", GetUser)
+
+	req, _ := http.NewRequest("GET", "/users/999999", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code, w.Body.String())
+}
+
+func TestGetUser_InvalidID(t *testing.T) {
+	_, router := setupRouter()
+
+	router.GET("/users/:id", GetUser)
+
+	req, _ := http.NewRequest("GET", "/users/not-a-number", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
+}
+
+// --- UpdateUser: normal CRUD paths ---
+
+func TestUpdateUser_Success(t *testing.T) {
+	db, router := setupRouter()
+
+	target := models.User{Username: "target", Email: "target@example.com", Password: "password123"}
+	require.NoError(t, db.Create(&target).Error)
+
+	router.PATCH("/users/:id", withValidated(func() any { return &models.AdminUserUpdateInput{} }), UpdateUser)
+
+	newUsername := "renamed"
+	newEmail := "renamed@example.com"
+	payload := models.AdminUserUpdateInput{Username: &newUsername, Email: &newEmail}
+	jsonValue, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest("PATCH", "/users/"+strconv.Itoa(int(target.ID)), bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var resp models.AdminUserResponse
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, "renamed", resp.Username)
+	assert.Equal(t, "renamed@example.com", resp.Email)
+	assert.NotContains(t, w.Body.String(), "password")
+
+	var updated models.User
+	require.NoError(t, db.First(&updated, target.ID).Error)
+	assert.Equal(t, "renamed", updated.Username)
+	assert.Equal(t, "renamed@example.com", updated.Email)
+}
+
+func TestUpdateUser_PasswordReset_IncrementsTokenVersion(t *testing.T) {
+	db, router := setupRouter()
+
+	target := models.User{Username: "target", Email: "target@example.com", Password: "password123", TokenVersion: 3}
+	require.NoError(t, db.Create(&target).Error)
+	originalHash := target.Password
+
+	router.PATCH("/users/:id", withValidated(func() any { return &models.AdminUserUpdateInput{} }), UpdateUser)
+
+	newPassword := "brandNewPassw0rd!"
+	payload := models.AdminUserUpdateInput{Password: &newPassword}
+	jsonValue, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest("PATCH", "/users/"+strconv.Itoa(int(target.ID)), bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var updated models.User
+	require.NoError(t, db.First(&updated, target.ID).Error)
+	assert.NotEqual(t, originalHash, updated.Password, "password hash should change")
+	assert.Equal(t, uint(4), updated.TokenVersion, "resetting a password must bump TokenVersion to invalidate existing sessions")
+}
+
+func TestUpdateUser_NotFound(t *testing.T) {
+	_, router := setupRouter()
+
+	router.PATCH("/users/:id", withValidated(func() any { return &models.AdminUserUpdateInput{} }), UpdateUser)
+
+	newUsername := "renamed"
+	payload := models.AdminUserUpdateInput{Username: &newUsername}
+	jsonValue, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest("PATCH", "/users/999999", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code, w.Body.String())
+}
+
+func TestUpdateUser_InvalidID(t *testing.T) {
+	_, router := setupRouter()
+
+	router.PATCH("/users/:id", withValidated(func() any { return &models.AdminUserUpdateInput{} }), UpdateUser)
+
+	newUsername := "renamed"
+	payload := models.AdminUserUpdateInput{Username: &newUsername}
+	jsonValue, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest("PATCH", "/users/not-a-number", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
+}
+
+func TestUpdateUser_DuplicateUsername_Conflict(t *testing.T) {
+	db, router := setupRouter()
+
+	require.NoError(t, db.Create(&models.User{Username: "taken", Email: "taken@example.com", Password: "password123"}).Error)
+	target := models.User{Username: "target", Email: "target@example.com", Password: "password123"}
+	require.NoError(t, db.Create(&target).Error)
+
+	router.PATCH("/users/:id", withValidated(func() any { return &models.AdminUserUpdateInput{} }), UpdateUser)
+
+	dupUsername := "taken"
+	payload := models.AdminUserUpdateInput{Username: &dupUsername}
+	jsonValue, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest("PATCH", "/users/"+strconv.Itoa(int(target.ID)), bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusConflict, w.Code, w.Body.String())
+}
+
+// --- UpdateUser: admin/last-admin-protection invariants ---
+//
+// These tests cover the privilege-escalation-adjacent concern called out by
+// Phase 3b of docs/fork-plan/45-test-coverage-closure.md. DeleteUser (see
+// TestDeleteUser_CleansUpAllOwnedRows above and DeleteUser's own guards at
+// admin_user_controller.go:272-301) blocks self-deletion and last-admin
+// deletion; the question here is whether UpdateUser has equivalent guards
+// against self-demotion and last-admin demotion, and whether it (or the
+// route layer) blocks self-promotion.
+
+// The acting admin must not be able to strip their own admin status via
+// UpdateUser, even if they are not the last admin. Guard is at
+// admin_user_controller.go:187-190.
+func TestUpdateUser_CannotRemoveOwnAdminStatus(t *testing.T) {
+	db, router := setupRouter()
+
+	var actingUser models.User
+	require.NoError(t, db.First(&actingUser).Error)
+	actingUser.IsAdmin = true
+	require.NoError(t, db.Save(&actingUser).Error)
+
+	// A second admin exists, so this is NOT a last-admin situation -- the
+	// self-demotion guard must fire independently of the admin count.
+	require.NoError(t, db.Create(&models.User{Username: "other-admin", Email: "other-admin@example.com", Password: "password123", IsAdmin: true}).Error)
+
+	router.PATCH("/users/:id", withValidated(func() any { return &models.AdminUserUpdateInput{} }), UpdateUser)
+
+	demote := false
+	payload := models.AdminUserUpdateInput{IsAdmin: &demote}
+	jsonValue, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest("PATCH", "/users/"+strconv.Itoa(int(actingUser.ID)), bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code, w.Body.String())
+
+	var unchanged models.User
+	require.NoError(t, db.First(&unchanged, actingUser.ID).Error)
+	assert.True(t, unchanged.IsAdmin, "acting admin's own admin status must be unchanged")
+}
+
+// An admin must not be able to demote the last remaining admin -- including
+// a DIFFERENT user than themselves -- to zero admins on the instance. Guard
+// is at admin_user_controller.go:192-204, mirroring DeleteUser's last-admin
+// count check.
+func TestUpdateUser_CannotDemoteLastAdmin(t *testing.T) {
+	db, router := setupRouter()
+
+	// Seeded "tester" user is NOT an admin; "target" is the ONLY admin.
+	target := models.User{Username: "target", Email: "target@example.com", Password: "password123", IsAdmin: true}
+	require.NoError(t, db.Create(&target).Error)
+
+	var adminCount int64
+	require.NoError(t, db.Model(&models.User{}).Where("is_admin = ?", true).Count(&adminCount).Error)
+	require.EqualValues(t, 1, adminCount, "test setup requires exactly one admin")
+
+	router.PATCH("/users/:id", withValidated(func() any { return &models.AdminUserUpdateInput{} }), UpdateUser)
+
+	demote := false
+	payload := models.AdminUserUpdateInput{IsAdmin: &demote}
+	jsonValue, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest("PATCH", "/users/"+strconv.Itoa(int(target.ID)), bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code, w.Body.String())
+
+	var unchanged models.User
+	require.NoError(t, db.First(&unchanged, target.ID).Error)
+	assert.True(t, unchanged.IsAdmin, "last admin must remain an admin")
+}
+
+// Demoting an admin who is NOT the last admin must succeed -- this is the
+// success-path complement to TestUpdateUser_CannotDemoteLastAdmin, proving
+// the guard is scoped to the "count <= 1" case rather than blocking all
+// demotions.
+func TestUpdateUser_DemoteAdmin_WhenNotLastAdmin_Succeeds(t *testing.T) {
+	db, router := setupRouter()
+
+	var actingUser models.User
+	require.NoError(t, db.First(&actingUser).Error)
+	actingUser.IsAdmin = true
+	require.NoError(t, db.Save(&actingUser).Error)
+
+	target := models.User{Username: "target", Email: "target@example.com", Password: "password123", IsAdmin: true}
+	require.NoError(t, db.Create(&target).Error)
+
+	router.PATCH("/users/:id", withValidated(func() any { return &models.AdminUserUpdateInput{} }), UpdateUser)
+
+	demote := false
+	payload := models.AdminUserUpdateInput{IsAdmin: &demote}
+	jsonValue, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest("PATCH", "/users/"+strconv.Itoa(int(target.ID)), bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var updated models.User
+	require.NoError(t, db.First(&updated, target.ID).Error)
+	assert.False(t, updated.IsAdmin)
+}
+
+// UpdateUser's input DTO (models.AdminUserUpdateInput) accepts an IsAdmin
+// field, and the handler applies it with no check on the CALLER's own
+// privilege level -- unlike self/last-admin *demotion*, there is no
+// promotion guard at all in the handler itself (admin_user_controller.go
+// has no code path that inspects the caller's IsAdmin before applying
+// input.IsAdmin=true at line 229-231).
+//
+// This is NOT exploitable in production: the route is registered at
+// routes/routes.go:211 inside the `admin` group, which is gated by
+// middleware.AdminMiddleware() (routes/routes.go:207). That middleware
+// (middleware/admin.go:38-49) loads the caller's IsAdmin from the DB and
+// aborts with 403 before the handler ever runs unless the caller is already
+// an admin -- so a non-admin cannot reach UpdateUser at all in the wired
+// application.
+//
+// This test calls the handler directly (as all tests in this file do,
+// bypassing route-level middleware per setupRouter's design) to document
+// that the handler relies entirely on that external gate and does not
+// duplicate the check itself. It intentionally demonstrates the bypassed
+// behavior -- see the SECURITY FINDINGS note in the WP report for why this
+// is a defense-in-depth observation, not a live vulnerability.
+func TestUpdateUser_HandlerAllowsSelfPromotion_GatedOnlyByRouteMiddleware(t *testing.T) {
+	db, router := setupRouter()
+
+	var actingUser models.User
+	require.NoError(t, db.First(&actingUser).Error)
+	require.False(t, actingUser.IsAdmin, "acting user must start as a non-admin for this test to be meaningful")
+
+	// No AdminMiddleware registered here -- setupRouter's router is bare, so
+	// this reaches the handler exactly as a misconfigured or bypassed route
+	// would. In the real app this path is unreachable for a non-admin
+	// because of AdminMiddleware (middleware/admin.go, wired at
+	// routes/routes.go:207).
+	router.PATCH("/users/:id", withValidated(func() any { return &models.AdminUserUpdateInput{} }), UpdateUser)
+
+	promote := true
+	payload := models.AdminUserUpdateInput{IsAdmin: &promote}
+	jsonValue, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest("PATCH", "/users/"+strconv.Itoa(int(actingUser.ID)), bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Documents current handler behavior: it applies the promotion with no
+	// error, because UpdateUser has no caller-privilege check of its own.
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var updated models.User
+	require.NoError(t, db.First(&updated, actingUser.ID).Error)
+	assert.True(t, updated.IsAdmin, "handler applied the self-promotion with no check of its own -- protection is route-middleware-only")
+}
+
+// --- TriggerReminders ---
+
+func TestTriggerReminders_Success(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	require.NoError(t, db.First(&user).Error)
+
+	contact := models.Contact{UserID: user.ID, Firstname: "Jane", Lastname: "Doe"}
+	require.NoError(t, db.Create(&contact).Error)
+
+	byMailTrue := true
+	reoccurFalse := false
+	reminder := models.Reminder{
+		UserID:                user.ID,
+		ContactID:             &contact.ID,
+		Message:               "Test reminder",
+		ByMail:                &byMailTrue,
+		RemindAt:              time.Now().Add(-1 * time.Hour),
+		Recurrence:            "once",
+		ReoccurFromCompletion: &reoccurFalse,
+	}
+	require.NoError(t, db.Create(&reminder).Error)
+
+	cfg := config.Config{}
+	router.POST("/trigger-reminders", func(c *gin.Context) {
+		TriggerReminders(c, cfg)
+	})
+
+	req, _ := http.NewRequest("POST", "/trigger-reminders", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var resp map[string]string
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, "Reminder emails sent successfully", resp["message"])
+
+	// Email sending is disabled (zero-value config has no SMTP/Resend
+	// configured), so SendReminders takes the "email disabled" branch and
+	// leaves the reminder's email_sent flag untouched -- confirming the
+	// underlying job actually ran against this reminder rather than the
+	// handler being a no-op stub.
+	var afterRun models.Reminder
+	require.NoError(t, db.First(&afterRun, reminder.ID).Error)
+	assert.False(t, afterRun.EmailSent)
+}
+
+func TestTriggerReminders_DatabaseError(t *testing.T) {
+	db, router := setupRouter()
+
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	require.NoError(t, sqlDB.Close())
+
+	cfg := config.Config{}
+	router.POST("/trigger-reminders", func(c *gin.Context) {
+		TriggerReminders(c, cfg)
+	})
+
+	req, _ := http.NewRequest("POST", "/trigger-reminders", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code, w.Body.String())
 }

@@ -8,6 +8,12 @@
 > **This roadmap is deliberately coarse past P8.** Near-term phases are specified tightly; later phases
 > are placeholders whose detail is written when they come into view, because the model they build on will
 > have taught us things by then.
+>
+> **Execution order lives elsewhere as of 2026-07-30.** `95-backlog-and-priorities.md`'s ticket board
+> merges this doc's remaining WPs with that file's own backlog into one ordered set of tickets, and
+> re-sequences them (P6–P10 here become tickets T10–T21, deliberately placed *after* a new Phase A that
+> activates already-built-but-unreachable entities, and after WP-97). **This doc remains the source of
+> truth for each WP's scope**; it is no longer the source of truth for what to do next.
 
 ## 92.0 Where the existing plan ends and this begins
 

@@ -4,3 +4,11 @@ updates:
     directory: "/backend"
     schedule:
       interval: "weekly"
+  - package-ecosystem: "npm_and_yarn"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "bundler"
+    directory: "/docs"
+    schedule:
+      interval: "weekly"

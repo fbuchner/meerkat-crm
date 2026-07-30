@@ -440,3 +440,235 @@ func TestEnabledContactFieldsNullVsEmpty(t *testing.T) {
 	patch(`{"fields":[]}`)
 	assert.Equal(t, "[]", rawField())
 }
+
+func TestCheckPasswordStrength_WeakPassword(t *testing.T) {
+	_, router := setupRouter()
+	router.POST("/password-strength", CheckPasswordStrength)
+
+	jsonValue, _ := json.Marshal(map[string]string{"password": "abc"})
+	req, _ := http.NewRequest("POST", "/password-strength", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var strength middleware.PasswordStrength
+	json.Unmarshal(w.Body.Bytes(), &strength)
+	assert.False(t, strength.IsValid)
+	assert.Equal(t, 0, strength.Score)
+	assert.Equal(t, "Password must be at least 8 characters long.", strength.Feedback)
+}
+
+func TestCheckPasswordStrength_StrongPassword(t *testing.T) {
+	_, router := setupRouter()
+	router.POST("/password-strength", CheckPasswordStrength)
+
+	jsonValue, _ := json.Marshal(map[string]string{"password": strongPassword})
+	req, _ := http.NewRequest("POST", "/password-strength", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var strength middleware.PasswordStrength
+	json.Unmarshal(w.Body.Bytes(), &strength)
+	assert.True(t, strength.IsValid)
+	assert.GreaterOrEqual(t, strength.Score, 3)
+	assert.GreaterOrEqual(t, strength.Entropy, middleware.MinEntropyBits)
+}
+
+func TestCheckPasswordStrength_MissingPassword(t *testing.T) {
+	_, router := setupRouter()
+	router.POST("/password-strength", CheckPasswordStrength)
+
+	req, _ := http.NewRequest("POST", "/password-strength", bytes.NewBufferString(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var response map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &response)
+	errorDetail := response["error"].(map[string]interface{})
+	assert.Equal(t, "MISSING_FIELD", errorDetail["code"])
+}
+
+func TestUpdateLanguage_Succeeds(t *testing.T) {
+	db, router := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	router.PATCH("/language", func(c *gin.Context) {
+		c.Set("username", user.Username)
+		UpdateLanguage(c)
+	})
+
+	req, _ := http.NewRequest("PATCH", "/language", bytes.NewBufferString(`{"language":"de"}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var responseBody map[string]string
+	json.Unmarshal(w.Body.Bytes(), &responseBody)
+	assert.Equal(t, "de", responseBody["language"])
+
+	var updated models.User
+	db.First(&updated, user.ID)
+	assert.Equal(t, "de", updated.Language)
+}
+
+// TestUpdateLanguage_RejectsMalformedJSON exercises UpdateLanguage's bind-failure
+// branch. Note: a genuinely-unsupported-but-well-formed code like "xx" cannot
+// reach the IsValidLanguage rejection branch here — i18n.normalizeLanguage falls
+// back to the default "en" for any unrecognized code, so IsValidLanguage always
+// returns true. That looks like a latent bug in i18n.IsValidLanguage/normalizeLanguage,
+// but it lives outside the three controller files this task is scoped to, so it's
+// left unmodified and just noted here.
+func TestUpdateLanguage_RejectsMalformedJSON(t *testing.T) {
+	db, router := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	router.PATCH("/language", func(c *gin.Context) {
+		c.Set("username", user.Username)
+		UpdateLanguage(c)
+	})
+
+	req, _ := http.NewRequest("PATCH", "/language", bytes.NewBufferString(`{"language":123}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var response map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &response)
+	errorDetail := response["error"].(map[string]interface{})
+	assert.Equal(t, "INVALID_INPUT", errorDetail["code"])
+}
+
+func TestUpdateLanguage_RequiresAuth(t *testing.T) {
+	_, router := setupRouter()
+	// setupRouter's shared middleware sets "userID" but not "username", so
+	// mounting UpdateLanguage directly exercises the unauthenticated path.
+	router.PATCH("/language", UpdateLanguage)
+
+	req, _ := http.NewRequest("PATCH", "/language", bytes.NewBufferString(`{"language":"de"}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestUpdateDateFormat_Succeeds(t *testing.T) {
+	db, router := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	router.PATCH("/date-format", func(c *gin.Context) {
+		c.Set("username", user.Username)
+		UpdateDateFormat(c)
+	})
+
+	req, _ := http.NewRequest("PATCH", "/date-format", bytes.NewBufferString(`{"date_format":"iso"}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var responseBody map[string]string
+	json.Unmarshal(w.Body.Bytes(), &responseBody)
+	assert.Equal(t, "iso", responseBody["date_format"])
+
+	var updated models.User
+	db.First(&updated, user.ID)
+	assert.Equal(t, "iso", updated.DateFormat)
+}
+
+func TestUpdateDateFormat_RejectsUnsupportedFormat(t *testing.T) {
+	db, router := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	router.PATCH("/date-format", func(c *gin.Context) {
+		c.Set("username", user.Username)
+		UpdateDateFormat(c)
+	})
+
+	req, _ := http.NewRequest("PATCH", "/date-format", bytes.NewBufferString(`{"date_format":"dd/mm"}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var response map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &response)
+	errorDetail := response["error"].(map[string]interface{})
+	assert.Equal(t, "INVALID_INPUT", errorDetail["code"])
+}
+
+func TestUpdateDateFormat_RequiresAuth(t *testing.T) {
+	_, router := setupRouter()
+	router.PATCH("/date-format", UpdateDateFormat)
+
+	req, _ := http.NewRequest("PATCH", "/date-format", bytes.NewBufferString(`{"date_format":"iso"}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+// TestCustomFieldNamesDefaultsEmptyAndRoundTrips verifies GetCustomFieldNames
+// returns an empty array (never null, unlike enabled contact fields) when
+// unconfigured, and that UpdateCustomFieldNames round-trips concrete values.
+func TestCustomFieldNamesDefaultsEmptyAndRoundTrips(t *testing.T) {
+	_, router := setupRouter()
+
+	router.GET("/custom-fields", GetCustomFieldNames)
+	router.PATCH("/custom-fields",
+		middleware.ValidateJSONMiddleware(&models.CustomFieldNamesInput{}),
+		UpdateCustomFieldNames)
+
+	rawNames := func() string {
+		req, _ := http.NewRequest("GET", "/custom-fields", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+		var body map[string]json.RawMessage
+		json.Unmarshal(w.Body.Bytes(), &body)
+		return string(body["custom_field_names"])
+	}
+
+	patch := func(jsonBody string) {
+		req, _ := http.NewRequest("PATCH", "/custom-fields", bytes.NewBufferString(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+	}
+
+	// Never configured -> empty array (not null).
+	assert.Equal(t, "[]", rawNames())
+
+	// Concrete values round-trip.
+	patch(`{"names":["Favorite Color","Anniversary"]}`)
+	assert.JSONEq(t, `["Favorite Color","Anniversary"]`, rawNames())
+}

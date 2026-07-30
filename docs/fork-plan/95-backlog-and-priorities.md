@@ -57,9 +57,9 @@
 > prompted directly by §3d turning out bigger than expected, and deliberately scheduled *first* within Tier 6
 > (ahead of UI polish) since its safe window closes once real production data exists, unlike the other two
 > Tier 6 items which have no such deadline.
-> **§3d WP1+WP2+WP3 done** (2026-07-30) — `RelationshipEdge` now has a full CRUD API (merged `61aa215`) and
-> a full frontend UI (`9ad806a` on `feature/relationship-edge-frontend`, pending merge) — the legacy
-> relationship UI is now fully unreferenced (dead, not yet removed). `GetGraph` reads `RelationshipEdge`
+> **§3d WP1+WP2+WP3 done and merged** (2026-07-30, merged `4b27794`) — `RelationshipEdge` now has a full
+> CRUD API and a full frontend UI — the legacy relationship UI is now fully unreferenced (dead, not yet
+> removed). `GetGraph` reads `RelationshipEdge`
 > instead of the legacy table. **Next up: §3d WP4+WP5 (rewire the remaining legacy-model dependents —
 > `contact_controller.go`/`admin_user_controller.go`/`export_controller.go` — then remove the legacy model/
 > routes/frontend files entirely)**, then item 12 (trivial, can slot in anytime), then Tier 4.).
@@ -553,8 +553,8 @@ missing functionality that has to be built before the old functionality can go.
    (`relationship_edge_real_db_test.go`, against a `database.InitDB`-migrated file DB, not `AutoMigrate`) —
    full WP1+WP2 create/list/update/accept/delete/graph cycle end to end, no GORM column-tag surprises against
    the real migration SQL. Full suite green throughout, no regressions.
-3. **Frontend: new CRUD UI** — **DONE** (2026-07-30, `9ad806a` on `feature/relationship-edge-frontend`,
-   pending merge). New `api/relationshipEdges.ts`, `hooks/useRelationshipEdges.ts`,
+3. **Frontend: new CRUD UI** — **DONE** (2026-07-30, `9ad806a`, merged `4b27794`). New
+   `api/relationshipEdges.ts`, `hooks/useRelationshipEdges.ts`,
    `components/RelationshipEdgeDialog.tsx`/`RelationshipEdgeList.tsx` replace `AddRelationshipDialog.tsx`/
    `RelationshipList.tsx`/`useRelationships.ts` (now fully unreferenced — left in place, removal is WP5's
    job). Small companion backend addition: a `?vcard_uid=` batch filter on `GET /contacts` (WP0,

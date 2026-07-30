@@ -57,11 +57,12 @@
 > prompted directly by §3d turning out bigger than expected, and deliberately scheduled *first* within Tier 6
 > (ahead of UI polish) since its safe window closes once real production data exists, unlike the other two
 > Tier 6 items which have no such deadline.
-> **§3d WP1+WP2 done** (2026-07-30, merged `61aa215`) — `RelationshipEdge` now has a full CRUD API
-> (`/relationship-edges`, plus an accept endpoint for WP-83's household-inferred suggestions) and `GetGraph`
-> reads it instead of the legacy table. **Next up: §3d WP3 (frontend rebuild — new CRUD UI, suggestion-review
-> UI), then WP4+WP5 (rewire remaining legacy-model dependents, then remove it)**, then item 12 (trivial, can
-> slot in anytime), then Tier 4.).
+> **§3d WP1+WP2+WP3 done** (2026-07-30) — `RelationshipEdge` now has a full CRUD API (merged `61aa215`) and
+> a full frontend UI (`9ad806a` on `feature/relationship-edge-frontend`, pending merge) — the legacy
+> relationship UI is now fully unreferenced (dead, not yet removed). `GetGraph` reads `RelationshipEdge`
+> instead of the legacy table. **Next up: §3d WP4+WP5 (rewire the remaining legacy-model dependents —
+> `contact_controller.go`/`admin_user_controller.go`/`export_controller.go` — then remove the legacy model/
+> routes/frontend files entirely)**, then item 12 (trivial, can slot in anytime), then Tier 4.).
 
 ## How to read this
 
@@ -552,9 +553,32 @@ missing functionality that has to be built before the old functionality can go.
    (`relationship_edge_real_db_test.go`, against a `database.InitDB`-migrated file DB, not `AutoMigrate`) —
    full WP1+WP2 create/list/update/accept/delete/graph cycle end to end, no GORM column-tag surprises against
    the real migration SQL. Full suite green throughout, no regressions.
-3. **Frontend: new CRUD UI** replacing `AddRelationshipDialog.tsx`/`RelationshipList.tsx`/the Relationships
-   tab in `ContactInformation.tsx` — a relation-type picker sourced from the registry, a review/accept flow
-   for `suggested` (household-inferred) edges surfaced for the first time, directional display.
+3. **Frontend: new CRUD UI** — **DONE** (2026-07-30, `9ad806a` on `feature/relationship-edge-frontend`,
+   pending merge). New `api/relationshipEdges.ts`, `hooks/useRelationshipEdges.ts`,
+   `components/RelationshipEdgeDialog.tsx`/`RelationshipEdgeList.tsx` replace `AddRelationshipDialog.tsx`/
+   `RelationshipList.tsx`/`useRelationships.ts` (now fully unreferenced — left in place, removal is WP5's
+   job). Small companion backend addition: a `?vcard_uid=` batch filter on `GET /contacts` (WP0,
+   `3e3c7b5`), since `RelationshipEdge` carries no nested contact data to resolve names/links from.
+   Direction semantics (`type` describes `SourceID`'s role relative to `TargetID`, verified against
+   `relationship_type_registry.go`/the WP-81 migration tool's own doc comments) — creating from a contact's
+   page always sends `target_id: viewedContactUid`, so a dropdown label like "Mother" still describes the
+   *other* party, exactly matching the legacy dialog's semantics. 17 unit tests cover every
+   asymmetric/symmetric token in both directions; verified for real in a running browser too (created Bob
+   as Alice's Parent → saw Child from Bob's page; edited from Bob's page to Mentor → saw Mentee from
+   Alice's page; created a thin "Whiskers" contact as Alice's Pet → saw Owner from Whiskers' own page;
+   `GetGraph` confirmed serving the new edges correctly). Editing never resends `source_thin`/`target_thin`
+   (the backend always inserts a new Contact for a non-nil `*_thin` field, even on update) — the other
+   party is read-only in edit mode, with a regression test. The confirmed/suggested split unifies what used
+   to be two list sections into one (`?contact_id=` already matches either direction). Suggestion
+   review (Accept/Reject) is built now despite nothing able to produce a `suggested` edge yet
+   (`household_service.go`'s engine has no HTTP trigger) — verified via a component test with mocked data
+   instead of fabricating a fake trigger. Two real bugs caught by the new component tests before shipping:
+   invalid HTML nesting (a `Chip` inside a `Typography` `<p>`) and a duplicate "Suggested" string collision
+   between the section heading and the status chip — both fixed. Full Playwright e2e run wasn't possible in
+   this environment (the repo's `e2e/global-setup.ts` hardcodes port 7300 for both app and API, which was
+   held by a concurrent session) — every scenario the new spec (`relationshipEdges.spec.ts`) covers was
+   instead verified by hand in a real running browser, except the delete step (blocked by native
+   `window.confirm` auto-dismiss under browser automation, already covered by WP1's real-DB `Delete` tests).
 4. **Rewire the other legacy-model dependents**: `contact_controller.go`/`admin_user_controller.go`'s
    `Preload("Relationships")` + cascade-delete code, and `export_controller.go`'s CSV "RELATIONSHIPS" section
    — move onto `RelationshipEdge`, checking first whether item 1's existing cascade-delete coverage (scoped by

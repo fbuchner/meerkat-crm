@@ -192,7 +192,10 @@ func UpdateRelationship(c *gin.Context) {
 		}
 	}
 
-	db.Save(&relationship)
+	if err := db.Save(&relationship).Error; err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update relationship").WithError(err))
+		return
+	}
 
 	c.JSON(http.StatusOK, relationship)
 }

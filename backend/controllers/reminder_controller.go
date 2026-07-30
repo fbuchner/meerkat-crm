@@ -135,7 +135,10 @@ func UpdateReminder(c *gin.Context) {
 		}
 	}
 
-	db.Updates(&reminder)
+	if err := db.Updates(&reminder).Error; err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update reminder").WithError(err))
+		return
+	}
 
 	// Clear the Contact association to avoid including it in the response
 	reminder.Contact = models.Contact{}

@@ -234,7 +234,10 @@ func UpdateNote(c *gin.Context) {
 		}
 	}
 
-	db.Updates(&note)
+	if err := db.Updates(&note).Error; err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update note").WithError(err))
+		return
+	}
 
 	go services.TriggerWebhooks(db, currentConfig(c), userID, "note.updated", note)
 	c.JSON(http.StatusOK, gin.H{"message": "Note updated successfully", "note": note})

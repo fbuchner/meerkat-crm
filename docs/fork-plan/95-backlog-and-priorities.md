@@ -419,17 +419,19 @@ and most cross-stack of the three.
 
 ### 3b. WP-81 follow-up
 
-- **Retire `birthday_service.go`'s legacy `Relationship`-based birthday reminder path.** Since WP-81,
-  every name-only legacy relationship with a birthday has an equivalent thin Contact carrying that same
-  birthday, so the general contact-birthday-reminder path already covers it — the old
-  `related_contact_id IS NULL` query in `birthday_service.go` is now redundant and produces a duplicate
-  reminder for any such row until removed. **Confirmed small (2026-07-29 re-scope)**: it's a clean ~55-line
-  block deletion (`birthday_service.go:58-114`) with **zero existing test coverage** on that path to
-  carefully preserve — the backlog's original "keep the legacy path's own tests passing" caveat doesn't
-  actually apply, there are no dedicated tests to keep green. One thing the original grooming missed:
-  `frontend/src/DashboardPage.tsx:294` has a live `birthday.type === 'relationship'` rendering branch that
-  becomes permanently dead code once this lands — include its removal in the same WP for full closure, not
-  just the backend deletion. Blocked on nothing — could be done any time after WP-81.
+- **Retire `birthday_service.go`'s legacy `Relationship`-based birthday reminder path — DONE (2026-07-29).**
+  Deleted the `related_contact_id IS NULL` relationship-birthday query block. Actual scope turned out wider
+  than the original "~55-line block + one frontend branch" estimate: `GetUpcomingBirthdays` is the single
+  source feeding the dashboard widget, the emailed daily reminder, and the `birthday.occurred` webhook
+  trigger, and its `Type: "relationship"` DTO branch cascaded through 7 files total —
+  `birthday_service.go` (the query), `models/dtos.go` (`Birthday.RelationshipType`/`AssociatedContactName`
+  removed, `Type` narrowed to always `"contact"`), `reminder_service.go` + `email_renderer.go`'s
+  `BirthdayItem` (dead fields removed), `templates/reminder.html` (dead `{{if .IsRelationship}}` block
+  removed), and `frontend/src/api/contacts.ts` + `DashboardPage.tsx` (dead TS fields/JSX branch removed).
+  Verified with a real-DB check: seeded a contact birthday plus a legacy name-only relationship with the
+  same birthday (the exact shape the deleted query matched on — `related_contact_id IS NULL` + a set
+  `birthday`), confirmed `GetUpcomingBirthdays` now returns exactly one entry (the contact), not two. Full
+  backend test suite green, frontend `tsc --noEmit` clean.
 
 ### 3c. Standing audits — broken down into pickup-ready items
 

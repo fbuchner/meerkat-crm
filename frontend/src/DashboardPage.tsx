@@ -278,7 +278,7 @@ function DashboardPage() {
                   <CardContent sx={{ py: 1.5 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                       <Avatar
-                        src={birthday.type === 'contact' ? birthday.photo_thumbnail : undefined}
+                        src={birthday.photo_thumbnail}
                         sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}
                       >
                         {birthday.name.charAt(0)}
@@ -291,21 +291,6 @@ function DashboardPage() {
                           {formatBirthday(birthday.birthday)}
                         </Typography>
                       </Box>
-                      {birthday.type === 'relationship' && birthday.relationship_type && (
-                        <Box sx={{ textAlign: 'right' }}>
-                          <Chip
-                            label={birthday.relationship_type}
-                            size="small"
-                            variant="outlined"
-                            sx={{ height: 20, fontSize: '0.7rem' }}
-                          />
-                          {birthday.associated_contact_name && (
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              {t('relationships.ofContact')} {birthday.associated_contact_name}
-                            </Typography>
-                          )}
-                        </Box>
-                      )}
                     </Box>
                   </CardContent>
                 </Card>

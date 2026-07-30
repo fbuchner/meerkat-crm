@@ -436,13 +436,11 @@ export function toContactRecordInput(data: Partial<Contact>): ContactRecordInput
 }
 
 export interface Birthday {
-  type: 'contact' | 'relationship';
+  type: 'contact';
   name: string;
   birthday: string;
   photo_thumbnail?: string;
   contact_id: number;
-  relationship_type?: string;
-  associated_contact_name?: string;
 }
 
 export interface ContactsResponse {

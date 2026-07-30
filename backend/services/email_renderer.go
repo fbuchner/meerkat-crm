@@ -28,13 +28,10 @@ type ReminderItem struct {
 
 // BirthdayItem is a single birthday row in the email template.
 type BirthdayItem struct {
-	FormattedDate         string
-	Name                  string
-	DaysText              string
-	BadgeType             string // "today", "tomorrow", "future"
-	IsRelationship        bool
-	AssociatedContactName string
-	RelationshipType      string
+	FormattedDate string
+	Name          string
+	DaysText      string
+	BadgeType     string // "today", "tomorrow", "future"
 }
 
 // ReminderEmailData holds all data passed to the reminder email template.

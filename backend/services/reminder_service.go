@@ -410,13 +410,10 @@ func sendReminderEmail(user models.User, reminders []models.Reminder, config con
 			badgeType = "future"
 		}
 		birthdayItems = append(birthdayItems, BirthdayItem{
-			FormattedDate:         formatBirthdayForUser(birthday.Birthday, dateFormat),
-			Name:                  birthday.Name,
-			DaysText:              daysText,
-			BadgeType:             badgeType,
-			IsRelationship:        birthday.Type == "relationship",
-			AssociatedContactName: birthday.AssociatedContactName,
-			RelationshipType:      birthday.RelationshipType,
+			FormattedDate: formatBirthdayForUser(birthday.Birthday, dateFormat),
+			Name:          birthday.Name,
+			DaysText:      daysText,
+			BadgeType:     badgeType,
 		})
 	}
 

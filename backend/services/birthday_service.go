@@ -55,64 +55,6 @@ func GetUpcomingBirthdays(db *gorm.DB, userID uint, now time.Time) ([]models.Bir
 		})
 	}
 
-	// Query upcoming relationship birthdays (only those without their own contact)
-	// Exclude relationships whose parent contact is archived
-	// Birthday format is now YYYY-MM-DD or --MM-DD (ISO 8601)
-	var relationships []models.Relationship
-	relationshipQuery := db.Model(&models.Relationship{}).
-		Joins("JOIN contacts ON contacts.id = relationships.contact_id AND contacts.archived = ?", false).
-		Preload("RelatedContact").
-		Where("relationships.user_id = ?", userID).
-		Where("related_contact_id IS NULL").
-		Where("relationships.birthday IS NOT NULL AND relationships.birthday != ''").
-		Where(
-			db.Where("SUBSTR(relationships.birthday, LENGTH(relationships.birthday) - 4, 2) = ? AND SUBSTR(relationships.birthday, LENGTH(relationships.birthday) - 1, 2) >= ?", currentMonth, currentDay).
-				Or("SUBSTR(relationships.birthday, LENGTH(relationships.birthday) - 4, 2) = ?", nextMonth),
-		)
-
-	if err := relationshipQuery.Find(&relationships).Error; err != nil {
-		return nil, fmt.Errorf("failed to retrieve relationship birthdays: %w", err)
-	}
-
-	// Get parent contacts for relationships
-	contactIDs := make([]uint, 0, len(relationships))
-	for _, rel := range relationships {
-		contactIDs = append(contactIDs, rel.ContactID)
-	}
-
-	parentContacts := make(map[uint]models.Contact)
-	if len(contactIDs) > 0 {
-		var parentContactList []models.Contact
-		if err := db.Where("id IN ?", contactIDs).Find(&parentContactList).Error; err != nil {
-			return nil, fmt.Errorf("failed to retrieve parent contacts: %w", err)
-		}
-		for _, pc := range parentContactList {
-			parentContacts[pc.ID] = pc
-		}
-	}
-
-	// Convert relationships to Birthday DTOs
-	for _, rel := range relationships {
-		parentContact := parentContacts[rel.ContactID]
-		parentName := parentContact.Firstname
-		if parentContact.Nickname != "" {
-			parentName = parentContact.Nickname
-		}
-		if parentContact.Lastname != "" {
-			parentName += " " + parentContact.Lastname
-		}
-
-		birthdays = append(birthdays, models.Birthday{
-			Type:                  "relationship",
-			Name:                  rel.Name,
-			Birthday:              rel.Birthday,
-			PhotoThumbnail:        parentContact.PhotoThumbnail,
-			ContactID:             rel.ContactID,
-			RelationshipType:      rel.Type,
-			AssociatedContactName: parentName,
-		})
-	}
-
 	// Sort by days until birthday
 	slices.SortFunc(birthdays, func(a, b models.Birthday) int {
 		daysA := DaysUntilBirthday(a.Birthday, now)

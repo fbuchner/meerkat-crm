@@ -132,3 +132,37 @@ Overall package coverage moved `controllers` 34.9%→42.4%, `services` 48.0%→6
 in aggregate because they include large amounts of Phase-3 (pre-existing, non-critical-path) code; the
 critical-path functions themselves are what the >80% gate was measured against, per the user's explicit
 framing, and that gate is now met.
+
+## Phase 3 status: CLOSED (2026-07-29)
+
+Re-dispatched as Tier 3c items 9 (3a) and 10 (3b) in `docs/fork-plan/95-backlog-and-priorities.md`,
+9 work packages total, each dispatched independently, each independently re-verified (diff read, tests
+re-run, coverage re-checked, and for every security-adjacent WP a real negative-path
+break/confirm-fail/restore cycle hand-verified before trusting the dispatched agent's own report) — one
+agent's own hand-verification was found still sitting in the production file mid-review
+(`httputil/fetch.go`'s SSRF guard temporarily disabled with a "DO NOT COMMIT" marker) and was restored
+before anything else proceeded, underscoring why this doc's own "do not trust an agent's own 'tests pass'
+report at face value" rule exists.
+
+Every named 0%-coverage function in both 3a and 3b is now covered (with a small number of documented,
+deliberate exceptions: `sendViaResend` has no test seam without a production-code change; a handful of
+branches require either live network access or contrived error injection this session judged not worth
+chasing, matching Phase 1/2's own precedent above). `services` moved 69.8%→81.1%, `controllers`
+47.1%→64.0%, `httputil` gained real SSRF coverage on `validateURLForSSRF`/`FetchImageFromURL` (0%→100%/
+17.1%).
+
+Real findings surfaced and handled per this fork's "flag, don't silently patch" convention:
+- The `isPrivateURL` fail-open-on-DNS-failure vs. `httputil` fail-closed asymmetry this doc originally
+  flagged **no longer exists** — already fixed by an earlier commit, independently re-confirmed by reading
+  both functions directly rather than trusting the dispatched agent's claim.
+- `DaysUntilBirthday`'s Dec 31 → Jan 1 boundary (this doc's specific worry) is **correct, not buggy** —
+  forward-looking-only semantics, proven with explicit wrap-around tests.
+- `admin_user_controller.go`'s `UpdateUser` has proper self-demotion and last-admin-demotion guards;
+  self-promotion protection is real but single-layer (route middleware only, no redundant handler check) —
+  documented, not changed, since the single layer is confirmed working.
+- Two unrelated, genuine bugs were found in passing and spawned as separate follow-up tasks rather than
+  fixed inline (out of this doc's own scope): a GORM column-tag mismatch on `ContactSyncLink.ETag`
+  (already fixed separately, Tier 3c item 1's own follow-up), and `i18n.IsValidLanguage` accepting any
+  input, making `UpdateLanguage`'s rejection branch unreachable.
+
+This closes every phase of this document.

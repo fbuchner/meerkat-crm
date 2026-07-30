@@ -57,8 +57,11 @@
 > prompted directly by §3d turning out bigger than expected, and deliberately scheduled *first* within Tier 6
 > (ahead of UI polish) since its safe window closes once real production data exists, unlike the other two
 > Tier 6 items which have no such deadline.
-> **Next up: Tier 3d (relationship model consolidation, scheduled before Tier 4), then item 12 (trivial,
-> can slot in anytime), then Tier 4.**).
+> **§3d WP1+WP2 done** (2026-07-30, merged `61aa215`) — `RelationshipEdge` now has a full CRUD API
+> (`/relationship-edges`, plus an accept endpoint for WP-83's household-inferred suggestions) and `GetGraph`
+> reads it instead of the legacy table. **Next up: §3d WP3 (frontend rebuild — new CRUD UI, suggestion-review
+> UI), then WP4+WP5 (rewire remaining legacy-model dependents, then remove it)**, then item 12 (trivial, can
+> slot in anytime), then Tier 4.).
 
 ## How to read this
 
@@ -525,15 +528,30 @@ missing functionality that has to be built before the old functionality can go.
 
 **Work packages, in order:**
 
-1. **Backend: `RelationshipEdge` CRUD controller + routes** — mirror `relationship_controller.go`'s 5
-   endpoints (list outgoing, list incoming, create, update, delete) against `RelationshipEdge`, reusing the
-   existing `relation_type` validator/registry (already built in WP-80, no new validation logic needed). Two
-   design decisions to make going in: does a user-created edge default to `confirmed` status (as opposed to
-   `suggested`, which `household_service.go` already produces for household-inferred edges), and is
-   `Directional` user-facing or purely registry-default-driven?
-2. **Backend: rewire `GetGraph`** (`graph_controller.go`) to read `RelationshipEdge` instead of
-   `models.Relationship`. Keep the `GraphEdge`/`GraphResponse` DTO shape (`type: "relationship"`) the frontend
-   already consumes so `NetworkGraph.tsx`/`NetworkLegend.tsx` don't need to change.
+1. **Backend: `RelationshipEdge` CRUD controller + routes** — **DONE** (2026-07-30, `30e61d9`, merged
+   `61aa215`). Flat `/relationship-edges` resource (mirrors `life_event_controller.go`'s newer idiom, not
+   `relationship_controller.go`'s nested one): create/get/list (filterable by `contact_id`, matching either
+   direction/`status`/`type`)/update/delete, plus a dedicated `PATCH .../accept` for `suggested` edges (no
+   consumer existed anywhere until now). Design decisions resolved: user-created edges are always
+   `Source: user-confirmed, Confidence: 1.0, Status: confirmed` (server-derived, never client-settable);
+   `Directional` is always derived from the registry (`!IsSymmetricRelationType`), matching
+   `household_service.go`'s existing precedent, not exposed as user-facing. A real design gap surfaced during
+   planning and resolved: creating a relationship to someone who isn't a Contact yet (the legacy "manual
+   entry" case) accepts an inline `{name, gender, birthday}` and creates a thin `Contact` in the same DB
+   transaction as the edge write, mirroring `cmd/backfill-relationship-edges`'s own thin-contact field
+   mapping. 27 tests; hand-verified the transactional rollback (temporarily removed the transaction wrapping,
+   confirmed the orphan-thin-contact test fails, restored) and the `relation_type` validator through the real
+   middleware.
+2. **Backend: rewire `GetGraph`** — **DONE** (2026-07-30, `41dfdf3`, merged `61aa215`). Reads
+   `RelationshipEdge` filtered to `Status: confirmed` only — `suggested` edges must never appear as graph
+   fact, per the model's own doc comment. Contact nodes now also carry `VCardUID` so edges (which reference
+   contacts by `VCardUID`, not the numeric ID the graph's node scheme uses) resolve correctly; an edge is
+   skipped (not left dangling) if either endpoint isn't in the current node set. `GraphEdge`/`GraphResponse`
+   DTO shape unchanged, so `NetworkGraph.tsx`/`NetworkLegend.tsx` needed no frontend change (confirmed via
+   exploration: they only use edge `type`/`label` for display). Real-DB integration test added
+   (`relationship_edge_real_db_test.go`, against a `database.InitDB`-migrated file DB, not `AutoMigrate`) —
+   full WP1+WP2 create/list/update/accept/delete/graph cycle end to end, no GORM column-tag surprises against
+   the real migration SQL. Full suite green throughout, no regressions.
 3. **Frontend: new CRUD UI** replacing `AddRelationshipDialog.tsx`/`RelationshipList.tsx`/the Relationships
    tab in `ContactInformation.tsx` — a relation-type picker sourced from the registry, a review/accept flow
    for `suggested` (household-inferred) edges surfaced for the first time, directional display.

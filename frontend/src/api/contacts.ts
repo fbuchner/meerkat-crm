@@ -26,6 +26,11 @@ export interface ContactAddress {
 // task list); do not add new features here that assume it's permanent.
 export interface Contact {
   ID: number;
+  // Contact.VCardUID -- surfaced for callers that need the stable UUID
+  // rather than the numeric ID (e.g. RelationshipEdge.SourceID/TargetID,
+  // api/relationshipEdges.ts). Already fetched server-side on every summary
+  // response; just not previously exposed on this shape.
+  uid?: string;
   firstname: string;
   lastname: string;
   nickname?: string;
@@ -363,6 +368,7 @@ export function withTitles(jobTitle: string, role: string): CardTitle[] {
 function summaryToLegacyContact(summary: ContactSummaryDTO): Contact {
   return {
     ID: summary.id,
+    uid: summary.uid,
     firstname: summary.firstname,
     lastname: summary.lastname,
     nickname: summary.nickname || undefined,
@@ -495,6 +501,30 @@ export async function getContacts(
     page: data.page,
     limit: data.limit,
   };
+}
+
+// Resolves a batch of Contact.VCardUID values to full Contact objects in one
+// request, via GET /contacts' ?vcard_uid= filter (§3d WP0). Needed because
+// RelationshipEdge.SourceID/TargetID (api/relationshipEdges.ts) are bare
+// VCardUID strings with no nested contact data. includeArchived: true so an
+// edge pointing at a since-archived contact still resolves instead of
+// silently vanishing (GetContacts excludes archived by default).
+export async function getContactsByUid(uids: string[]): Promise<Map<string, Contact>> {
+  const wanted = uids.filter(Boolean);
+  const map = new Map<string, Contact>();
+  if (wanted.length === 0) return map;
+
+  const queryParams = new URLSearchParams({ include_archived: 'true' });
+  wanted.forEach((uid) => queryParams.append('vcard_uid', uid));
+
+  const response = await apiFetch(`${API_BASE_URL}/contacts?${queryParams.toString()}`, { headers: getAuthHeaders() });
+  if (!response.ok) throw await parseErrorResponse(response);
+
+  const data: { contacts: ContactSummaryDTO[] } = await response.json();
+  for (const dto of data.contacts) {
+    map.set(dto.uid, summaryToLegacyContact(dto));
+  }
+  return map;
 }
 
 // getContactRecord/updateContactRecord/createContactRecord read and write

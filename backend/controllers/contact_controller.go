@@ -96,6 +96,38 @@ func GetContacts(c *gin.Context) {
 
 	pagination := GetPaginationParams(c)
 
+	// ?vcard_uid= (repeatable) is a batch by-VCardUID lookup, short-circuiting
+	// the rest of this handler's search/sort/pagination/includes logic
+	// entirely -- it exists for callers (e.g. the RelationshipEdge frontend,
+	// §3d WP3) that already know exactly which contacts they need to resolve
+	// a Contact.VCardUID reference back into a displayable name, and have no
+	// use for the list-view machinery below. Bounded by how many UIDs were
+	// requested, not paginated. Respects include_archived like the rest of
+	// this handler (an edge can point at an archived contact).
+	if vcardUIDs := c.QueryArray("vcard_uid"); len(vcardUIDs) > 0 {
+		query := db.Model(&models.Contact{}).Where("user_id = ? AND vcard_uid IN ?", userID, vcardUIDs).
+			Select(contactSummaryColumns)
+		if c.Query("include_archived") != "true" {
+			query = query.Where("archived = ?", false)
+		}
+		var contacts []models.Contact
+		if err := query.Find(&contacts).Error; err != nil {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve contacts").WithError(err))
+			return
+		}
+		items := make([]models.ContactSummary, len(contacts))
+		for i := range contacts {
+			items[i] = models.NewContactSummary(&contacts[i])
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"contacts": items,
+			"total":    int64(len(items)),
+			"page":     1,
+			"limit":    len(items),
+		})
+		return
+	}
+
 	// NOTE: the fields= partial-projection param is gone (Gap 3 in
 	// docs/fork-plan/50-integration-and-rebrand.md WP-71) — deliberately, not
 	// an oversight. It is simply no longer read; a request that still sends

@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   cardEmailsToValues,
   valuesToCardEmails,
@@ -15,6 +15,7 @@ import {
   formatAnniversaryDate,
   parseAnniversaryDate,
   toContactRecordInput,
+  getContactsByUid,
 } from './contacts';
 
 describe('email conversion', () => {
@@ -208,5 +209,60 @@ describe('toContactRecordInput', () => {
     expect(input.card.anniversaries).toEqual([{ kind: 'birth', date: { partial: { year: 1867, month: 11, day: 7 } } }]);
     expect(input.crm.circles).toEqual(['Scientists']);
     expect(input.crm.custom_fields).toEqual({ favorite_color: 'Radium Green' });
+  });
+});
+
+describe('getContactsByUid', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn());
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  test('short-circuits on empty input without calling fetch', async () => {
+    const result = await getContactsByUid([]);
+    expect(result.size).toBe(0);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  test('resolves a batch of uids via the ?vcard_uid= filter in one request', async () => {
+    (fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        contacts: [
+          { id: 1, uid: 'alice-uid', firstname: 'Alice', lastname: 'Anderson', nickname: '', fn: '', primary_email: '', primary_phone: '', birthday: '', org: '', photo: '', photo_thumbnail: '', circles: [], archived: false },
+          { id: 2, uid: 'bob-uid', firstname: 'Bob', lastname: 'Brown', nickname: '', fn: '', primary_email: '', primary_phone: '', birthday: '', org: '', photo: '', photo_thumbnail: '', circles: [], archived: false },
+        ],
+        total: 2,
+        page: 1,
+        limit: 2,
+      }),
+    });
+
+    const result = await getContactsByUid(['alice-uid', 'bob-uid']);
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const calledUrl = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+    expect(calledUrl).toContain('vcard_uid=alice-uid');
+    expect(calledUrl).toContain('vcard_uid=bob-uid');
+    expect(calledUrl).toContain('include_archived=true');
+
+    expect(result.size).toBe(2);
+    expect(result.get('alice-uid')?.firstname).toBe('Alice');
+    expect(result.get('bob-uid')?.firstname).toBe('Bob');
+  });
+
+  test('filters out falsy uids before requesting', async () => {
+    (fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ contacts: [], total: 0, page: 1, limit: 0 }),
+    });
+
+    await getContactsByUid(['alice-uid', '', undefined as unknown as string]);
+
+    const calledUrl = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+    // Only the one real uid should appear as a query param.
+    expect((calledUrl.match(/vcard_uid=/g) || []).length).toBe(1);
   });
 });

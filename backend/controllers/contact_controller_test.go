@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"mycorrhizal/contactmodel"
+	"mycorrhizal/database"
 	"mycorrhizal/models"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -89,6 +91,124 @@ func TestGetContacts(t *testing.T) {
 	assert.Equal(t, float64(5), responseBody["total"]) // Total contacts
 	assert.Equal(t, float64(5), responseBody["page"])  // Current page
 	assert.Equal(t, float64(2), responseBody["limit"]) // Limit per page
+}
+
+// TestGetContacts_FiltersByVCardUID pins down §3d WP0
+// (docs/fork-plan/95-backlog-and-priorities.md): the RelationshipEdge
+// frontend needs to resolve a batch of Contact.VCardUID values (edge
+// SourceID/TargetID, which carry no nested contact data) back into
+// displayable Contacts. Proves the ?vcard_uid= filter matches multiple
+// requested UIDs, ignores an unrequested one, and stays scoped to the
+// requesting user.
+func TestGetContacts_FiltersByVCardUID(t *testing.T) {
+	db, router := setupRouter()
+	router.GET("/contacts", GetContacts)
+
+	var user models.User
+	db.First(&user)
+	otherUser := models.User{Username: "vuid-other", Password: "x", Email: "vuid-other@example.com"}
+	require.NoError(t, db.Create(&otherUser).Error)
+
+	alice := models.Contact{UserID: user.ID, Firstname: "Alice"}
+	bob := models.Contact{UserID: user.ID, Firstname: "Bob"}
+	carol := models.Contact{UserID: user.ID, Firstname: "Carol"}
+	othersContact := models.Contact{UserID: otherUser.ID, Firstname: "Not Yours"}
+	require.NoError(t, db.Create(&alice).Error)
+	require.NoError(t, db.Create(&bob).Error)
+	require.NoError(t, db.Create(&carol).Error)
+	require.NoError(t, db.Create(&othersContact).Error)
+
+	req, _ := http.NewRequest("GET", "/contacts?vcard_uid="+alice.VCardUID+"&vcard_uid="+bob.VCardUID+"&vcard_uid="+othersContact.VCardUID, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	var resp struct {
+		Contacts []models.ContactSummary `json:"contacts"`
+		Total    int64                   `json:"total"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+
+	// Carol (not requested) and othersContact (requested but not this
+	// user's) must both be absent; only Alice and Bob match.
+	require.Len(t, resp.Contacts, 2)
+	assert.EqualValues(t, 2, resp.Total)
+	gotUIDs := map[string]bool{}
+	for _, c := range resp.Contacts {
+		gotUIDs[c.UID] = true
+	}
+	assert.True(t, gotUIDs[alice.VCardUID])
+	assert.True(t, gotUIDs[bob.VCardUID])
+}
+
+// TestGetContacts_VCardUIDFilter_RealMigratedSchema is the real-DB check for
+// §3d WP0: unlike the AutoMigrate-backed test above, this runs against a
+// database.InitDB-migrated file DB, confirming the `vcard_uid`/`archived`
+// columns the new filter queries actually exist with those exact names in
+// the real migration SQL (this fork's own recurring bug class).
+func TestGetContacts_VCardUIDFilter_RealMigratedSchema(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "vcard-uid-filter-real.db")
+	db, err := database.InitDB(dbPath)
+	require.NoError(t, err)
+
+	user := models.User{Username: "realdb-vuid", Password: "password123!A", Email: "realdb-vuid@example.com"}
+	require.NoError(t, db.Create(&user).Error)
+	alice := models.Contact{UserID: user.ID, Firstname: "Alice"}
+	require.NoError(t, db.Create(&alice).Error)
+
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.Default()
+	router.Use(func(c *gin.Context) {
+		c.Set("db", db)
+		c.Set("userID", user.ID)
+		c.Next()
+	})
+	router.GET("/contacts", GetContacts)
+
+	req, _ := http.NewRequest("GET", "/contacts?vcard_uid="+alice.VCardUID, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var resp struct {
+		Contacts []models.ContactSummary `json:"contacts"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Len(t, resp.Contacts, 1)
+	assert.Equal(t, alice.VCardUID, resp.Contacts[0].UID)
+}
+
+func TestGetContacts_VCardUIDFilterExcludesArchivedByDefault(t *testing.T) {
+	db, router := setupRouter()
+	router.GET("/contacts", GetContacts)
+
+	var user models.User
+	db.First(&user)
+	archived := models.Contact{UserID: user.ID, Firstname: "Gone", Archived: true}
+	require.NoError(t, db.Create(&archived).Error)
+
+	req, _ := http.NewRequest("GET", "/contacts?vcard_uid="+archived.VCardUID, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+	var resp struct {
+		Contacts []models.ContactSummary `json:"contacts"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Empty(t, resp.Contacts)
+
+	// include_archived=true must surface it -- an edge can point at an
+	// archived contact and the caller may still want to resolve the name.
+	req2, _ := http.NewRequest("GET", "/contacts?vcard_uid="+archived.VCardUID+"&include_archived=true", nil)
+	w2 := httptest.NewRecorder()
+	router.ServeHTTP(w2, req2)
+	require.Equal(t, http.StatusOK, w2.Code)
+	var resp2 struct {
+		Contacts []models.ContactSummary `json:"contacts"`
+	}
+	require.NoError(t, json.Unmarshal(w2.Body.Bytes(), &resp2))
+	require.Len(t, resp2.Contacts, 1)
+	assert.Equal(t, archived.VCardUID, resp2.Contacts[0].UID)
 }
 
 // TestGetContactsSearchMultiValue verifies search matches values in the emails/phones

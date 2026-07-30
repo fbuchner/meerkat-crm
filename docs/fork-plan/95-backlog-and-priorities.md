@@ -50,8 +50,13 @@
 > the fourth is root-caused and written up as **item 12** (2026-07-29), not yet fixed: `i18n.IsValidLanguage`
 > normalizes through `normalizeLanguage`'s always-falls-back-to-English behavior, so it accepts any input —
 > `UpdateLanguage`'s rejection branch is dead code and the raw unnormalized value gets persisted to
-> `user.Language`. Tier 6 broadened from UI-only to also carry non-critical test-coverage expansion, both
-> still explicitly last-priority, after everything else is ready.
+> `user.Language`. Tier 6 broadened from UI-only to also carry non-critical test-coverage expansion, and
+> broadened again to add a **legacy-representation/dead-code audit** (candidates: `Contact.VCardExtra`,
+> `RelationshipEdge.LegacyRelationshipID` + the backfill CLI tools once §3d ships, ~35 migrations worth
+> squashing, more dead scaffolding like the one duplicate frontend `Relationship` type §3d already found) —
+> prompted directly by §3d turning out bigger than expected, and deliberately scheduled *first* within Tier 6
+> (ahead of UI polish) since its safe window closes once real production data exists, unlike the other two
+> Tier 6 items which have no such deadline.
 > **Next up: Tier 3d (relationship model consolidation, scheduled before Tier 4), then item 12 (trivial,
 > can slot in anytime), then Tier 4.**).
 
@@ -605,9 +610,47 @@ as a design question, not decided.
 ## Tier 6 — Polish (UI + non-critical test coverage)
 
 Explicitly last priority — polish after everything else (Tiers 1–5) is ready, per the user's own framing.
-Originally UI-only (fonts/icons/strings, items 1–4 below); broadened 2026-07-29 to also carry non-critical
-test-coverage expansion (item 5), since both share the same "do this once everything that actually matters
-is done" priority, even though one is frontend and one is backend.
+Originally UI-only (fonts/icons/strings); broadened 2026-07-29 to also carry non-critical test-coverage
+expansion, and broadened again same day to carry a legacy-representation/dead-code audit (see below,
+scheduled *first* within this tier — unlike the other two Tier 6 items, its window closes once real
+production data exists, so it shouldn't sit behind UI polish indefinitely even though the tier itself is
+still last-priority overall).
+
+### Legacy-representation / dead-code audit (do this before UI polish)
+
+Added 2026-07-29, prompted by §3d: that item started as a small `GetGraph` rewire and turned out to be a
+whole legacy subsystem (`models.Relationship`) still doing real work years after its replacement
+(`RelationshipEdge`) existed, because this fork's build pattern across WP-80→84c was consistently "layer a
+new representation on top of the old one, bridge them, defer full removal" — new nested `Card`/`CRM`/
+`Passthrough` alongside legacy flat fields, typed `FieldValue` alongside the old `CustomFields` map, and so
+on. **Given no production data exists yet, this is the cheapest point at which to sweep for other instances
+of the same pattern and remove what's safe to remove** — every session after a v0.1 pre-release cut makes
+this more expensive (real data to migrate, real upgrade paths to preserve).
+
+Not yet audited — this item is the audit itself, methodology mirrors Tier 3c item 11 (identify candidates,
+then decide keep/remove/defer per candidate, not a blind deletion pass). Known starting candidates, found in
+passing rather than via a dedicated sweep:
+
+1. `Contact.VCardExtra` — its own doc comment (`models/contact_record_reverse.go`) already says it's "being
+   superseded by Passthrough in spirit," but was never actually removed or confirmed dead. Check what, if
+   anything, still reads it as authoritative versus `Passthrough`.
+2. `RelationshipEdge.LegacyRelationshipID` and the whole `cmd/backfill-relationship-edges` CLI tool — once
+   §3d removes the legacy `models.Relationship` table, both become vestigial (nothing left to migrate from).
+   Natural follow-on cleanup after §3d ships, not before.
+3. The other one-shot backfill tools, same category as #2: `cmd/backfill-custom-fields` (the v1→v2
+   `FieldValue` migration) and `cmd/backfill-contact-records`. Built for migrating during active development;
+   check whether they're still needed pre-release or are now pure dead weight.
+4. Migration history: ~35 incremental migration files for a repo with zero production data. Squashing to a
+   single clean baseline schema is safe and normal pre-release hygiene here specifically because there's no
+   live deployment needing a stepwise upgrade path preserved — re-evaluate this once real prod data exists,
+   since the tradeoff flips.
+5. Dead/duplicate scaffolding left behind after a model migration — one confirmed instance already found in
+   passing (frontend `types/index.ts`/`types/api.ts` had an unused, duplicate `Relationship` type parallel to
+   the real one in `api/relationships.ts`, per §3d's scoping). Worth a broader sweep (a Go dead-code tool
+   plus a frontend unused-export check) rather than assuming that was the only one.
+
+None of these have been scoped for real yet (sizes, exact removal surface) — that's the point of this item,
+same as item 11 was for the correctness-audit candidates before it got broken down.
 
 ### UI polish (fonts, icons, strings)
 

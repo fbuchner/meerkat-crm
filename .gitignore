@@ -83,7 +83,9 @@ test-results/
 *.bak
 *.backup
 *~
-CLAUDE.md
+# CLAUDE.md is deliberately NOT ignored: it carries this repo's conventions and
+# recurring bug classes, and is auto-loaded by coding agents. It has to be
+# tracked to reach worktrees, other machines, and anyone else working here.
 BACKLOG.md
 fly.demo.toml
 fly.test.toml

@@ -83,15 +83,20 @@ func TestExportData(t *testing.T) {
 	}
 	db.Create(&contact2)
 
-	// Create a relationship
-	relationship := models.Relationship{
-		UserID:    user.ID,
-		ContactID: contact1.ID,
-		Name:      "Charlie",
-		Type:      "Friend",
-		Birthday:  "1985-05-20",
+	// Create a relationship edge (§3d WP4: RELATIONSHIPS now reads
+	// RelationshipEdge, not the legacy models.Relationship table)
+	edge := models.RelationshipEdge{
+		UserID:      user.ID,
+		SourceID:    contact1.VCardUID,
+		TargetID:    contact2.VCardUID,
+		Type:        "friend_of",
+		Directional: false,
+		Source:      models.RelationshipSourceUserConfirmed,
+		Confidence:  1.0,
+		Status:      models.RelationshipStatusConfirmed,
+		Sensitivity: models.RelationshipSensitivityNormal,
 	}
-	db.Create(&relationship)
+	require.NoError(t, db.Create(&edge).Error)
 
 	// Create an activity
 	activityDate := time.Date(2024, 6, 15, 14, 30, 0, 0, time.UTC)
@@ -161,8 +166,8 @@ func TestExportData(t *testing.T) {
 
 	// Verify relationships section
 	assert.Contains(t, body, "=== RELATIONSHIPS ===")
-	assert.Contains(t, body, "Charlie")
-	assert.Contains(t, body, "Friend")
+	assert.Contains(t, body, "friend_of")
+	assert.Contains(t, body, "confirmed")
 
 	// Verify activities section
 	assert.Contains(t, body, "=== ACTIVITIES ===")

@@ -139,11 +139,17 @@ func GetContacts(c *gin.Context) {
 	// mechanic is preserved exactly as-is; only the per-item shape changes
 	// (ContactSummary, extended to ContactSummaryWithRelations when any
 	// includes= relation is requested).
+	//
+	// "relationships" was removed from this map in §3d WP4: the legacy
+	// models.Relationship include had zero remaining frontend callers (the
+	// RelationshipEdge UI fetches via its own /relationship-edges endpoint,
+	// never by requesting this field). Matches this file's own fields=
+	// precedent above -- a client still sending includes=relationships just
+	// gets no match for that token, not an error.
 	var relationshipMap = map[string]bool{
-		"notes":         false,
-		"activities":    false,
-		"relationships": false,
-		"reminders":     false,
+		"notes":      false,
+		"activities": false,
+		"reminders":  false,
 	}
 	includes := c.Query("includes")
 	includesRequested := false
@@ -212,8 +218,6 @@ func GetContacts(c *gin.Context) {
 				query = query.Preload("Notes", "notes.user_id = ?", userID)
 			case "activities":
 				query = query.Preload("Activities", "activities.user_id = ?", userID)
-			case "relationships":
-				query = query.Preload("Relationships", "relationships.user_id = ?", userID)
 			case "reminders":
 				query = query.Preload("Reminders", "reminders.user_id = ?", userID)
 			}
@@ -354,16 +358,20 @@ func GetContact(c *gin.Context) {
 	// what fields= partial-fetching existed to approximate a slice of.
 	//
 	// Preload behavior: kept exactly as the pre-WP-71 "no fields=" branch
-	// (always preload all four associations) — dedicated endpoints like
+	// (always preload all associations) — dedicated endpoints like
 	// GET /contacts/:id/notes already exist and may make this redundant for
 	// some callers, but changing that is a separate, larger decision this WP
 	// doesn't need to make; preserving existing behavior here is the safer
 	// default for backward compat.
+	//
+	// Relationships is no longer preloaded here (§3d WP4) — the legacy
+	// models.Relationship association had zero remaining readers once the
+	// RelationshipEdge frontend UI shipped in WP3 (it fetches relationships
+	// via its own /relationship-edges endpoint, not off this response).
 	var contact models.Contact
 	query := db.Where("user_id = ?", userID).
 		Preload("Notes", "notes.user_id = ?", userID).
 		Preload("Activities", "activities.user_id = ?", userID).
-		Preload("Relationships", "relationships.user_id = ?", userID).
 		Preload("Reminders", "reminders.user_id = ?", userID)
 
 	if err := query.First(&contact, id).Error; err != nil {

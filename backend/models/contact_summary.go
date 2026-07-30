@@ -72,17 +72,19 @@ func NewContactSummary(c *Contact) ContactSummary {
 }
 
 // ContactSummaryWithRelations extends ContactSummary with the sub-resource
-// arrays requested via includes= (notes/activities/relationships/reminders).
-// Per Gap 2's binding resolution, this is used only when includes= is
-// non-empty; plain ContactSummary is used otherwise. It is intentionally NOT
-// a full Card: includes= augments the slim list shape, it does not upgrade
-// it to the detail shape.
+// arrays requested via includes= (notes/activities/reminders). Per Gap 2's
+// binding resolution, this is used only when includes= is non-empty; plain
+// ContactSummary is used otherwise. It is intentionally NOT a full Card:
+// includes= augments the slim list shape, it does not upgrade it to the
+// detail shape.
+//
+// Relationships was removed from this shape in §3d WP4 alongside the
+// includes=relationships removal in contact_controller.go's GetContacts.
 type ContactSummaryWithRelations struct {
 	ContactSummary
-	Notes         []Note         `json:"notes,omitempty"`
-	Activities    []Activity     `json:"activities,omitempty"`
-	Relationships []Relationship `json:"relationships,omitempty"`
-	Reminders     []Reminder     `json:"reminders,omitempty"`
+	Notes      []Note     `json:"notes,omitempty"`
+	Activities []Activity `json:"activities,omitempty"`
+	Reminders  []Reminder `json:"reminders,omitempty"`
 }
 
 // NewContactSummaryWithRelations builds the extended list-item shape from a
@@ -93,7 +95,6 @@ func NewContactSummaryWithRelations(c *Contact) ContactSummaryWithRelations {
 		ContactSummary: NewContactSummary(c),
 		Notes:          c.Notes,
 		Activities:     c.Activities,
-		Relationships:  c.Relationships,
 		Reminders:      c.Reminders,
 	}
 }
@@ -164,10 +165,11 @@ type ContactRecordResponse struct {
 	// compat" — see GetContact's doc comment in contact_controller.go for
 	// the full reasoning on why these are still included here even though
 	// dedicated /contacts/:id/notes-style endpoints also exist).
-	Notes         []Note         `json:"notes,omitempty"`
-	Activities    []Activity     `json:"activities,omitempty"`
-	Relationships []Relationship `json:"relationships,omitempty"`
-	Reminders     []Reminder     `json:"reminders,omitempty"`
+	//
+	// Relationships was removed in §3d WP4 — see GetContact's doc comment.
+	Notes      []Note     `json:"notes,omitempty"`
+	Activities []Activity `json:"activities,omitempty"`
+	Reminders  []Reminder `json:"reminders,omitempty"`
 }
 
 // NewContactRecordResponse builds the full detail-view response from a
@@ -197,7 +199,6 @@ func NewContactRecordResponse(c *Contact, photoDir string, db *gorm.DB) ContactR
 		Archived:       c.Archived,
 		Notes:          c.Notes,
 		Activities:     c.Activities,
-		Relationships:  c.Relationships,
 		Reminders:      c.Reminders,
 	}
 }

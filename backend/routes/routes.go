@@ -86,15 +86,8 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			// creates is format-agnostic once parsed into []VCFContactData.
 			protected.POST("/contacts/import/jscontact/upload", controllers.UploadJSContactForImport)
 
-			// Relationship routes
-			protected.GET("/contacts/:id/relationships", controllers.GetRelationships)
-			protected.GET("/contacts/:id/incoming-relationships", controllers.GetIncomingRelationships)
-			protected.POST("/contacts/:id/relationships", middleware.ValidateJSONMiddleware(&models.RelationshipInput{}), controllers.CreateRelationship)
-			protected.PUT("/contacts/:id/relationships/:rid", middleware.ValidateJSONMiddleware(&models.RelationshipInput{}), controllers.UpdateRelationship)
-			protected.DELETE("/contacts/:id/relationships/:rid", controllers.DeleteRelationship)
-
-			// RelationshipEdge routes (graph-model relationship API; legacy
-			// /contacts/:id/relationships above is untouched pending its own cutover, §3d WP4/5)
+			// RelationshipEdge routes (graph-model relationship API; replaces the
+			// legacy /contacts/:id/relationships stack, removed in §3d WP5)
 			protected.POST("/relationship-edges", middleware.ValidateJSONMiddleware(&models.RelationshipEdgeInput{}), controllers.CreateRelationshipEdge)
 			protected.GET("/relationship-edges", controllers.ListRelationshipEdges)
 			protected.GET("/relationship-edges/:id", controllers.GetRelationshipEdge)

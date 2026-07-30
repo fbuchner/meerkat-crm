@@ -2,7 +2,6 @@
 export * from './useContacts';
 export * from './useNotes';
 export * from './useActivities';
-export * from './useRelationships';
 export * from './useReminderManagement';
 export * from './useTimelineEditing';
 export * from './useContactDialogs';

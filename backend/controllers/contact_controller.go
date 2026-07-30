@@ -466,19 +466,6 @@ func DeleteContact(c *gin.Context) {
 			return err
 		}
 
-		// Manually delete associated relationships
-		if err := tx.Where("contact_id = ? AND user_id = ?", id, userID).Delete(&models.Relationship{}).Error; err != nil {
-			return err
-		}
-
-		// Clear the optional link on other contacts' relationship entries that
-		// pointed to this contact as the related person. Those rows belong to a
-		// different, still-existing contact, so only the dangling link is
-		// cleared -- the relationship entry itself (name/type/etc.) is kept.
-		if err := tx.Model(&models.Relationship{}).Where("related_contact_id = ? AND user_id = ?", contact.ID, userID).Update("related_contact_id", nil).Error; err != nil {
-			return err
-		}
-
 		// Delete activity associations (many-to-many)
 		if err := tx.Exec("DELETE FROM activity_contacts WHERE contact_id = ? AND activity_id IN (SELECT id FROM activities WHERE user_id = ?)", id, userID).Error; err != nil {
 			return err

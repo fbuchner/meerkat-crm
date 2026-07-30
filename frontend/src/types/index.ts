@@ -109,18 +109,6 @@ export interface ValidationError {
 // Reminder type is re-exported from '../api/reminders' above
 
 /**
- * Relationship between contacts
- */
-export interface Relationship {
-  ID: number;
-  contact_id: number;
-  related_contact_id: number;
-  relationship_type: string;
-  CreatedAt: string;
-  UpdatedAt: string;
-}
-
-/**
  * Photo metadata
  */
 export interface Photo {
@@ -210,9 +198,6 @@ export type {
   CreateReminderResponse,
   UpdateReminderResponse,
   DeleteReminderResponse,
-  GetRelationshipsResponse,
-  CreateRelationshipResponse,
-  DeleteRelationshipResponse,
   UploadPhotoResponse,
   HealthCheckResponse,
   SearchResponse,

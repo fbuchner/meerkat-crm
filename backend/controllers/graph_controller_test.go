@@ -233,7 +233,7 @@ func TestGetGraph_Unauthorized(t *testing.T) {
 	gin.SetMode(gin.ReleaseMode)
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
-	require.NoError(t, db.AutoMigrate(&models.Contact{}, &models.Relationship{}, &models.Activity{}))
+	require.NoError(t, db.AutoMigrate(&models.Contact{}, &models.RelationshipEdge{}, &models.Activity{}))
 
 	router := gin.Default()
 	router.Use(func(c *gin.Context) {

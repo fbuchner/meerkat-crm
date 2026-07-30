@@ -51,6 +51,6 @@ type ContactSyncLink struct {
 	UserID         uint      `gorm:"not null;index" json:"-"`
 	Href           string    `gorm:"not null;uniqueIndex:idx_contact_sync_links_sub_href,priority:2" json:"href"`
 	ContactID      uint      `gorm:"not null;index" json:"contact_id"`
-	ETag           string    `json:"-"`
+	ETag           string    `gorm:"column:etag" json:"-"`
 	ContentHash    string    `gorm:"not null" json:"-"`
 }

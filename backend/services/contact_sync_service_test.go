@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"io"
 	"mycorrhizal/config"
+	"mycorrhizal/database"
 	"mycorrhizal/models"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -154,6 +156,43 @@ func TestReconcileContactSyncUpdatesExistingLinkedContact(t *testing.T) {
 	var contact models.Contact
 	require.NoError(t, db.First(&contact, link.ContactID).Error)
 	assert.Equal(t, "bob.new@example.com", contact.Email)
+}
+
+// TestContactSyncLinkETagSavesAgainstRealMigratedSchema guards against Go
+// struct tags drifting from the actual migration SQL: ContactSyncLink.ETag
+// had no explicit gorm column tag, so GORM's default naming strategy
+// derived "e_tag" while migration 000024 defines the column as "etag" (no
+// underscore). AutoMigrate-based test DBs (setupContactSyncTestDB) derive
+// their schema from the same wrong Go tag, so they can't catch this class of
+// bug — only a database.InitDB-migrated DB, which applies the real
+// migration SQL, can.
+func TestContactSyncLinkETagSavesAgainstRealMigratedSchema(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "contact-sync-etag.db")
+	db, err := database.InitDB(dbPath)
+	require.NoError(t, err)
+
+	user := createContactSyncTestUser(t, db)
+	cfg := contactSyncTestConfig()
+	sub := newContactTestSubscription(t, db, cfg, user.ID, "https://example.com/addressbooks/test/", "", "")
+
+	contact := models.Contact{UserID: user.ID, Firstname: "Bob"}
+	require.NoError(t, db.Create(&contact).Error)
+
+	link := models.ContactSyncLink{
+		SubscriptionID: sub.ID,
+		UserID:         user.ID,
+		Href:           "/addressbooks/test/bob.vcf",
+		ContactID:      contact.ID,
+		ContentHash:    "hash-1",
+	}
+	require.NoError(t, db.Create(&link).Error)
+
+	link.ETag = "\"etag-1\""
+	require.NoError(t, db.Save(&link).Error, "ETag must round-trip through the real 'etag' column")
+
+	var reloaded models.ContactSyncLink
+	require.NoError(t, db.First(&reloaded, link.ID).Error)
+	assert.Equal(t, "\"etag-1\"", reloaded.ETag)
 }
 
 func TestReconcileContactSyncSkipsUnchangedContent(t *testing.T) {

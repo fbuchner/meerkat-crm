@@ -74,11 +74,13 @@
 > unsupported/empty language codes now instead of silently accepting anything. **Tier 3 is fully closed.**
 >
 > **Re-groomed 2026-07-30 into a single ticket board** (see the next section) merging everything still
-> open here with the remaining WPs in `92-delivery-roadmap.md` — 25 pre-alpha tickets plus 4 post-alpha.
+> open here with the remaining WPs in `92-delivery-roadmap.md` — **16 tickets to alpha, 16 after**.
 > Tiers 4/5/6 are superseded as a *plan* by that board and retained only for their detail. The re-groom's
 > headline finding: five backend entities are fully built but unreachable by any user (Household,
 > Circle/Tag, LifeEvent, custom-fields v2), so the board's Phase A activates those first — which also
-> closes P5's still-open acceptance gate. **Next up is T1** (Household CRUD + suggestion trigger).
+> closes P5's still-open acceptance gate. The alpha cut line was then drawn by classifying each P6–P10
+> ticket on whether it changes data/contract shape: only 3 of 12 do, so 9 moved past alpha. **Next up is
+> T1** (Household CRUD + suggestion trigger).
 
 ## How to read this
 
@@ -118,9 +120,11 @@ Two knock-on facts that make this the right thing to fix first:
   already-written Accept/Reject surface on.
 
 **Phase-to-alpha framing (user's clarification, 2026-07-30):** real production data does **not** exist
-until after the alpha-readiness phase — alpha is the milestone *after* the last ticket here. So every
-ticket below is inside the safe, no-prod-data window, and the pre-real-data cleanup (T22) belongs at the
-end of that window rather than being rushed forward. "Tier 6" was never "polish someday" — it is the
+until after the alpha-readiness phase (Phase D) — alpha is the milestone at the end of Phase D, not at
+the end of the board. Everything above that line is inside the safe, no-prod-data window; everything
+below it is not, which is why the cut line below was drawn by asking, per ticket, *does this change the
+shape of data or contracts alpha will populate?* The pre-real-data cleanup (T22) therefore sits at the
+**end** of that window rather than being rushed forward. "Tier 6" was never "polish someday" — it is the
 release-readiness gate.
 
 ## The board
@@ -138,38 +142,57 @@ release-readiness gate.
 | T8 | OpenAPI coverage + spec/route drift test | M | T1–T7 | `92.9` |
 | **Phase B — independent, not gated by P5** | | | | |
 | T9 | WP-97 selective field export + sensitivity gating | L | — | `92.6b` |
-| **Phase C — P6–P10 capability phases** | | | | |
-| T10 | WP-85 graph traversal + multi-hop chains | M–L | — | `92.2` |
-| T11 | WP-86 search synonyms, household scope, FTS5 | L | T10, T1 | `92.2` |
-| T12 | WP-87 serve Interactions/LifeEvents as CalDAV | L | T5 | `92.3` |
-| T13 | WP-88 two-way calendar sync | M–L | T12 | `92.3` |
-| T14 | WP-89 external-link substrate (ExternalIdentity/Activity) | M | — | `92.4`, `91.12` |
-| T15 | WP-90 Immich level 1 (linking) | M | T14 | `92.4` |
-| T16 | WP-91 Immich level 2 (enrichment) | M | T15 | `92.4` |
+| **Phase C-pre — the only P6–P10 work that must precede alpha** | | | | |
+| T12a | Activity/LifeEvent sync primitives (ETag column + backfill) | S | — | `92.3` prereq |
 | T17 | WP-92 change feeds + cursor pagination | M | T8 | `92.5` |
-| T18 | WP-93 event history / audit trail | L | T17 | `92.5` |
-| T19 | WP-94 CadencePolicy + relationship health | L | T5 | `92.6`, `91.10` |
-| T20 | WP-95 Preferences + gift tracking | M | T5 | `92.6`, `91.9`/`91.11` |
-| T21 | WP-96 ConversationAgenda | M | T5 | `92.6`, `91.11` |
+| T20a | WP-95 Preferences — migrate `Contact.FoodPreference`, project `hobby` | M | — | `92.6`, `91.9` |
 | **Phase D — alpha readiness (the pre-real-data gate)** | | | | |
 | T22 | Legacy-representation / dead-code audit + migration squash | L | all above | Tier 6 |
 | T23 | UI polish — typography, icons, strings | M | — | Tier 6 |
 | T24 | Non-critical test-coverage expansion | M | — | Tier 6, `45` |
 | T25 | Known small functional gaps sweep | S | — | Tier 0 notes |
 | | **→ ALPHA — real data begins here** | | | |
-| **Post-alpha** | | | | |
-| P1 | Contact sharing between users | XL | T9 | Tier 5 |
+| **Phase C-post — P6–P10 remainder (all additive; safe after alpha)** | | | | |
+| T10 | WP-85 graph traversal + multi-hop chains | M–L | — | `92.2` |
+| T11 | WP-86 search synonyms, household scope, FTS5 | L | T10, T1 | `92.2` |
+| T12b | WP-87 serve Interactions/LifeEvents as CalDAV | L | T12a, T5 | `92.3` |
+| T13 | WP-88 two-way calendar sync ⚠ policy call | M–L | T12b | `92.3` |
+| T14 | WP-89 external-link substrate (ExternalIdentity/Activity) | M | — | `92.4`, `91.12` |
+| T15 | WP-90 Immich level 1 (linking) | M | T14 | `92.4` |
+| T16 | WP-91 Immich level 2 (enrichment) | M | T15 | `92.4` |
+| T18 | WP-93 event history / audit trail | L | T17 | `92.5` |
+| T19 | WP-94 CadencePolicy + relationship health | L | T5 | `92.6`, `91.10` |
+| T20b | WP-95 Gift tracking | M | T5 | `92.6`, `91.11` |
+| T21 | WP-96 ConversationAgenda | M | T5 | `92.6`, `91.11` |
+| **Post-alpha — other** | | | | |
+| P1 | Contact sharing — one-time filtered copy | **M** | T9 | Tier 5 |
+| P1b | Contact sharing — standing/live share + permission model | XL | P1 | Tier 5 |
 | P2 | Other integrations (Dawarich, Jellyfin, Paperless-ngx, …) | — | T14 | `92.7` |
 | P3 | AI / Ollama layer | — | most of the above | `92.7`, `90` D1 |
 | P4 | Local-model code-gen pilot | — | mobile client work | `80` |
 
-**One open decision, flagged not decided — where the alpha cut line goes.** As written, alpha sits after
-all 12 Phase C tickets, which puts it a long way out. Phase C is *capability depth* (search, CalDAV,
-Immich, sync, cadence) layered onto an app that would already work without any of it. If the point of
-alpha is to start generating real usage and real data, a defensible alternative is to cut alpha after
-**Phase A + B + D** and move Phase C to post-alpha — Phase C's features are enhancements to a working
-CRM, not prerequisites for one. Recommend deciding this before starting T9, since it changes whether
-Phase C or Phase D comes next. Not actioned here.
+**Alpha cut line — decided 2026-07-30.** Phase C was originally a single block of 12 tickets sitting
+between the working app and alpha, which put alpha a long way out for capability depth (search, CalDAV,
+Immich, sync, cadence) layered onto a CRM that would already work without any of it. Each Phase C ticket
+was then classified by whether it *changes the shape of data or contracts that alpha will populate*, and
+only three came back yes — so Phase C is split, and alpha now cuts after **A + B + C-pre + D**.
+
+The classification, with the evidence behind it (checked against the code, not inferred from the WP text):
+
+| Ticket | Verdict | Why |
+|---|---|---|
+| T12a ETag primitives | **pre** | `ETag` exists only on `Contact`/`ContactSubscription`. `Activity` got `UUID` in WP-84 but no ETag; `LifeEvent` has neither. CalDAV needs a per-resource ETag, so this is an additive column + backfill on `activities` — same shape as WP-84's own `activities.uuid` backfill (migration `000030`), a proven pattern here. Split out of WP-87 so the cheap schema half lands pre-alpha without dragging a whole CalDAV server with it. |
+| T17 change feeds | **pre** | Not a data risk — an **API-contract** risk. Every list endpoint returns offset-shaped `{total, page, limit}`; WP-92 explicitly replaces that with cursors ("not offset — for large histories"). Free to break while we are the only consumer; a versioning scheme once anything external depends on it. Also interacts with T8 — publishing the OpenAPI spec and *then* flipping pagination means publishing the contract twice. |
+| T20a Preferences | **pre** | WP-95's "migrate `FoodPreference`" moves a live, populated field that spans 13 files (model, `contactmodel` envelope, `contact_record`/`_reverse`, import, CSV export, 5 frontend files) into a new entity. Structurally the *same* migration as `Contact.Circles`→Circle/Tag, which is already pre-alpha as T2 — doing one before and one after would be incoherent. |
+| T10 graph traversal | post | Pure read layer: recursive CTEs over `relationship_edges`, inferred relations "computed, not stored" per `92.2`. Zero schema. |
+| T11 search + FTS5 | post | No FTS5 anywhere today, so this adds virtual tables + triggers + an index backfill — but that index is *derived*, rebuildable from source at any time. A post-alpha build is a re-runnable index job, not a destructive migration. |
+| T12b CalDAV serve | post | Once T12a's primitive exists, serving is read-side and additive. |
+| T13 two-way sync | post ⚠ | Additive, but carries a real policy call — see its detail below. Gated behind T12b anyway. |
+| T14–T16 substrate + Immich | post | All-new tables; nothing existing changes. `Activity.ExternalRef` is already in place waiting for it (WP-84). |
+| T18 audit trail | post | Pure-additive new log table. The cost of deferring is not risk but **lost history** — an audit log only knows what happened after it is switched on, so alpha-period undo/debugging is unrecoverable. A judgment call, not a hazard. |
+| T19 cadence | post | New `CadencePolicy` table; health is derived from the timeline, not stored. **Better deferred** — cadence computed against a real interaction history is immediately meaningful, whereas pre-alpha it computes over nothing. `Activity.Qualifying()` already exists and has had no consumer since WP-84. |
+| T20b gift tracking | post | New entity, unrelated to T20a's migration — which is why WP-95 was split. |
+| T21 agenda | post | New entity, contact-view surface. Additive. |
 
 ## Ticket detail
 
@@ -286,19 +309,41 @@ interactive. This is specified as foot-gun prevention, not decoration.
 builds the field-selection model and UI that post-alpha contact sharing (P1) is supposed to reuse rather
 than reinvent.
 
-### T10–T21 — Phase C capability phases (WP-85 … WP-96)
+### T12a — Activity/LifeEvent sync primitives (ETag)
+
+**What's necessary.** An `etag` column on `activities` (and `life_events` if it will be served too),
+generated and refreshed the way `Contact.ETag` already is — `models/contact.go` computes
+`e-{id}-{updatedAt.Unix()}` in its create/save hooks — plus a migration backfilling existing rows,
+following `000030`'s `activities.uuid` backfill precedent exactly.
+
+**Why here, split out of WP-87.** This is the only genuinely schema-shaped part of the CalDAV work, and
+it is small. Splitting it out means the cheap column lands while the tables are empty, without pulling a
+whole CalDAV server implementation (T12b, sized L) in front of alpha to get it.
+
+### T10–T21 — the rest of the P6–P10 capability phases (WP-85 … WP-96)
 
 Scope for each is in `92-delivery-roadmap.md` `§92.2`–`§92.6` and is not duplicated here; that doc remains
-the source of truth for these. Re-groom notes worth carrying:
+the source of truth. Pre/post-alpha placement and its evidence are in the classification table above.
+Re-groom notes worth carrying:
 
-- **T10/T11 (search).** T11's household-scoped queries ("everyone in the Smith household") now genuinely
-  depend on T1 — households are unreachable until then, so that half of WP-86 has nothing to query.
-- **T12/T13 (CalDAV).** T12 serves Interactions **and LifeEvents** out, so it depends on T5 for LifeEvents
-  to be real, user-visible objects rather than an API-only entity.
-- **T14–T16 (Immich).** Substrate first, deliberately, so no integration grows bespoke tables. Immich
-  level 3 (bidirectional) stays deferred pending an upstream Immich capability — not a scheduling choice.
+- **T11 (search).** Household-scoped queries ("everyone in the Smith household") now genuinely depend on
+  T1 — households are unreachable until then, so that half of WP-86 has nothing to query.
+- **T12b (CalDAV serve).** Serves Interactions **and LifeEvents** out, so it depends on T5 for LifeEvents
+  to be real, user-visible objects rather than an API-only entity, and on T12a for the ETag primitive.
+- **T13 (two-way sync) — the one post-alpha ticket carrying a real warning.** Its risk is not schema but
+  **reconciliation policy applied to real data**. `CalendarEventLink` today reconciles one-way via
+  `ContentHash`, with no ETag/If-Match primitive; two-way means deciding what wins when both sides
+  changed. This repo has a precedent that must **not** be inherited by default: `reconcileContactSync`
+  deliberately full-overwrites local edits on remote change (intentional, and pinned by Tier 3c item
+  11a's test). Shipping that same policy onto real synced calendar data would silently discard real user
+  edits. Settle the merge semantics explicitly, and prefer testing against a scratch calendar over a live
+  one.
+- **T14–T16 (Immich).** Substrate first, deliberately, so no integration grows bespoke tables — keep that
+  order even post-alpha. Immich level 3 (bidirectional) stays deferred pending an upstream Immich
+  capability, which is a dependency, not a scheduling choice.
 - **T17 (change feeds).** Depends on T8 in practice: cursor pagination over "the entity APIs" is only
-  meaningful once those APIs are specified, and it should land in the spec at the same time.
+  meaningful once those APIs are specified, and it should land in the spec at the same time — which is
+  also why it is pre-alpha, so the spec is published once with its final pagination shape.
 - **T19–T21.** All read the timeline (`91.8`), hence the shared T5 dependency. T19 carries the rule that
   **recording a qualifying interaction resets cadence, not completing a task** — `Activity.Qualifying()`
   already exists for exactly this and has had no consumer since WP-84.
@@ -349,6 +394,48 @@ here.
 
 **Why here.** Data-loss bugs should be closed before real data exists, which puts this inside Phase D
 rather than after it.
+
+### P1 / P1b — contact sharing between users
+
+**Re-sized 2026-07-30 from XL to M, and split.** The old XL was not wrong so much as *answering a
+different question*: Tier 5's own text below imagines a **standing, live, permissioned share** —
+"data model for shared-vs-private fields, permission model," a share that re-syncs and re-confirms
+"on every field newly marked sensitive after the share was created." That is genuinely XL. But the
+near-term feature is much smaller, and conflating them inflated the ticket.
+
+**P1 — one-time filtered copy (M).** Sender picks a contact and a field selection, the system emits a
+filtered copy, the recipient accepts and it lands in their account. Almost every piece already exists:
+
+| Step | What it reuses |
+|---|---|
+| Field selection + filtering | T9/WP-97's picker and its `Record`/`Card` filter function — built to be reused here, not reimplemented (`92.6b` says so explicitly) |
+| Serialize the filtered record | `jscontact.Adapter{}.Export(record)`, already the engine behind `ExportContactsAsJSContact` |
+| Parse on accept | `services.ParseJSContact` — already exists, already feeds the shared import path |
+| Duplicate detection + preview | `services.DetectDuplicate` + the existing import-session preview/confirm flow |
+| Write into the recipient's account | `MergeImportedContact` / `ApplyRecordToContact`, the one shared Record→Contact writer |
+
+So the genuinely **new** surface is small: a `ContactShare` entity (from-user, to-user, payload, status
+pending/accepted/declined), create/list/accept/decline endpoints, and two frontend pieces — a share
+dialog wrapping T9's picker, and an incoming-shares inbox. That is M, not XL.
+
+**Safe post-alpha? Yes — additive, with one decision to make deliberately.** It adds a new table and
+changes no existing shape, and unlike T13 the write path is user-initiated per acceptance with an
+explicit preview, not a background sync. The decision worth making consciously rather than inheriting:
+**what accepting a share does when the recipient already has that person.** `MergeImportedContact`'s
+policy is "incoming wins if non-empty, existing survives if blank" (confirmed and pinned by Tier 3c item
+11c) — which may be wrong here, since a shared copy arguably should not overwrite the recipient's own
+notes and edits on someone they already track. Decide create-new vs. merge-into-match vs. ask, rather
+than defaulting into the import path's existing behavior.
+
+**One product caveat that is not a technical one.** The stated use case is two users on the same
+instance, e.g. spouses. If alpha *is* that scenario, sharing may be a headline feature of alpha rather
+than a follow-on — in which case pull P1 forward for product reasons, not safety ones. Technically it is
+safe either side of the line.
+
+**P1b — standing/live share + permission model (XL, deferred).** Everything Tier 5's section below
+describes beyond the one-time copy: persistence for a live share, the shared-vs-private field model, the
+permission model, and re-confirmation when a field is newly marked sensitive after the share exists.
+Needs its own design pass before it can be broken into WPs. Do not start it as part of P1.
 
 ## Tier 0 — DONE: WP-72 frontend nested-model remodel
 
@@ -921,9 +1008,14 @@ doing as one PR, given how large WP-84's own frontend blast-radius estimate was:
 
 ## Tier 5 — Contact sharing between users (standalone, big)
 
-> **Superseded as a plan by the ticket board (2026-07-30); retained for detail.** Now ticket P1,
-> **post-alpha** — it still needs its own design pass before it can be broken into WPs, and it reuses
-> T9/WP-97's field-selection model rather than rebuilding it.
+> **Superseded as a plan by the ticket board (2026-07-30); retained for detail.** **Split into P1 and
+> P1b, and re-sized.** What this section describes — a standing, live, permissioned share — is P1b and
+> is genuinely XL. But the near-term feature is a **one-time filtered copy** (P1), which is only **M**:
+> the sender's field selection reuses T9/WP-97's picker and filter, serialization reuses the existing
+> JSContact export adapter, and the recipient's accept path reuses `ParseJSContact` + `DetectDuplicate` +
+> the existing import preview/confirm flow. The genuinely new surface is a `ContactShare` entity, four
+> endpoints, and two frontend pieces. See P1's ticket detail for the reuse map and the one merge-policy
+> decision it must make deliberately.
 
 Two users on the same instance (e.g. spouses) should be able to share contacts directly — opting which
 fields to include — rather than round-tripping through lossy VCF export/import. Explicitly a "revisit on

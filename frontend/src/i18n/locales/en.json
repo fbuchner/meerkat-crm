@@ -663,6 +663,7 @@
     "revokeSuccess": "Token revoked successfully",
     "columns": {
       "name": "Name",
+      "scope": "Scope",
       "created": "Created",
       "lastUsed": "Last Used",
       "status": "Status",
@@ -674,7 +675,12 @@
       "nameLabel": "Token Name",
       "createButton": "Create",
       "expiryLabel": "Expires in",
-      "expiryDays": "{{days}} days"
+      "expiryDays": "{{days}} days",
+      "scopeLabel": "Access",
+      "scopeFull": "Full access",
+      "scopeCardDAV": "CardDAV only",
+      "scopeFullHelp": "Can be used anywhere the API accepts a token, including CardDAV sync.",
+      "scopeCardDAVHelp": "Only works for CardDAV contact sync. A leaked device credential can't be used against the rest of the API."
     },
     "createdDialog": {
       "title": "Token Created",

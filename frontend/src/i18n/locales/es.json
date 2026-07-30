@@ -663,6 +663,7 @@
     "revokeSuccess": "Token revocado exitosamente",
     "columns": {
       "name": "Nombre",
+      "scope": "Acceso",
       "created": "Creado",
       "lastUsed": "Último Uso",
       "status": "Estado",
@@ -674,7 +675,12 @@
       "nameLabel": "Nombre del Token",
       "createButton": "Crear",
       "expiryLabel": "Caduca en",
-      "expiryDays": "{{days}} días"
+      "expiryDays": "{{days}} días",
+      "scopeLabel": "Acceso",
+      "scopeFull": "Acceso completo",
+      "scopeCardDAV": "Solo CardDAV",
+      "scopeFullHelp": "Se puede usar en cualquier lugar donde la API acepte un token, incluida la sincronización de CardDAV.",
+      "scopeCardDAVHelp": "Solo funciona para la sincronización de contactos CardDAV. Una credencial de dispositivo filtrada no se puede usar contra el resto de la API."
     },
     "createdDialog": {
       "title": "Token Creado",

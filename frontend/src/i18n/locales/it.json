@@ -663,6 +663,7 @@
     "revokeSuccess": "Token revocato con successo",
     "columns": {
       "name": "Nome",
+      "scope": "Accesso",
       "created": "Creato",
       "lastUsed": "Ultimo Uso",
       "status": "Stato",
@@ -674,7 +675,12 @@
       "nameLabel": "Nome Token",
       "createButton": "Crea",
       "expiryLabel": "Scade tra",
-      "expiryDays": "{{days}} giorni"
+      "expiryDays": "{{days}} giorni",
+      "scopeLabel": "Accesso",
+      "scopeFull": "Accesso completo",
+      "scopeCardDAV": "Solo CardDAV",
+      "scopeFullHelp": "Può essere usato ovunque l'API accetti un token, inclusa la sincronizzazione CardDAV.",
+      "scopeCardDAVHelp": "Funziona solo per la sincronizzazione dei contatti CardDAV. Una credenziale del dispositivo trapelata non può essere usata contro il resto dell'API."
     },
     "createdDialog": {
       "title": "Token Creato",

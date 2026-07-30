@@ -37,9 +37,11 @@ import {
   createApiToken,
   revokeApiToken,
   ApiToken,
+  ApiTokenScope,
   ApiTokenCreateResponse,
   API_TOKEN_EXPIRY_OPTIONS,
   DEFAULT_API_TOKEN_EXPIRY_DAYS,
+  DEFAULT_API_TOKEN_SCOPE,
 } from './api/apiTokens';
 import { useSnackbar } from './context/SnackbarContext';
 import WebhooksSettings from './components/WebhooksSettings';
@@ -56,6 +58,7 @@ export default function ApiTokensPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newTokenName, setNewTokenName] = useState('');
   const [newTokenExpiryDays, setNewTokenExpiryDays] = useState<number>(DEFAULT_API_TOKEN_EXPIRY_DAYS);
+  const [newTokenScope, setNewTokenScope] = useState<ApiTokenScope>(DEFAULT_API_TOKEN_SCOPE);
   const [createLoading, setCreateLoading] = useState(false);
 
   // Token display dialog (shown once after creation)
@@ -88,10 +91,11 @@ export default function ApiTokensPage() {
     if (!newTokenName.trim()) return;
     setCreateLoading(true);
     try {
-      const result = await createApiToken(newTokenName.trim(), newTokenExpiryDays);
+      const result = await createApiToken(newTokenName.trim(), newTokenExpiryDays, newTokenScope);
       setCreateDialogOpen(false);
       setNewTokenName('');
       setNewTokenExpiryDays(DEFAULT_API_TOKEN_EXPIRY_DAYS);
+      setNewTokenScope(DEFAULT_API_TOKEN_SCOPE);
       setCreatedToken(result);
       setCopied(false);
       await fetchTokens();
@@ -173,6 +177,7 @@ export default function ApiTokensPage() {
                 <TableHead>
                   <TableRow>
                     <TableCell>{t('apiTokens.columns.name')}</TableCell>
+                    <TableCell>{t('apiTokens.columns.scope')}</TableCell>
                     <TableCell>{t('apiTokens.columns.created')}</TableCell>
                     <TableCell>{t('apiTokens.columns.lastUsed')}</TableCell>
                     <TableCell>{t('apiTokens.columns.expires')}</TableCell>
@@ -183,7 +188,7 @@ export default function ApiTokensPage() {
                 <TableBody>
                   {tokens.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center">
+                      <TableCell colSpan={7} align="center">
                         <Typography color="text.secondary">{t('apiTokens.noTokens')}</Typography>
                       </TableCell>
                     </TableRow>
@@ -191,6 +196,17 @@ export default function ApiTokensPage() {
                     tokens.map((token) => (
                       <TableRow key={token.id}>
                         <TableCell>{token.name}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={
+                              token.scope === 'carddav'
+                                ? t('apiTokens.createDialog.scopeCardDAV')
+                                : t('apiTokens.createDialog.scopeFull')
+                            }
+                            size="small"
+                            variant="outlined"
+                          />
+                        </TableCell>
                         <TableCell>{new Date(token.created_at).toLocaleString()}</TableCell>
                         <TableCell>{formatDate(token.last_used_at)}</TableCell>
                         <TableCell>{formatDate(token.expires_at)}</TableCell>
@@ -253,6 +269,22 @@ export default function ApiTokensPage() {
                 {t('apiTokens.createDialog.expiryDays', { days })}
               </MenuItem>
             ))}
+          </TextField>
+          <TextField
+            select
+            label={t('apiTokens.createDialog.scopeLabel')}
+            value={newTokenScope}
+            onChange={(e) => setNewTokenScope(e.target.value as ApiTokenScope)}
+            helperText={
+              newTokenScope === 'carddav'
+                ? t('apiTokens.createDialog.scopeCardDAVHelp')
+                : t('apiTokens.createDialog.scopeFullHelp')
+            }
+            fullWidth
+            margin="normal"
+          >
+            <MenuItem value="full">{t('apiTokens.createDialog.scopeFull')}</MenuItem>
+            <MenuItem value="carddav">{t('apiTokens.createDialog.scopeCardDAV')}</MenuItem>
           </TextField>
         </DialogContent>
         <DialogActions>

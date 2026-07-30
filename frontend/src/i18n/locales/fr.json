@@ -663,6 +663,7 @@
     "revokeSuccess": "Jeton révoqué avec succès",
     "columns": {
       "name": "Nom",
+      "scope": "Accès",
       "created": "Créé",
       "lastUsed": "Dernière utilisation",
       "status": "Statut",
@@ -674,7 +675,12 @@
       "nameLabel": "Nom du jeton",
       "createButton": "Créer",
       "expiryLabel": "Expire dans",
-      "expiryDays": "{{days}} jours"
+      "expiryDays": "{{days}} jours",
+      "scopeLabel": "Accès",
+      "scopeFull": "Accès complet",
+      "scopeCardDAV": "CardDAV uniquement",
+      "scopeFullHelp": "Peut être utilisé partout où l'API accepte un jeton, y compris pour la synchronisation CardDAV.",
+      "scopeCardDAVHelp": "Fonctionne uniquement pour la synchronisation des contacts CardDAV. Un identifiant d'appareil compromis ne peut pas être utilisé contre le reste de l'API."
     },
     "createdDialog": {
       "title": "Jeton créé",

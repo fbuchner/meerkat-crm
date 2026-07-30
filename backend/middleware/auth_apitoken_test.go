@@ -145,6 +145,77 @@ func TestAuthMiddleware_ApiToken_UpdatesLastUsedAt(t *testing.T) {
 	assert.WithinDuration(t, time.Now(), *updated.LastUsedAt, 5*time.Second)
 }
 
+func TestAuthMiddleware_FullScopeApiTokenAuthenticates(t *testing.T) {
+	db, router := setupAuthTestRouter()
+
+	var user models.User
+	db.First(&user)
+
+	plaintext := "mycorrhizal_fullscopetoken12345"
+	db.Create(&models.ApiToken{
+		UserID:    user.ID,
+		Name:      "full-scope",
+		TokenHash: hashToken(plaintext),
+		Scope:     "full",
+	})
+
+	req, _ := http.NewRequest("GET", "/protected", nil)
+	req.Header.Set("Authorization", "Bearer "+plaintext)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestAuthMiddleware_DefaultScopeApiTokenAuthenticates(t *testing.T) {
+	// Tokens minted before the scope column existed default to "full" via the
+	// DB column default, so this is a no-regression check.
+	db, router := setupAuthTestRouter()
+
+	var user models.User
+	db.First(&user)
+
+	plaintext := "mycorrhizal_defaultscopetoken1"
+	db.Create(&models.ApiToken{
+		UserID:    user.ID,
+		Name:      "default-scope",
+		TokenHash: hashToken(plaintext),
+	})
+
+	req, _ := http.NewRequest("GET", "/protected", nil)
+	req.Header.Set("Authorization", "Bearer "+plaintext)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestAuthMiddleware_CardDAVScopeApiTokenRejected(t *testing.T) {
+	db, router := setupAuthTestRouter()
+
+	var user models.User
+	db.First(&user)
+
+	plaintext := "mycorrhizal_carddavscopetoken1"
+	db.Create(&models.ApiToken{
+		UserID:    user.ID,
+		Name:      "carddav-scope",
+		TokenHash: hashToken(plaintext),
+		Scope:     "carddav",
+	})
+
+	req, _ := http.NewRequest("GET", "/protected", nil)
+	req.Header.Set("Authorization", "Bearer "+plaintext)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+
+	var body map[string]string
+	json.Unmarshal(w.Body.Bytes(), &body)
+	assert.Equal(t, "This token is scoped to CardDAV and cannot be used for the API", body["error"])
+}
+
 func TestAuthMiddleware_MissingAuthorizationHeader(t *testing.T) {
 	_, router := setupAuthTestRouter()
 

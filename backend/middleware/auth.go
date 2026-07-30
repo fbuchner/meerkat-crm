@@ -45,26 +45,20 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 		// Handle API tokens (mycorrhizal_ prefix)
 		if strings.HasPrefix(tokenString, "mycorrhizal_") {
 			db := c.MustGet("db").(*gorm.DB)
-			hash := fmt.Sprintf("%x", sha256.Sum256([]byte(tokenString)))
-			var apiToken models.ApiToken
-			// A NULL expires_at means "no expiry" and only occurs for rows
-			// predating that column; tokens minted through the API always
-			// carry one.
-			if err := db.Where(
-				"token_hash = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?)",
-				hash, time.Now(),
-			).First(&apiToken).Error; err != nil {
+			apiToken, ok := LookupAPIToken(db, tokenString)
+			if !ok {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+				c.Abort()
+				return
+			}
+			if apiToken.Scope == "carddav" {
+				c.JSON(http.StatusForbidden, gin.H{"error": "This token is scoped to CardDAV and cannot be used for the API"})
 				c.Abort()
 				return
 			}
 			c.Set("userID", apiToken.UserID)
 			c.Set("isAPIToken", true)
-			go func(id uint) {
-				if err := db.Model(&models.ApiToken{}).Where("id = ?", id).Update("last_used_at", time.Now()).Error; err != nil {
-					logger.Logger.Warn().Err(err).Uint("api_token_id", id).Msg("Failed to update api token last_used_at")
-				}
-			}(apiToken.ID)
+			TouchAPIToken(db, apiToken.ID)
 			c.Next()
 			return
 		}
@@ -151,6 +145,36 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 		c.Set("userID", userID)
 		c.Next()
 	}
+}
+
+// LookupAPIToken validates a raw "mycorrhizal_"-prefixed API token string
+// against the database, returning the matching row if it exists, isn't
+// revoked, and hasn't expired. Shared by AuthMiddleware's bearer-token
+// branch and carddav/auth.go's Basic-Auth fallback.
+func LookupAPIToken(db *gorm.DB, raw string) (*models.ApiToken, bool) {
+	if !strings.HasPrefix(raw, "mycorrhizal_") {
+		return nil, false
+	}
+	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(raw)))
+	var apiToken models.ApiToken
+	// A NULL expires_at means "no expiry" and only occurs for rows
+	// predating that column; tokens minted through the API always carry one.
+	if err := db.Where(
+		"token_hash = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?)",
+		hash, time.Now(),
+	).First(&apiToken).Error; err != nil {
+		return nil, false
+	}
+	return &apiToken, true
+}
+
+// TouchAPIToken asynchronously updates last_used_at for a validated token.
+func TouchAPIToken(db *gorm.DB, id uint) {
+	go func(id uint) {
+		if err := db.Model(&models.ApiToken{}).Where("id = ?", id).Update("last_used_at", time.Now()).Error; err != nil {
+			logger.Logger.Warn().Err(err).Uint("api_token_id", id).Msg("Failed to update api token last_used_at")
+		}
+	}(id)
 }
 
 // uintClaim reads a numeric claim as uint. JSON round-tripping makes every

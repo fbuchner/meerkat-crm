@@ -70,9 +70,21 @@ func BasicAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Validate password
-		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-			// Record failed attempt for password mismatch
+		// Validate password, falling back to an API token (of either scope --
+		// "full" or "carddav") if the account password doesn't match. This is
+		// also what makes CardDAV work for SSO/OIDC-provisioned users, whose
+		// Password is "" and can never satisfy bcrypt.
+		passwordOK := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)) == nil
+
+		var matchedToken *models.ApiToken
+		if !passwordOK {
+			if apiToken, ok := middleware.LookupAPIToken(db, password); ok && apiToken.UserID == user.ID {
+				matchedToken = apiToken
+			}
+		}
+
+		if !passwordOK && matchedToken == nil {
+			// Record failed attempt for password/token mismatch
 			isLocked, _ := accountLimiter.RecordFailedAttempt(identifier)
 			logger.Warn().
 				Str("identifier", identifier).
@@ -96,6 +108,10 @@ func BasicAuthMiddleware() gin.HandlerFunc {
 		c.Set("userID", user.ID)
 		c.Set("username", user.Username)
 		c.Set("user", &user)
+
+		if matchedToken != nil {
+			middleware.TouchAPIToken(db, matchedToken.ID)
+		}
 
 		c.Next()
 	}

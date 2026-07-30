@@ -160,6 +160,71 @@ func TestCreateApiToken_Success(t *testing.T) {
 	assert.NotContains(t, stored.TokenHash, "mycorrhizal_")
 }
 
+func TestCreateApiToken_DefaultScopeIsFull(t *testing.T) {
+	db, router := setupRouter()
+	db.AutoMigrate(&models.ApiToken{})
+
+	router.POST("/api-tokens", withValidated(func() any { return &models.ApiTokenInput{} }), CreateApiToken)
+
+	input := models.ApiTokenInput{Name: "no-scope-given"}
+	body, _ := json.Marshal(input)
+
+	req, _ := http.NewRequest("POST", "/api-tokens", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	var resp models.ApiTokenCreateResponse
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, "full", resp.Scope)
+
+	var stored models.ApiToken
+	require.NoError(t, db.First(&stored, resp.ID).Error)
+	assert.Equal(t, "full", stored.Scope)
+}
+
+func TestCreateApiToken_CardDAVScope(t *testing.T) {
+	db, router := setupRouter()
+	db.AutoMigrate(&models.ApiToken{})
+
+	router.POST("/api-tokens", withValidated(func() any { return &models.ApiTokenInput{} }), CreateApiToken)
+
+	input := models.ApiTokenInput{Name: "sync-device", Scope: "carddav"}
+	body, _ := json.Marshal(input)
+
+	req, _ := http.NewRequest("POST", "/api-tokens", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	var resp models.ApiTokenCreateResponse
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, "carddav", resp.Scope)
+
+	var stored models.ApiToken
+	require.NoError(t, db.First(&stored, resp.ID).Error)
+	assert.Equal(t, "carddav", stored.Scope)
+}
+
+func TestCreateApiToken_InvalidScopeRejected(t *testing.T) {
+	db, router := setupRouter()
+	db.AutoMigrate(&models.ApiToken{})
+
+	router.POST("/api-tokens", middleware.ValidateJSONMiddleware(&models.ApiTokenInput{}), CreateApiToken)
+
+	body, _ := json.Marshal(map[string]string{"name": "bad-scope", "scope": "admin"})
+	req, _ := http.NewRequest("POST", "/api-tokens", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
 func TestCreateApiToken_MissingName(t *testing.T) {
 	db, router := setupRouter()
 	db.AutoMigrate(&models.ApiToken{})

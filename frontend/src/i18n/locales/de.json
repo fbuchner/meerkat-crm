@@ -663,6 +663,7 @@
     "revokeSuccess": "Token erfolgreich widerrufen",
     "columns": {
       "name": "Name",
+      "scope": "Zugriff",
       "created": "Erstellt",
       "lastUsed": "Zuletzt verwendet",
       "status": "Status",
@@ -674,7 +675,12 @@
       "nameLabel": "Token-Name",
       "createButton": "Erstellen",
       "expiryLabel": "Läuft ab in",
-      "expiryDays": "{{days}} Tage"
+      "expiryDays": "{{days}} Tage",
+      "scopeLabel": "Zugriff",
+      "scopeFull": "Voller Zugriff",
+      "scopeCardDAV": "Nur CardDAV",
+      "scopeFullHelp": "Kann überall verwendet werden, wo die API einen Token akzeptiert, einschließlich CardDAV-Synchronisierung.",
+      "scopeCardDAVHelp": "Funktioniert nur für die CardDAV-Kontaktsynchronisierung. Ein durchgesickertes Geräte-Credential kann nicht für den Rest der API verwendet werden."
     },
     "createdDialog": {
       "title": "Token erstellt",

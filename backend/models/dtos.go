@@ -249,12 +249,18 @@ const DefaultApiTokenExpiryDays = 90
 // MaxApiTokenExpiryDays caps how far out a token may be dated.
 const MaxApiTokenExpiryDays = 365
 
+// DefaultApiTokenScope is used when a token is created without an explicit scope.
+const DefaultApiTokenScope = "full"
+
 // ApiTokenInput represents the DTO for creating an API token
 type ApiTokenInput struct {
 	Name string `json:"name" validate:"required,min=1,max=100"`
 	// ExpiresInDays is optional; omitting it applies DefaultApiTokenExpiryDays.
 	// There is deliberately no "never expires" option.
 	ExpiresInDays *int `json:"expires_in_days" validate:"omitempty,min=1,max=365"`
+	// Scope is optional; omitting it applies DefaultApiTokenScope ("full").
+	// "carddav" restricts the token to the CardDAV Basic-Auth path only.
+	Scope string `json:"scope" validate:"omitempty,oneof=full carddav"`
 }
 
 // ApiTokenResponse represents the DTO returned for an API token
@@ -265,6 +271,7 @@ type ApiTokenResponse struct {
 	LastUsedAt *time.Time `json:"last_used_at"`
 	RevokedAt  *time.Time `json:"revoked_at"`
 	ExpiresAt  *time.Time `json:"expires_at"`
+	Scope      string     `json:"scope"`
 }
 
 // ApiTokenCreateResponse is returned on token creation and includes the plaintext token

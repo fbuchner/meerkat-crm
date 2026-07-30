@@ -41,6 +41,7 @@ func ListApiTokens(c *gin.Context) {
 			LastUsedAt: t.LastUsedAt,
 			RevokedAt:  t.RevokedAt,
 			ExpiresAt:  t.ExpiresAt,
+			Scope:      t.Scope,
 		}
 	}
 
@@ -76,11 +77,17 @@ func CreateApiToken(c *gin.Context) {
 	}
 	expiresAt := time.Now().Add(time.Duration(expiryDays) * 24 * time.Hour)
 
+	scope := models.DefaultApiTokenScope
+	if input.Scope != "" {
+		scope = input.Scope
+	}
+
 	token := models.ApiToken{
 		UserID:    userID,
 		Name:      input.Name,
 		TokenHash: hash,
 		ExpiresAt: &expiresAt,
+		Scope:     scope,
 	}
 	if err := db.Create(&token).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("insert"))
@@ -95,6 +102,7 @@ func CreateApiToken(c *gin.Context) {
 			LastUsedAt: token.LastUsedAt,
 			RevokedAt:  token.RevokedAt,
 			ExpiresAt:  token.ExpiresAt,
+			Scope:      token.Scope,
 		},
 		Token: plaintext,
 	})

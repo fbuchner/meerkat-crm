@@ -416,6 +416,11 @@ func DeleteContact(c *gin.Context) {
 			return err
 		}
 
+		// Manually delete associated reminder completions
+		if err := tx.Where("contact_id = ? AND user_id = ?", id, userID).Delete(&models.ReminderCompletion{}).Error; err != nil {
+			return err
+		}
+
 		// Manually delete associated notes
 		if err := tx.Where("contact_id = ? AND user_id = ?", id, userID).Delete(&models.Note{}).Error; err != nil {
 			return err
@@ -423,6 +428,14 @@ func DeleteContact(c *gin.Context) {
 
 		// Manually delete associated relationships
 		if err := tx.Where("contact_id = ? AND user_id = ?", id, userID).Delete(&models.Relationship{}).Error; err != nil {
+			return err
+		}
+
+		// Clear the optional link on other contacts' relationship entries that
+		// pointed to this contact as the related person. Those rows belong to a
+		// different, still-existing contact, so only the dangling link is
+		// cleared -- the relationship entry itself (name/type/etc.) is kept.
+		if err := tx.Model(&models.Relationship{}).Where("related_contact_id = ? AND user_id = ?", contact.ID, userID).Update("related_contact_id", nil).Error; err != nil {
 			return err
 		}
 

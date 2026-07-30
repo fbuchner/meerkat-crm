@@ -378,6 +378,29 @@ func DeleteUser(c *gin.Context) {
 			return err
 		}
 
+		// Delete CardDAV sync token
+		if err := tx.Where("user_id = ?", userID).Delete(&models.CardDAVSync{}).Error; err != nil {
+			return err
+		}
+
+		// Delete API tokens
+		if err := tx.Where("user_id = ?", userID).Delete(&models.ApiToken{}).Error; err != nil {
+			return err
+		}
+
+		// Delete reminder completions
+		if err := tx.Where("user_id = ?", userID).Delete(&models.ReminderCompletion{}).Error; err != nil {
+			return err
+		}
+
+		// Delete calendar event links, then calendar subscriptions (child before parent)
+		if err := tx.Where("user_id = ?", userID).Delete(&models.CalendarEventLink{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("user_id = ?", userID).Delete(&models.CalendarSubscription{}).Error; err != nil {
+			return err
+		}
+
 		// Delete relationship-graph edges
 		if err := tx.Where("user_id = ?", userID).Delete(&models.RelationshipEdge{}).Error; err != nil {
 			return err

@@ -329,6 +329,65 @@ func DeleteUser(c *gin.Context) {
 			return err
 		}
 
+		// Delete webhook deliveries, then webhooks (child before parent;
+		// WebhookDelivery has no direct UserID, only WebhookID)
+		if err := tx.Exec("DELETE FROM webhook_deliveries WHERE webhook_id IN (SELECT id FROM webhooks WHERE user_id = ?)", userID).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("user_id = ?", userID).Delete(&models.Webhook{}).Error; err != nil {
+			return err
+		}
+
+		// Delete CardDAV contact sync links, then subscriptions (child before parent)
+		if err := tx.Where("user_id = ?", userID).Delete(&models.ContactSyncLink{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("user_id = ?", userID).Delete(&models.ContactSubscription{}).Error; err != nil {
+			return err
+		}
+
+		// Delete household memberships, then households (child before parent)
+		if err := tx.Where("user_id = ?", userID).Delete(&models.HouseholdMember{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("user_id = ?", userID).Delete(&models.Household{}).Error; err != nil {
+			return err
+		}
+
+		// Delete circle memberships, then circles (child before parent)
+		if err := tx.Where("user_id = ?", userID).Delete(&models.CircleMember{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("user_id = ?", userID).Delete(&models.Circle{}).Error; err != nil {
+			return err
+		}
+
+		// Delete contact tags, then tags (child before parent)
+		if err := tx.Where("user_id = ?", userID).Delete(&models.ContactTag{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("user_id = ?", userID).Delete(&models.Tag{}).Error; err != nil {
+			return err
+		}
+
+		// Delete custom field values, then field definitions (child before parent)
+		if err := tx.Where("user_id = ?", userID).Delete(&models.FieldValue{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("user_id = ?", userID).Delete(&models.FieldDefinition{}).Error; err != nil {
+			return err
+		}
+
+		// Delete relationship-graph edges
+		if err := tx.Where("user_id = ?", userID).Delete(&models.RelationshipEdge{}).Error; err != nil {
+			return err
+		}
+
+		// Delete life events
+		if err := tx.Where("user_id = ?", userID).Delete(&models.LifeEvent{}).Error; err != nil {
+			return err
+		}
+
 		// Delete contacts
 		if err := tx.Where("user_id = ?", userID).Delete(&models.Contact{}).Error; err != nil {
 			return err

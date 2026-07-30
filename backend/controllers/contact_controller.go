@@ -431,6 +431,38 @@ func DeleteContact(c *gin.Context) {
 			return err
 		}
 
+		// Delete relationship-graph edges referencing this contact (source or target)
+		if err := tx.Where("(source_id = ? OR target_id = ?) AND user_id = ?", contact.VCardUID, contact.VCardUID, userID).Delete(&models.RelationshipEdge{}).Error; err != nil {
+			return err
+		}
+
+		// Delete this contact's household/circle memberships and tags (not the
+		// household/circle/tag containers themselves -- other contacts may still
+		// belong to them)
+		if err := tx.Where("member_vcard_uid = ? AND user_id = ?", contact.VCardUID, userID).Delete(&models.HouseholdMember{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("member_vcard_uid = ? AND user_id = ?", contact.VCardUID, userID).Delete(&models.CircleMember{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("contact_vcard_uid = ? AND user_id = ?", contact.VCardUID, userID).Delete(&models.ContactTag{}).Error; err != nil {
+			return err
+		}
+
+		// Delete this contact's life events and custom field values
+		if err := tx.Where("entity_id = ? AND user_id = ?", contact.VCardUID, userID).Delete(&models.LifeEvent{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("entity_id = ? AND user_id = ?", contact.VCardUID, userID).Delete(&models.FieldValue{}).Error; err != nil {
+			return err
+		}
+
+		// Delete CardDAV contact sync links (a genuine Contact.ID FK, unlike the
+		// VCardUID-based references above)
+		if err := tx.Where("contact_id = ? AND user_id = ?", id, userID).Delete(&models.ContactSyncLink{}).Error; err != nil {
+			return err
+		}
+
 		// Finally, delete the contact
 		if err := tx.Delete(&contact).Error; err != nil {
 			return err

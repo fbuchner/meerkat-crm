@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func intPtr(v int) *int { return &v }
@@ -654,6 +655,74 @@ func TestDeleteContact(t *testing.T) {
 	var responseBody map[string]string
 	json.Unmarshal(w.Body.Bytes(), &responseBody)
 	assert.Equal(t, "Contact deleted", responseBody["message"])
+}
+
+// TestDeleteContact_CleansUpReferencingRows is the regression test for Tier
+// 3c item 1 (docs/fork-plan/95-backlog-and-priorities.md): deleting a contact
+// must remove every row that references it via Contact.VCardUID (or, for
+// ContactSyncLink, Contact.ID), but must NOT delete the shared
+// Household/Circle/Tag/FieldDefinition containers other contacts may still
+// belong to.
+func TestDeleteContact_CleansUpReferencingRows(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+
+	contact := models.Contact{UserID: user.ID, Firstname: "Orphan", Lastname: "Check"}
+	require.NoError(t, db.Create(&contact).Error)
+
+	require.NoError(t, db.Create(&models.RelationshipEdge{UserID: user.ID, SourceID: contact.VCardUID, TargetID: contact.VCardUID, Type: "related_to"}).Error)
+	require.NoError(t, db.Create(&models.LifeEvent{UserID: user.ID, EntityID: contact.VCardUID, Type: "custom"}).Error)
+
+	household := models.Household{UserID: user.ID, Name: "h", Type: "other"}
+	require.NoError(t, db.Create(&household).Error)
+	require.NoError(t, db.Create(&models.HouseholdMember{HouseholdID: household.ID, UserID: user.ID, MemberVCardUID: contact.VCardUID, Role: "adult"}).Error)
+
+	circle := models.Circle{UserID: user.ID, Name: "c"}
+	require.NoError(t, db.Create(&circle).Error)
+	require.NoError(t, db.Create(&models.CircleMember{CircleID: circle.ID, UserID: user.ID, MemberVCardUID: contact.VCardUID}).Error)
+
+	tag := models.Tag{UserID: user.ID, Name: "t"}
+	require.NoError(t, db.Create(&tag).Error)
+	require.NoError(t, db.Create(&models.ContactTag{TagID: tag.ID, UserID: user.ID, ContactVCardUID: contact.VCardUID}).Error)
+
+	fieldDef := models.FieldDefinition{UserID: user.ID, Label: "f", Key: "f", Target: "contact", Type: "text"}
+	require.NoError(t, db.Create(&fieldDef).Error)
+	require.NoError(t, db.Create(&models.FieldValue{FieldDefinitionID: fieldDef.ID, UserID: user.ID, EntityID: contact.VCardUID, Value: json.RawMessage(`"v"`)}).Error)
+
+	sub := models.ContactSubscription{UserID: user.ID, Name: "sub", URL: "https://example.com/dav"}
+	require.NoError(t, db.Create(&sub).Error)
+	require.NoError(t, db.Create(&models.ContactSyncLink{SubscriptionID: sub.ID, UserID: user.ID, ContactID: contact.ID, Href: "/dav/1.vcf"}).Error)
+
+	router.DELETE("/contacts/:id", DeleteContact)
+
+	req, _ := http.NewRequest("DELETE", "/contacts/"+strconv.Itoa(int(contact.ID)), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	assertCount := func(name string, model any, want int64, where string, args ...any) {
+		t.Helper()
+		var count int64
+		require.NoError(t, db.Model(model).Where(where, args...).Count(&count).Error)
+		assert.Equal(t, want, count, "%s row count mismatch after DeleteContact", name)
+	}
+
+	assertCount("RelationshipEdge", &models.RelationshipEdge{}, 0, "user_id = ?", user.ID)
+	assertCount("LifeEvent", &models.LifeEvent{}, 0, "user_id = ?", user.ID)
+	assertCount("HouseholdMember", &models.HouseholdMember{}, 0, "user_id = ?", user.ID)
+	assertCount("CircleMember", &models.CircleMember{}, 0, "user_id = ?", user.ID)
+	assertCount("ContactTag", &models.ContactTag{}, 0, "user_id = ?", user.ID)
+	assertCount("FieldValue", &models.FieldValue{}, 0, "user_id = ?", user.ID)
+	assertCount("ContactSyncLink", &models.ContactSyncLink{}, 0, "user_id = ?", user.ID)
+
+	// The shared containers themselves must survive
+	assertCount("Household", &models.Household{}, 1, "id = ?", household.ID)
+	assertCount("Circle", &models.Circle{}, 1, "id = ?", circle.ID)
+	assertCount("Tag", &models.Tag{}, 1, "id = ?", tag.ID)
+	assertCount("FieldDefinition", &models.FieldDefinition{}, 1, "id = ?", fieldDef.ID)
 }
 
 func TestGetCircles(t *testing.T) {

@@ -15,20 +15,28 @@ import (
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
-// walDSN appends the WAL journal-mode pragma to a plain file path. WAL is
-// what makes docs/deployment.md's backup instructions ("copy the database
-// file while the app is running") actually safe -- the default rollback
-// journal can leave a plain `cp` with a torn/inconsistent file mid-write.
-// WAL mode is persisted in the database file itself once set, so this only
-// needs to run against a real file, never ":memory:".
-func walDSN(dbPath string) string {
-	return dbPath + "?_pragma=journal_mode(WAL)"
+// openDSN appends this app's standard connection pragmas to a plain file
+// path:
+//   - journal_mode(WAL): what makes docs/deployment.md's backup instructions
+//     ("copy the database file while the app is running") actually safe --
+//     the default rollback journal can leave a plain `cp` with a torn,
+//     inconsistent file mid-write. Persisted in the database file itself
+//     once set, so this only needs to run against a real file, never
+//     ":memory:".
+//   - foreign_keys(1): turns on real FK enforcement (Tier 3c item 8) --
+//     unlike journal_mode this is a per-connection setting, not persisted in
+//     the file, so it must be supplied via the DSN (applied by the driver on
+//     every new physical connection it opens) rather than a one-time
+//     PRAGMA statement, which would only affect whichever single connection
+//     ran it.
+func openDSN(dbPath string) string {
+	return dbPath + "?_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)"
 }
 
 // InitDB initializes the database connection and runs migrations
 func InitDB(dbPath string) (*gorm.DB, error) {
 	// Open database connection for migrations
-	sqlDB, err := sql.Open("sqlite", walDSN(dbPath))
+	sqlDB, err := sql.Open("sqlite", openDSN(dbPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -39,7 +47,7 @@ func InitDB(dbPath string) (*gorm.DB, error) {
 	}
 
 	// Open GORM connection
-	db, err := gorm.Open(sqlite.Open(walDSN(dbPath)), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(openDSN(dbPath)), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect with GORM: %w", err)
 	}

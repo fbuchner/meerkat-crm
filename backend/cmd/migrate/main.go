@@ -28,11 +28,11 @@ func run(command string) error {
 	dbPath := "mycorrhizal.db"
 	migrationsPath := "file://database/migrations"
 
-	// WAL mode is persisted in the database file itself once set (matching
-	// database.InitDB's own DSN) -- setting it here too means a fresh
-	// database ends up in WAL mode even if this CLI runs before the app ever
-	// does its own InitDB.
-	db, err := sql.Open("sqlite", dbPath+"?_pragma=journal_mode(WAL)")
+	// Matching database.InitDB's own DSN (WAL mode persists in the file
+	// itself once set; foreign_keys is per-connection and must be supplied
+	// here too so a fresh database run through this CLI ends up consistent
+	// with the app's own connection).
+	db, err := sql.Open("sqlite", dbPath+"?_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)")
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}

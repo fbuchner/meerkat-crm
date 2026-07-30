@@ -16,6 +16,16 @@ func setupWebhookRetryTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
+
+	// :memory: sqlite is per-connection; deliverWebhook and ProcessWebhookRetries
+	// dispatch through goroutines, so a second pooled connection would see an
+	// empty (table-less) database. Pin to a single connection, matching the
+	// convention used by the other services *_test.go DB setups that touch
+	// goroutines (e.g. setupCalendarSyncTestDB, setupReminderTestDB).
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	sqlDB.SetMaxOpenConns(1)
+
 	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Webhook{}, &models.WebhookDelivery{}, &models.JobExecution{}))
 	return db
 }

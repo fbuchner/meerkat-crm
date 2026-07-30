@@ -74,13 +74,15 @@
 > unsupported/empty language codes now instead of silently accepting anything. **Tier 3 is fully closed.**
 >
 > **Re-groomed 2026-07-30 into a single ticket board** (see the next section) merging everything still
-> open here with the remaining WPs in `92-delivery-roadmap.md` — **16 tickets to alpha, 16 after**.
-> Tiers 4/5/6 are superseded as a *plan* by that board and retained only for their detail. The re-groom's
-> headline finding: five backend entities are fully built but unreachable by any user (Household,
-> Circle/Tag, LifeEvent, custom-fields v2), so the board's Phase A activates those first — which also
-> closes P5's still-open acceptance gate. The alpha cut line was then drawn by classifying each P6–P10
-> ticket on whether it changes data/contract shape: only 3 of 12 do, so 9 moved past alpha. **Next up is
-> T1** (Household CRUD + suggestion trigger).
+> open here with the remaining WPs in `92-delivery-roadmap.md` — **19 tickets to alpha, 22 after**.
+> Tiers 4/5/6 are superseded as a *plan* by that board and retained only for their detail. Three passes
+> produced it: (1) a survey finding five backend entities fully built but unreachable by any user
+> (Household, Circle/Tag, LifeEvent, custom-fields v2) — activating those dominates the early order and
+> closes P5's still-open acceptance gate; (2) an alpha cut line drawn by asking, per P6–P10 ticket,
+> whether it changes data/contract shape — only 3 of 12 do, so 9 moved past alpha; (3) a product review
+> scoring every ticket 1–5 for usefulness, which added 9 tickets for real gaps (contact merge, prep view,
+> LifeEvent reminders, 2FA, restore, bulk ops, attachments, notifications) and re-scoped the inherited
+> dead-end journal into a capture inbox. **Next up is N1** (contact merge — the only R5 inside alpha).
 
 ## How to read this
 
@@ -99,7 +101,12 @@ Everything still open, from this file **and** `92-delivery-roadmap.md`, merged i
 tickets. One ticket per feature/enhancement/change, each independently completable on its own branch
 (per the branch-per-concern discipline used throughout).
 
-**Ordering principle (user's call, 2026-07-30): activate what's already built before starting new
+**Note on "Phase A/B/C/D".** Those labels survive in the ticket details and in the superseded-tier
+pointers below as *conceptual groupings* (Phase A = activate what's built, D = alpha readiness, and so
+on). The board itself is no longer organised by them — it is one dependency-and-value ordering, so a
+ticket's number is its position, not its phase.
+
+**First ordering principle (user's call, 2026-07-30): activate what's already built before starting new
 phases.** The survey behind this re-groom found five backend entities that are fully implemented but
 **unreachable by any user** — the single largest gap in the project, and one the old tier structure hid
 by filing it as "Tier 4 exception: WP-84c's deferred frontend/migration half":
@@ -129,47 +136,113 @@ release-readiness gate.
 
 ## The board
 
-| # | Ticket | Size | Depends on | Source |
-|---|---|---|---|---|
-| **Phase A — activate what's built** | | | | |
-| T1 | Household CRUD API + suggestion trigger + review wiring | M | — | WP-83, §3d WP3 |
-| T2 | Circle/Tag user-assisted triage migration | M | — | WP-84c-i, `91.5` |
-| T3 | Circle/Tag backend call-site rewiring | S–M | T2 | WP-84c-ii |
-| T4 | Circle/Tag frontend rewiring (~18 files) | L | T3 | WP-84c-iii |
-| T5 | LifeEvent frontend + timeline surface | M | — | WP-84, `91.6`/`91.8` |
-| T6 | Custom fields v2 — API surface | M | — | WP-84b, `94` |
-| T7 | Custom fields v2 — frontend, backfill run, retire v1 | L | T6 | WP-84b, `94.6` |
-| T8 | OpenAPI coverage + spec/route drift test | M | T1–T7 | `92.9` |
-| **Phase B — independent, not gated by P5** | | | | |
-| T9 | WP-97 selective field export + sensitivity gating | L | — | `92.6b` |
-| **Phase C-pre — the only P6–P10 work that must precede alpha** | | | | |
-| T12a | Activity/LifeEvent sync primitives (ETag column + backfill) | S | — | `92.3` prereq |
-| T17 | WP-92 change feeds + cursor pagination | M | T8 | `92.5` |
-| T20a | WP-95 Preferences — migrate `Contact.FoodPreference`, project `hobby` | M | — | `92.6`, `91.9` |
-| **Phase D — alpha readiness (the pre-real-data gate)** | | | | |
-| T22 | Legacy-representation / dead-code audit + migration squash | L | all above | Tier 6 |
-| T23 | UI polish — typography, icons, strings | M | — | Tier 6 |
-| T24 | Non-critical test-coverage expansion | M | — | Tier 6, `45` |
-| T25 | Known small functional gaps sweep | S | — | Tier 0 notes |
-| | **→ ALPHA — real data begins here** | | | |
-| **Phase C-post — P6–P10 remainder (all additive; safe after alpha)** | | | | |
-| T10 | WP-85 graph traversal + multi-hop chains | M–L | — | `92.2` |
-| T11 | WP-86 search synonyms, household scope, FTS5 | L | T10, T1 | `92.2` |
-| T12b | WP-87 serve Interactions/LifeEvents as CalDAV | L | T12a, T5 | `92.3` |
-| T13 | WP-88 two-way calendar sync ⚠ policy call | M–L | T12b | `92.3` |
-| T14 | WP-89 external-link substrate (ExternalIdentity/Activity) | M | — | `92.4`, `91.12` |
-| T15 | WP-90 Immich level 1 (linking) | M | T14 | `92.4` |
-| T16 | WP-91 Immich level 2 (enrichment) | M | T15 | `92.4` |
-| T18 | WP-93 event history / audit trail | L | T17 | `92.5` |
-| T19 | WP-94 CadencePolicy + relationship health | L | T5 | `92.6`, `91.10` |
-| T20b | WP-95 Gift tracking | M | T5 | `92.6`, `91.11` |
-| T21 | WP-96 ConversationAgenda | M | T5 | `92.6`, `91.11` |
-| **Post-alpha — other** | | | | |
-| P1 | Contact sharing — one-time filtered copy | **M** | T9 | Tier 5 |
-| P1b | Contact sharing — standing/live share + permission model | XL | P1 | Tier 5 |
-| P2 | Other integrations (Dawarich, Jellyfin, Paperless-ngx, …) | — | T14 | `92.7` |
-| P3 | AI / Ollama layer | — | most of the above | `92.7`, `90` D1 |
-| P4 | Local-model code-gen pilot | — | mobile client work | `80` |
+**Usefulness rating (`R`), added 2026-07-30 in a product-review pass.** Scored per the user's scale:
+
+| R | Meaning |
+|---|---|
+| **5** | Practically necessary |
+| **4** | Strong feature or improvement, likely to see frequent use |
+| **3** | Nice to have, likely to be used |
+| **2** | Potentially nice, but unlikely to be used often |
+| **1** | Re-evaluate whether a CRM should do this at all |
+
+**Ordering rules, in precedence order (user's, 2026-07-30):** (1) dependency; (2) pre/post-alpha risk —
+anything that gets substantially harder or riskier once real data exists goes before alpha; (3) rating;
+(4) size, smaller first between equals. Note rule 2 sets the *alpha line* while rule 3 orders *within*
+each side — so a high rating does not by itself pull a ticket before alpha, and rule 1 can override rule
+3 (which is why T23/T22 sit late despite R4/R3, and why T10 at R2 precedes T11 at R5).
+
+### Before alpha
+
+| # | Ticket | R | Size | Depends on | Source |
+|---|---|---|---|---|---|
+| 1 | **N1** Contact merge / dedupe for existing contacts | **5** | M | — | new (gap) |
+| 2 | **N4** Notes: dead-end journal → capture inbox | **4** | S–M | — | new (re-scope) |
+| 3 | **T5** LifeEvent frontend + timeline surface | 4 | M | — | WP-84, `91.6`/`91.8` |
+| 4 | **T5b** LifeEvent → reminder wiring | 4 | S | T5 | new (gap) |
+| 5 | **T2** Circle/Tag user-assisted triage migration | 4 | M | — | WP-84c-i, `91.5` |
+| 6 | **T3** Circle/Tag backend call-site rewiring | 4 | S–M | T2 | WP-84c-ii |
+| 7 | **T4** Circle/Tag frontend rewiring (~18 files) | 4 | L | T3 | WP-84c-iii |
+| 8 | **T25** Known small functional gaps sweep | 3 | S | — | Tier 0 notes |
+| 9 | **T1** Household CRUD + suggestion trigger + review wiring | 3 | M | — | WP-83, §3d WP3 |
+| 10 | **T20a** Preferences — migrate `FoodPreference`, project `hobby` | 3 | M | — | `92.6`, `91.9` |
+| 11 | **T6** Custom fields v2 — API surface | 3 | M | — | WP-84b, `94` |
+| 12 | **T7** Custom fields v2 — frontend, backfill, retire v1 | 3 | L | T6 | WP-84b, `94.6` |
+| 13 | **T9** WP-97 selective field export + sensitivity gating | 3 | L | — | `92.6b` |
+| 14 | **T12a** Activity/LifeEvent sync primitives (ETag) | 2 | S | — | `92.3` prereq |
+| 15 | **T24** Non-critical test-coverage expansion | 2 | M | — | Tier 6, `45` |
+| 16 | **T8** OpenAPI coverage + spec/route drift test | 2\* | M | T1–T7 | `92.9` |
+| 17 | **T17** WP-92 change feeds + cursor pagination | 2\* | M | T8 | `92.5` |
+| 18 | **T23** UI polish — typography, icons, strings | 4 | M | *(soft: all UI done)* | Tier 6 |
+| 19 | **T22** Legacy / dead-code audit + migration squash | 3 | L | all above | Tier 6 |
+| | **→ ALPHA — real data begins here** | | | | |
+
+\* T8/T12a/T17 are rated on user-visible value. **If a mobile client is real they are 4s**; if it never
+happens, T17 in particular is pre-alpha work buying nothing. See the open question below.
+
+### After alpha
+
+| # | Ticket | R | Size | Depends on | Source |
+|---|---|---|---|---|---|
+| 20 | **T19** WP-94 CadencePolicy + relationship health | **5** | L | T5 | `92.6`, `91.10` |
+| 21 | **T21** WP-96 ConversationAgenda | 4 | M | T5 | `92.6`, `91.11` |
+| 22 | **N2** Prep view / person briefing screen | **5** | M | T5, T19, T21 | new (gap) |
+| 23 | **T10** WP-85 graph traversal + multi-hop chains | 2 | M–L | — | `92.2` |
+| 24 | **T11** WP-86 search synonyms, household scope, FTS5 | **5** | L | T10, T1 | `92.2` |
+| 25 | **N8** 2FA / TOTP enrollment | 3 | M | — | new (gap) |
+| 26 | **N6** Full backup **restore** (export exists; import is contacts-only) | 3 | M | — | new (gap) |
+| 27 | **N5** Bulk operations (tag / circle / archive / delete) | 3 | M | T4 | new (gap) |
+| 28 | **T20b** WP-95 Gift tracking | 3 | M | T5 | `92.6`, `91.11` |
+| 29 | **N7** File / document attachments per contact | 3 | M | — | new (gap) |
+| 30 | **N9** Notification channels beyond email (ntfy/Gotify/push) | 3 | M | — | new (gap) |
+| 31 | **P1** Contact sharing — one-time filtered copy | 3 | M | T9 | Tier 5 |
+| 32 | **T14** WP-89 external-link substrate | 2 | M | — | `92.4`, `91.12` |
+| 33 | **T15** WP-90 Immich level 1 (linking) | 3 | M | T14 | `92.4` |
+| 34 | **T16** WP-91 Immich level 2 (enrichment) | 3 | M | T15 | `92.4` |
+| 35 | **T18** WP-93 event history / audit trail | 2 | L | T17 | `92.5` |
+| 36 | **T12b** WP-87 serve Interactions/LifeEvents as CalDAV | 2 | L | T12a, T5 | `92.3` |
+| 37 | **T13** WP-88 two-way calendar sync ⚠ policy call | 2 | M–L | T12b | `92.3` |
+| 38 | **P1b** Contact sharing — standing/live share + permissions | 2 | XL | P1 | Tier 5 |
+| 39 | **P2** Other integrations (Dawarich, Jellyfin, Paperless-ngx, …) | 2 | — | T14 | `92.7` |
+| 40 | **P3** AI / Ollama layer | 1 | — | most of the above | `92.7`, `90` D1 |
+| 41 | **P4** Local-model code-gen pilot | 1 | — | mobile client work | `80` |
+
+### ⚠ The ordering rules produce an alpha with no rating-5 capability in it
+
+Worth stating plainly, because it is a consequence of the rules rather than a judgment anyone made:
+**all three R5 capabilities — T19 cadence, T11 search, N2 prep view — land *after* alpha**, because rule 2
+places the line by *risk* and all three are additive/safe to defer. N1 contact merge is the only R5 inside
+alpha. So alpha as ordered above is a good place to *put* data without yet containing the reasons to
+*use* it — which is a problem, since alpha exists to generate real usage.
+
+**Recommendation (not applied — rules were followed as given): pull T19 forward, leave T11 where it is.**
+T19 is the product's reason to exist ("who have I not talked to in too long"), its only dependency (T5) is
+already pre-alpha, and its value is immediate on day one of real use. T11's value, by contrast, *scales
+with data volume* — searching a few weeks of alpha notes is not the problem; searching five years of them
+is. So deferring search is principled, while deferring cadence guts the alpha. N2 prep view then becomes
+partially available (it degrades gracefully without T21's agenda items).
+
+### Considered and deliberately not ticketed
+
+Reviewed against Monica's feature set and rejected, with reasons, so they don't get re-raised:
+
+- **Tasks** (R2) — deliberately delegated to an external manager: `92.6`/WP-94 routes overdue cadence to
+  Vikunja via webhook rather than building a task system. A legitimate architecture choice, not an omission.
+- **Debts / money owed** (R1) — Monica has it; niche enough to not belong in this product.
+- **Conversation/message log** (R2) — already covered: `Activity.Type` includes `message`, and Activities
+  support multiple contacts.
+- **Introduction chain / "who introduced us"** (R2) — mostly covered by `HowWeMet`; if wanted, it is a
+  registry token in `relationship_type_registry.go`, not a feature.
+- **Standalone journal as it exists today** (R1) — superseded by N4 rather than kept. See N4's detail.
+
+### Open questions that change the ordering
+
+1. **Is a mobile client actually going to happen?** It re-rates T8, T12a, and T17 from 2 to 4 and
+   justifies their pre-alpha placement. If not, T17 especially should move past alpha. `92.9` and `80`
+   both assume mobile eventually; nothing has committed to it.
+2. **Keep i18n across 5 locales?** (R2) Inherited from Meerkat. Every user-facing string in every ticket
+   above costs 5 translations — a real, permanent drag (§3d WP3 paid it). Defensible for a shared fork,
+   hard to justify for a one-or-two-person instance. Worth a deliberate keep-or-drop rather than default.
 
 **Alpha cut line — decided 2026-07-30.** Phase C was originally a single block of 12 tickets sitting
 between the working app and alpha, which put alpha a long way out for capability depth (search, CalDAV,
@@ -394,6 +467,89 @@ here.
 
 **Why here.** Data-loss bugs should be closed before real data exists, which puts this inside Phase D
 rather than after it.
+
+### N1 — contact merge / dedupe for existing contacts (R5, pre-alpha)
+
+**The gap.** Duplicate detection exists **only at import time** (`services.DetectDuplicate` +
+`MergeImportedContact`, reachable from the import preview/confirm flow). There is no way to merge two
+contacts that are *already* in the database. Duplicates will arrive continuously from CardDAV sync,
+repeat imports, and manual entry, and today the only remedy is deleting one by hand and losing whatever
+was attached to it.
+
+**What's necessary.** A merge endpoint taking a keep-ID and a merge-ID, plus a UI to pick the pair and
+preview the result. Field-level resolution can reuse `MergeImportedContact`'s already-pinned semantics,
+but the hard part is **everything hanging off the loser**, all of which must move rather than cascade-
+delete: notes, activities (many-to-many via `activity_contacts`), reminders and reminder completions,
+`RelationshipEdge` rows on both `source_id` and `target_id`, household/circle memberships, contact tags,
+`FieldValue` rows, and `ContactSyncLink`. `DeleteContact` in `contact_controller.go` already enumerates
+exactly this set for the delete path — use it as the checklist, and add a real-DB test that a merge
+leaves zero orphans and zero lost associations.
+
+**Why pre-alpha.** Not because building it gets harder later — because *not having it* during alpha
+produces duplicate sprawl across real data that then has to be untangled by hand. The cost lands on the
+data, not the code.
+
+### T5b — LifeEvent → reminder wiring (R4, pre-alpha)
+
+**The gap.** Birthdays auto-generate reminders (`birthday_service.go` → `GetUpcomingBirthdays`, feeding
+the dashboard widget, the daily email, and the `birthday.occurred` webhook). Life-event dates generate
+nothing, so "work anniversary," "death anniversary," "sobriety date," "wedding anniversary" are inert
+data once entered.
+
+**What's necessary.** Let a `LifeEvent` opt into recurring annual reminders, and surface those through
+the same path birthdays already use rather than a parallel one. Watch `PartialDate`: year-only events
+have no month/day to remind on, so the opt-in needs to be unavailable (not silently broken) for those.
+
+**Why here.** Small, and it completes T5 — shipping life events into alpha without it means alpha
+cannot actually evaluate whether the feature is useful, since the feature does nothing.
+
+### N4 — notes: dead-end journal → capture inbox (R4, pre-alpha)
+
+**The problem, and why this is a re-scope rather than a removal.** The standalone journal rates **1** as
+built: `NotesPage` creates notes via `createUnassignedNote` and passes `allContacts={[]}` to its dialog,
+so a note created there **can never be attached to a contact from the UI**. It is a dead-end diary inside
+a relationship CRM — it feeds nothing in the graph, timeline, or cadence. The "notes about a group" use
+case does not rescue it either, because `Activity` already supports multiple contacts and is the correct
+home for that.
+
+**The re-scope that makes it a 4.** Turn the same page into a **capture inbox**: quick-jot now, file onto
+a contact later. That targets the actual friction in a personal CRM — the useful detail always arrives
+when you are nowhere near the contact record. The backend already supports it (`UpdateNote` sets
+`ContactID`; the column is a nullable `*uint`); only the UI withholds it.
+
+**What's necessary.** Surface an unfiled-notes inbox with a visible count, add contact assignment to the
+edit path on that page (pass real contacts instead of `[]`), and let a filed note leave the inbox. Decide
+whether unfiled notes should nag (a badge) or sit quietly — an inbox nobody triages is the same dead end
+in a different shape.
+
+**Why pre-alpha.** Shipping the dead-end version into alpha generates exactly the pile of unfilable
+orphan notes the inbox exists to prevent.
+
+### N2 — prep view / person briefing screen (R5, post-alpha)
+
+**The gap, and why no existing ticket covers it.** Every ingredient is planned and none of them assemble:
+T5 gives life events, T19 gives cadence/overdue, T21 gives agenda items, and the timeline plus notes
+already exist. But nothing owns the screen you actually want *before you see someone*: last interaction
+and what was discussed, their kids' and partner's names from the graph, food preferences, open agenda
+items, upcoming dates, and how overdue the relationship is. This is the difference between a database and
+a relationship OS, and it is currently nobody's job.
+
+**What's necessary.** A single assembled view on the contact page (or a dedicated pre-meeting mode)
+composing the above from existing entities. Almost no new persistence — this is a read-side composition
+ticket, which is why it stays M despite being R5.
+
+**Why post-alpha.** Dependency, not value: it needs T19 and T21 to be complete. It degrades gracefully,
+so a reduced version could ship as soon as T19 lands.
+
+### N5–N9 — smaller gaps found in the Monica comparison (all post-alpha)
+
+| # | Ticket | What's necessary |
+|---|---|---|
+| **N5** | Bulk operations (R3, M) | Multi-select on the contacts list → bulk add/remove circle or tag, bulk archive, bulk delete. Depends on T4 so it operates on real Circle/Tag entities rather than the flat field. Matters once the list runs to hundreds. |
+| **N6** | Full backup restore (R3, M) | Export is complete (CSV with every section, VCF, JSContact) but **import is contacts-only**, so an exported instance cannot be restored. Either extend import to cover notes/activities/reminders/relationships/custom fields, or ship a documented SQLite file-level backup/restore procedure and explicitly declare app-level restore out of scope. Cheapest honest answer may be the latter. |
+| **N7** | File / document attachments (R3, M) | Per-contact file storage — reuse `photostore`'s on-disk pattern and `config.ProfilePhotoDir`'s precedent rather than inventing a second storage mechanism. Remember it expands the backup surface beyond the SQLite file. |
+| **N8** | 2FA / TOTP (R3, M) | No second factor exists today — password or OIDC only. Additive: a secret + recovery codes on `User`, enrollment UI, and a verification step in the login path. **Rate 4 if the instance is internet-exposed rather than behind a VPN/tailnet.** Note that Tier 1's security review did not flag this, so it is a genuine new finding rather than an accepted risk. |
+| **N9** | Notification channels beyond email (R3, M) | Reminders are email-only (`mailer.go`/`email_renderer.go`), which suits self-hosters poorly. Webhooks (already built) cover this crudely; a first-class ntfy/Gotify/push target does it properly. |
 
 ### P1 / P1b — contact sharing between users
 

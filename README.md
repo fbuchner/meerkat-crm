@@ -3,6 +3,7 @@
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/status-pre--alpha-orange?style=flat-square" alt="Status: Pre-Alpha">
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="https://golang.org"><img src="https://img.shields.io/badge/Backend-Go-00ADD8?logo=go" alt="Backend: Go"></a>
   <a href="https://reactjs.org"><img src="https://img.shields.io/badge/Frontend-React-61DAFB?logo=react" alt="Frontend: React"></a>
@@ -12,7 +13,7 @@
 
 **Mycorrhizal** (*my-core-high-zal*) relationships are mutually beneficial networks between fungi ([Mycorrhizae](https://hort.extension.wisc.edu/articles/mycorrhizae/)) and plants. I chose the name because the goal of this project is to help nurture connections with people I care about by keeping track of the small details I might otherwise forget and prompting me to check in periodically.
 
-Mycorrhizal CRM is a self-hosted, privacy-focused contact relationship management solution. It is a fork of [Meerkat CRM](https://github.com/fbuchner/meerkat-crm) by Frederic Buchner.
+Mycorrhizal CRM is a self-hosted contact relationship management solution. It is a fork of [Meerkat CRM](https://github.com/fbuchner/meerkat-crm) by Frederic Buchner.
 
 > **⚠️ Structural Fork & Compatibility Notice:** 
 > Mycorrhizal CRM is a **structural fork** of [Meerkat CRM](https://github.com/fbuchner/meerkat-crm). Because this project introduces custom database schemas, modified tables, and expanded data types (such as bidirectional relationships and custom field mappings), **it is not directly database-compatible with upstream Meerkat.** 
@@ -20,7 +21,7 @@ Mycorrhizal CRM is a self-hosted, privacy-focused contact relationship managemen
 > * Direct database migrations from upstream Meerkat are **NOT** supported at this time.
 > * Syncing Options: You can sync contacts between Meerkat and Mycorrhizal using CardDAV (though data not supported by standard CardDAV specs will not sync) or by exporting data from one and importing it into the other (though data not defined in the vCard 3.0 RFC is not guaranteed to persist across the export and import).
 
-> **⚠️ Exploration Phase Warning:** This repository is currently in an active exploration and development phase. Breaking changes are expected. If you are looking for a stable, production-ready self-hosted CRM right now, check out upstream [Meerkat](https://github.com/fbuchner/meerkat-crm).
+> **⚠️ Pre-Alpha Warning:** This repository is currently in an active exploration and development phase. Breaking changes are expected. If you are looking for a stable, production-ready self-hosted CRM right now, check out upstream [Meerkat](https://github.com/fbuchner/meerkat-crm).
 
 ---
 

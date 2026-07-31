@@ -92,7 +92,10 @@
 > whether it changes data/contract shape — only 3 of 12 do, so 9 moved past alpha; (3) a product review
 > scoring every ticket 1–5 for usefulness, which added 9 tickets for real gaps (contact merge, prep view,
 > LifeEvent reminders, 2FA, restore, bulk ops, attachments, notifications) and re-scoped the inherited
-> dead-end journal into a capture inbox. **Next up is N1** (contact merge — the only R5 inside alpha).
+> dead-end journal into a capture inbox.
+>
+> **N1 done** (2026-07-30, `c7b7e25`) — contact merge/dedupe, the only R5 inside alpha. **Next up is N4**
+> (notes: dead-end journal → capture inbox).
 
 ## How to read this
 
@@ -174,7 +177,7 @@ each side — so a high rating does not by itself pull a ticket before alpha, an
 
 | # | Ticket | R | Size | Depends on | Source |
 |---|---|---|---|---|---|
-| 1 | **N1** Contact merge / dedupe for existing contacts | **5** | M | — | new (gap) |
+| 1 | **N1** Contact merge / dedupe for existing contacts — **DONE** (`c7b7e25`) | **5** | M | — | new (gap) |
 | 2 | **N4** Notes: dead-end journal → capture inbox | **4** | S–M | — | new (re-scope) |
 | 3 | **T5** LifeEvent frontend + timeline surface | 4 | M | — | WP-84, `91.6`/`91.8` |
 | 4 | **T5b** LifeEvent → reminder wiring | 4 | S | T5 | new (gap) |
@@ -487,7 +490,42 @@ here.
 **Why here.** Data-loss bugs should be closed before real data exists, which puts this inside Phase D
 rather than after it.
 
-### N1 — contact merge / dedupe for existing contacts (R5, pre-alpha)
+### N1 — contact merge / dedupe for existing contacts (R5, pre-alpha) — **DONE**
+
+**Done** (2026-07-30, `c7b7e25`). Full detail lives in
+[`docs/fork-plan/tickets/01-N1-contact-merge.md`](tickets/01-N1-contact-merge.md); summary here.
+
+Two corrections to the plan below, found during implementation: **`MergeImportedContact`'s semantics were
+not reused** — its "incoming wins if non-empty" policy overwrites multi-valued fields instead of unioning
+them, which would have silently dropped data on exactly the case this ticket exists to preserve (a
+contact with `home@` merged with one with `work@` would have kept only one). Merge-specific
+union/conflict-resolution logic was written instead (`services.ComputeContactMergeResolution`), and
+`MergeImportedContact` itself is untouched. Second, `FieldValue` — unlike every other association — can't
+be unioned (one value per field per contact), so a collision became its own conflict list rather than a
+silent keeper-wins default, per the user's explicit call when this was scoped.
+
+`DeleteContact`'s cascade-delete checklist was extracted into a shared `deleteContactAssociations` so the
+merge-commit path and the standalone delete path share one canonical list (`CLAUDE.md`'s own warning
+about exactly this drift risk). N1 also closes a known limitation Tier 3c item 1 had accepted for
+deletes: `LifeEvent.RelatedEntityIDs` (a JSON array, not a joined row) is now correctly rewritten when a
+merged-away contact is referenced as a secondary participant on someone else's life event — `DeleteContact`
+still doesn't touch it, which is now the more limited of the two paths.
+
+**Found only by live-browser verification, not by 19 passing mocked/unit tests**: a Go nil slice
+marshals to JSON `null`, not `[]`. Every component test had hand-written `conflicts: []` in its fixture;
+the real backend sends `null` whenever a merge has no conflicts, and the dialog crashed spreading it.
+Fixed by normalizing once where the preview is stored (matching `useRelationshipEdges.ts`'s existing
+`|| []` convention), with a new regression test using the actual null-shape response. Hand-verified twice,
+per this repo's discipline: the union-vs-overwrite fix (revert, confirm the real-DB test fails, restore)
+and the null-slice fix (revert, confirm the new component test fails, restore).
+
+Verified end-to-end: full backend (`go test ./...`) and frontend (`tsc` + `vitest`) suites green, a
+real-DB integration test seeding every association type in one pass, and two full merges run live in a
+browser (including a fresh tab to rule out stale console history) with a clean console and correct audit
+notes on both.
+
+<details>
+<summary>Original scoping (kept for context)</summary>
 
 **The gap.** Duplicate detection exists **only at import time** (`services.DetectDuplicate` +
 `MergeImportedContact`, reachable from the import preview/confirm flow). There is no way to merge two
@@ -507,6 +545,8 @@ leaves zero orphans and zero lost associations.
 **Why pre-alpha.** Not because building it gets harder later — because *not having it* during alpha
 produces duplicate sprawl across real data that then has to be untangled by hand. The cost lands on the
 data, not the code.
+
+</details>
 
 ### T5b — LifeEvent → reminder wiring (R4, pre-alpha)
 

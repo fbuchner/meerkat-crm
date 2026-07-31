@@ -14,7 +14,7 @@ dependency → pre/post-alpha risk → usefulness rating → size.
 
 | # | Ticket | R | Size |
 |---|---|---|---|
-| [01](01-N1-contact-merge.md) | N1 · Contact merge / dedupe | 5 | M |
+| [01](01-N1-contact-merge.md) | N1 · Contact merge / dedupe — **DONE** | 5 | M |
 | [02](02-N4-notes-capture-inbox.md) | N4 · Notes: dead-end journal → capture inbox | 4 | S–M |
 | [03](03-T5-lifeevent-frontend.md) | T5 · LifeEvent frontend + timeline | 4 | M |
 | [04](04-T5b-lifeevent-reminders.md) | T5b · LifeEvent → reminder wiring | 4 | S |

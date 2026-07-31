@@ -60,6 +60,8 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			protected.GET("/contacts/circles", controllers.GetCircles)
 			protected.GET("/contacts/random", controllers.GetContactsRandom)
 			protected.GET("/contacts/birthdays", controllers.GetUpcomingBirthdays)
+			protected.POST("/contacts/merge/preview", middleware.ValidateJSONMiddleware(&models.ContactMergeRequest{}), controllers.PreviewContactMerge)
+			protected.POST("/contacts/merge", middleware.ValidateJSONMiddleware(&models.ContactMergeRequest{}), controllers.CommitContactMerge)
 			protected.POST("/contacts", middleware.ValidateJSONMiddleware(&models.ContactRecordInput{}), controllers.CreateContact)
 			protected.GET("/contacts/:id", controllers.GetContact)
 			protected.PUT("/contacts/:id", middleware.ValidateJSONMiddleware(&models.ContactRecordInput{}), controllers.UpdateContact)

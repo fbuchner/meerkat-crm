@@ -734,5 +734,20 @@
     "triggerReminders": "Invia Email Promemoria",
     "triggerRemindersSuccess": "Email di promemoria inviate con successo",
     "triggerRemindersError": "Invio email di promemoria fallito"
+  },
+  "contactMerge": {
+    "title": "Unisci contatti",
+    "description": "Unisci {{name}} a un altro contatto. {{name}} verrà rimosso e i suoi dati saranno uniti al contatto scelto qui sotto.",
+    "selectTarget": "Unisci con",
+    "searchContacts": "Digita per cercare contatti...",
+    "noContactsFound": "Nessun contatto trovato",
+    "typeToSearch": "Inizia a digitare per cercare",
+    "noConflicts": "Nessun conflitto da risolvere. Pronto per l'unione.",
+    "resolveConflicts": "Risolvi i campi in conflitto",
+    "resolveFieldValueConflicts": "Risolvi i campi personalizzati in conflitto",
+    "keepValue": "{{name}}: {{value}}",
+    "associationSummary": "Questo sposterà {{notes}} nota/e, {{activities}} attività, {{reminders}} promemoria e {{edges}} relazione/i sul contatto unito.",
+    "mergeButton": "Unisci",
+    "mergeSuccess": "Contatti uniti con successo"
   }
 }

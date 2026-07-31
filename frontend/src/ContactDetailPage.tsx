@@ -56,6 +56,7 @@ import ReminderDialog from './components/ReminderDialog';
 import ReminderList from './components/ReminderList';
 import EditTimelineItemDialog from './components/EditTimelineItemDialog';
 import ContactHeader from './components/ContactHeader';
+import MergeContactsDialog from './components/MergeContactsDialog';
 import ContactInformation from './components/ContactInformation';
 import ContactTimeline from './components/ContactTimeline';
 import ProfilePictureUploadDialog from './components/ProfilePictureUploadDialog';
@@ -112,6 +113,9 @@ export default function ContactDetailPage() {
 
   // Profile picture upload state
   const [profilePictureDialogOpen, setProfilePictureDialogOpen] = useState(false);
+
+  // Contact merge dialog state (ticket N1)
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
 
   // Custom field names
   const [customFieldNames, setCustomFieldNames] = useState<string[]>([]);
@@ -693,7 +697,19 @@ export default function ContactDetailPage() {
         onStayInTouch={record.archived ? undefined : handleStayInTouch}
         onArchiveContact={record.archived ? undefined : handleArchiveContact}
         onUnarchiveContact={record.archived ? handleUnarchiveContact : undefined}
+        onMergeContact={() => setMergeDialogOpen(true)}
       />
+
+      {record && (
+        <MergeContactsDialog
+          open={mergeDialogOpen}
+          onClose={() => setMergeDialogOpen(false)}
+          onMerged={(keeperId) => navigate(`/contacts/${keeperId}`)}
+          currentContactId={record.id}
+          currentContactUid={record.uid}
+          currentContactName={`${firstname} ${lastname}`.trim()}
+        />
+      )}
 
       {/* General Information and Timeline - Two Column Layout */}
       <Box sx={{ 

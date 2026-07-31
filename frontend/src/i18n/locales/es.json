@@ -734,5 +734,20 @@
     "triggerReminders": "Enviar Emails de Recordatorio",
     "triggerRemindersSuccess": "Emails de recordatorio enviados exitosamente",
     "triggerRemindersError": "Error al enviar los emails de recordatorio"
+  },
+  "contactMerge": {
+    "title": "Combinar contactos",
+    "description": "Combinar {{name}} con otro contacto. {{name}} se eliminará y sus datos se combinarán con el contacto que elijas a continuación.",
+    "selectTarget": "Combinar con",
+    "searchContacts": "Escribe para buscar contactos...",
+    "noContactsFound": "No se encontraron contactos",
+    "typeToSearch": "Empieza a escribir para buscar",
+    "noConflicts": "No hay conflictos que resolver. Listo para combinar.",
+    "resolveConflicts": "Resolver campos en conflicto",
+    "resolveFieldValueConflicts": "Resolver campos personalizados en conflicto",
+    "keepValue": "{{name}}: {{value}}",
+    "associationSummary": "Esto moverá {{notes}} nota(s), {{activities}} actividad(es), {{reminders}} recordatorio(s) y {{edges}} relación(es) al contacto combinado.",
+    "mergeButton": "Combinar",
+    "mergeSuccess": "Contactos combinados correctamente"
   }
 }

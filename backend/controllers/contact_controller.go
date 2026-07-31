@@ -429,6 +429,70 @@ func UpdateContact(c *gin.Context) {
 	c.JSON(http.StatusOK, models.NewContactRecordResponse(&contact, currentConfig(c).ProfilePhotoDir, db))
 }
 
+// deleteContactAssociations removes every row that references contact via
+// Contact.VCardUID (or, for ContactSyncLink, Contact.ID) -- everything
+// DeleteContact must clean up except the contact row itself. Shared by
+// DeleteContact and CommitContactMerge (contact_merge_controller.go) so the
+// checklist can never drift between the two deletion paths as new
+// association types are added later (see CLAUDE.md's cascade-delete trap).
+// Must run inside an existing transaction (tx); does not delete contact
+// itself -- callers do that.
+func deleteContactAssociations(tx *gorm.DB, contact models.Contact, userID uint) error {
+	// Manually delete associated reminders (soft delete doesn't trigger CASCADE)
+	if err := tx.Where("contact_id = ? AND user_id = ?", contact.ID, userID).Delete(&models.Reminder{}).Error; err != nil {
+		return err
+	}
+
+	// Manually delete associated reminder completions
+	if err := tx.Where("contact_id = ? AND user_id = ?", contact.ID, userID).Delete(&models.ReminderCompletion{}).Error; err != nil {
+		return err
+	}
+
+	// Manually delete associated notes
+	if err := tx.Where("contact_id = ? AND user_id = ?", contact.ID, userID).Delete(&models.Note{}).Error; err != nil {
+		return err
+	}
+
+	// Delete activity associations (many-to-many)
+	if err := tx.Exec("DELETE FROM activity_contacts WHERE contact_id = ? AND activity_id IN (SELECT id FROM activities WHERE user_id = ?)", contact.ID, userID).Error; err != nil {
+		return err
+	}
+
+	// Delete relationship-graph edges referencing this contact (source or target)
+	if err := tx.Where("(source_id = ? OR target_id = ?) AND user_id = ?", contact.VCardUID, contact.VCardUID, userID).Delete(&models.RelationshipEdge{}).Error; err != nil {
+		return err
+	}
+
+	// Delete this contact's household/circle memberships and tags (not the
+	// household/circle/tag containers themselves -- other contacts may still
+	// belong to them)
+	if err := tx.Where("member_vcard_uid = ? AND user_id = ?", contact.VCardUID, userID).Delete(&models.HouseholdMember{}).Error; err != nil {
+		return err
+	}
+	if err := tx.Where("member_vcard_uid = ? AND user_id = ?", contact.VCardUID, userID).Delete(&models.CircleMember{}).Error; err != nil {
+		return err
+	}
+	if err := tx.Where("contact_vcard_uid = ? AND user_id = ?", contact.VCardUID, userID).Delete(&models.ContactTag{}).Error; err != nil {
+		return err
+	}
+
+	// Delete this contact's life events and custom field values
+	if err := tx.Where("entity_id = ? AND user_id = ?", contact.VCardUID, userID).Delete(&models.LifeEvent{}).Error; err != nil {
+		return err
+	}
+	if err := tx.Where("entity_id = ? AND user_id = ?", contact.VCardUID, userID).Delete(&models.FieldValue{}).Error; err != nil {
+		return err
+	}
+
+	// Delete CardDAV contact sync links (a genuine Contact.ID FK, unlike the
+	// VCardUID-based references above)
+	if err := tx.Where("contact_id = ? AND user_id = ?", contact.ID, userID).Delete(&models.ContactSyncLink{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func DeleteContact(c *gin.Context) {
 	id := c.Param("id")
 	db := c.MustGet("db").(*gorm.DB)
@@ -451,55 +515,7 @@ func DeleteContact(c *gin.Context) {
 
 	// Start a transaction to ensure all deletes succeed together
 	err := db.Transaction(func(tx *gorm.DB) error {
-		// Manually delete associated reminders (soft delete doesn't trigger CASCADE)
-		if err := tx.Where("contact_id = ? AND user_id = ?", id, userID).Delete(&models.Reminder{}).Error; err != nil {
-			return err
-		}
-
-		// Manually delete associated reminder completions
-		if err := tx.Where("contact_id = ? AND user_id = ?", id, userID).Delete(&models.ReminderCompletion{}).Error; err != nil {
-			return err
-		}
-
-		// Manually delete associated notes
-		if err := tx.Where("contact_id = ? AND user_id = ?", id, userID).Delete(&models.Note{}).Error; err != nil {
-			return err
-		}
-
-		// Delete activity associations (many-to-many)
-		if err := tx.Exec("DELETE FROM activity_contacts WHERE contact_id = ? AND activity_id IN (SELECT id FROM activities WHERE user_id = ?)", id, userID).Error; err != nil {
-			return err
-		}
-
-		// Delete relationship-graph edges referencing this contact (source or target)
-		if err := tx.Where("(source_id = ? OR target_id = ?) AND user_id = ?", contact.VCardUID, contact.VCardUID, userID).Delete(&models.RelationshipEdge{}).Error; err != nil {
-			return err
-		}
-
-		// Delete this contact's household/circle memberships and tags (not the
-		// household/circle/tag containers themselves -- other contacts may still
-		// belong to them)
-		if err := tx.Where("member_vcard_uid = ? AND user_id = ?", contact.VCardUID, userID).Delete(&models.HouseholdMember{}).Error; err != nil {
-			return err
-		}
-		if err := tx.Where("member_vcard_uid = ? AND user_id = ?", contact.VCardUID, userID).Delete(&models.CircleMember{}).Error; err != nil {
-			return err
-		}
-		if err := tx.Where("contact_vcard_uid = ? AND user_id = ?", contact.VCardUID, userID).Delete(&models.ContactTag{}).Error; err != nil {
-			return err
-		}
-
-		// Delete this contact's life events and custom field values
-		if err := tx.Where("entity_id = ? AND user_id = ?", contact.VCardUID, userID).Delete(&models.LifeEvent{}).Error; err != nil {
-			return err
-		}
-		if err := tx.Where("entity_id = ? AND user_id = ?", contact.VCardUID, userID).Delete(&models.FieldValue{}).Error; err != nil {
-			return err
-		}
-
-		// Delete CardDAV contact sync links (a genuine Contact.ID FK, unlike the
-		// VCardUID-based references above)
-		if err := tx.Where("contact_id = ? AND user_id = ?", id, userID).Delete(&models.ContactSyncLink{}).Error; err != nil {
+		if err := deleteContactAssociations(tx, contact, userID); err != nil {
 			return err
 		}
 

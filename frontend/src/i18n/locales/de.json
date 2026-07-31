@@ -734,5 +734,20 @@
     "triggerReminders": "Erinnerungs-E-Mails senden",
     "triggerRemindersSuccess": "Erinnerungs-E-Mails erfolgreich gesendet",
     "triggerRemindersError": "Fehler beim Senden der Erinnerungs-E-Mails"
+  },
+  "contactMerge": {
+    "title": "Kontakte zusammenführen",
+    "description": "{{name}} mit einem anderen Kontakt zusammenführen. {{name}} wird entfernt und die Daten werden mit dem unten ausgewählten Kontakt zusammengeführt.",
+    "selectTarget": "Zusammenführen mit",
+    "searchContacts": "Zum Suchen tippen...",
+    "noContactsFound": "Keine Kontakte gefunden",
+    "typeToSearch": "Zum Suchen tippen",
+    "noConflicts": "Keine Konflikte zu lösen. Bereit zum Zusammenführen.",
+    "resolveConflicts": "Widersprüchliche Felder auflösen",
+    "resolveFieldValueConflicts": "Widersprüchliche benutzerdefinierte Felder auflösen",
+    "keepValue": "{{name}}: {{value}}",
+    "associationSummary": "Dabei werden {{notes}} Notiz(en), {{activities}} Aktivität(en), {{reminders}} Erinnerung(en) und {{edges}} Beziehung(en) auf den zusammengeführten Kontakt übertragen.",
+    "mergeButton": "Zusammenführen",
+    "mergeSuccess": "Kontakte erfolgreich zusammengeführt"
   }
 }

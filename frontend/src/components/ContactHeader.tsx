@@ -8,6 +8,7 @@ import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import AutoModeIcon from '@mui/icons-material/AutoMode';
 import ArchiveIcon from '@mui/icons-material/Archive';
 import UnarchiveIcon from '@mui/icons-material/Unarchive';
+import MergeIcon from '@mui/icons-material/MergeType';
 import { useTranslation } from 'react-i18next';
 import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
 import { ContactRecordResponse, nameComponentValue } from '../api/contacts';
@@ -44,6 +45,7 @@ interface ContactHeaderProps {
   onStayInTouch?: () => void;
   onArchiveContact?: () => void;
   onUnarchiveContact?: () => void;
+  onMergeContact?: () => void;
 }
 
 export default function ContactHeader({
@@ -67,7 +69,8 @@ export default function ContactHeader({
   onUploadProfilePicture,
   onStayInTouch,
   onArchiveContact,
-  onUnarchiveContact
+  onUnarchiveContact,
+  onMergeContact
 }: ContactHeaderProps) {
   const { t } = useTranslation();
   const enabled = enabledFields ?? resolveEnabledFields(null);
@@ -286,6 +289,16 @@ export default function ContactHeader({
                             onClick={onStayInTouch}
                           >
                             {t('contactDetail.stayInTouch')}
+                          </Button>
+                        )}
+                        {onMergeContact && (
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<MergeIcon />}
+                            onClick={onMergeContact}
+                          >
+                            {t('contactMerge.mergeButton')}
                           </Button>
                         )}
                         {onArchiveContact && (

@@ -734,5 +734,20 @@
     "triggerReminders": "Envoyer les e-mails de rappel",
     "triggerRemindersSuccess": "E-mails de rappel envoyés avec succès",
     "triggerRemindersError": "Échec de l'envoi des e-mails de rappel"
+  },
+  "contactMerge": {
+    "title": "Fusionner les contacts",
+    "description": "Fusionner {{name}} avec un autre contact. {{name}} sera supprimé et ses données combinées avec le contact choisi ci-dessous.",
+    "selectTarget": "Fusionner avec",
+    "searchContacts": "Tapez pour rechercher des contacts...",
+    "noContactsFound": "Aucun contact trouvé",
+    "typeToSearch": "Commencez à taper pour rechercher",
+    "noConflicts": "Aucun conflit à résoudre. Prêt à fusionner.",
+    "resolveConflicts": "Résoudre les champs en conflit",
+    "resolveFieldValueConflicts": "Résoudre les champs personnalisés en conflit",
+    "keepValue": "{{name}} : {{value}}",
+    "associationSummary": "Cela déplacera {{notes}} note(s), {{activities}} activité(s), {{reminders}} rappel(s) et {{edges}} relation(s) vers le contact fusionné.",
+    "mergeButton": "Fusionner",
+    "mergeSuccess": "Contacts fusionnés avec succès"
   }
 }

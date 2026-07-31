@@ -734,5 +734,20 @@
     "triggerReminders": "Send Reminder Emails",
     "triggerRemindersSuccess": "Reminder emails sent successfully",
     "triggerRemindersError": "Failed to send reminder emails"
+  },
+  "contactMerge": {
+    "title": "Merge Contacts",
+    "description": "Merge {{name}} into another contact. {{name}} will be removed and its data combined into the contact you choose below.",
+    "selectTarget": "Merge into",
+    "searchContacts": "Type to search contacts...",
+    "noContactsFound": "No contacts found",
+    "typeToSearch": "Start typing to search",
+    "noConflicts": "No conflicts to resolve. Ready to merge.",
+    "resolveConflicts": "Resolve conflicting fields",
+    "resolveFieldValueConflicts": "Resolve conflicting custom fields",
+    "keepValue": "{{name}}: {{value}}",
+    "associationSummary": "This will move {{notes}} note(s), {{activities}} activit(y/ies), {{reminders}} reminder(s), and {{edges}} relationship(s) onto the merged contact.",
+    "mergeButton": "Merge",
+    "mergeSuccess": "Contacts merged successfully"
   }
 }

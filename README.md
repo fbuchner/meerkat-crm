@@ -9,9 +9,9 @@
   <a href="https://reactjs.org"><img src="https://img.shields.io/badge/Frontend-React-61DAFB?logo=react" alt="Frontend: React"></a>
 </p>
 
-# Mycorrhizal CRM
+> **⚠️ Pre-Alpha Warning:** This repository is currently in an active exploration and development phase. Breaking changes are expected. If you are looking for a stable, production-ready self-hosted CRM right now, check out upstream [Meerkat](https://github.com/fbuchner/meerkat-crm).
 
-**Mycorrhizal** (*my-core-high-zal*) relationships are mutually beneficial networks between fungi ([Mycorrhizae](https://hort.extension.wisc.edu/articles/mycorrhizae/)) and plants. I chose the name because the goal of this project is to help nurture connections with people I care about by keeping track of the small details I might otherwise forget and prompting me to check in periodically.
+# Mycorrhizal CRM
 
 Mycorrhizal CRM is a self-hosted contact relationship management solution. It is a fork of [Meerkat CRM](https://github.com/fbuchner/meerkat-crm) by Frederic Buchner.
 
@@ -21,13 +21,11 @@ Mycorrhizal CRM is a self-hosted contact relationship management solution. It is
 > * Direct database migrations from upstream Meerkat are **NOT** supported at this time.
 > * Syncing Options: You can sync contacts between Meerkat and Mycorrhizal using CardDAV (though data not supported by standard CardDAV specs will not sync) or by exporting data from one and importing it into the other (though data not defined in the vCard 3.0 RFC is not guaranteed to persist across the export and import).
 
-> **⚠️ Pre-Alpha Warning:** This repository is currently in an active exploration and development phase. Breaking changes are expected. If you are looking for a stable, production-ready self-hosted CRM right now, check out upstream [Meerkat](https://github.com/fbuchner/meerkat-crm).
-
 ---
 
 ## Features & Enhancements On Top Of Upstream Meerkat (In Development)
 
-Mycorrhizal builds heavily upon the solid foundation of Meerkat CRM, adding modern protocol support, deeper structural relationships, and lifestyle tracking utilities:
+Mycorrhizal builds heavily upon the solid foundation of Meerkat, adding modern protocol support, deeper structural relationships, and lifestyle tracking utilities:
 
 ### Modern Data Formats & Syncing
 - **Expanded Protocol Support:** In addition to vCard 3.0 and CardDAV/CalDAV, Mycorrhizal adds full support for **vCard 4.0** and **JSContact**.

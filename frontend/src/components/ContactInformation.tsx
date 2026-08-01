@@ -21,7 +21,9 @@ import EditableArrayField from './EditableArrayField';
 import MultiValueField from './MultiValueField';
 import AddressFields from './AddressFields';
 import RelationshipEdgeList from './RelationshipEdgeList';
+import LifeEventList from './LifeEventList';
 import { RelationshipEdge } from '../api/relationshipEdges';
+import { LifeEvent } from '../api/lifeEvents';
 import {
   Card as CardModel,
   CRMEnvelope,
@@ -67,6 +69,12 @@ interface ContactInformationProps {
   onDeleteRelationshipEdge?: (edgeId: string) => void;
   onAcceptSuggestion?: (edgeId: string) => void;
   onRejectSuggestion?: (edgeId: string) => void;
+  // LifeEvent props (T5)
+  lifeEvents?: LifeEvent[];
+  lifeEventsContactsByUid?: Map<string, Contact>;
+  onAddLifeEvent?: () => void;
+  onEditLifeEvent?: (event: LifeEvent) => void;
+  onDeleteLifeEvent?: (id: string) => void;
   // Custom fields
   customFieldNames?: string[];
 }
@@ -95,6 +103,11 @@ export default function ContactInformation({
   onDeleteRelationshipEdge,
   onAcceptSuggestion,
   onRejectSuggestion,
+  lifeEvents = [],
+  lifeEventsContactsByUid,
+  onAddLifeEvent,
+  onEditLifeEvent,
+  onDeleteLifeEvent,
   customFieldNames = [],
 }: ContactInformationProps) {
   const { t } = useTranslation();
@@ -150,6 +163,7 @@ export default function ContactInformation({
         <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} aria-label="contact information tabs">
           <Tab label={t('contactDetail.generalInfo')} />
           <Tab label={t('relationships.title')} />
+          <Tab label={t('lifeEvent.title')} />
         </Tabs>
       </Box>
 
@@ -439,6 +453,29 @@ export default function ContactInformation({
             onDelete={onDeleteRelationshipEdge || (() => {})}
             onAccept={onAcceptSuggestion || (() => {})}
             onReject={onRejectSuggestion || (() => {})}
+          />
+        </CardContent>
+      )}
+
+      {/* Life Events Tab */}
+      {activeTab === 2 && (
+        <CardContent sx={{ py: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
+            <Button
+              startIcon={<AddIcon />}
+              onClick={onAddLifeEvent}
+              variant="outlined"
+              size="small"
+            >
+              {t('lifeEvent.add')}
+            </Button>
+          </Box>
+          <Divider sx={{ mb: 1.5 }} />
+          <LifeEventList
+            events={lifeEvents}
+            contactsByUid={lifeEventsContactsByUid || new Map()}
+            onEdit={onEditLifeEvent || (() => {})}
+            onDelete={onDeleteLifeEvent || (() => {})}
           />
         </CardContent>
       )}

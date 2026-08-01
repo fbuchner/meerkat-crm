@@ -36,12 +36,14 @@ const (
 // opposed to Interaction/Activity ("what happened between *us*", §91.7).
 //
 // UUID-string-primary-key entity, following Household's exact template
-// (household.go): ID generated in BeforeCreate, no soft-delete (a
-// graph-adjacent record, not a user-facing CRUD resource yet).
+// (household.go): ID generated in BeforeCreate. Soft-deletes (deleted_at)
+// added per T5 — LifeEvent is first-class user-authored content, same shape
+// as Note, not a graph-adjacent join row.
 type LifeEvent struct {
-	ID        string    `gorm:"primarykey" json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        string         `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	UserID uint `gorm:"not null;index" json:"-"`
 
@@ -71,6 +73,11 @@ type LifeEvent struct {
 	// related-entity side yet. Reuses Contact.Circles' own serialization
 	// style (models/contact.go).
 	RelatedEntityIDs []string `gorm:"type:text;serializer:json" json:"related_entity_ids,omitempty"`
+
+	// Remind, when true, opts this event into automatic yearly reminder
+	// generation (T5b). Only meaningful when Date has month/day — year-only
+	// events have nothing to anchor a yearly recurrence to.
+	Remind bool `gorm:"default:false" json:"remind,omitempty"`
 }
 
 // BeforeCreate generates a UUID for new LifeEvents, mirroring Household's own

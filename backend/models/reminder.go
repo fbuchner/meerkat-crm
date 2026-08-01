@@ -18,6 +18,7 @@ type Reminder struct {
 	EmailSent             bool       `gorm:"default:false" json:"email_sent"`
 	LastSent              *time.Time `gorm:"default:null" json:"last_sent"`
 	ContactID             *uint      `gorm:"not null" json:"contact_id" validate:"required"`
+	LifeEventID           *string    `gorm:"index" json:"life_event_id,omitempty"`
 	Contact               Contact    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"contact,omitempty" validate:"-"`
 }
 

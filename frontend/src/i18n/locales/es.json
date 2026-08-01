@@ -335,6 +335,42 @@
     "deleteMessage": "¿Estás seguro de que quieres eliminar esta nota? Esta acción no se puede deshacer.",
     "unassignedInfo": "Esta página muestra solo las notas no asignadas que no forman parte de un contacto y pueden usarse como un diario."
   },
+  "lifeEvent": {
+    "title": "Eventos de Vida",
+    "add": "A\u00f1adir Evento",
+    "editTitle": "Editar Evento",
+    "createTitle": "A\u00f1adir Evento",
+    "type": "Tipo de Evento",
+    "dateYear": "A\u00f1o",
+    "dateMonth": "Mes",
+    "dateDay": "D\u00eda",
+    "description": "Descripci\u00f3n",
+    "relatedEntities": "Relacionado con",
+    "searchContacts": "Buscar contactos\u2026",
+    "noContactsFound": "No se encontraron contactos",
+    "typeToSearch": "Escribe para buscar",
+    "remind": "Recordar anualmente",
+    "remindTooltip": "Se crear\u00e1 un recordatorio anual para esta fecha",
+    "remindDisabledYearOnly": "No se pueden establecer recordatorios para fechas de solo a\u00f1o",
+    "remindDisabledNoDate": "La fecha es necesaria para los recordatorios",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "empty": "A\u00fan no hay eventos de vida",
+    "confirmDelete": "\u00bfEliminar este evento?",
+    "types": {
+      "married": "Casado",
+      "graduated": "Graduado",
+      "job_change": "Nuevo Trabajo",
+      "had_child": "Tuvo un Hijo",
+      "adopted_pet": "Adopt\u00f3 una Mascota",
+      "retired": "Jubilado",
+      "moved": "Mudado"
+    },
+    "validation": {
+      "typeRequired": "El tipo de evento es obligatorio",
+      "saveFailed": "Error al guardar el evento"
+    }
+  },
   "reminders": {
     "title": "Recordatorios",
     "add": "Agregar Recordatorio",

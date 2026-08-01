@@ -335,6 +335,42 @@
     "deleteMessage": "Möchten Sie diese Notiz wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
     "unassignedInfo": "Diese Seite zeigt nur nicht zugewiesene Notizen, die keinem Kontakt zugeordnet sind und wie ein Tagebuch genutzt werden können."
   },
+  "lifeEvent": {
+    "title": "Lebensereignisse",
+    "add": "Ereignis hinzuf\u00fcgen",
+    "editTitle": "Ereignis bearbeiten",
+    "createTitle": "Ereignis hinzuf\u00fcgen",
+    "type": "Ereignistyp",
+    "dateYear": "Jahr",
+    "dateMonth": "Monat",
+    "dateDay": "Tag",
+    "description": "Beschreibung",
+    "relatedEntities": "Im Zusammenhang mit",
+    "searchContacts": "Kontakte suchen\u2026",
+    "noContactsFound": "Keine Kontakte gefunden",
+    "typeToSearch": "Zum Suchen tippen",
+    "remind": "J\u00e4hrlich erinnern",
+    "remindTooltip": "Eine j\u00e4hrliche Erinnerung wird f\u00fcr dieses Datum erstellt",
+    "remindDisabledYearOnly": "Erinnerungen k\u00f6nnen nicht f\u00fcr jahresbezogene Daten gesetzt werden",
+    "remindDisabledNoDate": "Datum ist f\u00fcr Erinnerungen erforderlich",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "empty": "Noch keine Lebensereignisse",
+    "confirmDelete": "Dieses Ereignis l\u00f6schen?",
+    "types": {
+      "married": "Geheiratet",
+      "graduated": "Abschluss gemacht",
+      "job_change": "Neuer Job",
+      "had_child": "Kind bekommen",
+      "adopted_pet": "Haustier adoptiert",
+      "retired": "In Rente gegangen",
+      "moved": "Umgezogen"
+    },
+    "validation": {
+      "typeRequired": "Ereignistyp ist erforderlich",
+      "saveFailed": "Speichern des Ereignisses fehlgeschlagen"
+    }
+  },
   "reminders": {
     "title": "Erinnerungen",
     "add": "Erinnerung hinzufügen",

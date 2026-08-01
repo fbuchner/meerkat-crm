@@ -116,7 +116,7 @@ export async function createNote(
 
 // Create unassigned note
 export async function createUnassignedNote(
-  data: { content: string; date: string }
+  data: { content: string; date: string; contact_id?: number }
 ): Promise<Note> {
   const response = await apiFetch(
     `${API_BASE_URL}/notes`,

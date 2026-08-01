@@ -8,7 +8,7 @@
     "dashboard": "Panel",
     "contacts": "Contactos",
     "activities": "Actividades",
-    "notes": "Notas",
+    "notes": "Bandeja",
     "network": "Red",
     "reminders": "Recordatorios",
     "settings": "Configuración",
@@ -321,6 +321,21 @@
     "deleteConfirm": "Eliminar Actividad",
     "deleteMessage": "¿Estás seguro de que quieres eliminar esta actividad? Esta acción no se puede deshacer.",
     "allContactsInfo": "Esta página lista todas las actividades de todos los contactos."
+  },
+  "inbox": {
+    "title": "Bandeja",
+    "addNote": "Agregar Nota",
+    "search": "Buscar\u2026",
+    "noNotes": "Sin notas sin archivar",
+    "noResults": "Ninguna nota coincide con los filtros",
+    "fromDate": "Desde",
+    "toDate": "Hasta",
+    "info": "Anota notas r\u00e1pidas aqu\u00ed y arch\u00edvalas en contactos m\u00e1s tarde. Las notas archivadas salen de la bandeja y aparecen en la l\u00ednea de tiempo del contacto.",
+    "assignContact": "Asignar a contacto",
+    "searchContacts": "Buscar contactos\u2026",
+    "noContactsFound": "No se encontraron contactos",
+    "typeToSearch": "Escribe para buscar",
+    "assignedTo": "Asignado a"
   },
   "notes": {
     "title": "Notas",

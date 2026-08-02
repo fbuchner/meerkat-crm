@@ -180,13 +180,6 @@ export interface SearchResponse {
 }
 
 /**
- * Circles/Tags response
- */
-export interface GetCirclesResponse {
-  circles: string[];
-}
-
-/**
  * Statistics response
  */
 export interface StatisticsResponse {

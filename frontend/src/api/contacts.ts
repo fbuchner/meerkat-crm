@@ -44,7 +44,6 @@ export interface Contact {
   food_preference?: string;
   work_information?: string;
   contact_information?: string;
-  circles?: string[];
   photo_thumbnail?: string;
   custom_fields?: Record<string, string>;
   archived?: boolean;
@@ -171,7 +170,6 @@ export interface Card {
 }
 
 export interface CRMEnvelope {
-  circles?: string[];
   how_we_met?: string;
   food_preference?: string;
   work_information?: string;
@@ -213,7 +211,6 @@ interface ContactSummaryDTO {
   org: string;
   photo: string;
   photo_thumbnail: string;
-  circles: string[];
   archived: boolean;
 }
 
@@ -377,7 +374,6 @@ function summaryToLegacyContact(summary: ContactSummaryDTO): Contact {
     birthday: summary.birthday || undefined,
     photo: summary.photo || undefined,
     photo_thumbnail: summary.photo_thumbnail || undefined,
-    circles: summary.circles,
     organization: summary.org || undefined,
     archived: summary.archived,
   };
@@ -431,7 +427,6 @@ export function toContactRecordInput(data: Partial<Contact>): ContactRecordInput
       titles: titles.length > 0 ? titles : undefined,
     },
     crm: {
-      circles: data.circles,
       how_we_met: data.how_we_met,
       food_preference: data.food_preference,
       work_information: data.work_information,

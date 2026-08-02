@@ -23,6 +23,7 @@ import NetworkGraph from './components/NetworkGraph';
 import NetworkLegend from './components/NetworkLegend';
 import EditTimelineItemDialog from './components/EditTimelineItemDialog';
 import { useGraph } from './hooks/useGraph';
+import { useCircles } from './hooks/useCircles';
 import { GraphNode } from './types/graph';
 import { Activity, getActivity, updateActivity, deleteActivity } from './api/activities';
 import { Contact, getContacts } from './api/contacts';
@@ -33,6 +34,8 @@ export default function NetworkPage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { data, loading, error } = useGraph();
+  const { circles: circleEntities, circleNamesByUid } = useCircles();
+
 
   const [selectedCircle, setSelectedCircle] = useState<string>('');
   const [showRelationships, setShowRelationships] = useState(() => {
@@ -80,17 +83,10 @@ export default function NetworkPage() {
     }
   }, [data, centeredNodeId]);
 
-  // Extract unique circles from contacts
-  const circles = useMemo(() => {
-    if (!data) return [];
-    const allCircles = new Set<string>();
-    data.nodes.forEach(n => {
-      if (n.type === 'contact' && n.circles) {
-        n.circles.forEach(c => allCircles.add(c));
-      }
-    });
-    return Array.from(allCircles).sort();
-  }, [data]);
+  // Extract unique circle names from the Circle entity list
+  const circleNames = useMemo(() => {
+    return circleEntities.map(c => c.name).sort();
+  }, [circleEntities]);
 
   // Contact nodes for the center-on-contact autocomplete
   const contactNodes = useMemo(() => {
@@ -226,7 +222,7 @@ export default function NetworkPage() {
             label={t('network.filterByCircle')}
           >
             <MenuItem value="">{t('network.allCircles')}</MenuItem>
-            {circles.map(c => (
+            {circleNames.map(c => (
               <MenuItem key={c} value={c}>{c}</MenuItem>
             ))}
           </Select>
@@ -289,6 +285,7 @@ export default function NetworkPage() {
           showActivities={showActivities}
           showCircles={showCircles}
           centeredNodeId={centeredNodeId ?? undefined}
+          circleNamesByUid={circleNamesByUid}
         />
       </Card>
       {editingActivity && (

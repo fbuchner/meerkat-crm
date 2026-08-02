@@ -93,7 +93,6 @@ export interface SearchFormData {
   query: string;
   searchIn: 'contacts' | 'notes' | 'activities' | 'all';
   filters?: {
-    circles?: string[];
     dateFrom?: string;
     dateTo?: string;
   };

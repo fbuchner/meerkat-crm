@@ -5,7 +5,6 @@ export interface GraphNode {
   type: 'contact' | 'activity' | 'circle';
   label: string;        // Contact name, activity title, or circle name
   photo_thumbnail?: string;
-  circles?: string[];
   // Properties added by force-graph during rendering
   x?: number;
   y?: number;

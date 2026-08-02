@@ -193,7 +193,6 @@ export default function AddContactDialog({
           food_preference: formData.food_preference,
           work_information: formData.work_information,
           contact_information: formData.contact_information,
-          circles: selectedCircles.length > 0 ? selectedCircles.map(c => c.name) : undefined,
           custom_fields: Object.keys(filteredCustomFields).length > 0 ? filteredCustomFields : undefined,
         },
       });

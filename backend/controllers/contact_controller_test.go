@@ -866,12 +866,11 @@ func TestGetCircles(t *testing.T) {
 
 	router.GET("/contacts/circles", GetCircles)
 
-	contacts := []models.Contact{
-		{UserID: user.ID, Firstname: "Alice", Lastname: "Johnson", Circles: []string{"Friends", "Family"}},
-		{UserID: user.ID, Firstname: "Bob", Lastname: "Smith", Circles: []string{"Friends", "Work"}},
-	}
-	db.Create(&contacts[0])
-	db.Create(&contacts[1])
+	// T4: GetCircles now reads from the real circles table, not the flat
+	// Contact.Circles JSON column. Create Circle entities instead.
+	db.Create(&models.Circle{UserID: user.ID, Name: "Friends"})
+	db.Create(&models.Circle{UserID: user.ID, Name: "Family"})
+	db.Create(&models.Circle{UserID: user.ID, Name: "Work"})
 
 	// Make the request to get circles
 	req, _ := http.NewRequest("GET", "/contacts/circles", nil)

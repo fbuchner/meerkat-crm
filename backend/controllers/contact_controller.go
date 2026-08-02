@@ -579,26 +579,27 @@ func deleteContactPhotos(c *gin.Context, contact models.Contact) {
 }
 
 // GetCircles returns all unique circles associated with contacts.
+// GetCircles returns the authenticated user's Circles. After T4, this
+// redirects to the real `circles` table rather than the legacy flat
+// Contact.Circles JSON column.
 func GetCircles(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
-
 	userID, ok := currentUserID(c)
 	if !ok {
 		return
 	}
-	var circleNames []string
 
-	// Raw SQL query to extract unique circle names
-	err := db.Raw(`SELECT DISTINCT json_each.value AS circle
-	               FROM contacts, json_each(contacts.circles)
-	               WHERE contacts.user_id = ?`, userID).Scan(&circleNames).Error
-	if err != nil {
+	var circles []models.Circle
+	if err := db.Where("user_id = ?", userID).Order("name").Find(&circles).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve circles").WithError(err))
 		return
 	}
 
-	// Return the list of unique circle names
-	c.JSON(http.StatusOK, circleNames)
+	names := make([]string, len(circles))
+	for i, circle := range circles {
+		names[i] = circle.Name
+	}
+	c.JSON(http.StatusOK, names)
 }
 
 // ArchiveContact archives a contact and deletes all its reminders

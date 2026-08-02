@@ -40,7 +40,7 @@ Mycorrhizal builds heavily upon the solid foundation of Meerkat, adding modern p
 - **Contact Merging:** Seamlessly merge duplicate contact records.
 - **Custom Fields & Mappings:** Support for custom fields, including custom mappings to vCard fields to enable extended properties
 - **Repurposed General Notes:** Upstream Meerkat's journaling notes have been refactored into general notes that can be cleanly associated with any contact at a later point.
-- **File & Documents**: Associate document and files with a contact via Seafile and Paperless-ngx integrations.
+- **File & Documents**: Associate document and files with a contact, including integrations with Seafile and Paperless-ngx via APIs and OwnCloud and NextCloud via WebDAV.
 - **One-Time Cross-User Sharing:** Share specific contacts with other users on the same instance, including granular selection of which fields are shared. *(Note: This is a one-time point-in-time copy/share to the target user rather than an ongoing real-time sync).*
 
 ### Tracking & Integrations

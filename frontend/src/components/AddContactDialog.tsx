@@ -31,6 +31,8 @@ import {
   withOrganization,
   withTitles,
 } from '../api/contacts';
+import { Circle } from '../api/circles';
+import { addCircleMember, createCircle } from '../api/circles';
 import { createReminder } from '../api/reminders';
 import { useSnackbar } from '../context/SnackbarContext';
 import { handleError, getErrorMessage } from '../utils/errorHandler';
@@ -41,7 +43,7 @@ interface AddContactDialogProps {
   open: boolean;
   onClose: () => void;
   onContactAdded: (contactId: number) => void;
-  availableCircles: string[];
+  availableCircles: Circle[];
   customFieldNames?: string[];
   enabledFields?: Set<ContactFieldKey>;
 }
@@ -87,7 +89,7 @@ export default function AddContactDialog({
   const [urls, setUrls] = useState<ContactValue[]>([]);
   const [impps, setImpps] = useState<ContactValue[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
-  const [selectedCircles, setSelectedCircles] = useState<string[]>([]);
+  const [selectedCircles, setSelectedCircles] = useState<Circle[]>([]);
   const [newCircle, setNewCircle] = useState('');
   const [createBirthdayReminder, setCreateBirthdayReminder] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -109,14 +111,14 @@ export default function AddContactDialog({
 
   const handleAddCircle = () => {
     const trimmed = newCircle.trim();
-    if (trimmed && !selectedCircles.includes(trimmed)) {
-      setSelectedCircles([...selectedCircles, trimmed]);
+    if (trimmed && !selectedCircles.find(sc => sc.name === trimmed)) {
+      setSelectedCircles([...selectedCircles, { id: '', created_at: '', updated_at: '', name: trimmed }]);
       setNewCircle('');
     }
   };
 
-  const handleRemoveCircle = (circle: string) => {
-    setSelectedCircles(selectedCircles.filter(c => c !== circle));
+  const handleRemoveCircle = (circle: Circle) => {
+    setSelectedCircles(selectedCircles.filter(c => c.id !== circle.id && c.name !== circle.name));
   };
 
   const handleSubmit = async () => {
@@ -192,7 +194,6 @@ export default function AddContactDialog({
           food_preference: formData.food_preference,
           work_information: formData.work_information,
           contact_information: formData.contact_information,
-          circles: selectedCircles.length > 0 ? selectedCircles : undefined,
           custom_fields: Object.keys(filteredCustomFields).length > 0 ? filteredCustomFields : undefined,
         },
       });
@@ -230,6 +231,20 @@ export default function AddContactDialog({
             reoccur_from_completion: false,
             contact_id: newRecord.id
           });
+        }
+      }
+
+      // Add circle memberships for selected circles
+      for (const circle of selectedCircles) {
+        try {
+          let circleId = circle.id;
+          if (!circleId) {
+            const created = await createCircle(circle.name);
+            circleId = created.circle.id;
+          }
+          await addCircleMember(circleId, newRecord.uid);
+        } catch {
+          // Silently skip — the contact exists, memberships are best-effort
         }
       }
 
@@ -442,11 +457,11 @@ export default function AddContactDialog({
               {t('contacts.circles')}
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
-              {selectedCircles.map(circle => (
+              {selectedCircles.map(c => (
                 <Chip
-                  key={circle}
-                  label={circle}
-                  onDelete={() => handleRemoveCircle(circle)}
+                  key={c.id || c.name}
+                  label={c.name}
+                  onDelete={() => handleRemoveCircle(c)}
                   color="primary"
                   size="small"
                 />
@@ -460,17 +475,20 @@ export default function AddContactDialog({
                 value=""
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (value && !selectedCircles.includes(value)) {
-                    setSelectedCircles([...selectedCircles, value]);
+                  if (value) {
+                    const circle = availableCircles.find(c => c.name === value);
+                    if (circle && !selectedCircles.find(sc => sc.id === circle.id || sc.name === circle.name)) {
+                      setSelectedCircles([...selectedCircles, circle]);
+                    }
                   }
                 }}
               >
                 <MenuItem value="">{t('contacts.selectCircle')}</MenuItem>
                 {availableCircles
-                  .filter(c => !selectedCircles.includes(c))
-                  .map(circle => (
-                    <MenuItem key={circle} value={circle}>
-                      {circle}
+                  .filter(c => !selectedCircles.find(sc => sc.id === c.id || sc.name === c.name))
+                  .map(c => (
+                    <MenuItem key={c.id || c.name} value={c.name}>
+                      {c.name}
                     </MenuItem>
                   ))}
               </TextField>

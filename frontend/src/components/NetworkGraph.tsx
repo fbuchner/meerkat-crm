@@ -14,6 +14,7 @@ interface NetworkGraphProps {
   showActivities: boolean;
   showCircles: boolean;
   centeredNodeId?: string;
+  circleNamesByUid?: Map<string, string[]>;
 }
 
 interface ForceGraphData {
@@ -36,6 +37,7 @@ export default function NetworkGraph({
   showActivities,
   showCircles,
   centeredNodeId,
+  circleNamesByUid,
 }: NetworkGraphProps) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -88,7 +90,11 @@ export default function NetworkGraph({
     if (selectedCircle) {
       const contactsInCircle = new Set(
         data.nodes
-          .filter(n => n.type === 'contact' && n.circles?.includes(selectedCircle))
+          .filter(n => {
+            if (n.type !== 'contact' || !circleNamesByUid) return false;
+            const contactId = n.id.replace('c-', '');
+            return (circleNamesByUid.get(contactId) || []).includes(selectedCircle);
+          })
           .map(n => n.id)
       );
 
@@ -127,14 +133,16 @@ export default function NetworkGraph({
       return true;
     });
 
-    // Synthesize circle nodes and edges from contact circles data
-    if (showCircles) {
+    // Synthesize circle nodes and edges from contact circle memberships
+    if (showCircles && circleNamesByUid) {
       const visibleContacts = filteredNodes.filter(n => n.type === 'contact');
 
       // Count contacts per circle
       const circleContactMap = new Map<string, string[]>();
       visibleContacts.forEach(contact => {
-        contact.circles?.forEach(circleName => {
+        const contactId = contact.id.replace('c-', '');
+        const names = circleNamesByUid.get(contactId) || [];
+        names.forEach(circleName => {
           const existing = circleContactMap.get(circleName) ?? [];
           existing.push(contact.id);
           circleContactMap.set(circleName, existing);

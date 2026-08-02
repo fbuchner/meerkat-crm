@@ -44,7 +44,6 @@ export interface Contact {
   food_preference?: string;
   work_information?: string;
   contact_information?: string;
-  circles?: string[];
   photo_thumbnail?: string;
   custom_fields?: Record<string, string>;
   archived?: boolean;
@@ -171,7 +170,6 @@ export interface Card {
 }
 
 export interface CRMEnvelope {
-  circles?: string[];
   how_we_met?: string;
   food_preference?: string;
   work_information?: string;
@@ -213,7 +211,6 @@ interface ContactSummaryDTO {
   org: string;
   photo: string;
   photo_thumbnail: string;
-  circles: string[];
   archived: boolean;
 }
 
@@ -377,7 +374,6 @@ function summaryToLegacyContact(summary: ContactSummaryDTO): Contact {
     birthday: summary.birthday || undefined,
     photo: summary.photo || undefined,
     photo_thumbnail: summary.photo_thumbnail || undefined,
-    circles: summary.circles,
     organization: summary.org || undefined,
     archived: summary.archived,
   };
@@ -431,7 +427,6 @@ export function toContactRecordInput(data: Partial<Contact>): ContactRecordInput
       titles: titles.length > 0 ? titles : undefined,
     },
     crm: {
-      circles: data.circles,
       how_we_met: data.how_we_met,
       food_preference: data.food_preference,
       work_information: data.work_information,
@@ -650,6 +645,32 @@ export async function getCircles(): Promise<string[]> {
   const data = await response.json();
   // Backend returns array directly, not wrapped in object
   return Array.isArray(data) ? data : [];
+}
+
+// Temporary: reads legacy strings from the old flat Contact.Circles JSON
+// column. Used by the T2 triage page during migration. Remove after migration.
+export async function getLegacyCircles(): Promise<string[]> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/contacts/circles?legacy=true`,
+    { headers: getAuthHeaders() }
+  );
+  if (!response.ok) throw await parseErrorResponse(response);
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+}
+
+// Temporary: filters contacts by a legacy flat-circle string. Used by the
+// T2 triage page's member-add step. Remove after migration.
+export async function getContactsByLegacyCircle(circle: string): Promise<{ contacts: Contact[]; total: number }> {
+  const queryParams = new URLSearchParams({
+    page: '1', limit: '500', circle_legacy: circle,
+  });
+  const response = await apiFetch(
+    `${API_BASE_URL}/contacts?${queryParams.toString()}`,
+    { headers: getAuthHeaders() }
+  );
+  if (!response.ok) throw await parseErrorResponse(response);
+  return response.json();
 }
 
 // Get random contacts (returns 5 contacts). NOTE: unlike every other

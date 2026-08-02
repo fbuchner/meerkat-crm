@@ -1,9 +1,11 @@
 import { Box, Card, CardContent, Avatar, Typography, Chip, IconButton, Stack, TextField, Autocomplete, Button } from '@mui/material';
+import { useState } from 'react';
+import GroupIcon from '@mui/icons-material/Group';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import AutoModeIcon from '@mui/icons-material/AutoMode';
 import ArchiveIcon from '@mui/icons-material/Archive';
@@ -12,6 +14,8 @@ import MergeIcon from '@mui/icons-material/MergeType';
 import { useTranslation } from 'react-i18next';
 import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
 import { ContactRecordResponse, nameComponentValue } from '../api/contacts';
+import { Circle } from '../api/circles';
+import { Tag } from '../api/tags';
 
 export interface ProfileValues {
   prefix: string;
@@ -29,18 +33,19 @@ interface ContactHeaderProps {
   editingProfile: boolean;
   profileValues: ProfileValues;
   enabledFields?: Set<ContactFieldKey>;
-  editingCircles: boolean;
-  newCircleName: string;
-  availableCircles: string[];
+  contactCircles: Circle[];
+  contactTags: Tag[];
+  allCircles: Circle[];
+  allTags: Tag[];
   onStartEditProfile: () => void;
   onCancelEditProfile: () => void;
   onSaveProfile: () => void;
   onDeleteContact: () => void;
   onProfileValueChange: (values: ProfileValues) => void;
-  onToggleEditCircles: () => void;
-  onAddCircle: (circleName?: string) => void;
-  onDeleteCircle: (circle: string) => void;
-  onNewCircleNameChange: (name: string) => void;
+  onAddCircle: (circle: Circle) => void;
+  onRemoveCircle: (circle: Circle) => void;
+  onAddTag: (tag: Tag) => void;
+  onRemoveTag: (tag: Tag) => void;
   onUploadProfilePicture: () => void;
   onStayInTouch?: () => void;
   onArchiveContact?: () => void;
@@ -54,18 +59,19 @@ export default function ContactHeader({
   editingProfile,
   profileValues,
   enabledFields,
-  editingCircles,
-  newCircleName,
-  availableCircles,
+  contactCircles,
+  contactTags,
+  allCircles,
+  allTags,
   onStartEditProfile,
   onCancelEditProfile,
   onSaveProfile,
   onDeleteContact,
   onProfileValueChange,
-  onToggleEditCircles,
   onAddCircle,
-  onDeleteCircle,
-  onNewCircleNameChange,
+  onRemoveCircle,
+  onAddTag,
+  onRemoveTag,
   onUploadProfilePicture,
   onStayInTouch,
   onArchiveContact,
@@ -77,7 +83,6 @@ export default function ContactHeader({
   const isOn = (key: ContactFieldKey) => enabled.has(key);
 
   const card = record.card || {};
-  const crm = record.crm || {};
   const prefix = nameComponentValue(card.name?.components, 'title');
   const firstname = nameComponentValue(card.name?.components, 'given') || '';
   const middleName = nameComponentValue(card.name?.components, 'given2');
@@ -85,8 +90,13 @@ export default function ContactHeader({
   const suffix = nameComponentValue(card.name?.components, 'generation');
   const nickname = card.nicknames?.[0]?.name;
   const gender = record.gender;
-  const circles = crm.circles;
   const archived = record.archived;
+
+  // Circle/tag editing state
+  const [editingCircles, setEditingCircles] = useState(false);
+  const [editingTags, setEditingTags] = useState(false);
+  const [newCircleName, setNewCircleName] = useState('');
+  const [newTagName, setNewTagName] = useState('');
 
   const displayName = [
     prefix,
@@ -325,106 +335,122 @@ export default function ContactHeader({
             )}
 
             {/* Circles Section */}
-            <Box
-              sx={{
-                mt: 1,
-                '&:hover .edit-icon': {
-                  opacity: 1
-                }
-              }}
-            >
+            <Box sx={{ mt: 1, '&:hover .edit-icon': { opacity: 1 } }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                <GroupIcon fontSize="small" color="action" />
                 <Typography variant="caption" color="text.secondary">
                   {t('contactDetail.circles')}
                 </Typography>
-                <IconButton
-                  className="edit-icon"
-                  size="small"
-                  onClick={onToggleEditCircles}
-                  sx={{
-                    ml: 'auto',
-                    opacity: 0,
-                    transition: 'opacity 0.2s'
-                  }}
-                >
+                <IconButton className="edit-icon" size="small" onClick={() => setEditingCircles(!editingCircles)}
+                  sx={{ ml: 'auto', opacity: 0, transition: 'opacity 0.2s' }}>
                   <EditIcon fontSize="small" />
                 </IconButton>
               </Box>
 
               {editingCircles ? (
-                // Edit Mode
                 <Box>
                   <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 1, mb: 1 }}>
-                    {circles && circles.length > 0 ? (
-                      circles.map((circle, index) => (
-                        <Chip
-                          key={index}
-                          label={circle}
-                          size="small"
-                          color="primary"
-                          onDelete={() => onDeleteCircle(circle)}
-                        />
+                    {contactCircles.length > 0 ? (
+                      contactCircles.map((c) => (
+                        <Chip key={c.id} label={c.name} size="small" icon={<GroupIcon />} color="primary"
+                          onDelete={() => onRemoveCircle(c)} />
                       ))
                     ) : (
-                      <Typography variant="caption" color="text.secondary">
-                        {t('contactDetail.noCircles')}
-                      </Typography>
+                      <Typography variant="caption" color="text.secondary">{t('contactDetail.noCircles')}</Typography>
                     )}
                   </Stack>
                   <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
                     <Autocomplete
-                      key={circles?.length ?? 0}
                       size="small"
-                      options={availableCircles.filter(c => !circles?.includes(c))}
+                      options={allCircles.filter(c => !contactCircles.find(cc => cc.id === c.id))}
+                      getOptionLabel={(c) => c.name}
                       value={null}
-                      onChange={(_, value) => {
-                        if (value) {
-                          onAddCircle(value);
-                        }
-                      }}
+                      onChange={(_, value) => { if (value) onAddCircle(value); }}
                       blurOnSelect
                       sx={{ minWidth: 200 }}
                       renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label={t('contacts.selectCircle')}
-                          size="small"
-                        />
+                        <TextField {...params} label={t('contacts.selectCircle')} size="small" />
                       )}
                     />
-                    <TextField
-                      size="small"
-                      placeholder={t('contactDetail.newCircle')}
-                      value={newCircleName}
-                      onChange={(e) => onNewCircleNameChange(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          onAddCircle();
-                        }
-                      }}
-                      sx={{ flexGrow: 1 }}
-                    />
-                    <IconButton
-                      size="small"
-                      color="primary"
-                      onClick={() => onAddCircle()}
-                      disabled={!newCircleName.trim()}
-                    >
-                      <AddIcon />
-                    </IconButton>
+                    <TextField size="small" placeholder={t('contactDetail.newCircle')}
+                      value={newCircleName} onChange={(e) => setNewCircleName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && newCircleName.trim()) { onAddCircle({ id: '', created_at: '', updated_at: '', name: newCircleName.trim() }); setNewCircleName(''); }}}
+                      sx={{ flexGrow: 1 }} />
+                    <Button size="small" variant="contained" disabled={!newCircleName.trim()}
+                      onClick={() => { onAddCircle({ id: '', created_at: '', updated_at: '', name: newCircleName.trim() }); setNewCircleName(''); }}>
+                      {t('contactDetail.add')}
+                    </Button>
                   </Stack>
                 </Box>
               ) : (
-                // View Mode
                 <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 1 }}>
-                  {circles && circles.length > 0 ? (
-                    circles.map((circle, index) => (
-                      <Chip key={index} label={circle} size="small" color="primary" />
+                  {contactCircles.length > 0 ? (
+                    contactCircles.map((c) => (
+                      <Chip key={c.id} label={c.name} size="small" icon={<GroupIcon />} color="primary" />
                     ))
                   ) : (
-                    <Typography variant="caption" color="text.secondary">
-                      {t('contactDetail.noCircles')}
-                    </Typography>
+                    <Typography variant="caption" color="text.secondary">{t('contactDetail.noCircles')}</Typography>
+                  )}
+                </Stack>
+              )}
+            </Box>
+
+            {/* Tags Section */}
+            <Box sx={{ mt: 1.5, '&:hover .edit-icon': { opacity: 1 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                <LocalOfferIcon fontSize="small" color="action" />
+                <Typography variant="caption" color="text.secondary">
+                  {t('contactDetail.tags')}
+                </Typography>
+                <IconButton className="edit-icon" size="small" onClick={() => setEditingTags(!editingTags)}
+                  sx={{ ml: 'auto', opacity: 0, transition: 'opacity 0.2s' }}>
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Box>
+
+              {editingTags ? (
+                <Box>
+                  <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 1, mb: 1 }}>
+                    {contactTags.length > 0 ? (
+                      contactTags.map((t) => (
+                        <Chip key={t.id} label={t.name} size="small" icon={<LocalOfferIcon />} color="secondary"
+                          onDelete={() => onRemoveTag(t)} />
+                      ))
+                    ) : (
+                      <Typography variant="caption" color="text.secondary">{t('contactDetail.noTags')}</Typography>
+                    )}
+                  </Stack>
+                  <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                    <Autocomplete
+                      size="small"
+                      options={allTags.filter(t => !contactTags.find(ct => ct.id === t.id))}
+                      getOptionLabel={(t) => t.name}
+                      value={null}
+                      onChange={(_, value) => { if (value) onAddTag(value); }}
+                      blurOnSelect
+                      sx={{ minWidth: 200 }}
+                      renderInput={(params) => (
+                        <TextField {...params} label={t('contactDetail.selectTag')} size="small" />
+                      )}
+                    />
+                    <TextField size="small" placeholder={t('contactDetail.newTag')}
+                      value={newTagName} onChange={(e) => setNewTagName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && newTagName.trim()) { onAddTag({ id: '', created_at: '', updated_at: '', name: newTagName.trim() }); setNewTagName(''); }}}
+                      sx={{ flexGrow: 1 }} />
+                    <Button size="small" variant="contained" disabled={!newTagName.trim()}
+                      onClick={() => { onAddTag({ id: '', created_at: '', updated_at: '', name: newTagName.trim() }); setNewTagName(''); }}>
+                      {t('contactDetail.add')}
+                    </Button>
+                  </Stack>
+                </Box>
+              ) : (
+                <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 1 }}>
+                  {contactTags.length > 0 ? (
+                    contactTags.map((t) => (
+                      <Chip key={t.id} label={t.name} size="small" icon={<LocalOfferIcon />} color="secondary" />
+                    ))
+                  ) : (
+                    <Typography variant="caption" color="text.secondary">{t('contactDetail.noTags')}</Typography>
                   )}
                 </Stack>
               )}

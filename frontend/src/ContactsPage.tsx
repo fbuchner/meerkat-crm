@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useContacts } from './hooks/useContacts';
-import { getCircles } from './api/contacts';
+import { useCircles } from './hooks/useCircles';
 import { getCurrentUser } from './api/admin';
 import { resolveEnabledFields, ContactFieldKey } from './contactFields';
 import AddContactDialog from './components/AddContactDialog';
@@ -34,7 +34,8 @@ export default function ContactsPage() {
   const searchQuery = searchParams.get('search') || '';
   const page = parseInt(searchParams.get('page') || '1', 10);
   const [selectedCircle, setSelectedCircle] = useState('');
-  const [circles, setCircles] = useState<string[]>([]);
+  const { circles, circleNamesByUid, refresh: refreshCircles } = useCircles();
+
   const [sortOption, setSortOption] = useState(() => {
     return localStorage.getItem('contacts-sort-option') || 'id-desc';
   });
@@ -80,19 +81,15 @@ export default function ContactsPage() {
   // Use custom hook for fetching contacts
   const { contacts, total: totalContacts, loading, refetch } = useContacts(contactParams);
 
-  // Fetch circles for filter and custom field names
+  // Fetch custom field names
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [circlesData, user] = await Promise.all([
-          getCircles(),
-          getCurrentUser()
-        ]);
-        setCircles(Array.isArray(circlesData) ? circlesData : []);
+        const user = await getCurrentUser();
         setCustomFieldNames(user.custom_field_names ?? []);
         setEnabledFields(resolveEnabledFields(user.enabled_contact_fields));
       } catch (err) {
-        console.error('Error fetching circles or custom field names:', err);
+        console.error('Error fetching custom field names:', err);
       }
     };
     fetchData();
@@ -118,13 +115,7 @@ export default function ContactsPage() {
 
   const handleImportComplete = async () => {
     await refetch();
-    // Also refresh circles
-    try {
-      const data = await getCircles();
-      setCircles(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error('Error fetching circles:', err);
-    }
+    await refreshCircles();
   };
   
   return (
@@ -142,8 +133,8 @@ export default function ContactsPage() {
             onChange={e => setSelectedCircle(e.target.value)}
           >
             <MenuItem value="">{t('contacts.allCircles')}</MenuItem>
-            {circles.map(circle => (
-              <MenuItem key={circle} value={circle}>{circle}</MenuItem>
+            {circles.map(c => (
+              <MenuItem key={c.id} value={c.name}>{c.name}</MenuItem>
             ))}
           </Select>
         </FormControl>
@@ -259,14 +250,14 @@ export default function ContactsPage() {
                     )}
                   </Box>
                   <Stack direction="row" spacing={0.5} mt={0.5} flexWrap="wrap" gap={0.5}>
-                    {contact.circles && contact.circles.filter((circle, idx, arr) => arr.indexOf(circle) === idx).map((circle: string) => (
+                    {(circleNamesByUid.get(contact.uid || '') || []).map((name: string) => (
                       <Chip
-                        key={`${contact.ID}-${circle}`}
-                        label={circle}
+                        key={`${contact.ID}-${name}`}
+                        label={name}
                         size="small"
                         variant="outlined"
                         clickable
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSelectedCircle(circle); setPage(1); }}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSelectedCircle(name); setPage(1); }}
                         sx={{ height: 20, fontSize: '0.75rem' }}
                       />
                     ))}

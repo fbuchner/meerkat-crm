@@ -31,6 +31,26 @@ type CircleMemberInput struct {
 	MemberVCardUID string `json:"member_vcard_uid" validate:"required,uuid4"`
 }
 
+// HouseholdInput is the DTO for creating/updating a Household (household.go).
+// Membership lifecycle lives in its own AddHouseholdMember/
+// RemoveHouseholdMember endpoints, not folded into update — the same split as
+// CircleInput. Type is a closed switch (drives the suggestion engine), so it
+// carries the same `oneof` validation as the Household model field itself.
+type HouseholdInput struct {
+	Name string `json:"name" validate:"required,min=1,max=200"`
+	Type string `json:"type" validate:"required,oneof=family_unit roommates other"`
+}
+
+// HouseholdMemberInput is the DTO for POST /households/:id/members. Role is
+// conventional, not validated (HouseholdRole* constants) — deliberately open,
+// mirroring HouseholdMember.Role's own doc comment.
+type HouseholdMemberInput struct {
+	MemberVCardUID string `json:"member_vcard_uid" validate:"required,uuid4"`
+	Role           string `json:"role,omitempty"`
+	Since          string `json:"since,omitempty"`
+	Until          string `json:"until,omitempty"`
+}
+
 // TagInput is the DTO for creating/updating a Tag (tag.go). Only Name is
 // editable here -- tagging lifecycle lives in its own AddContactTag/
 // RemoveContactTag endpoints, not folded into update.

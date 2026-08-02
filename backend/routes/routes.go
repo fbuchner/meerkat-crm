@@ -134,6 +134,16 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			protected.POST("/circles/:id/members", middleware.ValidateJSONMiddleware(&models.CircleMemberInput{}), controllers.AddCircleMember)
 			protected.DELETE("/circles/:id/members/:vcard_uid", controllers.RemoveCircleMember)
 
+			// Household routes (T1 — docs/fork-plan/tickets/09-T1-households.md)
+			protected.POST("/households", middleware.ValidateJSONMiddleware(&models.HouseholdInput{}), controllers.CreateHousehold)
+			protected.GET("/households", controllers.ListHouseholds)
+			protected.GET("/households/:id", controllers.GetHousehold)
+			protected.PUT("/households/:id", middleware.ValidateJSONMiddleware(&models.HouseholdInput{}), controllers.UpdateHousehold)
+			protected.DELETE("/households/:id", controllers.DeleteHousehold)
+			protected.POST("/households/:id/members", middleware.ValidateJSONMiddleware(&models.HouseholdMemberInput{}), controllers.AddHouseholdMember)
+			protected.DELETE("/households/:id/members/:vcard_uid", controllers.RemoveHouseholdMember)
+			protected.POST("/households/:id/suggest-relationships", controllers.SuggestHouseholdRelationships)
+
 			// Tag routes (WP-84c)
 			protected.POST("/tags", middleware.ValidateJSONMiddleware(&models.TagInput{}), controllers.CreateTag)
 			protected.GET("/tags", controllers.ListTags)

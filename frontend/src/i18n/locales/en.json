@@ -8,7 +8,7 @@
     "dashboard": "Dashboard",
     "contacts": "Contacts",
     "activities": "Activities",
-    "notes": "Notes",
+    "notes": "Inbox",
     "network": "Network",
     "reminders": "Reminders",
     "settings": "Settings",
@@ -321,6 +321,21 @@
     "deleteConfirm": "Delete Activity",
     "deleteMessage": "Are you sure you want to delete this activity? This action cannot be undone.",
     "allContactsInfo": "This page lists every activity from every contact."
+  },
+  "inbox": {
+    "title": "Inbox",
+    "addNote": "Add Note",
+    "search": "Search...",
+    "noNotes": "No unfiled notes",
+    "noResults": "No notes match your filters",
+    "fromDate": "From",
+    "toDate": "To",
+    "info": "Quick-jot notes here and file them onto contacts when you have a moment. Filed notes leave the inbox and appear on the contact's timeline.",
+    "assignContact": "Assign to contact",
+    "searchContacts": "Search contacts...",
+    "noContactsFound": "No contacts found",
+    "typeToSearch": "Type to search",
+    "assignedTo": "Assigned to"
   },
   "notes": {
     "title": "Notes",

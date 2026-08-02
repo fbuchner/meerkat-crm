@@ -8,7 +8,7 @@
     "dashboard": "Cruscotto",
     "contacts": "Contatti",
     "activities": "Attività",
-    "notes": "Note",
+    "notes": "Inbox",
     "network": "Rete",
     "reminders": "Promemoria",
     "settings": "Impostazioni",
@@ -321,6 +321,21 @@
     "deleteConfirm": "Elimina Attività",
     "deleteMessage": "Sei sicuro di voler eliminare questa attività? Questa azione non può essere annullata.",
     "allContactsInfo": "Questa pagina elenca tutte le attività di tutti i contatti."
+  },
+  "inbox": {
+    "title": "Inbox",
+    "addNote": "Aggiungi Nota",
+    "search": "Cerca\u2026",
+    "noNotes": "Nessuna nota da archiviare",
+    "noResults": "Nessuna nota corrisponde ai filtri",
+    "fromDate": "Dal",
+    "toDate": "Al",
+    "info": "Prendi appunti rapidi qui e archiviali nei contatti pi\u00f9 tardi. Le note archiviate escono dall'inbox e appaiono nella cronologia del contatto.",
+    "assignContact": "Assegna a contatto",
+    "searchContacts": "Cerca contatti\u2026",
+    "noContactsFound": "Nessun contatto trovato",
+    "typeToSearch": "Digita per cercare",
+    "assignedTo": "Assegnato a"
   },
   "notes": {
     "title": "Note",

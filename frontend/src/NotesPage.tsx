@@ -9,6 +9,7 @@ import {
   IconButton,
   Pagination,
   Popover,
+  Chip,
 } from '@mui/material';
 import {
   Timeline,
@@ -62,7 +63,7 @@ const NotesPage: React.FC = () => {
   } = useNotes(undefined, notesParams);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
-  const [editValues, setEditValues] = useState<{ noteContent?: string; noteDate?: string }>({});
+  const [editValues, setEditValues] = useState<{ noteContent?: string; noteDate?: string; noteContactId?: number; noteContactName?: string }>({});
   const [infoAnchorEl, setInfoAnchorEl] = useState<HTMLElement | null>(null);
   const infoOpen = Boolean(infoAnchorEl);
   const infoPopoverId = infoOpen ? 'notes-info-popover' : undefined;
@@ -94,9 +95,13 @@ const NotesPage: React.FC = () => {
     setAddDialogOpen(true);
   };
 
-  const handleNoteSave = async (content: string, date: string) => {
+  const handleNoteSave = async (content: string, date: string, contactId?: number) => {
     try {
-      await createUnassignedNote({ content, date: new Date(date).toISOString() });
+      await createUnassignedNote({
+        content,
+        date: new Date(date).toISOString(),
+        contact_id: contactId,
+      });
       setAddDialogOpen(false);
       refetch();
     } catch (err) {
@@ -110,6 +115,7 @@ const NotesPage: React.FC = () => {
     setEditValues({
       noteContent: note.content || '',
       noteDate: note.date ? new Date(note.date).toISOString().split('T')[0] : '',
+      noteContactId: note.contact_id,
     });
   };
 
@@ -120,6 +126,7 @@ const NotesPage: React.FC = () => {
       await updateNote(editingNote.ID, {
         content: editValues.noteContent,
         date: editValues.noteDate ? new Date(editValues.noteDate).toISOString() : new Date().toISOString(),
+        contact_id: editValues.noteContactId ?? null,
       });
       setEditingNote(null);
       setEditValues({});
@@ -162,7 +169,13 @@ const NotesPage: React.FC = () => {
     <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 2 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Box display="flex" alignItems="center" gap={1}>
-          <Typography variant="h5">{t('notes.title')}</Typography>
+          <Typography variant="h5">{t('inbox.title')}</Typography>
+          <Chip
+            label={total ?? 0}
+            size="small"
+            color={(total ?? 0) > 0 ? 'primary' : 'default'}
+            variant={(total ?? 0) > 0 ? 'filled' : 'outlined'}
+          />
           <IconButton
             size="small"
             aria-describedby={infoPopoverId}
@@ -172,7 +185,7 @@ const NotesPage: React.FC = () => {
           </IconButton>
         </Box>
         <Button variant="outlined" startIcon={<NoteIcon />} onClick={handleAddNote}>
-          {t('notes.addNote')}
+          {t('inbox.addNote')}
         </Button>
       </Box>
       <Popover
@@ -183,7 +196,7 @@ const NotesPage: React.FC = () => {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
       >
         <Box sx={{ p: 2, maxWidth: 320 }}>
-          <Typography variant="body2">{t('notes.unassignedInfo')}</Typography>
+          <Typography variant="body2">{t('inbox.info')}</Typography>
         </Box>
       </Popover>
 
@@ -191,7 +204,7 @@ const NotesPage: React.FC = () => {
         <Box display="flex" gap={2} flexWrap="wrap">
           <TextField
             size="small"
-            label={t('notes.search')}
+            label={t('inbox.search')}
             value={searchInput}
             onChange={(e) => handleSearchChange(e.target.value)}
             variant="outlined"
@@ -199,7 +212,7 @@ const NotesPage: React.FC = () => {
           />
           <TextField
             size="small"
-            label={t('notes.fromDate')}
+            label={t('inbox.fromDate')}
             type="date"
             value={fromDate}
             onChange={(e) => handleFromDateChange(e.target.value)}
@@ -209,7 +222,7 @@ const NotesPage: React.FC = () => {
           />
           <TextField
             size="small"
-            label={t('notes.toDate')}
+            label={t('inbox.toDate')}
             type="date"
             value={toDate}
             onChange={(e) => handleToDateChange(e.target.value)}
@@ -225,7 +238,7 @@ const NotesPage: React.FC = () => {
       ) : notes.length === 0 ? (
         <Paper sx={{ p: 3, textAlign: 'center' }}>
           <Typography variant="body1" color="text.secondary">
-            {hasFilters ? t('notes.noResults') : t('notes.noNotes')}
+            {hasFilters ? t('inbox.noResults') : t('inbox.noNotes')}
           </Typography>
         </Paper>
       ) : (

@@ -8,7 +8,7 @@
     "dashboard": "Dashboard",
     "contacts": "Kontakte",
     "activities": "Aktivitäten",
-    "notes": "Notizen",
+    "notes": "Posteingang",
     "network": "Netzwerk",
     "reminders": "Erinnerungen",
     "settings": "Einstellungen",
@@ -321,6 +321,21 @@
     "deleteConfirm": "Aktivität löschen",
     "deleteMessage": "Möchten Sie diese Aktivität wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
     "allContactsInfo": "Diese Seite zeigt alle Aktivitäten aus allen Kontakten."
+  },
+  "inbox": {
+    "title": "Posteingang",
+    "addNote": "Notiz hinzuf\u00fcgen",
+    "search": "Suchen\u2026",
+    "noNotes": "Keine nicht zugewiesenen Notizen",
+    "noResults": "Keine Notizen entsprechen den Filtern",
+    "fromDate": "Von",
+    "toDate": "Bis",
+    "info": "Notiere hier schnell Gedanken und weise sie sp\u00e4ter einem Kontakt zu. Zugewiesene Notizen verlassen den Posteingang und erscheinen in der Chronik des Kontakts.",
+    "assignContact": "Kontakt zuweisen",
+    "searchContacts": "Kontakte suchen\u2026",
+    "noContactsFound": "Keine Kontakte gefunden",
+    "typeToSearch": "Zum Suchen tippen",
+    "assignedTo": "Zugewiesen an"
   },
   "notes": {
     "title": "Notizen",

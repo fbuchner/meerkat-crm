@@ -8,7 +8,7 @@
     "dashboard": "Tableau de bord",
     "contacts": "Contacts",
     "activities": "Activités",
-    "notes": "Notes",
+    "notes": "Inbox",
     "network": "Réseau",
     "reminders": "Rappels",
     "settings": "Paramètres",
@@ -321,6 +321,21 @@
     "deleteConfirm": "Supprimer l'activité",
     "deleteMessage": "Êtes-vous sûr de vouloir supprimer cette activité ? Cette action est irréversible.",
     "allContactsInfo": "Cette page répertorie toutes les activités de tous les contacts."
+  },
+  "inbox": {
+    "title": "Inbox",
+    "addNote": "Ajouter une note",
+    "search": "Rechercher\u2026",
+    "noNotes": "Aucune note non class\u00e9e",
+    "noResults": "Aucune note ne correspond \u00e0 vos filtres",
+    "fromDate": "Du",
+    "toDate": "Au",
+    "info": "Notez rapidement ici et classez les notes dans des contacts plus tard. Les notes class\u00e9es quittent l'inbox et apparaissent dans la chronologie du contact.",
+    "assignContact": "Assigner \u00e0 un contact",
+    "searchContacts": "Rechercher des contacts\u2026",
+    "noContactsFound": "Aucun contact trouv\u00e9",
+    "typeToSearch": "Tapez pour rechercher",
+    "assignedTo": "Assign\u00e9 \u00e0"
   },
   "notes": {
     "title": "Notes",

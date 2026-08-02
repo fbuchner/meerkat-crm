@@ -9,9 +9,9 @@ import {
   GetLifeEventsParams,
 } from '../api/lifeEvents';
 import { getContactsByUid, Contact } from '../api/contacts';
-import { handleFetchError, handleError, ErrorNotifier } from '../utils/errorHandler';
+import { handleFetchError } from '../utils/errorHandler';
 
-export function useLifeEvents(entityId: string | undefined, notifier?: ErrorNotifier) {
+export function useLifeEvents(entityId: string | undefined) {
   const [events, setEvents] = useState<LifeEvent[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -94,15 +94,10 @@ export function useLifeEvents(entityId: string | undefined, notifier?: ErrorNoti
 
   const handleDelete = useCallback(
     async (id: string) => {
-      try {
-        await deleteLifeEvent(id);
-        await refresh();
-      } catch (err) {
-        handleError(err, { operation: 'deleting life event' }, notifier);
-        throw err;
-      }
+      await deleteLifeEvent(id);
+      await refresh();
     },
-    [refresh, notifier]
+    [refresh]
   );
 
   return {

@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import AppDialog from './AppDialog';
 import { useTranslation } from 'react-i18next';
-import { Contact, getContacts } from '../api/contacts';
+import { Contact, getContacts, getContactsByUid } from '../api/contacts';
 import {
   LIFE_EVENT_TYPES,
   LifeEventType,
@@ -136,6 +136,14 @@ export default function LifeEventDialog({
         setDescription(initial.description || '');
         setRemind(initial.remind || false);
         setRelatedContacts([]);
+        // Pre-populate related contacts from their VCardUIDs.
+        if (initial.relatedEntityIds && initial.relatedEntityIds.length > 0) {
+          getContactsByUid(initial.relatedEntityIds).then((byUid) => {
+            const briefs: ContactBrief[] = [];
+            byUid.forEach((c) => { if (c.uid) briefs.push(toContactBrief(c)); });
+            setRelatedContacts(briefs);
+          }).catch(() => {});
+        }
       } else {
         setType('');
         setDateYear('');

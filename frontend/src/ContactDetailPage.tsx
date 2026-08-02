@@ -227,7 +227,7 @@ export default function ContactDetailPage() {
     handleCreate: handleCreateLifeEvent,
     handleUpdate: handleUpdateLifeEvent,
     handleDelete: handleDeleteLifeEvent,
-  } = useLifeEvents(record?.uid, { showError });
+  } = useLifeEvents(record?.uid);
 
   const [lifeEventDialogOpen, setLifeEventDialogOpen] = useState(false);
   const [editingLifeEvent, setEditingLifeEvent] = useState<LifeEvent | null>(null);
@@ -342,7 +342,7 @@ export default function ContactDetailPage() {
         URL.revokeObjectURL(currentBlobUrl);
       }
     };
-  }, [id, refreshReminders, refreshRelationshipEdges]);
+  }, [id, refreshReminders, refreshRelationshipEdges, refreshLifeEvents]);
 
   // Combine and sort notes, activities, completions, and life events for timeline
   const timelineItems: Array<{ type: 'note' | 'activity' | 'completion' | 'life_event'; data: Note | Activity | ReminderCompletion | LifeEvent; date: string }> = [

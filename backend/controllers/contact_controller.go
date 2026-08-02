@@ -214,6 +214,12 @@ func GetContacts(c *gin.Context) {
 		)`, userID, circle)
 	}
 
+	// Temporary legacy filter for T2 triage migration — reads from the
+	// old flat contacts.circles JSON column. Remove once migration is complete.
+	if circle := c.Query("circle_legacy"); circle != "" {
+		query = query.Where("EXISTS (SELECT 1 FROM json_each(contacts.circles) WHERE json_each.value = ?)", circle)
+	}
+
 	// Preload requested relationships
 	for rel, include := range relationshipMap {
 		if include {
@@ -257,6 +263,9 @@ func GetContacts(c *gin.Context) {
 			JOIN circles c ON cm.circle_id = c.id AND c.user_id = ?
 			WHERE cm.member_vcard_uid = contacts.vcard_uid AND c.name = ?
 		)`, userID, circle)
+	}
+	if circle := c.Query("circle_legacy"); circle != "" {
+		countQuery = countQuery.Where("EXISTS (SELECT 1 FROM json_each(contacts.circles) WHERE json_each.value = ?)", circle)
 	}
 	countQuery.Count(&total)
 
@@ -580,12 +589,26 @@ func deleteContactPhotos(c *gin.Context, contact models.Contact) {
 
 // GetCircles returns all unique circles associated with contacts.
 // GetCircles returns the authenticated user's Circles. After T4, this
-// redirects to the real `circles` table rather than the legacy flat
-// Contact.Circles JSON column.
+// reads from the real `circles` table. When ?legacy=true, it reads from
+// the legacy flat Contact.Circles JSON column instead — used by the
+// T2 triage page during migration.
 func GetCircles(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 	userID, ok := currentUserID(c)
 	if !ok {
+		return
+	}
+
+	if c.Query("legacy") == "true" {
+		var circleNames []string
+		err := db.Raw(`SELECT DISTINCT json_each.value AS circle
+			FROM contacts, json_each(contacts.circles)
+			WHERE contacts.user_id = ?`, userID).Scan(&circleNames).Error
+		if err != nil {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve legacy circles").WithError(err))
+			return
+		}
+		c.JSON(http.StatusOK, circleNames)
 		return
 	}
 

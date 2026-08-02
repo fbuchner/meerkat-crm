@@ -647,6 +647,32 @@ export async function getCircles(): Promise<string[]> {
   return Array.isArray(data) ? data : [];
 }
 
+// Temporary: reads legacy strings from the old flat Contact.Circles JSON
+// column. Used by the T2 triage page during migration. Remove after migration.
+export async function getLegacyCircles(): Promise<string[]> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/contacts/circles?legacy=true`,
+    { headers: getAuthHeaders() }
+  );
+  if (!response.ok) throw await parseErrorResponse(response);
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+}
+
+// Temporary: filters contacts by a legacy flat-circle string. Used by the
+// T2 triage page's member-add step. Remove after migration.
+export async function getContactsByLegacyCircle(circle: string): Promise<{ contacts: Contact[]; total: number }> {
+  const queryParams = new URLSearchParams({
+    page: '1', limit: '500', circle_legacy: circle,
+  });
+  const response = await apiFetch(
+    `${API_BASE_URL}/contacts?${queryParams.toString()}`,
+    { headers: getAuthHeaders() }
+  );
+  if (!response.ok) throw await parseErrorResponse(response);
+  return response.json();
+}
+
 // Get random contacts (returns 5 contacts). NOTE: unlike every other
 // endpoint in this file, GetContactsRandom was deliberately left out of the
 // WP-71 nested-Card API migration on the backend (see

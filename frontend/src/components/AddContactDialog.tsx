@@ -32,6 +32,7 @@ import {
   withTitles,
 } from '../api/contacts';
 import { Circle } from '../api/circles';
+import { addCircleMember, createCircle } from '../api/circles';
 import { createReminder } from '../api/reminders';
 import { useSnackbar } from '../context/SnackbarContext';
 import { handleError, getErrorMessage } from '../utils/errorHandler';
@@ -230,6 +231,20 @@ export default function AddContactDialog({
             reoccur_from_completion: false,
             contact_id: newRecord.id
           });
+        }
+      }
+
+      // Add circle memberships for selected circles
+      for (const circle of selectedCircles) {
+        try {
+          let circleId = circle.id;
+          if (!circleId) {
+            const created = await createCircle(circle.name);
+            circleId = created.circle.id;
+          }
+          await addCircleMember(circleId, newRecord.uid);
+        } catch {
+          // Silently skip — the contact exists, memberships are best-effort
         }
       }
 

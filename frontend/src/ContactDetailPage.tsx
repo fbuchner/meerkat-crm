@@ -73,7 +73,7 @@ import RelationshipEdgeDialog from './components/RelationshipEdgeDialog';
 import { getOtherPartyId } from './api/relationshipEdges';
 import { useSnackbar } from './context/SnackbarContext';
 import { ApiError } from './api/client';
-import { handleFetchError, getErrorMessage } from './utils/errorHandler';
+import { handleFetchError } from './utils/errorHandler';
 import { useDateFormat } from './DateFormatProvider';
 
 export default function ContactDetailPage() {
@@ -244,8 +244,10 @@ export default function ContactDetailPage() {
         if (created?.id) await addCircleMember(created.id, record.uid);
       }
       await refreshCircles();
-    } catch (err) {
-      showError(getErrorMessage(err));
+    } catch {
+      // Error already reported by hook's handleCreateCircle or
+      // addCircleMember — just refresh to reconcile state.
+      await refreshCircles();
     }
   };
 
@@ -254,8 +256,8 @@ export default function ContactDetailPage() {
     try {
       await removeCircleMember(circle.id, record.uid);
       await refreshCircles();
-    } catch (err) {
-      showError(getErrorMessage(err));
+    } catch {
+      await refreshCircles();
     }
   };
 
@@ -269,8 +271,8 @@ export default function ContactDetailPage() {
         if (created?.id) await addContactTag(created.id, record.uid);
       }
       await refreshTags();
-    } catch (err) {
-      showError(getErrorMessage(err));
+    } catch {
+      await refreshTags();
     }
   };
 
@@ -279,8 +281,8 @@ export default function ContactDetailPage() {
     try {
       await removeContactTag(tag.id, record.uid);
       await refreshTags();
-    } catch (err) {
-      showError(getErrorMessage(err));
+    } catch {
+      await refreshTags();
     }
   };
 

@@ -374,7 +374,7 @@ export default function ContactHeader({
                     />
                     <TextField size="small" placeholder={t('contactDetail.newCircle')}
                       value={newCircleName} onChange={(e) => setNewCircleName(e.target.value)}
-                      onKeyPress={(e) => { if (e.key === 'Enter' && newCircleName.trim()) { onAddCircle({ id: '', created_at: '', updated_at: '', name: newCircleName.trim() }); setNewCircleName(''); }}}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && newCircleName.trim()) { onAddCircle({ id: '', created_at: '', updated_at: '', name: newCircleName.trim() }); setNewCircleName(''); }}}
                       sx={{ flexGrow: 1 }} />
                     <Button size="small" variant="contained" disabled={!newCircleName.trim()}
                       onClick={() => { onAddCircle({ id: '', created_at: '', updated_at: '', name: newCircleName.trim() }); setNewCircleName(''); }}>
@@ -435,7 +435,7 @@ export default function ContactHeader({
                     />
                     <TextField size="small" placeholder={t('contactDetail.newTag')}
                       value={newTagName} onChange={(e) => setNewTagName(e.target.value)}
-                      onKeyPress={(e) => { if (e.key === 'Enter' && newTagName.trim()) { onAddTag({ id: '', created_at: '', updated_at: '', name: newTagName.trim() }); setNewTagName(''); }}}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && newTagName.trim()) { onAddTag({ id: '', created_at: '', updated_at: '', name: newTagName.trim() }); setNewTagName(''); }}}
                       sx={{ flexGrow: 1 }} />
                     <Button size="small" variant="contained" disabled={!newTagName.trim()}
                       onClick={() => { onAddTag({ id: '', created_at: '', updated_at: '', name: newTagName.trim() }); setNewTagName(''); }}>

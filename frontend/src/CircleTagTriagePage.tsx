@@ -22,7 +22,7 @@ import {
   LinearProgress,
   Alert,
 } from '@mui/material';
-import { getCircles, getContacts } from './api/contacts';
+import { getLegacyCircles, getContactsByLegacyCircle } from './api/contacts';
 import { createCircle, addCircleMember, Circle, listCircles } from './api/circles';
 import { createTag, addContactTag, Tag, listTags } from './api/tags';
 import { handleFetchError } from './utils/errorHandler';
@@ -57,7 +57,7 @@ export default function CircleTagTriagePage() {
     setLoading(true);
     setError(null);
     try {
-      const allCircles = await getCircles();
+      const allCircles = await getLegacyCircles();
       const distinct = Array.isArray(allCircles) ? allCircles : [];
 
       if (distinct.length === 0) {
@@ -69,7 +69,7 @@ export default function CircleTagTriagePage() {
       const triaged: TriagedItem[] = [];
       for (const name of distinct) {
         try {
-          const resp = await getContacts({ circle: name, limit: 200 });
+          const resp = await getContactsByLegacyCircle(name);
           triaged.push({
             original: name,
             name,
@@ -188,7 +188,7 @@ export default function CircleTagTriagePage() {
       }
 
       try {
-        const resp = await getContacts({ circle: item.original, limit: 500 });
+        const resp = await getContactsByLegacyCircle(item.original);
         const contacts = resp.contacts || [];
         for (const c of contacts) {
           if (!c.uid) continue;
@@ -215,7 +215,7 @@ export default function CircleTagTriagePage() {
       }
 
       try {
-        const resp = await getContacts({ circle: item.original, limit: 500 });
+        const resp = await getContactsByLegacyCircle(item.original);
         const contacts = resp.contacts || [];
         for (const c of contacts) {
           if (!c.uid) continue;

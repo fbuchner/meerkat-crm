@@ -28,15 +28,6 @@ func BodySizeLimitMiddleware(maxBytes int64) gin.HandlerFunc {
 		}
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
 		c.Next()
-
-		// After the handler, check if MaxBytesReader hit the limit.
-		// The limit-hit error surfaces as "http: request body too large"
-		// when the handler tries to read the body. If the handler already
-		// wrote a response (e.g. a validator's 400), leave it; otherwise
-		// the MaxBytesReader error surfaces as a misleading parse error.
-		// We can't reliably distinguish, so trust Gin's binding to surface
-		// a reasonable error — the Content-Length check above covers the
-		// common case.
 	}
 }
 

@@ -392,8 +392,10 @@ func sendReminderEmail(user models.User, reminders []models.Reminder, config con
 	reminderItems := make([]ReminderItem, 0, len(reminders))
 	for _, reminder := range reminders {
 		contactName := i18n.T(lang, "email.reminder.unknownContact")
-		if name, ok := contactMap[*reminder.ContactID]; ok {
-			contactName = name
+		if reminder.ContactID != nil {
+			if name, ok := contactMap[*reminder.ContactID]; ok {
+				contactName = name
+			}
 		}
 		reminderItems = append(reminderItems, ReminderItem{
 			Date:        formatDateForUser(reminder.RemindAt, dateFormat),

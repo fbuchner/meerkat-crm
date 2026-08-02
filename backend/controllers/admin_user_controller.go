@@ -31,6 +31,13 @@ func TriggerReminders(c *gin.Context, cfg config.Config) {
 	c.JSON(http.StatusOK, gin.H{"message": "Reminder emails sent successfully"})
 }
 
+// TriggerPurge manually triggers the delete-purge job (admin only, T26).
+func TriggerPurge(c *gin.Context, cfg config.Config) {
+	db := c.MustGet("db").(*gorm.DB)
+	services.PurgeSoftDeletedRows(db, cfg)
+	c.JSON(http.StatusOK, gin.H{"message": "Purge completed"})
+}
+
 // GetCurrentUser returns the current authenticated user's information
 func GetCurrentUser(c *gin.Context) {
 	userID, ok := currentUserID(c)
@@ -254,6 +261,12 @@ func UpdateUser(c *gin.Context) {
 
 // DeleteUser deletes a user and all their data (admin only)
 func DeleteUser(c *gin.Context) {
+	// DeleteUser is the single deliberate call-site exception to the
+	// soft-delete rule (T26). users.email/username are UNIQUE, so a
+	// soft-deleted account blocks re-registration forever. Here, and
+	// only here, we use Unscoped() to genuinely remove the user row
+	// and all soft-deleting children. No sync client survives a deleted
+	// account, so there is nothing to tombstone for.
 	log := logger.FromContext(c)
 	db := c.MustGet("db").(*gorm.DB)
 
@@ -304,13 +317,13 @@ func DeleteUser(c *gin.Context) {
 	err = db.Transaction(func(tx *gorm.DB) error {
 		userID := uint(id)
 
-		// Delete reminders
-		if err := tx.Where("user_id = ?", userID).Delete(&models.Reminder{}).Error; err != nil {
+		// Delete reminders (hard — user account gone, no tombstoning needed)
+		if err := tx.Unscoped().Where("user_id = ?", userID).Delete(&models.Reminder{}).Error; err != nil {
 			return err
 		}
 
-		// Delete notes
-		if err := tx.Where("user_id = ?", userID).Delete(&models.Note{}).Error; err != nil {
+		// Delete notes (hard)
+		if err := tx.Unscoped().Where("user_id = ?", userID).Delete(&models.Note{}).Error; err != nil {
 			return err
 		}
 
@@ -319,8 +332,8 @@ func DeleteUser(c *gin.Context) {
 			return err
 		}
 
-		// Delete activities
-		if err := tx.Where("user_id = ?", userID).Delete(&models.Activity{}).Error; err != nil {
+		// Delete activities (hard)
+		if err := tx.Unscoped().Where("user_id = ?", userID).Delete(&models.Activity{}).Error; err != nil {
 			return err
 		}
 
@@ -401,18 +414,18 @@ func DeleteUser(c *gin.Context) {
 			return err
 		}
 
-		// Delete life events
-		if err := tx.Where("user_id = ?", userID).Delete(&models.LifeEvent{}).Error; err != nil {
+		// Delete life events (hard)
+		if err := tx.Unscoped().Where("user_id = ?", userID).Delete(&models.LifeEvent{}).Error; err != nil {
 			return err
 		}
 
-		// Delete contacts
-		if err := tx.Where("user_id = ?", userID).Delete(&models.Contact{}).Error; err != nil {
+		// Delete contacts (hard)
+		if err := tx.Unscoped().Where("user_id = ?", userID).Delete(&models.Contact{}).Error; err != nil {
 			return err
 		}
 
-		// Delete user
-		if err := tx.Delete(&user).Error; err != nil {
+		// Delete user (hard — accounts must be re-registerable, T26)
+		if err := tx.Unscoped().Delete(&user).Error; err != nil {
 			return err
 		}
 

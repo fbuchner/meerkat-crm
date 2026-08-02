@@ -6,6 +6,7 @@ import {
   valuesToCardPhones,
   cardAddressesToValues,
   valuesToCardAddresses,
+  CardAddress,
   getAnniversaryField,
   withAnniversary,
   getOrganizationFields,
@@ -84,6 +85,42 @@ describe('address conversion', () => {
       { type: 'home', street: '123 Main St', city: 'Springfield', region: 'IL', postal: '62704', country: 'USA' },
     ]);
     expect(valuesToCardAddresses(values)).toEqual(card);
+  });
+
+  test('preserves unknown address component kinds through round-trip (T25)', () => {
+    const card: CardAddress[] = [
+      {
+        components: [
+          { kind: 'name', value: '123 Main St' },
+          { kind: 'apartment', value: '3B' },
+          { kind: 'floor', value: '4' },
+          { kind: 'locality', value: 'Springfield' },
+          { kind: 'region', value: 'IL' },
+          { kind: 'postcode', value: '62704' },
+          { kind: 'country', value: 'USA' },
+        ],
+        contexts: ['home'],
+      },
+    ];
+    const values = cardAddressesToValues(card);
+    expect(values[0].street).toBe('123 Main St');
+    expect(values[0].passthrough).toEqual([
+      { kind: 'apartment', value: '3B' },
+      { kind: 'floor', value: '4' },
+    ]);
+    // Full round-trip preserves non-standard components (order may differ).
+    const result = valuesToCardAddresses(values);
+    const resultComps = result[0].components || [];
+    expect(resultComps).toEqual(expect.arrayContaining([
+      { kind: 'name', value: '123 Main St' },
+      { kind: 'apartment', value: '3B' },
+      { kind: 'floor', value: '4' },
+      { kind: 'locality', value: 'Springfield' },
+      { kind: 'region', value: 'IL' },
+      { kind: 'postcode', value: '62704' },
+      { kind: 'country', value: 'USA' },
+    ]));
+    expect(result[0].contexts).toEqual(['home']);
   });
 
   test('drops an address with every field blank', () => {

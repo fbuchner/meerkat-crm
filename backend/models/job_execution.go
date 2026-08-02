@@ -28,4 +28,8 @@ const (
 
 	// JobNameWebhookRetries is the job name for the scheduled webhook retry job
 	JobNameWebhookRetries = "webhook_retries"
+
+	// JobNamePurgeDeleted is the job name for the periodic hard-deletion of
+	// soft-deleted rows past their retention window (T26).
+	JobNamePurgeDeleted = "purge_deleted"
 )

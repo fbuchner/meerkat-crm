@@ -977,3 +977,46 @@ func TestDeleteContactWithNoPhotos(t *testing.T) {
 	json.Unmarshal(w.Body.Bytes(), &respBody)
 	assert.Equal(t, "Contact deleted", respBody["message"])
 }
+
+// M3/T26: re-import with same vcard_uid after soft-delete must succeed.
+// The partial unique index (migration 000039) only applies WHERE
+// deleted_at IS NULL, so a soft-deleted contact no longer occupies the
+// vcard_uid slot.
+func TestRecreateContactAfterDeleteUsesSameVCardUID(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+
+	router.POST("/contacts", withValidated(func() any { return &models.ContactRecordInput{} }), CreateContact)
+	router.DELETE("/contacts/:id", DeleteContact)
+
+	first := models.Contact{UserID: user.ID, Firstname: "First"}
+	db.Create(&first)
+	vcard := first.VCardUID
+
+	req, _ := http.NewRequest("DELETE", "/contacts/"+strconv.Itoa(int(first.ID)), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Attempt to create a second contact that would collide on vcard_uid
+	// if the old soft-deleted row still occupied the unique index.
+	secondJSON := `{"card":{"name":{"components":[{"kind":"given","value":"Second"}]}}}`
+	req2, _ := http.NewRequest("POST", "/contacts", bytes.NewBufferString(secondJSON))
+	req2.Header.Set("Content-Type", "application/json")
+	w2 := httptest.NewRecorder()
+	router.ServeHTTP(w2, req2)
+
+	assert.Equal(t, http.StatusCreated, w2.Code, "re-creating a contact after soft-delete must not collide on vcard_uid (T26)")
+
+	// Verify the new contact was created successfully with a fresh vcard_uid.
+	var resp struct {
+		Contact struct {
+			UID string `json:"uid"`
+		} `json:"contact"`
+	}
+	json.Unmarshal(w2.Body.Bytes(), &resp)
+	assert.NotEmpty(t, resp.Contact.UID)
+	assert.NotEqual(t, vcard, resp.Contact.UID, "new contact gets a fresh vcard_uid — the old one is still reserved by the old row")
+}

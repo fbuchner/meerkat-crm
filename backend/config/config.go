@@ -62,6 +62,7 @@ type Config struct {
 	WebhookBlockPrivateURLs bool   // Block webhook deliveries to private/loopback addresses (useful for cloud deployments)
 	CalDAVSyncIntervalHours int    // Interval in hours for the scheduled calendar sync job
 	CalDAVBlockPrivateURLs  bool   // Block calendar sync requests to private/loopback addresses (useful for cloud deployments)
+	DeleteRetentionDays     int    // Days soft-deleted rows survive before the purge job hard-deletes them (T26)
 	OIDC                    OIDCConfig
 }
 
@@ -109,6 +110,7 @@ func LoadConfig() *Config {
 		WebhookBlockPrivateURLs: getBoolEnv("WEBHOOK_BLOCK_PRIVATE_URLS", false),
 		CalDAVSyncIntervalHours: getIntEnv("CALDAV_SYNC_INTERVAL_HOURS", 6),
 		CalDAVBlockPrivateURLs:  getBoolEnv("CALDAV_BLOCK_PRIVATE_URLS", false),
+		DeleteRetentionDays:     getIntEnv("DELETED_RETENTION_DAYS", 30),
 	}
 
 	if cfg.CalDAVSyncIntervalHours < 1 {

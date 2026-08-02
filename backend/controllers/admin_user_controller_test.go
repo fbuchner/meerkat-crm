@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"mycorrhizal/config"
 	"mycorrhizal/models"
+	"mycorrhizal/services"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -112,6 +113,19 @@ func TestDeleteUser_CleansUpAllOwnedRows(t *testing.T) {
 	var remainingUser models.User
 	err := db.First(&remainingUser, target.ID).Error
 	assert.Error(t, err, "target user should be deleted")
+
+	// M4/T26: prove rows are genuinely gone, not merely soft-deleted.
+	var unscopedUser models.User
+	unscopedErr := db.Unscoped().First(&unscopedUser, target.ID).Error
+	assert.Error(t, unscopedErr, "target user must be Unscoped-gone — not merely soft-deleted")
+
+	// M2/T26: re-registration with the deleted account's email must succeed.
+	newUser := models.User{
+		Username: target.Username,
+		Password: "new-password-for-rereg",
+		Email:    target.Email,
+	}
+	require.NoError(t, db.Create(&newUser).Error, "re-registration with deleted account's email must succeed (T26)")
 }
 
 // --- GetCurrentUser ---
@@ -634,4 +648,83 @@ func TestTriggerReminders_DatabaseError(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code, w.Body.String())
+}
+
+// M5/T26: TriggerPurge endpoint executes the purge without error.
+func TestTriggerPurge(t *testing.T) {
+	_, router := setupRouter()
+
+	cfg := config.Config{DeleteRetentionDays: 30}
+	router.POST("/trigger-purge", func(c *gin.Context) {
+		TriggerPurge(c, cfg)
+	})
+
+	req, _ := http.NewRequest("POST", "/trigger-purge", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+// M1/T26: PurgeSoftDeletedRows hard-deletes rows past the retention window.
+func TestPurgeSoftDeletedRows_DeletesRowsPastWindow(t *testing.T) {
+	db, _ := setupRouter()
+
+	cfg := config.Config{DeleteRetentionDays: 30}
+
+	var user models.User
+	db.First(&user)
+
+	// Create a note soft-deleted 60 days ago
+	oldCutoff := time.Now().AddDate(0, 0, -60)
+	note := models.Note{
+		UserID:  user.ID,
+		Content: "old note",
+		Date:    oldCutoff,
+	}
+	require.NoError(t, db.Create(&note).Error)
+	require.NoError(t, db.Exec("UPDATE notes SET deleted_at = ? WHERE id = ?", oldCutoff, note.ID).Error)
+
+	// Create a note soft-deleted 5 days ago (inside window — must survive)
+	recentCutoff := time.Now().AddDate(0, 0, -5)
+	recentNote := models.Note{
+		UserID:  user.ID,
+		Content: "recent note",
+		Date:    recentCutoff,
+	}
+	require.NoError(t, db.Create(&recentNote).Error)
+	require.NoError(t, db.Exec("UPDATE notes SET deleted_at = ? WHERE id = ?", recentCutoff, recentNote.ID).Error)
+
+	services.PurgeSoftDeletedRows(db, cfg)
+
+	var oldCount int64
+	db.Unscoped().Model(&models.Note{}).Where("id = ?", note.ID).Count(&oldCount)
+	assert.Zero(t, oldCount, "note outside retention window must be hard-deleted")
+
+	var unscopedRecent int64
+	db.Unscoped().Model(&models.Note{}).Count(&unscopedRecent)
+	assert.EqualValues(t, 1, unscopedRecent, "note inside window must still exist under Unscoped()")
+}
+
+// M1b/T26: Live rows (deleted_at IS NULL) are never touched.
+func TestPurgeSoftDeletedRows_NeverTouchesLiveRows(t *testing.T) {
+	db, _ := setupRouter()
+
+	cfg := config.Config{DeleteRetentionDays: 1}
+
+	var user models.User
+	db.First(&user)
+
+	liveNote := models.Note{
+		UserID:  user.ID,
+		Content: "live note",
+		Date:    time.Now(),
+	}
+	require.NoError(t, db.Create(&liveNote).Error)
+
+	services.PurgeSoftDeletedRows(db, cfg)
+
+	var count int64
+	db.Model(&models.Note{}).Where("id = ?", liveNote.ID).Count(&count)
+	assert.EqualValues(t, 1, count, "live rows must never be touched")
 }

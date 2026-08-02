@@ -6,6 +6,7 @@ import {
   deleteHousehold,
   addHouseholdMember,
   removeHouseholdMember,
+  updateHouseholdMember,
   suggestHouseholdRelationships,
   Household,
   HouseholdMember,
@@ -103,6 +104,19 @@ export function useHouseholds(notifier?: ErrorNotifier) {
     [refresh, notifier]
   );
 
+  const handleUpdateMember = useCallback(
+    async (householdId: string, memberVCardUid: string, role: string) => {
+      try {
+        await updateHouseholdMember(householdId, memberVCardUid, role);
+        await refresh();
+      } catch (err) {
+        handleError(err, { operation: 'updating household member role' }, notifier);
+        throw err;
+      }
+    },
+    [refresh, notifier]
+  );
+
   // Runs the suggestion trigger. Returns the number of newly-created
   // suggested edges so the caller can surface "N new suggestions" to the
   // user (re-runs typically return 0).
@@ -130,6 +144,7 @@ export function useHouseholds(notifier?: ErrorNotifier) {
     handleDelete,
     handleAddMember,
     handleRemoveMember,
+    handleUpdateMember,
     handleSuggestRelationships,
   };
 }

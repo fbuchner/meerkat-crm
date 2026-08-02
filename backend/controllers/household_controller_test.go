@@ -98,7 +98,7 @@ func TestGetHouseholdIncludesMembers(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var responseBody map[string]any
-	json.Unmarshal(w.Body.Bytes(), &responseBody)
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &responseBody))
 	assert.Len(t, responseBody["members"], 1)
 }
 
@@ -147,7 +147,7 @@ func TestListHouseholds(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var responseBody map[string]any
-	json.Unmarshal(w.Body.Bytes(), &responseBody)
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &responseBody))
 	assert.Len(t, responseBody["households"], 2)
 	assert.EqualValues(t, 2, responseBody["total"])
 }
@@ -197,6 +197,11 @@ func TestDeleteHouseholdCascadesMembers(t *testing.T) {
 	var count int64
 	db.Model(&models.Household{}).Count(&count)
 	assert.Zero(t, count)
+
+	// Cascade-deletion of members is verified in the real-DB test
+	// (TestHouseholdSuggestions_RealMigratedSchema), not here — AutoMigrate
+	// does not create FK constraints without explicit GORM constraint
+	// tags, which the hand-written migration 000029 handles instead.
 }
 
 func TestAddHouseholdMember(t *testing.T) {
@@ -407,4 +412,137 @@ func TestSuggestHouseholdRelationshipsRejectsAnotherUsersHousehold(t *testing.T)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+// T1: UpdateHousehold returns 404 for unknown ID.
+func TestUpdateHouseholdNotFound(t *testing.T) {
+	_, router := setupRouter()
+	registerHouseholdRoutes(t, router)
+
+	payload := models.HouseholdInput{Name: "Test", Type: models.HouseholdTypeFamilyUnit}
+	jsonValue, _ := json.Marshal(payload)
+	req, _ := http.NewRequest("PUT", "/households/nonexistent-id", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+// T2: UpdateHousehold returns 404 for another user's household.
+func TestUpdateHouseholdCrossUser(t *testing.T) {
+	db, router := setupRouter()
+	registerHouseholdRoutes(t, router)
+
+	var user models.User
+	db.First(&user)
+	otherUser := models.User{Username: "other-update", Password: "x", Email: "other-update@example.com"}
+	require.NoError(t, db.Create(&otherUser).Error)
+	otherHousehold := models.Household{UserID: otherUser.ID, Name: "Not Yours", Type: models.HouseholdTypeFamilyUnit}
+	require.NoError(t, db.Create(&otherHousehold).Error)
+
+	payload := models.HouseholdInput{Name: "Stolen", Type: models.HouseholdTypeOther}
+	jsonValue, _ := json.Marshal(payload)
+	req, _ := http.NewRequest("PUT", "/households/"+otherHousehold.ID, bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+// T3: DeleteHousehold returns 404 for unknown ID.
+func TestDeleteHouseholdNotFound(t *testing.T) {
+	_, router := setupRouter()
+	registerHouseholdRoutes(t, router)
+
+	req, _ := http.NewRequest("DELETE", "/households/nonexistent-id", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+// T4: DeleteHousehold returns 404 for another user's household.
+func TestDeleteHouseholdCrossUser(t *testing.T) {
+	db, router := setupRouter()
+	registerHouseholdRoutes(t, router)
+
+	var user models.User
+	db.First(&user)
+	otherUser := models.User{Username: "other-del", Password: "x", Email: "other-del@example.com"}
+	require.NoError(t, db.Create(&otherUser).Error)
+	otherHousehold := models.Household{UserID: otherUser.ID, Name: "Not Yours", Type: models.HouseholdTypeFamilyUnit}
+	require.NoError(t, db.Create(&otherHousehold).Error)
+
+	req, _ := http.NewRequest("DELETE", "/households/"+otherHousehold.ID, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+// T5: AddHouseholdMember returns 404 for nonexistent contact vcard_uid.
+func TestAddHouseholdMemberNonexistentContact(t *testing.T) {
+	db, router := setupRouter()
+	registerHouseholdRoutes(t, router)
+
+	var user models.User
+	db.First(&user)
+	household := models.Household{UserID: user.ID, Name: "Test", Type: models.HouseholdTypeFamilyUnit}
+	db.Create(&household)
+
+	payload := models.HouseholdMemberInput{MemberVCardUID: "00000000-0000-0000-0000-000000000000"}
+	jsonValue, _ := json.Marshal(payload)
+	req, _ := http.NewRequest("POST", "/households/"+household.ID+"/members", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+// T6: RemoveHouseholdMember returns 404 for another user's household.
+func TestRemoveHouseholdMemberCrossUser(t *testing.T) {
+	db, router := setupRouter()
+	registerHouseholdRoutes(t, router)
+
+	var user models.User
+	db.First(&user)
+	otherUser := models.User{Username: "other-rm", Password: "x", Email: "other-rm@example.com"}
+	require.NoError(t, db.Create(&otherUser).Error)
+	otherHousehold := models.Household{UserID: otherUser.ID, Name: "Not Yours", Type: models.HouseholdTypeFamilyUnit}
+	require.NoError(t, db.Create(&otherHousehold).Error)
+
+	req, _ := http.NewRequest("DELETE", "/households/"+otherHousehold.ID+"/members/some-vcard-uid", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+// T7: SuggestHouseholdRelationships with 0 or 1 member returns 200 with 0 edges.
+func TestSuggestHouseholdRelationshipsOneMember(t *testing.T) {
+	db, router := setupRouter()
+	registerHouseholdRoutes(t, router)
+
+	var user models.User
+	db.First(&user)
+	contact := models.Contact{UserID: user.ID, Firstname: "Solo"}
+	db.Create(&contact)
+	household := models.Household{UserID: user.ID, Name: "Solo", Type: models.HouseholdTypeFamilyUnit}
+	db.Create(&household)
+	db.Create(&models.HouseholdMember{HouseholdID: household.ID, UserID: user.ID, MemberVCardUID: contact.VCardUID})
+
+	req, _ := http.NewRequest("POST", "/households/"+household.ID+"/suggest-relationships", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp struct {
+		Edges []models.RelationshipEdge `json:"relationship_edges"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Empty(t, resp.Edges, "single-member household must not produce suggestions")
 }

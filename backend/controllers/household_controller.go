@@ -26,7 +26,7 @@ func CreateHousehold(c *gin.Context) {
 		return
 	}
 
-	household := models.Household{UserID: userID, Name: input.Name, Type: input.Type}
+	household := models.Household{UserID: userID, Name: input.Name, Type: input.Type, Address: input.Address}
 	if err := db.Create(&household).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save household").WithError(err))
 		return
@@ -145,6 +145,7 @@ func UpdateHousehold(c *gin.Context) {
 
 	household.Name = input.Name
 	household.Type = input.Type
+	household.Address = input.Address
 	if err := db.Save(&household).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save household").WithError(err))
 		return
@@ -279,6 +280,53 @@ func RemoveHouseholdMember(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Member removed"})
+}
+
+// UpdateHouseholdMember updates a member's role in-place without the
+// remove-then-re-add dance (T1 review: B3+B4). Only Role is editable.
+func UpdateHouseholdMember(c *gin.Context) {
+	id := c.Param("id")
+	memberVCardUID := c.Param("vcard_uid")
+	db := c.MustGet("db").(*gorm.DB)
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	// Verify household ownership.
+	var household models.Household
+	if err := db.Where("id = ? AND user_id = ?", id, userID).First(&household).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Household").WithDetails("id", id))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve household").WithError(err))
+		}
+		return
+	}
+
+	type memberUpdate struct {
+		Role string `json:"role"`
+	}
+	var input memberUpdate
+	if err := c.ShouldBindJSON(&input); err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrValidation("Invalid request body"))
+		return
+	}
+
+	result := db.Model(&models.HouseholdMember{}).
+		Where("household_id = ? AND member_vcard_uid = ? AND user_id = ?", id, memberVCardUID, userID).
+		Update("role", input.Role)
+
+	if result.Error != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update member role").WithError(result.Error))
+		return
+	}
+	if result.RowsAffected == 0 {
+		apperrors.AbortWithError(c, apperrors.ErrNotFound("Member"))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Member updated"})
 }
 
 // SuggestHouseholdRelationships is the wiring that finally connects the

@@ -53,6 +53,8 @@ export interface HouseholdInput {
 export interface HouseholdMemberInput {
   member_vcard_uid: string;
   role?: string;
+  since?: string;
+  until?: string;
 }
 
 export interface SuggestRelationshipsResponse {
@@ -146,6 +148,19 @@ export async function removeHouseholdMember(
   const response = await apiFetch(
     `${API_BASE_URL}/households/${householdId}/members/${memberVCardUid}`,
     { method: 'DELETE', headers: getAuthHeaders() }
+  );
+  if (!response.ok) throw await parseErrorResponse(response);
+}
+
+// PATCH /households/:id/members/:vcard_uid — update a member's role in-place (T1 review B3+B4).
+export async function updateHouseholdMember(
+  householdId: string,
+  memberVCardUid: string,
+  role: string
+): Promise<void> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/households/${householdId}/members/${memberVCardUid}`,
+    { method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify({ role }) }
   );
   if (!response.ok) throw await parseErrorResponse(response);
 }

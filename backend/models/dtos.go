@@ -37,8 +37,9 @@ type CircleMemberInput struct {
 // CircleInput. Type is a closed switch (drives the suggestion engine), so it
 // carries the same `oneof` validation as the Household model field itself.
 type HouseholdInput struct {
-	Name string `json:"name" validate:"required,min=1,max=200"`
-	Type string `json:"type" validate:"required,oneof=family_unit roommates other"`
+	Name    string                `json:"name" validate:"required,min=1,max=200"`
+	Type    string                `json:"type" validate:"required,oneof=family_unit roommates other"`
+	Address *contactmodel.Address `json:"address,omitempty"`
 }
 
 // HouseholdMemberInput is the DTO for POST /households/:id/members. Role is

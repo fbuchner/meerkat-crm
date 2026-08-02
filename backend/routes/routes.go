@@ -142,6 +142,7 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			protected.DELETE("/households/:id", controllers.DeleteHousehold)
 			protected.POST("/households/:id/members", middleware.ValidateJSONMiddleware(&models.HouseholdMemberInput{}), controllers.AddHouseholdMember)
 			protected.DELETE("/households/:id/members/:vcard_uid", controllers.RemoveHouseholdMember)
+			protected.PATCH("/households/:id/members/:vcard_uid", controllers.UpdateHouseholdMember)
 			protected.POST("/households/:id/suggest-relationships", controllers.SuggestHouseholdRelationships)
 
 			// Tag routes (WP-84c)

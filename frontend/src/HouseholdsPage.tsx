@@ -25,6 +25,7 @@ export default function HouseholdsPage() {
     handleDelete,
     handleAddMember,
     handleRemoveMember,
+    handleUpdateMember,
     handleSuggestRelationships,
   } = useHouseholds({ showError });
 
@@ -91,12 +92,10 @@ export default function HouseholdsPage() {
     }
   };
 
-  // Changing a member's role has no dedicated endpoint — the role is set at
-  // add time, so editing means remove + re-add with the new role.
+  // Update a member's role in-place via PATCH (T1 review: B3+B4).
   const handleRoleChange = async (householdId: string, member: HouseholdMember, role: string) => {
     try {
-      await handleRemoveMember(householdId, member.member_vcard_uid);
-      await handleAddMember(householdId, member.member_vcard_uid, role || undefined);
+      await handleUpdateMember(householdId, member.member_vcard_uid, role);
     } catch {
       await refresh();
     }

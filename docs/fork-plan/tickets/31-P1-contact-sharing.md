@@ -65,3 +65,40 @@ Defaulting into the import path's behaviour by accident is the failure mode.
   third user can see neither side of the share.
 - The merge-on-accept decision is documented in the controller's doc comment.
 - `npx tsc --noEmit` clean, `npx vitest run` green; verified in a real browser with two real accounts.
+
+### Ticket-specific
+- "One-time copy" — not live sync, not permission-based access. User selects a contact, picks fields, generates a shareable export.
+- Reuses the field-picker from T9 (selective export). If T9 is not done, this ticket must build a minimal picker.
+- The share link/token: generates a one-time access token, returns a URL. The recipient gets a read-only view or download.
+- Token model: UUID, contact_id, field_selection (JSON), expires_at, access_count. Expire after first access or time limit.
+- No new auth flow — the token IS the auth for the shared view
+- Frontend: "Share" button on contact detail → picker → "Copy link" / "Download file"
+
+## Flash implementation notes
+
+### Files to read first
+- `/CLAUDE.md` at repo root (conventions, recurring traps, commands)
+- Study an existing fully-implemented feature for the pattern: model → controller → routes → api → hooks → dialog → list → page wiring → i18n
+- Common pattern references: `circle_controller.go` + test (newer idiom), `api/relationshipEdges.ts` + hook, `RelationshipEdgeDialog.tsx` + test, the `ContactInformation.tsx` tab + `ContactDetailPage.tsx` wiring
+
+### Tests you must write before considering it done
+- Backend: controller tests covering CRUD, ownership scoping, error states (not found, cross-user, 409 duplicate)
+- Backend: real-DB test (`database.InitDB`, not `AutoMigrate`) for the core round-trip + any migration-dependent behavior
+- Frontend: component test (`afterEach(cleanup)`, mock `fetch` with `vi.stubGlobal`) for dialog and list
+- Hand-verify EVERY new test: break the code, confirm the test fails, restore. A test that has never failed has proven nothing.
+
+### Self-verification checklist
+1. `npx tsc --noEmit` — clean
+2. `npx vitest run` — green (ALL tests, not just yours)
+3. `cd backend && go build ./... && go vet ./... && gofmt -l . && go test ./...` — green
+4. New migrations: run `make migrate-up` to verify they apply cleanly
+5. All 5 locale files (`de/es/fr/it/en`) — real translations for any new strings
+
+### Common traps (beyond CLAUDE.md)
+- `gorm.Model` only works on uint-PK entities — UUID PK models need explicit `ID`/`CreatedAt`/`UpdatedAt` fields
+- Backend tests use `setupRouter()` from `activity_controller_test.go` (sets `db`, `userID`, `cfg` in Gin context, uses AutoMigrate)
+- Frontend component tests: `afterEach(cleanup)` mandatory; MUI appends `" *"` to required field `getByLabelText`
+- Migration files: hand-written SQL up/down pairs — never add a column by editing the struct alone
+- `gorm:"column:xxx"` tag is mandatory for acronyms/compound words — GORM silently derives wrong names
+- New entities: decide soft vs hard delete per T26's rule (user-authored content → soft, edge/join rows → hard)
+- Delete cascade: add new entities to `deleteContactAssociations` in `contact_controller.go` and `DeleteUser` in `admin_user_controller.go`

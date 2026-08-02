@@ -55,3 +55,43 @@ Per `91.12`:
 - A **real-DB test** covers the round trip, the unique constraint, and cascade cleanup on contact delete.
 - The API is demonstrably generic — sketch how a second, unrelated integration (say Paperless-ngx) would
   use it without schema changes. If it cannot, the abstraction is wrong and Immich will prove it later.
+
+### Ticket-specific
+- Build the generic substrate BEFORE any concrete integration — this ordering is the point of the ticket
+- `ExternalIdentity`: this contact IS this thing in that system. Keyed by Contact.VCardUID, not numeric ID.
+- `ExternalActivity`: something that happened externally, linkable into the timeline. Keyed by system + external ID.
+- `Activity.ExternalRef` in `models/activity.go` already exists to link an Interaction to an ExternalActivity — use it, don't add a parallel link.
+- Unique constraint: `(system, external_id, user_id)` — prevents duplicate sync. Hard delete per T26 (edge/join-shaped).
+- System-specific data goes in a JSON payload field — follow `RelationshipEdge.Metadata`'s `map[string]interface{}` + `serializer:json` pattern
+- SSRF guard: external URLs are user-influenced — `httputil/fetch.go`'s dialer-level guard applies to any fetch this does
+- Cascade delete: add both tables to `DeleteContact` and `DeleteUser` cascade lists
+- Test: the API must be demonstrably generic — sketch how Paperless-ngx would use it without schema changes
+
+## Flash implementation notes
+
+### Files to read first
+- `/CLAUDE.md` at repo root (conventions, recurring traps, commands)
+- Study an existing fully-implemented feature for the pattern: model → controller → routes → api → hooks → dialog → list → page wiring → i18n
+- Common pattern references: `circle_controller.go` + test (newer idiom), `api/relationshipEdges.ts` + hook, `RelationshipEdgeDialog.tsx` + test, the `ContactInformation.tsx` tab + `ContactDetailPage.tsx` wiring
+
+### Tests you must write before considering it done
+- Backend: controller tests covering CRUD, ownership scoping, error states (not found, cross-user, 409 duplicate)
+- Backend: real-DB test (`database.InitDB`, not `AutoMigrate`) for the core round-trip + any migration-dependent behavior
+- Frontend: component test (`afterEach(cleanup)`, mock `fetch` with `vi.stubGlobal`) for dialog and list
+- Hand-verify EVERY new test: break the code, confirm the test fails, restore. A test that has never failed has proven nothing.
+
+### Self-verification checklist
+1. `npx tsc --noEmit` — clean
+2. `npx vitest run` — green (ALL tests, not just yours)
+3. `cd backend && go build ./... && go vet ./... && gofmt -l . && go test ./...` — green
+4. New migrations: run `make migrate-up` to verify they apply cleanly
+5. All 5 locale files (`de/es/fr/it/en`) — real translations for any new strings
+
+### Common traps (beyond CLAUDE.md)
+- `gorm.Model` only works on uint-PK entities — UUID PK models need explicit `ID`/`CreatedAt`/`UpdatedAt` fields
+- Backend tests use `setupRouter()` from `activity_controller_test.go` (sets `db`, `userID`, `cfg` in Gin context, uses AutoMigrate)
+- Frontend component tests: `afterEach(cleanup)` mandatory; MUI appends `" *"` to required field `getByLabelText`
+- Migration files: hand-written SQL up/down pairs — never add a column by editing the struct alone
+- `gorm:"column:xxx"` tag is mandatory for acronyms/compound words — GORM silently derives wrong names
+- New entities: decide soft vs hard delete per T26's rule (user-authored content → soft, edge/join rows → hard)
+- Delete cascade: add new entities to `deleteContactAssociations` in `contact_controller.go` and `DeleteUser` in `admin_user_controller.go`

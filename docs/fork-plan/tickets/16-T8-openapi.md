@@ -64,3 +64,40 @@ password reset, OIDC), photos, proxy, health.
 - The drift test hand-verified: add a throwaway route without a spec entry, confirm it fails, remove it.
 - The spec validates against an OpenAPI linter.
 - Spot-checked: pick three documented endpoints and confirm a real request/response matches the schema.
+
+### Ticket-specific
+- Get the live route list: `cd backend && grep -oE '(protected|v1)\.(GET|POST|PUT|PATCH|DELETE)\("[^"]+"' routes/routes.go | sed 's/.*("//' | sort -u`
+- Drift test: enumerate routes from `router.Routes()` after `RegisterRoutes()` — do NOT parse source. Extend `backend/openapi_test.go`.
+- Document the actual controller behavior, not aspirational shapes. Where response envelopes are inconsistent (e.g. Create wraps, Update doesn't), document the truth and note it.
+- Coordinate with T17: T17 changes pagination from offset→cursor. Either do T17 first (change then document once) or document current shape then revise.
+- Deliberate omissions that are NOT bugs: `fields=` is gone (ignored), `includes=relationships` is gone (no-op)
+- Spot-check: pick 3 documented endpoints, confirm a real request/response matches the schema
+
+## Flash implementation notes
+
+### Files to read first
+- `/CLAUDE.md` at repo root (conventions, recurring traps, commands)
+- Study an existing fully-implemented feature for the pattern: model → controller → routes → api → hooks → dialog → list → page wiring → i18n
+- Common pattern references: `circle_controller.go` + test (newer idiom), `api/relationshipEdges.ts` + hook, `RelationshipEdgeDialog.tsx` + test, the `ContactInformation.tsx` tab + `ContactDetailPage.tsx` wiring
+
+### Tests you must write before considering it done
+- Backend: controller tests covering CRUD, ownership scoping, error states (not found, cross-user, 409 duplicate)
+- Backend: real-DB test (`database.InitDB`, not `AutoMigrate`) for the core round-trip + any migration-dependent behavior
+- Frontend: component test (`afterEach(cleanup)`, mock `fetch` with `vi.stubGlobal`) for dialog and list
+- Hand-verify EVERY new test: break the code, confirm the test fails, restore. A test that has never failed has proven nothing.
+
+### Self-verification checklist
+1. `npx tsc --noEmit` — clean
+2. `npx vitest run` — green (ALL tests, not just yours)
+3. `cd backend && go build ./... && go vet ./... && gofmt -l . && go test ./...` — green
+4. New migrations: run `make migrate-up` to verify they apply cleanly
+5. All 5 locale files (`de/es/fr/it/en`) — real translations for any new strings
+
+### Common traps (beyond CLAUDE.md)
+- `gorm.Model` only works on uint-PK entities — UUID PK models need explicit `ID`/`CreatedAt`/`UpdatedAt` fields
+- Backend tests use `setupRouter()` from `activity_controller_test.go` (sets `db`, `userID`, `cfg` in Gin context, uses AutoMigrate)
+- Frontend component tests: `afterEach(cleanup)` mandatory; MUI appends `" *"` to required field `getByLabelText`
+- Migration files: hand-written SQL up/down pairs — never add a column by editing the struct alone
+- `gorm:"column:xxx"` tag is mandatory for acronyms/compound words — GORM silently derives wrong names
+- New entities: decide soft vs hard delete per T26's rule (user-authored content → soft, edge/join rows → hard)
+- Delete cascade: add new entities to `deleteContactAssociations` in `contact_controller.go` and `DeleteUser` in `admin_user_controller.go`

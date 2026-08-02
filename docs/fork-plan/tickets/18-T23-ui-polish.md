@@ -67,3 +67,25 @@ Remember every string change is **five locale files** with real translations.
 - The three calibration items above addressed, plus whatever else the walkthrough turned up — findings
   recorded even where not fixed.
 - All five locale files updated for any changed strings.
+
+## Flash implementation notes
+
+### Files to read first
+- CLAUDE.md (repo conventions, traps, commands)
+- `frontend/src/theme.ts`, `assets/colors/README.md`, `assets/fonts/README.md` (theme/color/font rules)
+
+### Tests you must write before considering it done
+- Component tests for any UI changes: follow `MergeContactsDialog.test.tsx` pattern — `afterEach(cleanup)`, mock `fetch` with `vi.stubGlobal`
+- If copy changes: update test assertions that reference old label text
+
+### Self-verification checklist
+1. `npx tsc --noEmit` clean
+2. `npx vitest run` green (ALL tests, not just yours)
+3. Walk every flow in a real browser in BOTH light and dark themes
+4. All 5 locale files updated for any changed strings
+
+### Common traps
+- MUI appends `" *"` to required field labels — tests using `getByLabelText` must account for this
+- Do not nest a `<Chip>` inside `<Typography variant="body2">` — invalid HTML, React warns
+- Do not hardcode colors in components — extend the OKLCH theme in `theme.ts`
+- Component tests need explicit `afterEach(cleanup)` (vitest here has no auto-cleanup)

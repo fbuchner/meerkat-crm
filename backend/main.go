@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"syscall"
 
 	"time"
@@ -22,6 +23,23 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-co-op/gocron"
 )
+
+// safeGo runs fn in a goroutine with panic recovery so an unhandled
+// panic in a background task doesn't crash the entire server.
+func safeGo(name string, fn func()) {
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logger.Error().
+					Str("goroutine", name).
+					Interface("panic", r).
+					Str("stack", string(debug.Stack())).
+					Msg("Background goroutine panicked — recovered")
+			}
+		}()
+		fn()
+	}()
+}
 
 func main() {
 	// Initialize logger first
@@ -75,7 +93,7 @@ func main() {
 		}
 	}
 	s.Every(1).Day().At(cfg.ReminderTime).Do(task)
-	go task() // Run initially once on startup (rate-limited to prevent duplicates)
+	go safeGo("reminder-initial-run", task)
 	s.Every(5).Minutes().Do(func() {
 		services.ProcessWebhookRetries(db, *cfg)
 	})
@@ -84,15 +102,15 @@ func main() {
 		services.SyncCalendarsWithRateLimit(db, *cfg)
 	}
 	s.Every(cfg.CalDAVSyncIntervalHours).Hours().Do(calendarSyncTask)
-	go calendarSyncTask() // Run initially once on startup (rate-limited to prevent duplicates)
+	go safeGo("calendar-sync-initial-run", calendarSyncTask)
 
 	// Purge soft-deleted rows past their retention window (T26).
 	s.Every(24).Hours().Do(func() {
 		services.PurgeDeletedRows(db, *cfg)
 	})
-	go func() {
+	go safeGo("purge-initial-run", func() {
 		services.PurgeDeletedRows(db, *cfg)
-	}()
+	})
 
 	go s.StartBlocking()
 

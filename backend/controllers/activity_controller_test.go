@@ -3,9 +3,11 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
+	"mycorrhizal/config"
 	"mycorrhizal/models"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strconv"
 
 	"testing"
@@ -39,6 +41,7 @@ func setupRouter() (*gorm.DB, *gin.Engine) {
 	router.Use(func(c *gin.Context) {
 		c.Set("db", db)
 		c.Set("userID", user.ID)
+		c.Set("cfg", config.Config{ProfilePhotoDir: os.Getenv("PROFILE_PHOTO_DIR")})
 		c.Next()
 	})
 

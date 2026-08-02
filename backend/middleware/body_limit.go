@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -12,12 +13,30 @@ const (
 	MaxJSONBodySize    = 1 << 20  // 1 MB
 )
 
-// BodySizeLimitMiddleware limits the size of request bodies to prevent DoS attacks.
+// BodySizeLimitMiddleware limits the size of request bodies. For requests
+// with a Content-Length header exceeding maxBytes, the middleware aborts
+// with 413 immediately. For chunked/streaming bodies without Content-Length,
+// the MaxBytesReader wrapper will terminate the read and Gin's JSON binding
+// will produce a parse error (not a 413, but the request is still rejected).
 func BodySizeLimitMiddleware(maxBytes int64) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Wrap the request body with a size limiter
+		if lengthStr := c.Request.Header.Get("Content-Length"); lengthStr != "" {
+			if length, err := strconv.ParseInt(lengthStr, 10, 64); err == nil && length > maxBytes {
+				c.AbortWithStatusJSON(http.StatusRequestEntityTooLarge, gin.H{"error": "request body too large"})
+				return
+			}
+		}
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
 		c.Next()
+
+		// After the handler, check if MaxBytesReader hit the limit.
+		// The limit-hit error surfaces as "http: request body too large"
+		// when the handler tries to read the body. If the handler already
+		// wrote a response (e.g. a validator's 400), leave it; otherwise
+		// the MaxBytesReader error surfaces as a misleading parse error.
+		// We can't reliably distinguish, so trust Gin's binding to surface
+		// a reasonable error — the Content-Length check above covers the
+		// common case.
 	}
 }
 

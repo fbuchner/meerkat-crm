@@ -563,7 +563,7 @@ func DeleteContact(c *gin.Context) {
 // deleteContactPhotos removes the profile photo file for a contact
 // Note: thumbnails are stored as base64 in the database, not as files
 func deleteContactPhotos(c *gin.Context, contact models.Contact) {
-	uploadDir := os.Getenv("PROFILE_PHOTO_DIR")
+	uploadDir := currentConfig(c).ProfilePhotoDir
 	if uploadDir == "" {
 		return
 	}

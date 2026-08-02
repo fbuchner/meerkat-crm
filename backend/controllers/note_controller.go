@@ -234,7 +234,7 @@ func UpdateNote(c *gin.Context) {
 		}
 	}
 
-	if err := db.Updates(&note).Error; err != nil {
+	if err := db.Save(&note).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update note").WithError(err))
 		return
 	}

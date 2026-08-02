@@ -137,7 +137,7 @@ export async function createUnassignedNote(
 // Update note
 export async function updateNote(
   id: string | number,
-  data: { content: string; date: string; contact_id?: number }
+  data: { content: string; date: string; contact_id?: number | null }
 ): Promise<Note> {
   const response = await apiFetch(
     `${API_BASE_URL}/notes/${id}`,

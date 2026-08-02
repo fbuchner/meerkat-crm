@@ -103,6 +103,18 @@ export default function EditTimelineItemDialog({
     return () => clearTimeout(timeoutId);
   }, [noteSearchInput, open, type, loadNoteContacts]);
 
+  // When the contact name is resolved, sync it into the Autocomplete value
+  // so the picker shows the currently assigned contact.
+  useEffect(() => {
+    if (type === 'note' && values.noteContactId != null && values.noteContactName && !noteSelectedContact) {
+      setNoteSelectedContact({
+        ID: values.noteContactId,
+        firstname: values.noteContactName,
+        lastname: '',
+      });
+    }
+  }, [type, values.noteContactId, values.noteContactName, noteSelectedContact]);
+
   // When a noteContactId is set but no resolved name yet, try to resolve it
   // from the loaded contact list.
   useEffect(() => {
@@ -153,7 +165,7 @@ export default function EditTimelineItemDialog({
               <Box display="flex" alignItems="center" gap={1}>
                 <Chip
                   label={`${t('inbox.assignedTo')} ${values.noteContactName}`}
-                  onDelete={() => onChange({ ...values, noteContactId: undefined, noteContactName: undefined })}
+                  onDelete={() => { setNoteSelectedContact(null); onChange({ ...values, noteContactId: undefined, noteContactName: undefined }); }}
                   size="small"
                 />
               </Box>

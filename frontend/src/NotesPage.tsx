@@ -126,7 +126,7 @@ const NotesPage: React.FC = () => {
       await updateNote(editingNote.ID, {
         content: editValues.noteContent,
         date: editValues.noteDate ? new Date(editValues.noteDate).toISOString() : new Date().toISOString(),
-        contact_id: editValues.noteContactId,
+        contact_id: editValues.noteContactId ?? null,
       });
       setEditingNote(null);
       setEditValues({});

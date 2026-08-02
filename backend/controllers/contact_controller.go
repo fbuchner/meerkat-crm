@@ -454,7 +454,11 @@ func UpdateContact(c *gin.Context) {
 // Must run inside an existing transaction (tx); does not delete contact
 // itself -- callers do that.
 func deleteContactAssociations(tx *gorm.DB, contact models.Contact, userID uint) error {
-	// Manually delete associated reminders (soft delete doesn't trigger CASCADE)
+	// **Ordering note:** reminders are deleted first because LifeEvent-
+	// linked reminders (life_event_id column) reference LifeEvents which
+	// are deleted further down. If the order changes, LifeEvent-owned
+	// reminders would survive the cascade and dangle. Keep reminders
+	// above LifeEvents.
 	if err := tx.Where("contact_id = ? AND user_id = ?", contact.ID, userID).Delete(&models.Reminder{}).Error; err != nil {
 		return err
 	}

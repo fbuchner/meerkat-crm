@@ -63,6 +63,7 @@ import { useContactDialogs } from './hooks/useContactDialogs';
 import { useTimelineEditing } from './hooks/useTimelineEditing';
 import { useReminderManagement } from './hooks/useReminderManagement';
 import { useRelationshipEdges } from './hooks/useRelationshipEdges';
+import { useLifeEvents } from './hooks/useLifeEvents';
 import { useCircles } from './hooks/useCircles';
 import { useTags } from './hooks/useTags';
 import { addCircleMember, removeCircleMember } from './api/circles';
@@ -70,11 +71,29 @@ import { addContactTag, removeContactTag } from './api/tags';
 import { Circle } from './api/circles';
 import { Tag } from './api/tags';
 import RelationshipEdgeDialog from './components/RelationshipEdgeDialog';
+import LifeEventDialog from './components/LifeEventDialog';
+import { LifeEventFormData } from './components/LifeEventDialog';
 import { getOtherPartyId } from './api/relationshipEdges';
+import { LifeEvent } from './api/lifeEvents';
+import { PartialDate } from './api/lifeEvents';
 import { useSnackbar } from './context/SnackbarContext';
 import { ApiError } from './api/client';
 import { handleFetchError } from './utils/errorHandler';
 import { useDateFormat } from './DateFormatProvider';
+
+function fullDateFromPartial(d: PartialDate): string | undefined {
+  if (d.year != null && d.month != null && d.day != null) {
+    return `${d.year}-${String(d.month).padStart(2, '0')}-${String(d.day).padStart(2, '0')}`;
+  }
+  if (d.month != null && d.day != null) {
+    const y = new Date().getFullYear();
+    return `${y}-${String(d.month).padStart(2, '0')}-${String(d.day).padStart(2, '0')}`;
+  }
+  if (d.year != null) {
+    return `${d.year}-01-01`;
+  }
+  return undefined;
+}
 
 export default function ContactDetailPage() {
   const { t } = useTranslation();
@@ -228,6 +247,42 @@ export default function ContactDetailPage() {
     setEditingEdge,
   } = useRelationshipEdges(record?.uid, { showError });
 
+  const {
+    events: lifeEvents,
+    contactsByUid: lifeEventsContactsByUid,
+    refresh: refreshLifeEvents,
+    handleCreate: handleCreateLifeEvent,
+    handleUpdate: handleUpdateLifeEvent,
+    handleDelete: handleDeleteLifeEvent,
+  } = useLifeEvents(record?.uid);
+
+  const [lifeEventDialogOpen, setLifeEventDialogOpen] = useState(false);
+  const [editingLifeEvent, setEditingLifeEvent] = useState<LifeEvent | null>(null);
+
+  const handleAddLifeEvent = () => {
+    setEditingLifeEvent(null);
+    setLifeEventDialogOpen(true);
+  };
+
+  const handleEditLifeEvent = (event: LifeEvent) => {
+    setEditingLifeEvent(event);
+    setLifeEventDialogOpen(true);
+  };
+
+  const handleSaveLifeEvent = async (data: LifeEventFormData) => {
+    if (!record?.uid) return;
+    if (editingLifeEvent) {
+      await handleUpdateLifeEvent(editingLifeEvent.id, { ...data, entity_id: record.uid });
+    } else {
+      await handleCreateLifeEvent({ ...data, entity_id: record.uid, source: 'user' });
+    }
+  };
+
+  const handleLifeEventDelete = async (id: string) => {
+    if (!window.confirm(t('lifeEvent.confirmDelete'))) return;
+    await handleDeleteLifeEvent(id);
+  };
+
   const editingEdgeOtherParty = useMemo(() => {
     if (!editingEdge || !record) return undefined;
     return contactsByUid.get(getOtherPartyId(editingEdge, record.uid));
@@ -322,7 +377,8 @@ export default function ContactDetailPage() {
         // page load.
         await Promise.all([
           refreshReminders(),
-          refreshRelationshipEdges(recordData.uid)
+          refreshRelationshipEdges(recordData.uid),
+          refreshLifeEvents(recordData.uid),
         ]);
 
         // Only fetch profile picture if contact has one (avoid unnecessary 404)
@@ -356,10 +412,10 @@ export default function ContactDetailPage() {
         URL.revokeObjectURL(currentBlobUrl);
       }
     };
-  }, [id, refreshReminders, refreshRelationshipEdges]);
+  }, [id, refreshReminders, refreshRelationshipEdges, refreshLifeEvents]);
 
-  // Combine and sort notes, activities, and completions for timeline
-  const timelineItems: Array<{ type: 'note' | 'activity' | 'completion'; data: Note | Activity | ReminderCompletion; date: string }> = [
+  // Combine and sort notes, activities, completions, and life events for timeline
+  const timelineItems: Array<{ type: 'note' | 'activity' | 'completion' | 'life_event'; data: Note | Activity | ReminderCompletion | LifeEvent; date: string }> = [
     ...notes.map(note => ({
       type: 'note' as const,
       data: note,
@@ -374,6 +430,11 @@ export default function ContactDetailPage() {
       type: 'completion' as const,
       data: completion,
       date: completion.completed_at
+    })),
+    ...lifeEvents.filter(e => e.date != null).map(event => ({
+      type: 'life_event' as const,
+      data: event,
+      date: fullDateFromPartial(event.date!) || event.created_at
     }))
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -755,6 +816,11 @@ export default function ContactDetailPage() {
           onDeleteRelationshipEdge={handleDeleteRelationshipEdge}
           onAcceptSuggestion={handleAcceptSuggestion}
           onRejectSuggestion={handleRejectSuggestion}
+          lifeEvents={lifeEvents}
+          lifeEventsContactsByUid={lifeEventsContactsByUid}
+          onAddLifeEvent={handleAddLifeEvent}
+          onEditLifeEvent={handleEditLifeEvent}
+          onDeleteLifeEvent={handleLifeEventDelete}
           customFieldNames={customFieldNames}
         />
 
@@ -891,6 +957,27 @@ export default function ContactDetailPage() {
         edge={editingEdge}
         viewedContactUid={record?.uid || ''}
         otherPartyContact={editingEdgeOtherParty}
+      />
+
+      <LifeEventDialog
+        open={lifeEventDialogOpen}
+        onClose={() => {
+          setLifeEventDialogOpen(false);
+          setEditingLifeEvent(null);
+        }}
+        onSave={handleSaveLifeEvent}
+        initial={
+          editingLifeEvent
+            ? {
+                type: editingLifeEvent.type,
+                date: editingLifeEvent.date,
+                description: editingLifeEvent.description,
+                relatedEntityIds: editingLifeEvent.related_entity_ids,
+                remind: editingLifeEvent.remind,
+              }
+            : undefined
+        }
+        excludeContactUid={record?.uid}
       />
     </Box>
   );

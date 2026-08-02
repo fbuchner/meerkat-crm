@@ -22,15 +22,21 @@ import EventIcon from '@mui/icons-material/Event';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import CakeIcon from '@mui/icons-material/Cake';
 import { Note } from '../api/notes';
 import { Activity } from '../api/activities';
 import { ReminderCompletion } from '../api/reminders';
+import { LifeEvent, partialDateDisplay } from '../api/lifeEvents';
 import { useDateFormat } from '../DateFormatProvider';
 
 interface ContactTimelineProps {
-  timelineItems: Array<{ type: 'note' | 'activity' | 'completion'; data: Note | Activity | ReminderCompletion; date: string }>;
+  timelineItems: Array<{ type: 'note' | 'activity' | 'completion' | 'life_event'; data: Note | Activity | ReminderCompletion | LifeEvent; date: string }>;
   onEditItem: (type: 'note' | 'activity', item: Note | Activity) => void;
   onDeleteCompletion?: (completionId: number) => void;
+}
+
+function isLifeEvent(item: { type: string; data: unknown }): item is { type: 'life_event'; data: LifeEvent } {
+  return item.type === 'life_event';
 }
 
 export default function ContactTimeline({ timelineItems, onEditItem, onDeleteCompletion }: ContactTimelineProps) {
@@ -52,8 +58,39 @@ export default function ContactTimeline({ timelineItems, onEditItem, onDeleteCom
         const itemDate = new Date(item.date);
         const isValidDate = !isNaN(itemDate.getTime());
 
+        if (isLifeEvent(item)) {
+          const event = item.data;
+          return (
+            <TimelineItem key={`life_event-${event.id}`}>
+              <TimelineOppositeContent color="text.secondary" sx={{ flex: 0.3 }}>
+                <Typography variant="caption">
+                  {partialDateDisplay(event.date)}
+                </Typography>
+              </TimelineOppositeContent>
+              <TimelineSeparator>
+                <TimelineDot color="warning">
+                  <CakeIcon fontSize="small" />
+                </TimelineDot>
+                {index < timelineItems.length - 1 && <TimelineConnector />}
+              </TimelineSeparator>
+              <TimelineContent>
+                <Paper elevation={1} sx={{ p: 1.5 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
+                    {t(`lifeEvent.types.${event.type}`, event.type)}
+                  </Typography>
+                  {event.description && (
+                    <Typography variant="body2" sx={{ mt: 0.5 }}>
+                      {event.description}
+                    </Typography>
+                  )}
+                </Paper>
+              </TimelineContent>
+            </TimelineItem>
+          );
+        }
+
         return (
-          <TimelineItem key={`${item.type}-${item.data.ID}`}>
+          <TimelineItem key={`${item.type}-${(item.data as Note | Activity | ReminderCompletion).ID}`}>
             <TimelineOppositeContent color="text.secondary" sx={{ flex: 0.3 }}>
               <Typography variant="caption">
                 {isValidDate ? formatDate(item.date) : (item.date || 'N/A')}

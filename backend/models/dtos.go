@@ -51,6 +51,7 @@ type LifeEventInput struct {
 	Description      string                    `json:"description,omitempty" validate:"max=2000"`
 	Source           string                    `json:"source,omitempty" validate:"omitempty,oneof=user imported ai-suggested"`
 	RelatedEntityIDs []string                  `json:"related_entity_ids,omitempty"`
+	Remind           bool                      `json:"remind,omitempty"`
 }
 
 // CalendarSubscriptionInput is the DTO for creating/updating a calendar subscription.

@@ -10,6 +10,7 @@ import UsersPage from './UsersPage';
 import ApiTokensPage from './ApiTokensPage';
 import CircleTagTriagePage from './CircleTagTriagePage';
 import DataSettingsPage from './DataSettingsPage';
+import HouseholdsPage from './HouseholdsPage';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
 import { getToken, logoutAndRedirect, isAdmin, fetchAndCacheUserInfo } from './auth';
@@ -47,6 +48,7 @@ import NoteIcon from '@mui/icons-material/Note';
 import HubIcon from '@mui/icons-material/Hub';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PeopleIcon from '@mui/icons-material/People';
+import HomeWorkIcon from '@mui/icons-material/HomeWork';
 import TokenIcon from '@mui/icons-material/Token';
 import StorageIcon from '@mui/icons-material/Storage';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -128,6 +130,7 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
     { text: t('nav.activities'), icon: <EventNoteIcon />, path: '/activities' },
     { text: t('nav.notes'), icon: <NoteIcon />, path: '/notes' },
     { text: t('nav.network'), icon: <HubIcon />, path: '/network' },
+    { text: t('nav.households'), icon: <HomeWorkIcon />, path: '/households' },
   ], [t]);
 
   const settingsSubItems = useMemo(() => {
@@ -438,6 +441,7 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
           <Route path="/settings" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><SettingsPage /></Suspense>} />
           <Route path="/settings/data" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><DataSettingsPage /></Suspense>} />
           <Route path="/network" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><NetworkPage /></Suspense>} />
+          <Route path="/households" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><HouseholdsPage /></Suspense>} />
           <Route path="/users" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><UsersPage /></Suspense>} />
           <Route path="/api-tokens" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ApiTokensPage /></Suspense>} />
           <Route path="/circle-tag-triage" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><CircleTagTriagePage /></Suspense>} />

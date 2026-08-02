@@ -68,7 +68,7 @@ func GenerateHouseholdSuggestions(db *gorm.DB, household models.Household) ([]mo
 	classified := make([]classifiedMember, 0, len(members))
 	for _, m := range members {
 		var contact models.Contact
-		if err := db.Where("vcard_uid = ?", m.MemberVCardUID).First(&contact).Error; err != nil {
+		if err := db.Where("vcard_uid = ? AND user_id = ?", m.MemberVCardUID, household.UserID).First(&contact).Error; err != nil {
 			return nil, fmt.Errorf("loading contact vcard_uid=%s for household id=%s: %w", m.MemberVCardUID, household.ID, err)
 		}
 		classified = append(classified, classifiedMember{vcardUID: m.MemberVCardUID, class: classifyMember(m.Role, contact)})
@@ -162,9 +162,9 @@ func suggestEdgeIfNew(db *gorm.DB, userID uint, sourceID, targetID, edgeType str
 
 	var count int64
 	err := db.Model(&models.RelationshipEdge{}).Where(
-		"(source_id = ? AND target_id = ? AND type = ?) OR (source_id = ? AND target_id = ? AND type = ?)",
-		sourceID, targetID, edgeType,
-		targetID, sourceID, inverse,
+		"(source_id = ? AND target_id = ? AND type = ? AND user_id = ?) OR (source_id = ? AND target_id = ? AND type = ? AND user_id = ?)",
+		sourceID, targetID, edgeType, userID,
+		targetID, sourceID, inverse, userID,
 	).Count(&count).Error
 	if err != nil {
 		return nil, fmt.Errorf("checking for an existing %s edge %s->%s: %w", edgeType, sourceID, targetID, err)

@@ -76,3 +76,42 @@ but the CRM owns the cadence *state*, and that task's completion is not a reset 
 - Hand-verified: make a non-qualifying type reset cadence, confirm the test fails, restore.
 - A **real-DB test** for the policy round trip.
 - Verified in a real browser: set a cadence, record a qualifying interaction, watch health update.
+
+### Ticket-specific
+- `Activity.Qualifying()` in `models/activity.go` is the single definition of "qualifying interaction" — use it, don't reimplement
+- The InteractionType constants: `call`, `video_call`, `visit`, `meal`, `gift`, `photo`, `message`, `shared_activity` — defined in `models/activity.go`
+- `qualifying_types` is a JSON array column — study `RelationshipEdge.Metadata` for the `gorm:"serializer:json"` pattern
+- Health is DERIVED, never stored. If you find yourself adding a `next_due` column, stop — you're doing it wrong.
+- The single biggest misimplementation risk: resetting cadence on task completion. The rule is: recording a qualifying INTERACTION resets cadence; completing a generated TASK does not.
+- Timezone: `DaysUntilBirthday` in `services/birthday_service.go` already solved the adjacent problem (including Dec 31 → Jan 1 wrap) — reuse its approach
+- Overdue → webhook emission: follow `services/webhook_service.go`'s pattern. Use the job-lock pattern (`acquireJobLock`/`releaseJobLock` with minInterval) — same as reminders.
+- For new entities: decide soft vs hard delete per T26's rule. `CadencePolicy` is user-authored content → soft delete.
+
+## Flash implementation notes
+
+### Files to read first
+- `/CLAUDE.md` at repo root (conventions, recurring traps, commands)
+- Study an existing fully-implemented feature for the pattern: model → controller → routes → api → hooks → dialog → list → page wiring → i18n
+- Common pattern references: `circle_controller.go` + test (newer idiom), `api/relationshipEdges.ts` + hook, `RelationshipEdgeDialog.tsx` + test, the `ContactInformation.tsx` tab + `ContactDetailPage.tsx` wiring
+
+### Tests you must write before considering it done
+- Backend: controller tests covering CRUD, ownership scoping, error states (not found, cross-user, 409 duplicate)
+- Backend: real-DB test (`database.InitDB`, not `AutoMigrate`) for the core round-trip + any migration-dependent behavior
+- Frontend: component test (`afterEach(cleanup)`, mock `fetch` with `vi.stubGlobal`) for dialog and list
+- Hand-verify EVERY new test: break the code, confirm the test fails, restore. A test that has never failed has proven nothing.
+
+### Self-verification checklist
+1. `npx tsc --noEmit` — clean
+2. `npx vitest run` — green (ALL tests, not just yours)
+3. `cd backend && go build ./... && go vet ./... && gofmt -l . && go test ./...` — green
+4. New migrations: run `make migrate-up` to verify they apply cleanly
+5. All 5 locale files (`de/es/fr/it/en`) — real translations for any new strings
+
+### Common traps (beyond CLAUDE.md)
+- `gorm.Model` only works on uint-PK entities — UUID PK models need explicit `ID`/`CreatedAt`/`UpdatedAt` fields
+- Backend tests use `setupRouter()` from `activity_controller_test.go` (sets `db`, `userID`, `cfg` in Gin context, uses AutoMigrate)
+- Frontend component tests: `afterEach(cleanup)` mandatory; MUI appends `" *"` to required field `getByLabelText`
+- Migration files: hand-written SQL up/down pairs — never add a column by editing the struct alone
+- `gorm:"column:xxx"` tag is mandatory for acronyms/compound words — GORM silently derives wrong names
+- New entities: decide soft vs hard delete per T26's rule (user-authored content → soft, edge/join rows → hard)
+- Delete cascade: add new entities to `deleteContactAssociations` in `contact_controller.go` and `DeleteUser` in `admin_user_controller.go`

@@ -130,3 +130,43 @@ resync**, plus the "your cursor is too old" answer above. A client cannot infer 
 - The response makes clear which collections are incremental and which require full resync.
 - Frontend updated and `npx tsc --noEmit` / `npx vitest run` green.
 - OpenAPI updated (or T8 sequenced to follow).
+
+### Ticket-specific
+- Cursor format: `base64(updated_at + id)` — `updated_at` alone is not unique and will drop/duplicate rows at page boundaries
+- Shared helper next to `GetPaginationParams` in `helpers.go` — all list endpoints must use it
+- Frontend impact: if `total` is dropped (expensive for cursor pagination), the page-number UI becomes infinite-scroll or next/prev
+- **Soft-deleted rows MUST appear in the feed with a deletion marker.** GORM excludes them by default — use `Unscoped()` + explicit `deleted_at IS NOT NULL` in response. Test this specifically.
+- The `?since=` response must tell the client which collections are incremental vs full-resync
+- "Cursor too old" response: if cursor is older than `DELETED_RETENTION_DAYS`, return 410 Gone with a message telling the client to full-resync
+- `GetContacts` has a `?vcard_uid=` batch branch that bypasses pagination — leave it alone
+- Index: `CREATE INDEX idx_{table}_feed ON {table}(user_id, updated_at, id)` per paginated table
+- Study T26's purge job for the retention window — the sync horizon and retention window must be the SAME number
+
+## Flash implementation notes
+
+### Files to read first
+- `/CLAUDE.md` at repo root (conventions, recurring traps, commands)
+- Study an existing fully-implemented feature for the pattern: model → controller → routes → api → hooks → dialog → list → page wiring → i18n
+- Common pattern references: `circle_controller.go` + test (newer idiom), `api/relationshipEdges.ts` + hook, `RelationshipEdgeDialog.tsx` + test, the `ContactInformation.tsx` tab + `ContactDetailPage.tsx` wiring
+
+### Tests you must write before considering it done
+- Backend: controller tests covering CRUD, ownership scoping, error states (not found, cross-user, 409 duplicate)
+- Backend: real-DB test (`database.InitDB`, not `AutoMigrate`) for the core round-trip + any migration-dependent behavior
+- Frontend: component test (`afterEach(cleanup)`, mock `fetch` with `vi.stubGlobal`) for dialog and list
+- Hand-verify EVERY new test: break the code, confirm the test fails, restore. A test that has never failed has proven nothing.
+
+### Self-verification checklist
+1. `npx tsc --noEmit` — clean
+2. `npx vitest run` — green (ALL tests, not just yours)
+3. `cd backend && go build ./... && go vet ./... && gofmt -l . && go test ./...` — green
+4. New migrations: run `make migrate-up` to verify they apply cleanly
+5. All 5 locale files (`de/es/fr/it/en`) — real translations for any new strings
+
+### Common traps (beyond CLAUDE.md)
+- `gorm.Model` only works on uint-PK entities — UUID PK models need explicit `ID`/`CreatedAt`/`UpdatedAt` fields
+- Backend tests use `setupRouter()` from `activity_controller_test.go` (sets `db`, `userID`, `cfg` in Gin context, uses AutoMigrate)
+- Frontend component tests: `afterEach(cleanup)` mandatory; MUI appends `" *"` to required field `getByLabelText`
+- Migration files: hand-written SQL up/down pairs — never add a column by editing the struct alone
+- `gorm:"column:xxx"` tag is mandatory for acronyms/compound words — GORM silently derives wrong names
+- New entities: decide soft vs hard delete per T26's rule (user-authored content → soft, edge/join rows → hard)
+- Delete cascade: add new entities to `deleteContactAssociations` in `contact_controller.go` and `DeleteUser` in `admin_user_controller.go`

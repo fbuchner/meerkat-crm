@@ -14,7 +14,6 @@ type CRMEnvelope struct {
 	Kind               string            `json:"kind,omitempty"`
 	Circles            []string          `json:"circles,omitempty"`
 	HowWeMet           string            `json:"how_we_met,omitempty"`
-	FoodPreference     string            `json:"food_preference,omitempty"`
 	WorkInformation    string            `json:"work_information,omitempty"`
 	ContactInformation string            `json:"contact_information,omitempty"`
 	CustomFields       map[string]string `json:"custom_fields,omitempty"`

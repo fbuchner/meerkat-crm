@@ -76,7 +76,6 @@ func ApplyRecordToContact(c *Contact, r *contactmodel.Record, photoDir string) {
 	env := r.Envelope
 	c.Circles = env.Circles
 	c.HowWeMet = env.HowWeMet
-	c.FoodPreference = env.FoodPreference
 	c.WorkInformation = env.WorkInformation
 	c.ContactInformation = env.ContactInformation
 	c.CustomFields = env.CustomFields

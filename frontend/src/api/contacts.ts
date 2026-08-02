@@ -46,7 +46,6 @@ export interface Contact {
   photo?: string;
   address?: string;
   how_we_met?: string;
-  food_preference?: string;
   work_information?: string;
   contact_information?: string;
   photo_thumbnail?: string;
@@ -176,7 +175,6 @@ export interface Card {
 
 export interface CRMEnvelope {
   how_we_met?: string;
-  food_preference?: string;
   work_information?: string;
   contact_information?: string;
   custom_fields?: Record<string, string>;
@@ -440,7 +438,6 @@ export function toContactRecordInput(data: Partial<Contact>): ContactRecordInput
     },
     crm: {
       how_we_met: data.how_we_met,
-      food_preference: data.food_preference,
       work_information: data.work_information,
       contact_information: data.contact_information,
       custom_fields: data.custom_fields,

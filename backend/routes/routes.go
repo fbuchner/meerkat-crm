@@ -161,6 +161,13 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			protected.PUT("/life-events/:id", middleware.ValidateJSONMiddleware(&models.LifeEventInput{}), controllers.UpdateLifeEvent)
 			protected.DELETE("/life-events/:id", controllers.DeleteLifeEvent)
 
+			// Preference routes (T20a — docs/fork-plan/tickets/10-T20a-preferences.md)
+			protected.POST("/preferences", middleware.ValidateJSONMiddleware(&models.PreferenceInput{}), controllers.CreatePreference)
+			protected.GET("/preferences", controllers.ListPreferences)
+			protected.GET("/preferences/:id", controllers.GetPreference)
+			protected.PUT("/preferences/:id", middleware.ValidateJSONMiddleware(&models.PreferenceInput{}), controllers.UpdatePreference)
+			protected.DELETE("/preferences/:id", controllers.DeletePreference)
+
 			// Reminder routes
 			protected.GET("/reminders", controllers.GetAllReminders)
 			protected.GET("/reminders/upcoming", controllers.GetUpcomingReminders)

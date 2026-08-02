@@ -75,6 +75,22 @@ type LifeEventInput struct {
 	Remind           bool                      `json:"remind,omitempty"`
 }
 
+// PreferenceInput is the DTO for creating/updating a Preference
+// (preference.go, §91.9). Category is deliberately not `oneof`-validated —
+// it is an open classifier (see Preference's doc comment). Sensitivity
+// defaults to normal server-side when omitted (mirroring
+// FieldValue/RelationshipEdge's own defaults), not validated as required.
+type PreferenceInput struct {
+	EntityID      string     `json:"entity_id" validate:"required,uuid4"`
+	Category      string     `json:"category" validate:"required,max=100"`
+	Key           string     `json:"key,omitempty" validate:"omitempty,max=100"`
+	Value         string     `json:"value" validate:"required,max=1000"`
+	Source        string     `json:"source,omitempty" validate:"omitempty,oneof=conversation_note user ai-suggested external"`
+	Confidence    *float64   `json:"confidence,omitempty"`
+	LastConfirmed *time.Time `json:"last_confirmed,omitempty"`
+	Sensitivity   string     `json:"sensitivity,omitempty" validate:"omitempty,oneof=normal private secret"`
+}
+
 // CalendarSubscriptionInput is the DTO for creating/updating a calendar subscription.
 // Credentials are optional (public/unprotected calendars). On update, an empty
 // password keeps the stored one; set ClearPassword to remove it.

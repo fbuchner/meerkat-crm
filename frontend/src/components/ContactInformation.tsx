@@ -12,7 +12,6 @@ import LanguageIcon from '@mui/icons-material/Language';
 import ChatIcon from '@mui/icons-material/Chat';
 import NotesIcon from '@mui/icons-material/Notes';
 import ClearAllIcon from '@mui/icons-material/ClearAll';
-import RestaurantIcon from '@mui/icons-material/Restaurant';
 import PeopleIcon from '@mui/icons-material/People';
 import AddIcon from '@mui/icons-material/Add';
 import { useTranslation } from 'react-i18next';
@@ -22,8 +21,10 @@ import MultiValueField from './MultiValueField';
 import AddressFields from './AddressFields';
 import RelationshipEdgeList from './RelationshipEdgeList';
 import LifeEventList from './LifeEventList';
+import PreferenceList from './PreferenceList';
 import { RelationshipEdge } from '../api/relationshipEdges';
 import { LifeEvent } from '../api/lifeEvents';
+import { Preference } from '../api/preferences';
 import {
   Card as CardModel,
   CRMEnvelope,
@@ -75,6 +76,11 @@ interface ContactInformationProps {
   onAddLifeEvent?: () => void;
   onEditLifeEvent?: (event: LifeEvent) => void;
   onDeleteLifeEvent?: (id: string) => void;
+  // Preference props (T20a)
+  preferences?: Preference[];
+  onAddPreference?: () => void;
+  onEditPreference?: (preference: Preference) => void;
+  onDeletePreference?: (id: string) => void;
   // Custom fields
   customFieldNames?: string[];
 }
@@ -108,6 +114,10 @@ export default function ContactInformation({
   onAddLifeEvent,
   onEditLifeEvent,
   onDeleteLifeEvent,
+  preferences = [],
+  onAddPreference,
+  onEditPreference,
+  onDeletePreference,
   customFieldNames = [],
 }: ContactInformationProps) {
   const { t } = useTranslation();
@@ -164,6 +174,7 @@ export default function ContactInformation({
           <Tab label={t('contactDetail.generalInfo')} />
           <Tab label={t('relationships.title')} />
           <Tab label={t('lifeEvent.title')} />
+          <Tab label={t('preference.title')} />
         </Tabs>
       </Box>
 
@@ -357,23 +368,6 @@ export default function ContactInformation({
               />
             )}
 
-            {isOn('food_preference') && (
-              <EditableField
-                icon={<RestaurantIcon sx={{ ...iconSx, mt: 0.5 }} />}
-                label={t('contactDetail.foodPreferences')}
-                field="food_preference"
-                value={crm.food_preference || ''}
-                multiline
-                isEditing={editingField === 'food_preference'}
-                editValue={editValue}
-                validationError={validationError}
-                onEditStart={onEditStart}
-                onEditCancel={onEditCancel}
-                onEditSave={onEditSave}
-                onEditValueChange={onEditValueChange}
-              />
-            )}
-
             {isOn('how_we_met') && (
               <EditableField
                 icon={<PeopleIcon sx={{ ...iconSx, mt: 0.5 }} />}
@@ -476,6 +470,28 @@ export default function ContactInformation({
             contactsByUid={lifeEventsContactsByUid || new Map()}
             onEdit={onEditLifeEvent || (() => {})}
             onDelete={onDeleteLifeEvent || (() => {})}
+          />
+        </CardContent>
+      )}
+
+      {/* Preferences Tab (T20a) */}
+      {activeTab === 3 && (
+        <CardContent sx={{ py: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
+            <Button
+              startIcon={<AddIcon />}
+              onClick={onAddPreference}
+              variant="outlined"
+              size="small"
+            >
+              {t('preference.add')}
+            </Button>
+          </Box>
+          <Divider sx={{ mb: 1.5 }} />
+          <PreferenceList
+            preferences={preferences}
+            onEdit={onEditPreference || (() => {})}
+            onDelete={onDeletePreference || (() => {})}
           />
         </CardContent>
       )}

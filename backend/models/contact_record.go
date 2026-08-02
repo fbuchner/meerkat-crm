@@ -49,6 +49,7 @@ func RecordForContact(c *Contact, photoDir string, db *gorm.DB) *contactmodel.Re
 		card := c.Card
 		card.RelatedTo = projectRelationshipEdges(db, c.VCardUID, card.RelatedTo)
 		card.Keywords = projectTags(db, c.VCardUID, card.Keywords)
+		card.PersonalInfo = projectPreferences(db, c.VCardUID, card.PersonalInfo)
 		passthrough := c.Passthrough
 		passthrough.VCard = projectCustomFields(db, c.VCardUID, passthrough.VCard)
 		return &contactmodel.Record{
@@ -63,6 +64,7 @@ func RecordForContact(c *Contact, photoDir string, db *gorm.DB) *contactmodel.Re
 	if record != nil {
 		record.Card.RelatedTo = projectRelationshipEdges(db, record.UID, record.Card.RelatedTo)
 		record.Card.Keywords = projectTags(db, record.UID, record.Card.Keywords)
+		record.Card.PersonalInfo = projectPreferences(db, record.UID, record.Card.PersonalInfo)
 		record.Passthrough.VCard = projectCustomFields(db, record.UID, record.Passthrough.VCard)
 	}
 	return record
@@ -201,6 +203,53 @@ func projectTags(db *gorm.DB, vcardUID string, existing []string) []string {
 	return result
 }
 
+// projectPreferences is T20a's Preference -> Card.PersonalInfo projection
+// (docs/fork-plan/91-envelope-data-model.md §91.9): "a Preference of category
+// hobby may project to Card.PersonalInfo, but most preference categories have
+// no standard home and stay internal." So hobby-category preferences become
+// PersonalInfo{Kind:"hobby", Value:<value>} entries appended to a COPY of
+// existing (imported/passthrough) entries, and every other category never
+// appears here. Structurally identical to projectTags/projectRelationshipEdges
+// above — nil-safe, best-effort (a query failure degrades to "just the
+// existing personalInfo entries" rather than failing the whole read), and
+// §91.13 sensitivity is filtered in the query itself (only
+// sensitivity='normal' preferences project), never in the caller.
+func projectPreferences(db *gorm.DB, vcardUID string, existing []contactmodel.PersonalInfo) []contactmodel.PersonalInfo {
+	if db == nil || vcardUID == "" {
+		return existing
+	}
+
+	var prefs []Preference
+	if err := db.Where(
+		"entity_id = ? AND category = ? AND sensitivity = ?",
+		vcardUID, PreferenceCategoryHobby, RelationshipSensitivityNormal,
+	).Find(&prefs).Error; err != nil {
+		logger.Warn().Err(err).Str("vcard_uid", vcardUID).Msg("projectPreferences: failed to load hobby preferences")
+		return existing
+	}
+	if len(prefs) == 0 {
+		return existing
+	}
+
+	seen := make(map[string]bool, len(existing))
+	result := append([]contactmodel.PersonalInfo(nil), existing...)
+	for _, p := range existing {
+		if p.Value != "" {
+			seen[p.Value] = true
+		}
+	}
+	for _, pref := range prefs {
+		value := pref.Value
+		if value == "" || seen[value] {
+			continue
+		}
+		seen[value] = true
+		result = append(result, contactmodel.PersonalInfo{Kind: "hobby", Value: value})
+	}
+
+	return result
+}
+
 // projectCustomFields is WP-84b's FieldValue -> Passthrough.VCard projection
 // (docs/fork-plan/94-custom-fields.md §94.5): a definition whose Projection
 // is "vcard:X-<NAME>" rides the existing JCardProp/passthrough machinery,
@@ -306,7 +355,6 @@ func RecordFromContact(c *Contact, photoDir string) *contactmodel.Record {
 	record.Envelope = contactmodel.CRMEnvelope{
 		Circles:            c.Circles,
 		HowWeMet:           c.HowWeMet,
-		FoodPreference:     c.FoodPreference,
 		WorkInformation:    c.WorkInformation,
 		ContactInformation: c.ContactInformation,
 		CustomFields:       c.CustomFields,

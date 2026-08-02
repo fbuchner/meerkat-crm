@@ -377,7 +377,6 @@ var headerToField = map[string]string{
 	"job title": "job_title", "title": "job_title", "organization title": "job_title", "position": "job_title",
 	"role": "role", "organization role": "role",
 	"how we met": "how_we_met", "how_we_met": "how_we_met", "notes": "how_we_met", "how i met": "how_we_met",
-	"food": "food_preference", "food preference": "food_preference", "food_preference": "food_preference", "dietary": "food_preference", "diet": "food_preference",
 	"work": "work_information", "work_information": "work_information", "job": "work_information", "occupation": "work_information",
 	"contact information": "contact_information", "contact_information": "contact_information", "other contact": "contact_information",
 	"circles": "circles", "groups": "circles", "tags": "circles", "category": "circles", "categories": "circles", "labels": "circles",
@@ -892,8 +891,6 @@ func BuildContactFromRow(userID uint, headers []string, row []string, mappings [
 			contact.Role = v
 		case "how_we_met":
 			contact.HowWeMet = v
-		case "food_preference":
-			contact.FoodPreference = v
 		case "work_information":
 			contact.WorkInformation = v
 		case "contact_information":
@@ -1027,9 +1024,6 @@ func MergeImportedContact(existing *models.Contact, incoming *models.Contact) {
 	if incoming.HowWeMet != "" {
 		existing.HowWeMet = incoming.HowWeMet
 	}
-	if incoming.FoodPreference != "" {
-		existing.FoodPreference = incoming.FoodPreference
-	}
 	if incoming.ContactInformation != "" {
 		existing.ContactInformation = incoming.ContactInformation
 	}
@@ -1109,7 +1103,6 @@ func CreateMergeNote(db *gorm.DB, userID uint, contactID uint, original *models.
 		"job_title":           {"Job Title", original.JobTitle},
 		"role":                {"Role", original.Role},
 		"how_we_met":          {"How We Met", original.HowWeMet},
-		"food_preference":     {"Food Preferences", original.FoodPreference},
 		"work_information":    {"Work Information", original.WorkInformation},
 		"contact_information": {"Contact Information", original.ContactInformation},
 	}

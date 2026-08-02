@@ -159,7 +159,6 @@
     "birthdayFormat": "Year is optional. Check Settings for date format.",
     "address": "Address",
     "howWeMet": "How We Met",
-    "foodPreference": "Food Preferences",
     "workInformation": "Work Information",
     "contactInformation": "Additional Contact Information",
     "circles": "Circles",
@@ -290,7 +289,6 @@
     "birthdayError": "Invalid date format. Check your date format setting.",
     "address": "Address",
     "workInfo": "Work Information",
-    "foodPreferences": "Food Preferences",
     "howWeMet": "How We Met",
     "additionalInfo": "Additional Information",
     "timeline": "Timeline",
@@ -872,5 +870,38 @@
     "associationSummary": "This will move {{notes}} note(s), {{activities}} activit(y/ies), {{reminders}} reminder(s), and {{edges}} relationship(s) onto the merged contact.",
     "mergeButton": "Merge",
     "mergeSuccess": "Contacts merged successfully"
+  },
+  "preference": {
+    "title": "Preferences",
+    "add": "Add Preference",
+    "createTitle": "Add Preference",
+    "editTitle": "Edit Preference",
+    "category": "Category",
+    "categories": {
+      "food": "Food",
+      "drink": "Drink",
+      "clothing_size": "Clothing size",
+      "hobby": "Hobby",
+      "gift": "Gift",
+      "dislike": "Dislike",
+      "media": "Media"
+    },
+    "key": "Key",
+    "keyHint": "Optional qualifier, e.g. favorite_coffee",
+    "value": "Value",
+    "sensitivity": "Sensitivity",
+    "sensitivities": {
+      "normal": "Normal",
+      "private": "Private",
+      "secret": "Secret"
+    },
+    "empty": "No preferences yet",
+    "deleteMessage": "Delete this preference?",
+    "cancel": "Cancel",
+    "save": "Save",
+    "validation": {
+      "valueRequired": "Value is required",
+      "saveFailed": "Failed to save preference"
+    }
   }
 }

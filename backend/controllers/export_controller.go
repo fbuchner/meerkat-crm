@@ -141,6 +141,23 @@ func ExportData(c *gin.Context) {
 		return
 	}
 
+	// T20a: the "Food Preference" column now sources from the structured
+	// preferences table (category=food) rather than the retired free-text
+	// Contact.FoodPreference. Deliberately includes every sensitivity — this
+	// is the user's own full personal-data backup, the same choice the
+	// relationships section below documents for RelationshipEdge.
+	var foodPreferences []models.Preference
+	if err := db.Where("user_id = ? AND category = ?", userID, models.PreferenceCategoryFood).
+		Find(&foodPreferences).Error; err != nil {
+		log.Error().Err(err).Msg("Failed to fetch food preferences for export")
+		apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to fetch food preferences"))
+		return
+	}
+	foodByVCardUID := make(map[string][]string, len(foodPreferences))
+	for _, pref := range foodPreferences {
+		foodByVCardUID[pref.EntityID] = append(foodByVCardUID[pref.EntityID], pref.Value)
+	}
+
 	// Generate combined CSV content
 	var buf bytes.Buffer
 	writer := csv.NewWriter(&buf)
@@ -175,7 +192,7 @@ func ExportData(c *gin.Context) {
 			contact.Birthday,
 			contact.Address,
 			contact.HowWeMet,
-			contact.FoodPreference,
+			strings.Join(foodByVCardUID[contact.VCardUID], "; "),
 			contact.WorkInformation,
 			contact.ContactInformation,
 			strings.Join(contact.Circles, "; "),

@@ -615,7 +615,6 @@ func TestCreateContactWithAllFields(t *testing.T) {
 		},
 		CRM: contactmodel.CRMEnvelope{
 			HowWeMet:           "Met at a tech conference in 2020",
-			FoodPreference:     "Vegetarian, loves Italian cuisine",
 			WorkInformation:    "Senior Software Engineer at TechCorp Inc.",
 			ContactInformation: "Prefers email, available weekdays 9-5",
 			Circles:            []string{"Friends", "Work", "Tech Community"},
@@ -643,7 +642,6 @@ func TestCreateContactWithAllFields(t *testing.T) {
 
 	crm := contact["crm"].(map[string]any)
 	assert.Equal(t, "Met at a tech conference in 2020", crm["how_we_met"])
-	assert.Equal(t, "Vegetarian, loves Italian cuisine", crm["food_preference"])
 	assert.Equal(t, "Senior Software Engineer at TechCorp Inc.", crm["work_information"])
 	assert.Equal(t, "Prefers email, available weekdays 9-5", crm["contact_information"])
 	circles := crm["circles"].([]any)

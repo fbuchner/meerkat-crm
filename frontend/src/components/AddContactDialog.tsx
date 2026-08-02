@@ -63,7 +63,6 @@ const emptyForm = {
   job_title: '',
   role: '',
   how_we_met: '',
-  food_preference: '',
   work_information: '',
   contact_information: ''
 };
@@ -191,7 +190,6 @@ export default function AddContactDialog({
         },
         crm: {
           how_we_met: formData.how_we_met,
-          food_preference: formData.food_preference,
           work_information: formData.work_information,
           contact_information: formData.contact_information,
           custom_fields: Object.keys(filteredCustomFields).length > 0 ? filteredCustomFields : undefined,
@@ -419,14 +417,6 @@ export default function AddContactDialog({
               rows={2}
               value={formData.how_we_met}
               onChange={handleChange('how_we_met')}
-            />
-          )}
-          {isOn('food_preference') && (
-            <TextField
-              label={t('contacts.foodPreference')}
-              fullWidth
-              value={formData.food_preference}
-              onChange={handleChange('food_preference')}
             />
           )}
           {isOn('contact_information') && (

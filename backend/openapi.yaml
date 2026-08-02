@@ -484,7 +484,6 @@ components:
       properties:
         circles: { type: array, items: { type: string } }
         how_we_met: { type: string }
-        food_preference: { type: string }
         work_information: { type: string }
         contact_information: { type: string }
         custom_fields:

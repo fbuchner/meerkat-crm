@@ -80,7 +80,6 @@ type Contact struct {
 	PhotoThumbnail     string     `json:"-"`                                        // Base64 data URL of thumbnail (not exposed in JSON directly)
 	Address            string     `json:"address" validate:"max=500"`               // Full address as a string
 	HowWeMet           string     `json:"how_we_met" validate:"max=1000"`           // Text field
-	FoodPreference     string     `json:"food_preference" validate:"max=500"`       // Text field
 	WorkInformation    string     `json:"work_information" validate:"max=1000"`     // Text field
 	ContactInformation string     `json:"contact_information" validate:"max=1000"`  // Additional contact information
 	Circles            []string   `gorm:"type:text;serializer:json" json:"circles"` // Serialize Circles properly

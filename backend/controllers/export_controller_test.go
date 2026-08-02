@@ -67,12 +67,24 @@ func TestExportData(t *testing.T) {
 		Birthday:           "1990-01-15",
 		Address:            "123 Main St",
 		HowWeMet:           "Work conference",
-		FoodPreference:     "Vegetarian",
 		WorkInformation:    "Software Engineer",
 		ContactInformation: "Prefers email",
 		Circles:            []string{"Friends", "Work"},
 	}
 	db.Create(&contact1)
+
+	// T20a: the "Food Preference" export column sources from the structured
+	// preferences table now, not the retired Contact.FoodPreference field.
+	foodConfidence := 1.0
+	db.Create(&models.Preference{
+		UserID:      user.ID,
+		EntityID:    contact1.VCardUID,
+		Category:    models.PreferenceCategoryFood,
+		Value:       "Vegetarian",
+		Source:      models.PreferenceSourceUser,
+		Confidence:  &foodConfidence,
+		Sensitivity: models.RelationshipSensitivityNormal,
+	})
 
 	contact2 := models.Contact{
 		UserID:    user.ID,
@@ -163,6 +175,7 @@ func TestExportData(t *testing.T) {
 	assert.Contains(t, body, "Bob")
 	assert.Contains(t, body, "Smith")
 	assert.Contains(t, body, "Friends; Work")
+	assert.Contains(t, body, "Vegetarian", "the Food Preference column must source from the preferences table")
 
 	// Verify relationships section
 	assert.Contains(t, body, "=== RELATIONSHIPS ===")

@@ -40,7 +40,6 @@ var mergeScalarFields = []scalarFieldSpec{
 	{"job_title", "Job Title", func(c *models.Contact) string { return c.JobTitle }, func(c *models.Contact, v string) { c.JobTitle = v }},
 	{"role", "Role", func(c *models.Contact) string { return c.Role }, func(c *models.Contact, v string) { c.Role = v }},
 	{"how_we_met", "How We Met", func(c *models.Contact) string { return c.HowWeMet }, func(c *models.Contact, v string) { c.HowWeMet = v }},
-	{"food_preference", "Food Preferences", func(c *models.Contact) string { return c.FoodPreference }, func(c *models.Contact, v string) { c.FoodPreference = v }},
 	{"work_information", "Work Information", func(c *models.Contact) string { return c.WorkInformation }, func(c *models.Contact, v string) { c.WorkInformation = v }},
 	{"contact_information", "Contact Information", func(c *models.Contact) string { return c.ContactInformation }, func(c *models.Contact, v string) { c.ContactInformation = v }},
 }

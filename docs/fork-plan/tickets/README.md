@@ -12,19 +12,19 @@ dependency → pre/post-alpha risk → usefulness rating → size.
 
 ## Before alpha
 
-| # | Ticket | R | Size |
-|---|---|---|---|
-| [01](01-N1-contact-merge.md) | N1 · Contact merge / dedupe — **DONE** | 5 | M |
-| [02](02-N4-notes-capture-inbox.md) | N4 · Notes: dead-end journal → capture inbox | 4 | S–M |
-| [03](03-T5-lifeevent-frontend.md) | T5 · LifeEvent frontend + timeline | 4 | M |
-| [04](04-T5b-lifeevent-reminders.md) | T5b · LifeEvent → reminder wiring | 4 | S |
-| [05](05-T2-circle-tag-triage.md) | T2 · Circle/Tag triage migration | 4 | M |
-| [06](06-T3-circle-tag-backend.md) | T3 · Circle/Tag backend rewiring | 4 | S–M |
-| [07](07-T4-circle-tag-frontend.md) | T4 · Circle/Tag frontend rewiring | 4 | L |
-| [08](08-T25-known-gaps.md) | T25 · Known small functional gaps | 3 | S |
-| [08b](08b-T26-delete-semantics.md) | T26 · Delete semantics — purge job + constraint fixes | 3 | M |
-| [09](09-T1-households.md) | T1 · Household CRUD + suggestion trigger | 3 | M |
-| [10](10-T20a-preferences.md) | T20a · Preferences migration | 3 | M |
+| # | Ticket | R | Size | Status |
+|---|---|---|---|---|
+| [01](01-N1-contact-merge.md) | N1 · Contact merge / dedupe | 5 | M | **DONE** |
+| [02](02-N4-notes-capture-inbox.md) | N4 · Notes: dead-end journal → capture inbox | 4 | S–M | **DONE** |
+| [03](03-T5-lifeevent-frontend.md) | T5 · LifeEvent frontend + timeline | 4 | M | **DONE** |
+| [04](04-T5b-lifeevent-reminders.md) | T5b · LifeEvent → reminder wiring | 4 | S | **DONE** |
+| [05](05-T2-circle-tag-triage.md) | T2 · Circle/Tag triage migration | 4 | M | **DONE** |
+| [06](06-T3-circle-tag-backend.md) | T3 · Circle/Tag backend rewiring | 4 | S–M | **DONE** |
+| [07](07-T4-circle-tag-frontend.md) | T4 · Circle/Tag frontend rewiring | 4 | L | **DONE** |
+| [08](08-T25-known-gaps.md) | T25 · Known small functional gaps | 3 | S | **DONE** |
+| [08b](08b-T26-delete-semantics.md) | T26 · Delete semantics — purge job + constraint fixes | 3 | M | **DONE** |
+| [09](09-T1-households.md) | T1 · Household CRUD + suggestion trigger | 3 | M | **DONE** |
+| [10](10-T20a-preferences.md) | T20a · Preferences migration | 3 | M | **DONE** |
 | [11](11-T6-custom-fields-api.md) | T6 · Custom fields v2 — API | 3 | M |
 | [12](12-T7-custom-fields-frontend.md) | T7 · Custom fields v2 — frontend + retire v1 | 3 | L |
 | [13](13-T9-selective-export.md) | T9 · Selective field export + sensitivity gating | 3 | L |
@@ -42,8 +42,8 @@ questions in `../95-backlog-and-priorities.md`.
 
 ## After alpha
 
-| # | Ticket | R | Size |
-|---|---|---|---|
+| # | Ticket | R | Size | Status |
+|---|---|---|---|---|
 | [20](20-T19-cadence.md) | T19 · CadencePolicy + relationship health | 5 | L |
 | [21](21-T21-conversation-agenda.md) | T21 · ConversationAgenda | 4 | M |
 | [22](22-N2-prep-view.md) | N2 · Prep view / person briefing | 5 | M |

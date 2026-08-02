@@ -64,6 +64,7 @@ import { useTimelineEditing } from './hooks/useTimelineEditing';
 import { useReminderManagement } from './hooks/useReminderManagement';
 import { useRelationshipEdges } from './hooks/useRelationshipEdges';
 import { useLifeEvents } from './hooks/useLifeEvents';
+import { usePreferences } from './hooks/usePreferences';
 import { useCircles } from './hooks/useCircles';
 import { useTags } from './hooks/useTags';
 import { addCircleMember, removeCircleMember } from './api/circles';
@@ -72,6 +73,8 @@ import { Circle } from './api/circles';
 import { Tag } from './api/tags';
 import RelationshipEdgeDialog from './components/RelationshipEdgeDialog';
 import LifeEventDialog from './components/LifeEventDialog';
+import PreferenceDialog, { toPreferenceInput, PreferenceFormData } from './components/PreferenceDialog';
+import { Preference } from './api/preferences';
 import { LifeEventFormData } from './components/LifeEventDialog';
 import { getOtherPartyId } from './api/relationshipEdges';
 import { LifeEvent } from './api/lifeEvents';
@@ -255,6 +258,35 @@ export default function ContactDetailPage() {
     handleUpdate: handleUpdateLifeEvent,
     handleDelete: handleDeleteLifeEvent,
   } = useLifeEvents(record?.uid);
+
+  const {
+    preferences,
+    handleSave: handleSavePreference,
+    handleDelete: handleDeletePreference,
+  } = usePreferences(record?.uid, { showError });
+
+  const [preferenceDialogOpen, setPreferenceDialogOpen] = useState(false);
+  const [editingPreference, setEditingPreference] = useState<Preference | null>(null);
+
+  const handleAddPreference = () => {
+    setEditingPreference(null);
+    setPreferenceDialogOpen(true);
+  };
+
+  const handleEditPreference = (pref: Preference) => {
+    setEditingPreference(pref);
+    setPreferenceDialogOpen(true);
+  };
+
+  const handleSavePreferenceSubmit = async (data: PreferenceFormData) => {
+    if (!record?.uid) return;
+    await handleSavePreference(editingPreference, toPreferenceInput(record.uid, data));
+  };
+
+  const handlePreferenceDelete = async (id: string) => {
+    if (!window.confirm(t('preference.deleteMessage'))) return;
+    await handleDeletePreference(id);
+  };
 
   const [lifeEventDialogOpen, setLifeEventDialogOpen] = useState(false);
   const [editingLifeEvent, setEditingLifeEvent] = useState<LifeEvent | null>(null);
@@ -505,8 +537,6 @@ export default function ContactDetailPage() {
       }
       case 'work_information':
         return { crm: { work_information: value } };
-      case 'food_preference':
-        return { crm: { food_preference: value } };
       case 'how_we_met':
         return { crm: { how_we_met: value } };
       case 'contact_information':
@@ -821,6 +851,10 @@ export default function ContactDetailPage() {
           onAddLifeEvent={handleAddLifeEvent}
           onEditLifeEvent={handleEditLifeEvent}
           onDeleteLifeEvent={handleLifeEventDelete}
+          preferences={preferences}
+          onAddPreference={handleAddPreference}
+          onEditPreference={handleEditPreference}
+          onDeletePreference={handlePreferenceDelete}
           customFieldNames={customFieldNames}
         />
 
@@ -978,6 +1012,16 @@ export default function ContactDetailPage() {
             : undefined
         }
         excludeContactUid={record?.uid}
+      />
+
+      <PreferenceDialog
+        open={preferenceDialogOpen}
+        onClose={() => {
+          setPreferenceDialogOpen(false);
+          setEditingPreference(null);
+        }}
+        onSave={handleSavePreferenceSubmit}
+        preference={editingPreference}
       />
     </Box>
   );

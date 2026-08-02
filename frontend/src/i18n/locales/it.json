@@ -159,7 +159,6 @@
     "birthdayFormat": "L'anno è opzionale. Controlla le Impostazioni per il formato data.",
     "address": "Indirizzo",
     "howWeMet": "Come ci siamo conosciuti",
-    "foodPreference": "Preferenze Alimentari",
     "workInformation": "Informazioni Lavorative",
     "contactInformation": "Informazioni di Contatto Aggiuntive",
     "circles": "Cerchie",
@@ -290,7 +289,6 @@
     "birthdayError": "Formato data non valido. Controlla le impostazioni del formato data.",
     "address": "Indirizzo",
     "workInfo": "Informazioni Lavorative",
-    "foodPreferences": "Preferenze Alimentari",
     "howWeMet": "Come ci siamo conosciuti",
     "additionalInfo": "Informazioni Aggiuntive",
     "timeline": "Cronologia",
@@ -905,6 +903,39 @@
       "quarterly": "Trimestrale",
       "six-months": "Ogni 6 mesi",
       "yearly": "Annuale"
+    }
+  },
+  "preference": {
+    "title": "Preferenze",
+    "add": "Aggiungi preferenza",
+    "createTitle": "Aggiungi preferenza",
+    "editTitle": "Modifica preferenza",
+    "category": "Categoria",
+    "categories": {
+      "food": "Cibo",
+      "drink": "Bevande",
+      "clothing_size": "Taglia di abbigliamento",
+      "hobby": "Hobby",
+      "gift": "Regalo",
+      "dislike": "Non gradito",
+      "media": "Media"
+    },
+    "key": "Chiave",
+    "keyHint": "Qualificatore facoltativo, es. favorite_coffee",
+    "value": "Valore",
+    "sensitivity": "Sensibilità",
+    "sensitivities": {
+      "normal": "Normale",
+      "private": "Privata",
+      "secret": "Segreta"
+    },
+    "empty": "Nessuna preferenza ancora",
+    "deleteMessage": "Eliminare questa preferenza?",
+    "cancel": "Annulla",
+    "save": "Salva",
+    "validation": {
+      "valueRequired": "Il valore è obbligatorio",
+      "saveFailed": "Salvataggio della preferenza non riuscito"
     }
   }
 }

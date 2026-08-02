@@ -36,7 +36,6 @@ export type ContactFieldKey =
   | 'organizations'
   | 'titles'
   | 'how_we_met'
-  | 'food_preference'
   | 'work_information'
   | 'contact_information';
 
@@ -71,7 +70,6 @@ export const CONTACT_FIELDS: ContactFieldDef[] = [
   { key: 'anniversary', labelKey: 'contacts.anniversary', group: 'personal', multiValue: false },
 
   { key: 'how_we_met', labelKey: 'contacts.howWeMet', group: 'mycorrhizal', multiValue: false },
-  { key: 'food_preference', labelKey: 'contacts.foodPreference', group: 'mycorrhizal', multiValue: false },
   { key: 'contact_information', labelKey: 'contacts.contactInformation', group: 'mycorrhizal', multiValue: false },
 ];
 
@@ -94,7 +92,6 @@ export const DEFAULT_ENABLED_CONTACT_FIELDS: ContactFieldKey[] = [
   'gender',
   'birthday',
   'how_we_met',
-  'food_preference',
   'work_information',
   'contact_information',
 ];

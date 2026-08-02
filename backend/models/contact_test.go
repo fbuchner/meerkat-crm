@@ -60,7 +60,6 @@ func fullyPopulatedContact() *Contact {
 		JobTitle:           "Staff Engineer",
 		Role:               "Tech Lead",
 		HowWeMet:           "Conference",
-		FoodPreference:     "Vegetarian",
 		WorkInformation:    "Remote",
 		ContactInformation: "Prefers email",
 		Circles:            []string{"friends", "work"},
@@ -221,7 +220,7 @@ func TestRecordFromContact_FullyPopulated(t *testing.T) {
 
 	// CRM-only fields: 1:1 direct copy into Record.Envelope
 	env := record.Envelope
-	if env.HowWeMet != "Conference" || env.FoodPreference != "Vegetarian" ||
+	if env.HowWeMet != "Conference" ||
 		env.WorkInformation != "Remote" || env.ContactInformation != "Prefers email" {
 		t.Errorf("Record.Envelope text fields = %+v, want the CustomFields set on the Contact", env)
 	}

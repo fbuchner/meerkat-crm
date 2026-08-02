@@ -82,9 +82,6 @@ func TestApplyRecordToContact_RoundTrip(t *testing.T) {
 	if got.HowWeMet != original.HowWeMet {
 		t.Errorf("HowWeMet = %q, want %q", got.HowWeMet, original.HowWeMet)
 	}
-	if got.FoodPreference != original.FoodPreference {
-		t.Errorf("FoodPreference = %q, want %q", got.FoodPreference, original.FoodPreference)
-	}
 	if got.WorkInformation != original.WorkInformation {
 		t.Errorf("WorkInformation = %q, want %q", got.WorkInformation, original.WorkInformation)
 	}

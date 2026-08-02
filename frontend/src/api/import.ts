@@ -98,7 +98,6 @@ export const IMPORTABLE_CONTACT_FIELDS = [
   'role',
   // Free-text
   'how_we_met',
-  'food_preference',
   'work_information',
   'contact_information',
 ] as const;
@@ -135,7 +134,6 @@ export const CONTACT_FIELD_LABELS: Record<string, string> = {
   job_title: 'Job Title',
   role: 'Role',
   how_we_met: 'How We Met',
-  food_preference: 'Food Preferences',
   work_information: 'Work Information',
   contact_information: 'Contact Information',
 };

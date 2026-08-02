@@ -333,3 +333,157 @@ func TestDeleteNote(t *testing.T) {
 	json.Unmarshal(w.Body.Bytes(), &responseBody)
 	assert.Equal(t, "Note deleted", responseBody["message"])
 }
+
+// T2: UpdateNote clears contact_id (unassigned). GORM's Save must write nil.
+func TestUpdateNoteClearsContactID(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+
+	router.PUT("/notes/:id", withValidated(func() any { return &models.NoteInput{} }), UpdateNote)
+
+	contact := models.Contact{
+		UserID:    user.ID,
+		Firstname: "Original",
+		Lastname:  "Holder",
+	}
+	db.Create(&contact)
+
+	note := models.Note{
+		UserID:    user.ID,
+		Content:   "Assigned note.",
+		Date:      time.Now(),
+		ContactID: &contact.ID,
+	}
+	db.Create(&note)
+
+	// Update with contact_id omitted (nil)
+	updatedNote := models.NoteInput{
+		Content: "Now unassigned.",
+		Date:    time.Now(),
+	}
+	jsonValue, _ := json.Marshal(updatedNote)
+	req, _ := http.NewRequest("PUT", "/notes/"+strconv.Itoa(int(note.ID)), bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var reloaded models.Note
+	db.First(&reloaded, note.ID)
+	assert.Nil(t, reloaded.ContactID, "contact_id must be nil after clear")
+}
+
+// T3: UpdateNote changes contact_id to a different contact.
+func TestUpdateNoteChangesContactID(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+
+	router.PUT("/notes/:id", withValidated(func() any { return &models.NoteInput{} }), UpdateNote)
+
+	alice := models.Contact{UserID: user.ID, Firstname: "Alice"}
+	bob := models.Contact{UserID: user.ID, Firstname: "Bob"}
+	db.Create(&alice)
+	db.Create(&bob)
+
+	note := models.Note{
+		UserID:    user.ID,
+		Content:   "Assignable note.",
+		Date:      time.Now(),
+		ContactID: &alice.ID,
+	}
+	db.Create(&note)
+
+	updated := models.NoteInput{
+		Content:   note.Content,
+		Date:      note.Date,
+		ContactID: &bob.ID,
+	}
+	jsonValue, _ := json.Marshal(updated)
+	req, _ := http.NewRequest("PUT", "/notes/"+strconv.Itoa(int(note.ID)), bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var reloaded models.Note
+	db.First(&reloaded, note.ID)
+	assert.NotNil(t, reloaded.ContactID)
+	assert.Equal(t, bob.ID, *reloaded.ContactID)
+}
+
+// T4: CreateUnassignedNote with a contact_id (note created already filed).
+func TestCreateUnassignedNoteWithContactID(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+
+	router.POST("/notes", withValidated(func() any { return &models.NoteInput{} }), CreateUnassignedNote)
+
+	contact := models.Contact{
+		UserID:    user.ID,
+		Firstname: "Filing",
+	}
+	db.Create(&contact)
+
+	input := models.NoteInput{
+		Content:   "Born assigned.",
+		Date:      time.Now(),
+		ContactID: &contact.ID,
+	}
+	jsonValue, _ := json.Marshal(input)
+	req, _ := http.NewRequest("POST", "/notes", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response struct {
+		Note models.Note `json:"note"`
+	}
+	json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NotNil(t, response.Note.ContactID)
+	assert.Equal(t, contact.ID, *response.Note.ContactID)
+}
+
+// T5: UpdateNote rejects contact_id referencing another user's contact (IDOR).
+func TestUpdateNoteRejectsCrossUserContactID(t *testing.T) {
+	db, router := setupRouter()
+
+	var owner models.User
+	var other models.User
+	db.First(&owner)
+	db.Create(&other)
+
+	router.PUT("/notes/:id", withValidated(func() any { return &models.NoteInput{} }), UpdateNote)
+
+	othersContact := models.Contact{UserID: other.ID, Firstname: "Not Yours"}
+	db.Create(&othersContact)
+
+	note := models.Note{
+		UserID:  owner.ID,
+		Content: "My note.",
+		Date:    time.Now(),
+	}
+	db.Create(&note)
+
+	updated := models.NoteInput{
+		Content:   note.Content,
+		Date:      note.Date,
+		ContactID: &othersContact.ID,
+	}
+	jsonValue, _ := json.Marshal(updated)
+	req, _ := http.NewRequest("PUT", "/notes/"+strconv.Itoa(int(note.ID)), bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}

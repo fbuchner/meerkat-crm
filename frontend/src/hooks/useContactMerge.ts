@@ -33,7 +33,6 @@ export function useContactMerge(notifier?: ErrorNotifier) {
           addresses: result.resolution.addresses || [],
           urls: result.resolution.urls || [],
           impps: result.resolution.impps || [],
-          circles: result.resolution.circles || [],
           custom_fields: result.resolution.custom_fields || {},
           resolved_scalars: result.resolution.resolved_scalars || {},
           conflicts: result.resolution.conflicts || [],

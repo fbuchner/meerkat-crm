@@ -190,7 +190,6 @@ describe('toContactRecordInput', () => {
       job_title: 'Professor',
       role: 'Nobel Laureate',
       birthday: '1867-11-07',
-      circles: ['Scientists'],
       custom_fields: { favorite_color: 'Radium Green' },
     });
 
@@ -207,7 +206,6 @@ describe('toContactRecordInput', () => {
     expect(input.card.organizations).toEqual([{ name: 'Sorbonne University', units: [{ name: 'Physics' }] }]);
     expect(input.card.titles).toEqual([{ name: 'Professor', kind: 'title' }, { name: 'Nobel Laureate', kind: 'role' }]);
     expect(input.card.anniversaries).toEqual([{ kind: 'birth', date: { partial: { year: 1867, month: 11, day: 7 } } }]);
-    expect(input.crm.circles).toEqual(['Scientists']);
     expect(input.crm.custom_fields).toEqual({ favorite_color: 'Radium Green' });
   });
 });

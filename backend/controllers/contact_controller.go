@@ -207,6 +207,16 @@ func GetContacts(c *gin.Context) {
 	}
 
 	if circle := c.Query("circle"); circle != "" {
+		query = query.Where(`EXISTS (
+			SELECT 1 FROM circle_members cm
+			JOIN circles c ON cm.circle_id = c.id AND c.user_id = ?
+			WHERE cm.member_vcard_uid = contacts.vcard_uid AND c.name = ?
+		)`, userID, circle)
+	}
+
+	// Temporary legacy filter for T2 triage migration — reads from the
+	// old flat contacts.circles JSON column. Remove once migration is complete.
+	if circle := c.Query("circle_legacy"); circle != "" {
 		query = query.Where("EXISTS (SELECT 1 FROM json_each(contacts.circles) WHERE json_each.value = ?)", circle)
 	}
 
@@ -248,9 +258,15 @@ func GetContacts(c *gin.Context) {
 	}
 
 	if circle := c.Query("circle"); circle != "" {
+		countQuery = countQuery.Where(`EXISTS (
+			SELECT 1 FROM circle_members cm
+			JOIN circles c ON cm.circle_id = c.id AND c.user_id = ?
+			WHERE cm.member_vcard_uid = contacts.vcard_uid AND c.name = ?
+		)`, userID, circle)
+	}
+	if circle := c.Query("circle_legacy"); circle != "" {
 		countQuery = countQuery.Where("EXISTS (SELECT 1 FROM json_each(contacts.circles) WHERE json_each.value = ?)", circle)
 	}
-
 	countQuery.Count(&total)
 
 	// Map contacts to the slim ContactSummary shape (Gap 2/3): plain
@@ -576,26 +592,41 @@ func deleteContactPhotos(c *gin.Context, contact models.Contact) {
 }
 
 // GetCircles returns all unique circles associated with contacts.
+// GetCircles returns the authenticated user's Circles. After T4, this
+// reads from the real `circles` table. When ?legacy=true, it reads from
+// the legacy flat Contact.Circles JSON column instead — used by the
+// T2 triage page during migration.
 func GetCircles(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
-
 	userID, ok := currentUserID(c)
 	if !ok {
 		return
 	}
-	var circleNames []string
 
-	// Raw SQL query to extract unique circle names
-	err := db.Raw(`SELECT DISTINCT json_each.value AS circle
-	               FROM contacts, json_each(contacts.circles)
-	               WHERE contacts.user_id = ?`, userID).Scan(&circleNames).Error
-	if err != nil {
+	if c.Query("legacy") == "true" {
+		var circleNames []string
+		err := db.Raw(`SELECT DISTINCT json_each.value AS circle
+			FROM contacts, json_each(contacts.circles)
+			WHERE contacts.user_id = ?`, userID).Scan(&circleNames).Error
+		if err != nil {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve legacy circles").WithError(err))
+			return
+		}
+		c.JSON(http.StatusOK, circleNames)
+		return
+	}
+
+	var circles []models.Circle
+	if err := db.Where("user_id = ?", userID).Order("name").Find(&circles).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve circles").WithError(err))
 		return
 	}
 
-	// Return the list of unique circle names
-	c.JSON(http.StatusOK, circleNames)
+	names := make([]string, len(circles))
+	for i, circle := range circles {
+		names[i] = circle.Name
+	}
+	c.JSON(http.StatusOK, names)
 }
 
 // ArchiveContact archives a contact and deletes all its reminders

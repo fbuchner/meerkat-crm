@@ -63,6 +63,10 @@ func GetTag(c *gin.Context) {
 }
 
 // ListTags returns the authenticated user's Tags, paginated.
+//
+// When ?include_contacts=true, each tag carries its current contact
+// VCardUIDs, so the caller can resolve contact-tag relationships in one
+// request instead of N+1.
 func ListTags(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 	userID, ok := currentUserID(c)
@@ -90,12 +94,27 @@ func ListTags(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	result := gin.H{
 		"tags":  tags,
 		"total": total,
 		"page":  pagination.Page,
 		"limit": pagination.Limit,
-	})
+	}
+
+	if c.Query("include_contacts") == "true" {
+		tagIDs := make([]string, len(tags))
+		for i, tag := range tags {
+			tagIDs[i] = tag.ID
+		}
+		var contacts []models.ContactTag
+		if err := db.Where("tag_id IN ? AND user_id = ?", tagIDs, userID).Find(&contacts).Error; err != nil {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve tag contacts").WithError(err))
+			return
+		}
+		result["contacts"] = contacts
+	}
+
+	c.JSON(http.StatusOK, result)
 }
 
 // UpdateTag updates a Tag's Name. Tagging lifecycle is not editable here —

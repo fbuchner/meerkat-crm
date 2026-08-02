@@ -24,6 +24,7 @@ import RepeatIcon from '@mui/icons-material/Repeat';
 import WarningIcon from '@mui/icons-material/Warning';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { Contact, Birthday, getRandomContacts, getUpcomingBirthdays, getContactRecord, nameComponentValue } from './api/contacts';
+import { useCircles } from './hooks/useCircles';
 import { Reminder, getUpcomingReminders, completeReminder, skipReminder } from './api/reminders';
 import { ContactListSkeleton } from './components/LoadingSkeletons';
 import { handleFetchError, handleError } from './utils/errorHandler';
@@ -42,6 +43,8 @@ function DashboardPage() {
   const [birthdaysInfoAnchor, setBirthdaysInfoAnchor] = useState<HTMLElement | null>(null);
   const [remindersInfoAnchor, setRemindersInfoAnchor] = useState<HTMLElement | null>(null);
   const [stayInTouchInfoAnchor, setStayInTouchInfoAnchor] = useState<HTMLElement | null>(null);
+
+  const { circleNamesByUid } = useCircles();
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -502,9 +505,9 @@ function DashboardPage() {
                         <Typography variant="body2" fontWeight={500}>
                           {getContactName(contact)}
                         </Typography>
-                        {contact.circles && contact.circles.length > 0 && (
+                        {(circleNamesByUid.get(contact.uid || '') || []).length > 0 && (
                           <Box sx={{ mt: 0.5 }}>
-                            {contact.circles.slice(0, 2).map((circle, idx) => (
+                            {(circleNamesByUid.get(contact.uid || '') || []).slice(0, 2).map((circle, idx) => (
                               <Chip
                                 key={idx}
                                 label={circle}

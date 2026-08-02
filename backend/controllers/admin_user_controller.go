@@ -34,7 +34,7 @@ func TriggerReminders(c *gin.Context, cfg config.Config) {
 // TriggerPurge manually triggers the delete-purge job (admin only, T26).
 func TriggerPurge(c *gin.Context, cfg config.Config) {
 	db := c.MustGet("db").(*gorm.DB)
-	services.HardDeleteSoftDeletedContacts(db, cfg)
+	services.PurgeSoftDeletedRows(db, cfg)
 	c.JSON(http.StatusOK, gin.H{"message": "Purge completed"})
 }
 

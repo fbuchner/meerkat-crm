@@ -371,14 +371,30 @@ func sendReminderEmail(user models.User, reminders []models.Reminder, config con
 		dateFormat = "eu"
 	}
 
-	// Build reminder items
+	// Build reminder items — batch-fetch all referenced contacts first.
+	contactIDs := make([]uint, 0, len(reminders))
+	for _, r := range reminders {
+		if r.ContactID != nil {
+			contactIDs = append(contactIDs, *r.ContactID)
+		}
+	}
+	contactMap := make(map[uint]string, len(contactIDs))
+	if len(contactIDs) > 0 {
+		var contacts []models.Contact
+		if err := db.Where("user_id = ? AND id IN ?", user.ID, contactIDs).Find(&contacts).Error; err != nil {
+			logger.Warn().Err(err).Uint("user_id", user.ID).Msg("Failed to batch-fetch contacts for reminder email")
+		}
+		for _, c := range contacts {
+			contactMap[c.ID] = c.Firstname + " " + c.Lastname
+		}
+	}
+
 	reminderItems := make([]ReminderItem, 0, len(reminders))
 	for _, reminder := range reminders {
 		contactName := i18n.T(lang, "email.reminder.unknownContact")
 		if reminder.ContactID != nil {
-			var contact models.Contact
-			if err := db.Where("user_id = ?", reminder.UserID).First(&contact, *reminder.ContactID).Error; err == nil {
-				contactName = contact.Firstname + " " + contact.Lastname
+			if name, ok := contactMap[*reminder.ContactID]; ok {
+				contactName = name
 			}
 		}
 		reminderItems = append(reminderItems, ReminderItem{

@@ -105,3 +105,106 @@ func TestGetScopesEnv(t *testing.T) {
 		})
 	}
 }
+
+func TestValidate_JWTSecretKey(t *testing.T) {
+	cfg := validConfig()
+	cfg.JWTSecretKey = "short"
+	errs := cfg.Validate()
+	assert.True(t, hasFieldError(errs, "JWT_SECRET_KEY"), "short JWT secret should error")
+
+	cfg.JWTSecretKey = ""
+	errs = cfg.Validate()
+	assert.True(t, hasFieldError(errs, "JWT_SECRET_KEY"), "empty JWT secret should error")
+}
+
+func TestValidate_SQLiteDBPath(t *testing.T) {
+	cfg := validConfig()
+	cfg.DBPath = ""
+	errs := cfg.Validate()
+	assert.True(t, hasFieldError(errs, "SQLITE_DB_PATH"), "empty DB path should error")
+}
+
+func TestValidate_Port(t *testing.T) {
+	cfg := validConfig()
+	cfg.Port = "0"
+	errs := cfg.Validate()
+	assert.True(t, hasFieldError(errs, "PORT"), "port 0 should error")
+
+	cfg.Port = "not-a-number"
+	errs = cfg.Validate()
+	assert.True(t, hasFieldError(errs, "PORT"), "non-numeric port should error")
+}
+
+func TestValidate_ReminderTime(t *testing.T) {
+	cfg := validConfig()
+	cfg.ReminderTime = "25:00"
+	errs := cfg.Validate()
+	assert.True(t, hasFieldError(errs, "REMINDER_TIME"), "invalid hour should error")
+
+	cfg.ReminderTime = "12:99"
+	errs = cfg.Validate()
+	assert.True(t, hasFieldError(errs, "REMINDER_TIME"), "invalid minute should error")
+
+	cfg.ReminderTime = "abc"
+	errs = cfg.Validate()
+	assert.True(t, hasFieldError(errs, "REMINDER_TIME"), "non-time string should error")
+}
+
+func TestValidate_JWTExpiryHours(t *testing.T) {
+	cfg := validConfig()
+	cfg.JWTExpiryHours = 0
+	errs := cfg.Validate()
+	assert.True(t, hasFieldError(errs, "JWT_EXPIRY_HOURS"), "zero expiry should error")
+
+	cfg.JWTExpiryHours = -1
+	errs = cfg.Validate()
+	assert.True(t, hasFieldError(errs, "JWT_EXPIRY_HOURS"), "negative expiry should error")
+}
+
+func TestValidate_Timeouts(t *testing.T) {
+	cfg := validConfig()
+	cfg.ReadTimeout = 0
+	errs := cfg.Validate()
+	assert.True(t, hasFieldError(errs, "HTTP_READ_TIMEOUT"), "zero read timeout should error")
+
+	cfg = validConfig()
+	cfg.WriteTimeout = -1
+	errs = cfg.Validate()
+	assert.True(t, hasFieldError(errs, "HTTP_WRITE_TIMEOUT"), "negative write timeout should error")
+}
+
+func TestValidate_ReminderTimezone(t *testing.T) {
+	cfg := validConfig()
+	cfg.ReminderTimezone = "NotAReal/Timezone"
+	errs := cfg.Validate()
+	assert.True(t, hasFieldError(errs, "REMINDER_TIMEZONE"), "invalid timezone should error")
+}
+
+func TestLoadConfig_Defaults(t *testing.T) {
+	t.Setenv("JWT_SECRET_KEY", "test-secret-key-that-is-long-enough-32")
+	t.Setenv("PROFILE_PHOTO_DIR", "/tmp/photos")
+	t.Setenv("SQLITE_DB_PATH", "/tmp/test.db")
+	t.Setenv("FRONTEND_URL", "http://localhost:5173")
+
+	cfg := LoadConfig()
+	assert.NotNil(t, cfg)
+
+	// Default timeout values
+	assert.Equal(t, 15, cfg.ReadTimeout)
+	assert.Equal(t, 15, cfg.WriteTimeout)
+	assert.Equal(t, 60, cfg.IdleTimeout)
+
+	// Default retention
+	assert.Equal(t, 30, cfg.DeleteRetentionDays)
+}
+
+func TestLoadConfig_DeleteRetentionDays(t *testing.T) {
+	t.Setenv("JWT_SECRET_KEY", "test-secret-key-that-is-long-enough-32")
+	t.Setenv("PROFILE_PHOTO_DIR", "/tmp/photos")
+	t.Setenv("SQLITE_DB_PATH", "/tmp/test.db")
+	t.Setenv("FRONTEND_URL", "http://localhost:5173")
+	t.Setenv("DELETED_RETENTION_DAYS", "14")
+
+	cfg := LoadConfig()
+	assert.Equal(t, 14, cfg.DeleteRetentionDays)
+}

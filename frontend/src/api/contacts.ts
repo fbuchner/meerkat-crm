@@ -13,6 +13,11 @@ export interface ContactAddress {
   region: string;
   postal: string;
   country: string;
+  // passthrough preserves address components whose kind is not one of the five
+  // rendered fields above (apartment, floor, district, building, room,
+  // landmark, etc.) so they survive an edit-and-save cycle through the flat
+  // editing shape (T25).
+  passthrough?: CardAddressComponent[];
 }
 
 // Contact is the flat shape every existing component (ContactDetailPage,
@@ -298,6 +303,10 @@ export function cardAddressesToValues(addresses: CardAddress[] | undefined): Con
   return (addresses || []).map((a) => {
     const comps = a.components || [];
     const find = (kind: string) => comps.find((c) => c.kind === kind)?.value || '';
+    // Preserve components not mapped to the five rendered fields so they
+    // survive an edit-and-save round trip (T25).
+    const knownKinds = new Set(['name', 'number', 'locality', 'region', 'postcode', 'country']);
+    const passthrough = comps.filter((c) => !knownKinds.has(c.kind));
     return {
       type: a.contexts?.[0] || '',
       street: find('name') || find('number'),
@@ -305,6 +314,7 @@ export function cardAddressesToValues(addresses: CardAddress[] | undefined): Con
       region: find('region'),
       postal: find('postcode'),
       country: find('country') || a.countryCode || '',
+      passthrough: passthrough.length > 0 ? passthrough : undefined,
     };
   });
 }
@@ -318,6 +328,8 @@ export function valuesToCardAddresses(values: ContactAddress[]): CardAddress[] {
       if (a.region) components.push({ kind: 'region', value: a.region });
       if (a.postal) components.push({ kind: 'postcode', value: a.postal });
       if (a.country) components.push({ kind: 'country', value: a.country });
+      // Re-emit passthrough components that were preserved from the original address
+      if (a.passthrough) components.push(...a.passthrough);
       return { components, contexts: a.type ? [a.type] : undefined };
     });
 }

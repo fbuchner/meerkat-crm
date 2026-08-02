@@ -85,6 +85,15 @@ func main() {
 	}
 	s.Every(cfg.CalDAVSyncIntervalHours).Hours().Do(calendarSyncTask)
 	go calendarSyncTask() // Run initially once on startup (rate-limited to prevent duplicates)
+
+	// Purge soft-deleted rows past their retention window (T26).
+	s.Every(24).Hours().Do(func() {
+		services.PurgeDeletedRows(db, *cfg)
+	})
+	go func() {
+		services.PurgeDeletedRows(db, *cfg)
+	}()
+
 	go s.StartBlocking()
 
 	r := gin.Default()

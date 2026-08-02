@@ -40,6 +40,7 @@ func PurgeSoftDeletedRows(db *gorm.DB, cfg config.Config) {
 		&models.Activity{},
 		&models.Reminder{},
 		&models.LifeEvent{},
+		&models.Preference{},
 	} {
 		if err := db.Unscoped().Where("deleted_at IS NOT NULL AND deleted_at < ?", cutoff).Delete(model).Error; err != nil {
 			logger.Error().Err(err).Msg("purge: failed to delete soft-deleted rows")
@@ -68,6 +69,10 @@ func PurgeSoftDeletedRows(db *gorm.DB, cfg config.Config) {
 		{
 			"DELETE FROM field_values WHERE entity_id IN (SELECT vcard_uid FROM contacts WHERE deleted_at IS NOT NULL AND deleted_at < ?)",
 			[]interface{}{cutoff}, "field_values",
+		},
+		{
+			"DELETE FROM preferences WHERE entity_id IN (SELECT vcard_uid FROM contacts WHERE deleted_at IS NOT NULL AND deleted_at < ?)",
+			[]interface{}{cutoff}, "preferences",
 		},
 		{
 			"DELETE FROM relationship_edges WHERE source_id IN (SELECT vcard_uid FROM contacts WHERE deleted_at IS NOT NULL AND deleted_at < ?) OR target_id IN (SELECT vcard_uid FROM contacts WHERE deleted_at IS NOT NULL AND deleted_at < ?)",

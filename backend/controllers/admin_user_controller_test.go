@@ -728,3 +728,76 @@ func TestPurgeSoftDeletedRows_NeverTouchesLiveRows(t *testing.T) {
 	db.Model(&models.Note{}).Where("id = ?", liveNote.ID).Count(&count)
 	assert.EqualValues(t, 1, count, "live rows must never be touched")
 }
+
+// T20a: PurgeSoftDeletedRows hard-deletes soft-deleted preferences past retention.
+func TestPurgeSoftDeletedRows_HandlesPreferences(t *testing.T) {
+	db, _ := setupRouter()
+
+	cfg := config.Config{DeleteRetentionDays: 30}
+
+	var user models.User
+	db.First(&user)
+
+	contact := models.Contact{UserID: user.ID, Firstname: "PrefPurge"}
+	require.NoError(t, db.Create(&contact).Error)
+
+	// Preference soft-deleted 60 days ago — must be purged.
+	oldCutoff := time.Now().AddDate(0, 0, -60)
+	oldPref := models.Preference{
+		UserID: user.ID, EntityID: contact.VCardUID,
+		Category: "food", Value: "OldPref",
+		Sensitivity: models.RelationshipSensitivityNormal,
+	}
+	require.NoError(t, db.Create(&oldPref).Error)
+	require.NoError(t, db.Exec("UPDATE preferences SET deleted_at = ? WHERE id = ?", oldCutoff, oldPref.ID).Error)
+
+	// Preference soft-deleted 5 days ago — inside window, must survive.
+	recentCutoff := time.Now().AddDate(0, 0, -5)
+	recentPref := models.Preference{
+		UserID: user.ID, EntityID: contact.VCardUID,
+		Category: "hobby", Value: "RecentPref",
+		Sensitivity: models.RelationshipSensitivityNormal,
+	}
+	require.NoError(t, db.Create(&recentPref).Error)
+	require.NoError(t, db.Exec("UPDATE preferences SET deleted_at = ? WHERE id = ?", recentCutoff, recentPref.ID).Error)
+
+	services.PurgeSoftDeletedRows(db, cfg)
+
+	var unscopedOld int64
+	db.Unscoped().Model(&models.Preference{}).Where("id = ?", oldPref.ID).Count(&unscopedOld)
+	assert.Zero(t, unscopedOld, "preference outside retention window must be hard-deleted")
+
+	var unscopedRecent int64
+	db.Unscoped().Model(&models.Preference{}).Where("id = ?", recentPref.ID).Count(&unscopedRecent)
+	assert.EqualValues(t, 1, unscopedRecent, "preference inside window must still exist under Unscoped()")
+}
+
+// T20a defense-in-depth: a live preference whose entity_id points to a
+// contact about to be purged is cleaned up even without a prior soft-delete
+// cascade (the Edge/join-shaped defense-in-depth block).
+func TestPurgeCleansUpPreferencesOfPurgedContact(t *testing.T) {
+	db, _ := setupRouter()
+
+	cfg := config.Config{DeleteRetentionDays: 30}
+
+	var user models.User
+	db.First(&user)
+
+	oldCutoff := time.Now().AddDate(0, 0, -60)
+	contact := models.Contact{UserID: user.ID, Firstname: "PurgeMe"}
+	require.NoError(t, db.Create(&contact).Error)
+	require.NoError(t, db.Exec("UPDATE contacts SET deleted_at = ? WHERE id = ?", oldCutoff, contact.ID).Error)
+
+	pref := models.Preference{
+		UserID: user.ID, EntityID: contact.VCardUID,
+		Category: models.PreferenceCategoryHobby, Value: "OrphanPref",
+		Sensitivity: models.RelationshipSensitivityNormal,
+	}
+	require.NoError(t, db.Create(&pref).Error)
+
+	services.PurgeSoftDeletedRows(db, cfg)
+
+	var unscopedPref int64
+	db.Unscoped().Model(&models.Preference{}).Where("id = ?", pref.ID).Count(&unscopedPref)
+	assert.Zero(t, unscopedPref, "preference referencing a purged contact must be cleaned up")
+}

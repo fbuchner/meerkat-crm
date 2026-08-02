@@ -65,6 +65,10 @@ func GetCircle(c *gin.Context) {
 // ListCircles returns the authenticated user's Circles, paginated. Named
 // ListCircles (not GetCircles) because contact_controller.go already owns
 // that name for the legacy flat-Contact.Circles distinct-values endpoint.
+//
+// When ?include_members=true, each circle carries its current member
+// VCardUIDs, so the caller can resolve contact-circle relationships in one
+// request instead of N+1.
 func ListCircles(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 	userID, ok := currentUserID(c)
@@ -92,12 +96,27 @@ func ListCircles(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	result := gin.H{
 		"circles": circles,
 		"total":   total,
 		"page":    pagination.Page,
 		"limit":   pagination.Limit,
-	})
+	}
+
+	if c.Query("include_members") == "true" {
+		circleIDs := make([]string, len(circles))
+		for i, circle := range circles {
+			circleIDs[i] = circle.ID
+		}
+		var members []models.CircleMember
+		if err := db.Where("circle_id IN ? AND user_id = ?", circleIDs, userID).Find(&members).Error; err != nil {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve circle members").WithError(err))
+			return
+		}
+		result["members"] = members
+	}
+
+	c.JSON(http.StatusOK, result)
 }
 
 // UpdateCircle updates a Circle's Name. Membership lifecycle is not editable

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -17,7 +17,6 @@ import {
   getContactProfilePicture,
   deleteContact,
   uploadProfilePicture,
-  getCircles,
   archiveContact,
   unarchiveContact
 } from './api/contacts';
@@ -64,11 +63,17 @@ import { useContactDialogs } from './hooks/useContactDialogs';
 import { useTimelineEditing } from './hooks/useTimelineEditing';
 import { useReminderManagement } from './hooks/useReminderManagement';
 import { useRelationshipEdges } from './hooks/useRelationshipEdges';
+import { useCircles } from './hooks/useCircles';
+import { useTags } from './hooks/useTags';
+import { addCircleMember, removeCircleMember } from './api/circles';
+import { addContactTag, removeContactTag } from './api/tags';
+import { Circle } from './api/circles';
+import { Tag } from './api/tags';
 import RelationshipEdgeDialog from './components/RelationshipEdgeDialog';
 import { getOtherPartyId } from './api/relationshipEdges';
 import { useSnackbar } from './context/SnackbarContext';
 import { ApiError } from './api/client';
-import { handleFetchError } from './utils/errorHandler';
+import { handleFetchError, getErrorMessage } from './utils/errorHandler';
 import { useDateFormat } from './DateFormatProvider';
 
 export default function ContactDetailPage() {
@@ -103,10 +108,32 @@ export default function ContactDetailPage() {
     gender: ''
   });
 
-  // Circle editing state
-  const [editingCircles, setEditingCircles] = useState(false);
-  const [newCircleName, setNewCircleName] = useState('');
-  const [availableCircles, setAvailableCircles] = useState<string[]>([]);
+  // Circle/Tag state (T4 — real entities instead of flat strings)
+  const {
+    circles: allCircles,
+    circleNamesByUid,
+    refresh: refreshCircles,
+    handleCreate: handleCreateCircle,
+  } = useCircles({ showError });
+
+  const {
+    tags: allTags,
+    tagNamesByUid,
+    refresh: refreshTags,
+    handleCreate: handleCreateTag,
+  } = useTags({ showError });
+
+  const contactCircles = useMemo(() => {
+    if (!record?.uid) return [];
+    const names = circleNamesByUid.get(record.uid) || [];
+    return allCircles.filter((c) => names.includes(c.name));
+  }, [record?.uid, circleNamesByUid, allCircles]);
+
+  const contactTags = useMemo(() => {
+    if (!record?.uid) return [];
+    const names = tagNamesByUid.get(record.uid) || [];
+    return allTags.filter((t) => names.includes(t.name));
+  }, [record?.uid, tagNamesByUid, allTags]);
 
   // Tab state
   const [activeTab, setActiveTab] = useState(0);
@@ -207,14 +234,55 @@ export default function ContactDetailPage() {
   }, [editingEdge, record, contactsByUid]);
 
   // Fetch available circles
-  const fetchCircles = useCallback(async () => {
+  const handleCircleAdd = async (circle: Circle) => {
+    if (!record?.uid) return;
     try {
-      const data = await getCircles();
-      setAvailableCircles(Array.isArray(data) ? data : []);
+      if (circle.id) {
+        await addCircleMember(circle.id, record.uid);
+      } else {
+        const created = await handleCreateCircle(circle.name);
+        if (created?.id) await addCircleMember(created.id, record.uid);
+      }
+      await refreshCircles();
     } catch (err) {
-      console.error('Error fetching circles:', err);
+      showError(getErrorMessage(err));
     }
-  }, []);
+  };
+
+  const handleCircleRemove = async (circle: Circle) => {
+    if (!record?.uid) return;
+    try {
+      await removeCircleMember(circle.id, record.uid);
+      await refreshCircles();
+    } catch (err) {
+      showError(getErrorMessage(err));
+    }
+  };
+
+  const handleTagAdd = async (tag: Tag) => {
+    if (!record?.uid) return;
+    try {
+      if (tag.id) {
+        await addContactTag(tag.id, record.uid);
+      } else {
+        const created = await handleCreateTag(tag.name);
+        if (created?.id) await addContactTag(created.id, record.uid);
+      }
+      await refreshTags();
+    } catch (err) {
+      showError(getErrorMessage(err));
+    }
+  };
+
+  const handleTagRemove = async (tag: Tag) => {
+    if (!record?.uid) return;
+    try {
+      await removeContactTag(tag.id, record.uid);
+      await refreshTags();
+    } catch (err) {
+      showError(getErrorMessage(err));
+    }
+  };
 
 
   // Fetch contact details, notes, and activities
@@ -449,61 +517,6 @@ export default function ContactDetailPage() {
     }
   };
 
-  const handleAddCircle = async (circleName?: string) => {
-    const circleToAdd = circleName || newCircleName;
-    if (!record || !circleToAdd.trim()) return;
-
-    const trimmedCircleName = circleToAdd.trim();
-    const existingCircles = record.crm?.circles || [];
-
-    // Check if the circle already exists (case-insensitive)
-    if (existingCircles.some(circle => circle.toLowerCase() === trimmedCircleName.toLowerCase())) {
-      return; // Don't add duplicate circles
-    }
-
-    const updatedCircles = [...existingCircles, trimmedCircleName];
-
-    try {
-      const updated = await updateContactRecord(id!, {
-        gender: record.gender,
-        card: record.card,
-        crm: { ...record.crm, circles: updatedCircles },
-      });
-      setRecord(updated);
-      setNewCircleName('');
-      // Refresh available circles in case a new one was added
-      await fetchCircles();
-    } catch (err) {
-      console.error('Error adding circle:', err);
-      if (err instanceof ApiError) {
-        showError(err.getDisplayMessage());
-      } else {
-        showError(t('contactDetail.updateError'));
-      }
-    }
-  };
-
-  const handleDeleteCircle = async (circleToDelete: string) => {
-    if (!record) return;
-
-    const updatedCircles = (record.crm?.circles || []).filter(circle => circle !== circleToDelete);
-
-    try {
-      const updated = await updateContactRecord(id!, {
-        gender: record.gender,
-        card: record.card,
-        crm: { ...record.crm, circles: updatedCircles },
-      });
-      setRecord(updated);
-    } catch (err) {
-      console.error('Error deleting circle:', err);
-      if (err instanceof ApiError) {
-        showError(err.getDisplayMessage());
-      } else {
-        showError(t('contactDetail.updateError'));
-      }
-    }
-  };
 
   const handleStartEditProfile = () => {
     if (!record) return;
@@ -644,13 +657,6 @@ export default function ContactDetailPage() {
     }
   };
 
-  // Lazy-load circles only when entering edit mode
-  const handleToggleEditCircles = async () => {
-    if (!editingCircles) {
-      await fetchCircles();
-    }
-    setEditingCircles(!editingCircles);
-  };
 
   if (loading) {
     return (
@@ -681,18 +687,19 @@ export default function ContactDetailPage() {
         editingProfile={editingProfile}
         profileValues={profileValues}
         enabledFields={enabledFields}
-        editingCircles={editingCircles}
-        newCircleName={newCircleName}
-        availableCircles={availableCircles}
+        contactCircles={contactCircles}
+        contactTags={contactTags}
+        allCircles={allCircles}
+        allTags={allTags}
         onStartEditProfile={handleStartEditProfile}
         onCancelEditProfile={handleCancelEditProfile}
         onSaveProfile={handleSaveProfile}
         onDeleteContact={handleDeleteContact}
         onProfileValueChange={setProfileValues}
-        onToggleEditCircles={handleToggleEditCircles}
-        onAddCircle={handleAddCircle}
-        onDeleteCircle={handleDeleteCircle}
-        onNewCircleNameChange={setNewCircleName}
+        onAddCircle={handleCircleAdd}
+        onRemoveCircle={handleCircleRemove}
+        onAddTag={handleTagAdd}
+        onRemoveTag={handleTagRemove}
         onUploadProfilePicture={() => setProfilePictureDialogOpen(true)}
         onStayInTouch={record.archived ? undefined : handleStayInTouch}
         onArchiveContact={record.archived ? undefined : handleArchiveContact}

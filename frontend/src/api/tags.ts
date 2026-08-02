@@ -28,18 +28,21 @@ export interface TagListResponse {
   total: number;
   page: number;
   limit: number;
+  contacts?: ContactTag[];
 }
 
 // GET /tags
 export async function listTags(params?: {
   page?: number;
   limit?: number;
+  include_contacts?: boolean;
 }): Promise<TagListResponse> {
-  const { page = 1, limit = 100 } = params || {};
+  const { page = 1, limit = 100, include_contacts = false } = params || {};
   const queryParams = new URLSearchParams({
     page: page.toString(),
     limit: limit.toString(),
   });
+  if (include_contacts) queryParams.append('include_contacts', 'true');
   const response = await apiFetch(
     `${API_BASE_URL}/tags?${queryParams.toString()}`,
     { headers: getAuthHeaders() }

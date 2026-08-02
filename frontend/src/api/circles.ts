@@ -28,18 +28,21 @@ export interface CircleListResponse {
   total: number;
   page: number;
   limit: number;
+  members?: CircleMember[];
 }
 
 // GET /circles
 export async function listCircles(params?: {
   page?: number;
   limit?: number;
+  include_members?: boolean;
 }): Promise<CircleListResponse> {
-  const { page = 1, limit = 100 } = params || {};
+  const { page = 1, limit = 100, include_members = false } = params || {};
   const queryParams = new URLSearchParams({
     page: page.toString(),
     limit: limit.toString(),
   });
+  if (include_members) queryParams.append('include_members', 'true');
   const response = await apiFetch(
     `${API_BASE_URL}/circles?${queryParams.toString()}`,
     { headers: getAuthHeaders() }

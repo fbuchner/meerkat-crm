@@ -207,7 +207,11 @@ func GetContacts(c *gin.Context) {
 	}
 
 	if circle := c.Query("circle"); circle != "" {
-		query = query.Where("EXISTS (SELECT 1 FROM json_each(contacts.circles) WHERE json_each.value = ?)", circle)
+		query = query.Where(`EXISTS (
+			SELECT 1 FROM circle_members cm
+			JOIN circles c ON cm.circle_id = c.id AND c.user_id = ?
+			WHERE cm.member_vcard_uid = contacts.vcard_uid AND c.name = ?
+		)`, userID, circle)
 	}
 
 	// Preload requested relationships
@@ -248,9 +252,12 @@ func GetContacts(c *gin.Context) {
 	}
 
 	if circle := c.Query("circle"); circle != "" {
-		countQuery = countQuery.Where("EXISTS (SELECT 1 FROM json_each(contacts.circles) WHERE json_each.value = ?)", circle)
+		countQuery = countQuery.Where(`EXISTS (
+			SELECT 1 FROM circle_members cm
+			JOIN circles c ON cm.circle_id = c.id AND c.user_id = ?
+			WHERE cm.member_vcard_uid = contacts.vcard_uid AND c.name = ?
+		)`, userID, circle)
 	}
-
 	countQuery.Count(&total)
 
 	// Map contacts to the slim ContactSummary shape (Gap 2/3): plain

@@ -432,10 +432,20 @@ func TestGetContactsArchiveAndCircleFiltering(t *testing.T) {
 
 	router.GET("/contacts", GetContacts)
 
-	active := models.Contact{UserID: user.ID, Firstname: "Active", Lastname: "One", Circles: []string{"friends"}}
-	archived := models.Contact{UserID: user.ID, Firstname: "Archived", Lastname: "One", Circles: []string{"work"}, Archived: true}
+	active := models.Contact{UserID: user.ID, Firstname: "Active", Lastname: "One"}
+	archived := models.Contact{UserID: user.ID, Firstname: "Archived", Lastname: "One", Archived: true}
 	db.Create(&active)
 	db.Create(&archived)
+
+	// Create a Circle + membership so the circle filter works against
+	// the new circle_members join (T3).
+	friendsCircle := models.Circle{UserID: user.ID, Name: "friends"}
+	db.Create(&friendsCircle)
+	db.Create(&models.CircleMember{
+		CircleID:       friendsCircle.ID,
+		UserID:         user.ID,
+		MemberVCardUID: active.VCardUID,
+	})
 
 	// Default: archived excluded.
 	req, _ := http.NewRequest("GET", "/contacts", nil)

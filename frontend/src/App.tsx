@@ -8,6 +8,7 @@ import SettingsPage from './SettingsPage';
 import NetworkPage from './NetworkPage';
 import UsersPage from './UsersPage';
 import ApiTokensPage from './ApiTokensPage';
+import CircleTagTriagePage from './CircleTagTriagePage';
 import DataSettingsPage from './DataSettingsPage';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
@@ -439,6 +440,7 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
           <Route path="/network" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><NetworkPage /></Suspense>} />
           <Route path="/users" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><UsersPage /></Suspense>} />
           <Route path="/api-tokens" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ApiTokensPage /></Suspense>} />
+          <Route path="/circle-tag-triage" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><CircleTagTriagePage /></Suspense>} />
           <Route path="/reminders" element={<div>{t('pages.reminders')}</div>} />
           <Route path="/" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><DashboardPage /></Suspense>} />
           <Route path="/login" element={<Navigate to="/" replace />} />

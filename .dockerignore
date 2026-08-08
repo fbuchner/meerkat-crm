@@ -31,7 +31,9 @@ photos
 **/.env.*
 backend/my_environment.env
 
-# Editor / OS cruft
-.DS_Store
-.idea
-.vscode
+# Editor / OS cruft. The `**/` prefix matters: a bare `.DS_Store` only matches
+# the one at the context root, so frontend/public/.DS_Store used to be copied
+# into the image and served publicly at /.DS_Store.
+**/.DS_Store
+**/.idea
+**/.vscode

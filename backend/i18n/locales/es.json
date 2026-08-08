@@ -20,5 +20,21 @@
   },
   "calendar": {
     "untitledEvent": "Evento de calendario sin título"
+  },
+  "monicaImport": {
+    "untitledActivity": "Actividad",
+    "gift": {
+      "idea": "idea",
+      "offered": "regalado",
+      "received": "recibido"
+    },
+    "note": {
+      "call": "Llamada el {{date}} (importado de Monica):\n{{content}}",
+      "task": "Tarea pendiente (importada de Monica): {{title}}",
+      "taskCompleted": "Tarea completada (importada de Monica): {{title}}",
+      "gift": "Regalo ({{status}}, importado de Monica): {{name}}",
+      "debtYouOwe": "Deuda (importada de Monica): debo {{amount}}",
+      "debtTheyOwe": "Deuda (importada de Monica): me debe {{amount}}"
+    }
   }
 }

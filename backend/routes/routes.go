@@ -158,6 +158,13 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			protected.PUT("/calendars/:id", middleware.ValidateJSONMiddleware(&models.CalendarSubscriptionInput{}), controllers.UpdateCalendarSubscription)
 			protected.DELETE("/calendars/:id", controllers.DeleteCalendarSubscription)
 			protected.POST("/calendars/:id/sync", controllers.SyncCalendarSubscription)
+
+			// CardDAV client routes (sync contacts with an external server)
+			protected.GET("/carddav/connection", controllers.GetCardDAVConnection)
+			protected.PUT("/carddav/connection", middleware.ValidateJSONMiddleware(&models.CardDAVConnectionInput{}), controllers.SaveCardDAVConnection)
+			protected.DELETE("/carddav/connection", controllers.DeleteCardDAVConnection)
+			protected.POST("/carddav/discover", middleware.ValidateJSONMiddleware(&models.CardDAVDiscoverInput{}), controllers.DiscoverCardDAVAddressBooks)
+			protected.POST("/carddav/connection/sync", controllers.SyncCardDAVConnection)
 		}
 
 		// Admin routes (admin authentication required)

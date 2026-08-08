@@ -25,4 +25,7 @@ const (
 
 	// JobNameCalendarSync is the job name for the scheduled calendar sync job
 	JobNameCalendarSync = "calendar_sync"
+
+	// JobNameContactSync is the job name for the scheduled CardDAV contact sync job
+	JobNameContactSync = "carddav_contact_sync"
 )

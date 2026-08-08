@@ -11,7 +11,6 @@ import (
 	"meerkat/i18n"
 	"meerkat/logger"
 	"meerkat/models"
-	"net"
 	"net/http"
 	"net/url"
 	"sort"
@@ -84,7 +83,7 @@ type CalendarSyncService struct {
 func NewCalendarSyncService(blockPrivateURLs bool) *CalendarSyncService {
 	transport := &http.Transport{}
 	if blockPrivateURLs {
-		transport.DialContext = privateBlockingDialContext
+		transport.DialContext = newPrivateBlockingDialContext(ErrCalendarUnreachable, ErrCalendarPrivateAddress)
 	}
 	return &CalendarSyncService{
 		client: &http.Client{
@@ -92,29 +91,6 @@ func NewCalendarSyncService(blockPrivateURLs bool) *CalendarSyncService {
 			Transport: &calendarRoundTripper{base: transport},
 		},
 	}
-}
-
-func privateBlockingDialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	host, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		return nil, err
-	}
-	ips, err := net.DefaultResolver.LookupIP(ctx, "ip", host)
-	if err != nil {
-		return nil, fmt.Errorf("%w: could not resolve host", ErrCalendarUnreachable)
-	}
-	var safeIP net.IP
-	for _, ip := range ips {
-		if !(ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified()) {
-			safeIP = ip
-			break
-		}
-	}
-	if safeIP == nil {
-		return nil, ErrCalendarPrivateAddress
-	}
-	dialer := &net.Dialer{Timeout: 10 * time.Second, KeepAlive: 10 * time.Second}
-	return dialer.DialContext(ctx, network, net.JoinHostPort(safeIP.String(), port))
 }
 
 // calendarRoundTripper maps HTTP auth/not-found responses to sentinel errors and
@@ -139,34 +115,9 @@ func (t *calendarRoundTripper) RoundTrip(req *http.Request) (*http.Response, err
 		resp.Body.Close()
 		return nil, errCalendarQueryUnsupported
 	}
-	resp.Body = &limitedBody{inner: resp.Body, remaining: maxCalendarResponseBytes}
+	resp.Body = &limitedBody{inner: resp.Body, remaining: maxCalendarResponseBytes, errTooLarge: ErrCalendarTooLarge}
 	return resp, nil
 }
-
-type limitedBody struct {
-	inner     io.ReadCloser
-	remaining int64
-}
-
-func (b *limitedBody) Read(p []byte) (int, error) {
-	if b.remaining <= 0 {
-		// The limit was consumed exactly; only fail if more data follows.
-		var probe [1]byte
-		n, err := b.inner.Read(probe[:])
-		if n > 0 {
-			return 0, ErrCalendarTooLarge
-		}
-		return 0, err
-	}
-	if int64(len(p)) > b.remaining {
-		p = p[:b.remaining]
-	}
-	n, err := b.inner.Read(p)
-	b.remaining -= int64(n)
-	return n, err
-}
-
-func (b *limitedBody) Close() error { return b.inner.Close() }
 
 // NormalizeCalendarURL validates the subscription URL and converts webcal:// to https://.
 func NormalizeCalendarURL(rawURL string) (*url.URL, error) {

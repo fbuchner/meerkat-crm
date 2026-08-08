@@ -44,6 +44,16 @@
 - Stop and clean up: `docker compose -f docker-compose.test.yml down -v`
 - Tests run automatically in CI on push/PR to main via [.github/workflows/e2e-tests.yml](.github/workflows/e2e-tests.yml).
 
+**CardDAV client sync tests**
+- The contact sync scenarios in [backend/services/contact_sync_service_test.go](backend/services/contact_sync_service_test.go) run against every backend listed in `contactSyncBackends()`; the harness lives in [backend/services/contact_sync_remote_test.go](backend/services/contact_sync_remote_test.go).
+- By default they run against Meerkat's own CardDAV server in-process. It has no sync-collection REPORT, so that pass only covers the full-listing fallback.
+- Add a real Radicale server to also cover token-based incremental sync, deletion tombstones and the address-data multi-get path:
+	1. `docker compose -f docker-compose.carddav-test.yml up -d --wait`
+	2. `cd backend && MEERKAT_CARDDAV_IT=1 go test ./services/ -run TestContactSync -v`
+	3. `docker compose -f docker-compose.carddav-test.yml down -v`
+- `TestContactSyncTokenModeIsUsed` asserts which strategy each server gets, so a regression that silently drops every server onto the fallback fails loudly instead of passing.
+- Fixtures and assertions speak CardDAV over HTTP rather than touching a backing store, so covering another server means adding a `davRemote` constructor, not new scenarios.
+
 **Data & Integrations**
 - SQLite lives at `SQLITE_DB_PATH` (default meerkat.db); migrations in [backend/database/migrations](backend/database/migrations) are embedded into the binary and auto-run on startup.
 - JWT expiry, HTTP timeouts, trusted proxies, and Resend email settings are declared in [backend/config/config.go](backend/config/config.go) and loaded based on environment variables; use Config.Validate to catch misconfigurations.

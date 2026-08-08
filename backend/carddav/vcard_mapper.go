@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/emersion/go-vcard"
 	"github.com/gen2brain/heic"
@@ -39,6 +40,18 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 		uid = generateUID()
 	}
 	card.SetValue(vcard.FieldUID, uid)
+
+	// REV - when this contact was last modified, per Meerkat. Always derived
+	// from UpdatedAt rather than preserved from the incoming card: a REV that
+	// arrived with an import describes some other client's edit, and re-emitting
+	// it would understate every local change made since, letting peers discard
+	// our edits as older. Contacts that have never been persisted have no
+	// meaningful revision, so REV is omitted rather than invented.
+	//
+	// VCard v3 compliant since Apple is still relying on that
+	if !contact.UpdatedAt.IsZero() {
+		card.SetValue(vcard.FieldRevision, contact.UpdatedAt.UTC().Format(time.RFC3339))
+	}
 
 	// Apple-style custom labels (X-ABLabel) are emitted in their own property
 	// group (item1, item2, ...). Allocate group names lazily as needed.
@@ -207,6 +220,40 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 	}
 
 	return card
+}
+
+// revisionLayouts lists the encodings the REV property is seen with in the
+// wild. go-vcard's Card.Revision accepts only the vCard 4.0 basic form, which
+// rejects almost everything real clients send
+//
+// Covered, in order: RFC 3339 (Apple writes 2023-10-04T12:07:13Z on every
+// platform, and Go accepts fractional seconds here too, Nextcloud's web UI
+// emits via JavaScript toISOString); the same without a zone; basic form with a
+// numeric offset or Z; basic without a zone; and the date-only forms RFC 2426
+// permits
+var revisionLayouts = []string{
+	time.RFC3339,
+	"2006-01-02T15:04:05",
+	"20060102T150405Z0700",
+	"20060102T150405",
+	"2006-01-02",
+	"20060102",
+}
+
+// reads the REV timestamp from a card. Callers use this to decide whether a remote card
+// carries a revision worth comparing; a card without a usable REV yields ok=false rather than a misleading zero time.
+func ParseRevision(card vcard.Card) (time.Time, bool) {
+	raw := strings.TrimSpace(card.Value(vcard.FieldRevision))
+	if raw == "" {
+		return time.Time{}, false
+	}
+	for _, layout := range revisionLayouts {
+		ts, err := time.Parse(layout, raw)
+		if err == nil && !ts.IsZero() {
+			return ts.UTC(), true
+		}
+	}
+	return time.Time{}, false
 }
 
 // VCardToContact converts a vCard to a Contact, updating existing fields
@@ -837,6 +884,7 @@ func mappedVCardFields() map[string]bool {
 	return map[string]bool{
 		vcard.FieldVersion:       true,
 		vcard.FieldUID:           true,
+		vcard.FieldRevision:      true, // derived from UpdatedAt on export
 		vcard.FieldFormattedName: true,
 		vcard.FieldName:          true,
 		vcard.FieldNickname:      true,

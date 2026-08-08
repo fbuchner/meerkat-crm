@@ -85,6 +85,12 @@ func main() {
 	}
 	s.Every(cfg.CalDAVSyncIntervalHours).Hours().Do(calendarSyncTask)
 	go calendarSyncTask() // Run initially once on startup (rate-limited to prevent duplicates)
+	// Sync CardDAV contact connections regularly (rate-limited via job lock)
+	contactSyncTask := func() {
+		services.SyncContactsWithRateLimit(db, *cfg)
+	}
+	s.Every(cfg.CardDAVSyncIntervalHours).Hours().Do(contactSyncTask)
+	go contactSyncTask() // Run initially once on startup (rate-limited to prevent duplicates)
 	go s.StartBlocking()
 
 	r := gin.Default()

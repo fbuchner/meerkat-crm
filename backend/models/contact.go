@@ -142,6 +142,10 @@ func (c *Contact) AfterCreate(tx *gorm.DB) error {
 }
 
 func (c *Contact) AfterSave(tx *gorm.DB) error {
+	if c.ID == 0 {
+		return nil
+	}
+
 	newETag := fmt.Sprintf("e-%d-%d", c.ID, c.UpdatedAt.Unix())
 	if newETag != c.ETag {
 		c.ETag = newETag

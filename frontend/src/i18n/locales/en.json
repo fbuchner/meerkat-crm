@@ -448,6 +448,77 @@
       "success": "Your contacts have been exported successfully.",
       "error": "Failed to export contacts. Please try again."
     },
+    "monicaImport": {
+      "title": "Import from Monica",
+      "description": "Import contacts, activities, notes, reminders and relationships from a Monica CRM instance via its API. Calls, tasks, gifts and debts can be brought over as notes.",
+      "button": "Start import",
+      "steps": {
+        "connect": "Connect",
+        "fetch": "Fetch",
+        "review": "Review",
+        "import": "Import",
+        "done": "Done"
+      },
+      "connect": {
+        "description": "Import your contacts, activities, notes, reminders and relationships from a running Monica instance. Create an API token in Monica under Settings → API.",
+        "tokenHelp": "How to get an API token",
+        "baseUrl": "Monica URL",
+        "apiToken": "API token",
+        "connect": "Connect",
+        "startFetch": "Fetch data",
+        "connected": "Connected! This Monica account contains:",
+        "contactsCount": "{{count}} contacts",
+        "activitiesCount": "{{count}} activities",
+        "notesCount": "{{count}} notes",
+        "remindersCount": "{{count}} reminders",
+        "extrasCount": "{{count}} calls, tasks, gifts & debts",
+        "includeRelationships": "Import relationships (slower: needs one request per contact)",
+        "collapseReciprocal": "Import each relationship only once",
+        "collapseReciprocalHelp": "Monica saves every relationship on both contacts. Meerkat needs only one entry — the other contact shows it under \"Incoming Relationships\". Turn this off to create a separate entry on each contact, as Monica does.",
+        "includeExtras": "Import calls, tasks, gifts and debts as notes",
+        "estimate": "Estimated fetch time: about {{duration}} (Monica limits API requests)",
+        "seconds": "{{count}} seconds",
+        "minutes": "{{count}} minutes"
+      },
+      "fetchingTitle": "Fetching data from Monica…",
+      "importingTitle": "Downloading contact photos…",
+      "keepOpen": "You can leave this dialog open — the import continues on the server.",
+      "phase": {
+        "connecting": "Connecting",
+        "fetching_contacts": "Fetching contacts",
+        "fetching_activities": "Fetching activities",
+        "fetching_notes": "Fetching notes",
+        "fetching_reminders": "Fetching reminders",
+        "fetching_extras": "Fetching calls, tasks, gifts and debts",
+        "fetching_relationships": "Fetching relationships",
+        "building_preview": "Preparing preview",
+        "ready": "Ready",
+        "importing": "Importing",
+        "importing_photos": "Downloading photos",
+        "done": "Done",
+        "failed": "Failed"
+      },
+      "review": {
+        "related": "Related data",
+        "setAll": "Set all to…",
+        "activities": "{{count}} activities",
+        "notes": "{{count}} notes",
+        "reminders": "{{count}} reminders",
+        "relationships": "{{count}} relationships"
+      },
+      "result": {
+        "activities": "{{count}} activities imported",
+        "notes": "{{count}} notes imported",
+        "reminders": "{{count}} reminders imported",
+        "relationships": "{{count}} relationships imported",
+        "relationshipsCollapsed": "{{count}} reciprocal duplicates skipped (shown as incoming relationships)",
+        "photos": "{{count}} photos imported",
+        "photosFailed": "{{count}} photos could not be downloaded"
+      },
+      "errors": {
+        "fetchFailed": "Fetching data from Monica failed"
+      }
+    },
     "calendarSync": {
       "title": "Calendar Sync",
       "description": "Import events from CalDAV or iCalendar (.ics) calendars as activities. Attendees whose email addresses match your contacts are linked automatically.",

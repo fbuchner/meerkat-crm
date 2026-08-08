@@ -448,6 +448,77 @@
       "success": "Ihre Kontakte wurden erfolgreich exportiert.",
       "error": "Kontakte konnten nicht exportiert werden. Bitte versuchen Sie es erneut."
     },
+    "monicaImport": {
+      "title": "Aus Monica importieren",
+      "description": "Importiere Kontakte, Aktivitäten, Notizen, Erinnerungen und Beziehungen aus einer Monica-CRM-Instanz über deren API. Anrufe, Aufgaben, Geschenke und Schulden können als Notizen übernommen werden.",
+      "button": "Import starten",
+      "steps": {
+        "connect": "Verbinden",
+        "fetch": "Abrufen",
+        "review": "Prüfen",
+        "import": "Importieren",
+        "done": "Fertig"
+      },
+      "connect": {
+        "description": "Importiere deine Kontakte, Aktivitäten, Notizen, Erinnerungen und Beziehungen aus einer laufenden Monica-Instanz. Erstelle einen API-Token in Monica unter Einstellungen → API.",
+        "tokenHelp": "So erhältst du einen API-Token",
+        "baseUrl": "Monica-URL",
+        "apiToken": "API-Token",
+        "connect": "Verbinden",
+        "startFetch": "Daten abrufen",
+        "connected": "Verbunden! Dieses Monica-Konto enthält:",
+        "contactsCount": "{{count}} Kontakte",
+        "activitiesCount": "{{count}} Aktivitäten",
+        "notesCount": "{{count}} Notizen",
+        "remindersCount": "{{count}} Erinnerungen",
+        "extrasCount": "{{count}} Anrufe, Aufgaben, Geschenke & Schulden",
+        "includeRelationships": "Beziehungen importieren (langsamer: eine Anfrage pro Kontakt nötig)",
+        "collapseReciprocal": "Jede Beziehung nur einmal importieren",
+        "collapseReciprocalHelp": "Monica speichert jede Beziehung bei beiden Kontakten. Meerkat benötigt nur einen Eintrag — beim anderen Kontakt erscheint er unter „Eingehende Beziehungen“. Deaktiviere dies, um wie in Monica bei jedem Kontakt einen eigenen Eintrag anzulegen.",
+        "includeExtras": "Anrufe, Aufgaben, Geschenke und Schulden als Notizen importieren",
+        "estimate": "Geschätzte Abrufdauer: etwa {{duration}} (Monica begrenzt API-Anfragen)",
+        "seconds": "{{count}} Sekunden",
+        "minutes": "{{count}} Minuten"
+      },
+      "fetchingTitle": "Daten werden von Monica abgerufen…",
+      "importingTitle": "Kontaktfotos werden heruntergeladen…",
+      "keepOpen": "Du kannst diesen Dialog geöffnet lassen — der Import läuft auf dem Server weiter.",
+      "phase": {
+        "connecting": "Verbinden",
+        "fetching_contacts": "Kontakte werden abgerufen",
+        "fetching_activities": "Aktivitäten werden abgerufen",
+        "fetching_notes": "Notizen werden abgerufen",
+        "fetching_reminders": "Erinnerungen werden abgerufen",
+        "fetching_extras": "Anrufe, Aufgaben, Geschenke und Schulden werden abgerufen",
+        "fetching_relationships": "Beziehungen werden abgerufen",
+        "building_preview": "Vorschau wird erstellt",
+        "ready": "Bereit",
+        "importing": "Importieren",
+        "importing_photos": "Fotos werden heruntergeladen",
+        "done": "Fertig",
+        "failed": "Fehlgeschlagen"
+      },
+      "review": {
+        "related": "Verknüpfte Daten",
+        "setAll": "Alle setzen auf…",
+        "activities": "{{count}} Aktivitäten",
+        "notes": "{{count}} Notizen",
+        "reminders": "{{count}} Erinnerungen",
+        "relationships": "{{count}} Beziehungen"
+      },
+      "result": {
+        "activities": "{{count}} Aktivitäten importiert",
+        "notes": "{{count}} Notizen importiert",
+        "reminders": "{{count}} Erinnerungen importiert",
+        "relationships": "{{count}} Beziehungen importiert",
+        "relationshipsCollapsed": "{{count}} doppelte Gegenrichtungen übersprungen (erscheinen als eingehende Beziehungen)",
+        "photos": "{{count}} Fotos importiert",
+        "photosFailed": "{{count}} Fotos konnten nicht heruntergeladen werden"
+      },
+      "errors": {
+        "fetchFailed": "Abrufen der Daten von Monica fehlgeschlagen"
+      }
+    },
     "calendarSync": {
       "title": "Kalender-Synchronisation",
       "description": "Importiere Termine aus CalDAV- oder iCalendar-Kalendern (.ics) als Aktivitäten. Teilnehmer, deren E-Mail-Adresse zu deinen Kontakten passt, werden automatisch verknüpft.",

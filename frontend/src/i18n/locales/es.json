@@ -448,6 +448,77 @@
       "success": "Tus contactos han sido exportados exitosamente.",
       "error": "Error al exportar los contactos. Inténtalo de nuevo."
     },
+    "monicaImport": {
+      "title": "Importar desde Monica",
+      "description": "Importa contactos, actividades, notas, recordatorios y relaciones desde una instancia de Monica CRM a través de su API. Las llamadas, tareas, regalos y deudas pueden importarse como notas.",
+      "button": "Iniciar importación",
+      "steps": {
+        "connect": "Conectar",
+        "fetch": "Obtener",
+        "review": "Revisar",
+        "import": "Importar",
+        "done": "Listo"
+      },
+      "connect": {
+        "description": "Importa tus contactos, actividades, notas, recordatorios y relaciones desde una instancia de Monica en funcionamiento. Crea un token de API en Monica en Configuración → API.",
+        "tokenHelp": "Cómo obtener un token de API",
+        "baseUrl": "URL de Monica",
+        "apiToken": "Token de API",
+        "connect": "Conectar",
+        "startFetch": "Obtener datos",
+        "connected": "¡Conectado! Esta cuenta de Monica contiene:",
+        "contactsCount": "{{count}} contactos",
+        "activitiesCount": "{{count}} actividades",
+        "notesCount": "{{count}} notas",
+        "remindersCount": "{{count}} recordatorios",
+        "extrasCount": "{{count}} llamadas, tareas, regalos y deudas",
+        "includeRelationships": "Importar relaciones (más lento: requiere una petición por contacto)",
+        "collapseReciprocal": "Importar cada relación solo una vez",
+        "collapseReciprocalHelp": "Monica guarda cada relación en ambos contactos. Meerkat solo necesita una entrada: el otro contacto la muestra en «Relaciones entrantes». Desactiva esta opción para crear una entrada en cada contacto, como hace Monica.",
+        "includeExtras": "Importar llamadas, tareas, regalos y deudas como notas",
+        "estimate": "Tiempo estimado de obtención: unos {{duration}} (Monica limita las peticiones a la API)",
+        "seconds": "{{count}} segundos",
+        "minutes": "{{count}} minutos"
+      },
+      "fetchingTitle": "Obteniendo datos de Monica…",
+      "importingTitle": "Descargando fotos de contactos…",
+      "keepOpen": "Puedes dejar este diálogo abierto: la importación continúa en el servidor.",
+      "phase": {
+        "connecting": "Conectando",
+        "fetching_contacts": "Obteniendo contactos",
+        "fetching_activities": "Obteniendo actividades",
+        "fetching_notes": "Obteniendo notas",
+        "fetching_reminders": "Obteniendo recordatorios",
+        "fetching_extras": "Obteniendo llamadas, tareas, regalos y deudas",
+        "fetching_relationships": "Obteniendo relaciones",
+        "building_preview": "Preparando la vista previa",
+        "ready": "Listo",
+        "importing": "Importando",
+        "importing_photos": "Descargando fotos",
+        "done": "Completado",
+        "failed": "Error"
+      },
+      "review": {
+        "related": "Datos relacionados",
+        "setAll": "Establecer todo a…",
+        "activities": "{{count}} actividades",
+        "notes": "{{count}} notas",
+        "reminders": "{{count}} recordatorios",
+        "relationships": "{{count}} relaciones"
+      },
+      "result": {
+        "activities": "{{count}} actividades importadas",
+        "notes": "{{count}} notas importadas",
+        "reminders": "{{count}} recordatorios importados",
+        "relationships": "{{count}} relaciones importadas",
+        "relationshipsCollapsed": "{{count}} duplicados recíprocos omitidos (se muestran como relaciones entrantes)",
+        "photos": "{{count}} fotos importadas",
+        "photosFailed": "{{count}} fotos no se pudieron descargar"
+      },
+      "errors": {
+        "fetchFailed": "Error al obtener los datos de Monica"
+      }
+    },
     "calendarSync": {
       "title": "Sincronización de calendario",
       "description": "Importa eventos de calendarios CalDAV o iCalendar (.ics) como actividades. Los asistentes cuya dirección de correo coincida con tus contactos se vinculan automáticamente.",

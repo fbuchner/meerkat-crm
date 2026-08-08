@@ -2,7 +2,9 @@ package carddav
 
 import (
 	"meerkat/models"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/emersion/go-vcard"
 )
@@ -252,5 +254,137 @@ func TestApplePseudoLabelImport(t *testing.T) {
 	got, _, _, _ := VCardToContact(card, nil)
 	if len(got.Phones) != 1 || got.Phones[0].Type != "cell" {
 		t.Errorf("apple pseudo-label not normalized to cell: %+v", got.Phones)
+	}
+}
+
+// verifies that REV describes Meerkat's own last edit. A REV arriving with an import belongs to whichever client
+// wrote it; preserving and re-emitting it would advertise a stale revision and let peers discard newer local edits as older.
+func TestRevisionReflectsLocalModification(t *testing.T) {
+	card := vcard.Card{}
+	card.SetValue(vcard.FieldVersion, "3.0")
+	card.SetValue(vcard.FieldUID, "uid-rev")
+	card.SetValue(vcard.FieldFormattedName, "Rev Person")
+	card.SetValue(vcard.FieldName, "Person;Rev;;;")
+	card.SetValue(vcard.FieldRevision, "20200101T000000Z")
+
+	contact, _, _, _ := VCardToContact(card, nil)
+	if strings.Contains(contact.VCardExtra, "REV") {
+		t.Errorf("imported REV must not be kept in VCardExtra, got %q", contact.VCardExtra)
+	}
+
+	modified := time.Date(2026, 7, 22, 10, 30, 0, 0, time.UTC)
+	contact.UpdatedAt = modified
+
+	exported := ContactToVCard(contact, "")
+	rev, ok := ParseRevision(exported)
+	if !ok {
+		t.Fatalf("exported REV is not parseable: %q", exported.Value(vcard.FieldRevision))
+	}
+	if !rev.Equal(modified) {
+		t.Errorf("REV = %v, want the contact's UpdatedAt %v", rev, modified)
+	}
+	if got := len(exported[vcard.FieldRevision]); got != 1 {
+		t.Errorf("expected exactly one REV property, got %d", got)
+	}
+}
+
+// TestRevisionEncoding pins the exact bytes we put on the wire: the extended
+// form RFC 2426 specifies for vCard 3.0, normalized to UTC. A non-UTC timestamp
+// would otherwise be written with a "Z" suffix against the wrong instant.
+func TestRevisionEncoding(t *testing.T) {
+	zone := time.FixedZone("UTC+5", 5*60*60)
+	contact := &models.Contact{Firstname: "Zone", Lastname: "Person", VCardUID: "uid-zone"}
+	contact.UpdatedAt = time.Date(2026, 7, 22, 15, 0, 0, 0, zone)
+
+	exported := ContactToVCard(contact, "")
+	if got, want := exported.Value(vcard.FieldRevision), "2026-07-22T10:00:00Z"; got != want {
+		t.Errorf("REV = %q, want %q (RFC 2426 extended form, same instant in UTC)", got, want)
+	}
+}
+
+// TestRevisionOmittedForUnsavedContact keeps ContactToVCard from inventing a
+// revision for a contact that was never persisted.
+func TestRevisionOmittedForUnsavedContact(t *testing.T) {
+	contact := &models.Contact{Firstname: "New", Lastname: "Person", VCardUID: "uid-new"}
+
+	exported := ContactToVCard(contact, "")
+	if raw := exported.Value(vcard.FieldRevision); raw != "" {
+		t.Errorf("expected no REV for an unsaved contact, got %q", raw)
+	}
+}
+
+// pins the encodings REV actually arrives in. go-vcard's own Card.Revision accepts only the last of these,
+// so relying on it made conflict resolution silently ignore the revision sent by every Apple client and by Nextcloud's web UI.
+func TestParseRevisionAcceptsRealWorldFormats(t *testing.T) {
+	cases := []struct {
+		name string
+		raw  string
+		want time.Time
+	}{
+		{"apple ios 17", "2023-10-04T12:07:13Z", time.Date(2023, 10, 4, 12, 7, 13, 0, time.UTC)},
+		{"apple ios 5", "2011-11-07T09:28:43Z", time.Date(2011, 11, 7, 9, 28, 43, 0, time.UTC)},
+		{"apple icloud web", "2023-01-03T17:21:11Z", time.Date(2023, 1, 3, 17, 21, 11, 0, time.UTC)},
+		{"nextcloud toISOString", "2014-02-19T02:24:26.123Z", time.Date(2014, 2, 19, 2, 24, 26, 123000000, time.UTC)},
+		{"rfc 2426 example", "1995-10-31T22:27:10Z", time.Date(1995, 10, 31, 22, 27, 10, 0, time.UTC)},
+		{"rfc 2426 date only", "1997-11-15", time.Date(1997, 11, 15, 0, 0, 0, 0, time.UTC)},
+		{"extended with offset", "2023-10-04T14:07:13+02:00", time.Date(2023, 10, 4, 12, 7, 13, 0, time.UTC)},
+		{"basic utc (vcard 4.0)", "20231004T120713Z", time.Date(2023, 10, 4, 12, 7, 13, 0, time.UTC)},
+		{"basic with offset", "20231004T140713+0200", time.Date(2023, 10, 4, 12, 7, 13, 0, time.UTC)},
+		{"basic without zone", "20231004T120713", time.Date(2023, 10, 4, 12, 7, 13, 0, time.UTC)},
+		{"basic date only", "19971115", time.Date(1997, 11, 15, 0, 0, 0, 0, time.UTC)},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			card := vcard.Card{}
+			card.SetValue(vcard.FieldRevision, tc.raw)
+
+			got, ok := ParseRevision(card)
+			if !ok {
+				t.Fatalf("ParseRevision(%q) reported no usable revision", tc.raw)
+			}
+			if !got.Equal(tc.want) {
+				t.Errorf("ParseRevision(%q) = %v, want %v", tc.raw, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestParseRevisionRejectsUnusableValues(t *testing.T) {
+	cases := map[string]string{
+		"absent":     "",
+		"whitespace": "   ",
+		"garbage":    "last tuesday",
+		"zero time":  "00010101T000000Z",
+		"partial":    "2023-10",
+	}
+
+	for name, raw := range cases {
+		t.Run(name, func(t *testing.T) {
+			card := vcard.Card{}
+			if raw != "" {
+				card.SetValue(vcard.FieldRevision, raw)
+			}
+			if got, ok := ParseRevision(card); ok {
+				t.Errorf("ParseRevision(%q) = %v, want no usable revision", raw, got)
+			}
+		})
+	}
+}
+
+// TestParseRevisionReadsOurOwnOutput keeps the writer and the reader in step:
+// whatever ContactToVCard emits must be interpretable by the code that resolves
+// conflicts, so changing the emitted encoding cannot silently blind us.
+func TestParseRevisionReadsOurOwnOutput(t *testing.T) {
+	modified := time.Date(2026, 7, 22, 10, 30, 0, 0, time.UTC)
+	contact := &models.Contact{Firstname: "Round", Lastname: "Trip", VCardUID: "uid-roundtrip"}
+	contact.UpdatedAt = modified
+
+	got, ok := ParseRevision(ContactToVCard(contact, ""))
+	if !ok {
+		t.Fatal("ParseRevision could not read the REV that ContactToVCard wrote")
+	}
+	if !got.Equal(modified) {
+		t.Errorf("round-tripped REV = %v, want %v", got, modified)
 	}
 }

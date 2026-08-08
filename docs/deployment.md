@@ -35,7 +35,7 @@ Set these variables in `.env` when running over HTTPS:
 |---|---|
 | `FRONTEND_URL` | Exact origin, e.g. `https://meerkat.example.com` (never `*`) |
 | `COOKIE_SECURE` | `true` |
-| `COOKIE_DOMAIN` | Your domain |
+| `COOKIE_DOMAIN` | Leave empty. Only set it (e.g. `.example.com`) if frontend and API live on different subdomains |
 | `JWT_SECRET_KEY` | Generate with `openssl rand -base64 32` |
 
 

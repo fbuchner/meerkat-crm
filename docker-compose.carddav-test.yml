@@ -1,0 +1,66 @@
+# Meerkat CRM Docker Compose - CardDAV client integration tests
+#
+# Runs real CardDAV servers for manual/integration testing of contact sync:
+#
+#   radicale  - implements the sync-collection REPORT, so it covers
+#               incremental token-based sync, explicit deletion tombstones
+#               and the address-data multi-get path, which the in-process
+#               test server cannot exercise.
+#   nextcloud - a second, differently-behaved server (PROPFIND-listing
+#               fallback path, its own ETag/REV quirks, generated address
+#               books like "Accounts") for manual conflict testing. Not used
+#               by the automated Go integration tests, only for manual test.
+#
+# Credentials are testuser / testpass everywhere (Radicale's are defined in
+# docker/radicale/users). This is a throwaway test fixture: plain-text
+# passwords are deliberate.
+#
+# USAGE:
+#   docker compose -f docker-compose.carddav-test.yml up -d --wait
+#   cd backend && MEERKAT_CARDDAV_IT=1 go test ./services/ -run TestContactSync -v
+#   docker compose -f docker-compose.carddav-test.yml down -v
+#
+# Nextcloud's first boot runs its installer and can take ~30-60s after the
+# container reports healthy before /remote.php/dav is fully routable.
+#
+# Overridable via env: MEERKAT_CARDDAV_URL, MEERKAT_CARDDAV_USER, MEERKAT_CARDDAV_PASS
+
+services:
+  radicale:
+    image: tomsquest/docker-radicale:latest
+    container_name: meerkat-radicale-test
+    volumes:
+      - ./docker/radicale:/config:ro
+      - radicale-data:/data
+    ports:
+      - "5232:5232"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-u", "testuser:testpass", "http://127.0.0.1:5232/"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+      start_period: 3s
+
+  nextcloud:
+    image: nextcloud:latest
+    container_name: meerkat-nextcloud-test
+    environment:
+      SQLITE_DATABASE: nextcloud
+      NEXTCLOUD_ADMIN_USER: testuser
+      NEXTCLOUD_ADMIN_PASSWORD: testpass
+      NEXTCLOUD_TRUSTED_DOMAINS: localhost 127.0.0.1
+      PHP_MEMORY_LIMIT: 512M
+    volumes:
+      - nextcloud-data:/var/www/html
+    ports:
+      - "8081:80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1/status.php"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+volumes:
+  radicale-data:
+  nextcloud-data:

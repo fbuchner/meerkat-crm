@@ -16,6 +16,7 @@ import { exportDataAsCsv, exportContactsAsVcf } from './api/export';
 import CustomFieldsSettings from './components/CustomFieldsSettings';
 import ContactFieldSettings from './components/ContactFieldSettings';
 import CalendarSyncSettings from './components/CalendarSyncSettings';
+import ContactSyncSettings from './components/ContactSyncSettings';
 
 export default function DataSettingsPage() {
   const { t } = useTranslation();
@@ -69,6 +70,8 @@ export default function DataSettingsPage() {
       <CustomFieldsSettings />
 
       <CalendarSyncSettings />
+
+      <ContactSyncSettings />
 
       <Card sx={{ mb: 2 }}>
         <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -26,6 +26,7 @@ import { useGraph } from './hooks/useGraph';
 import { GraphNode } from './types/graph';
 import { Activity, getActivity, updateActivity, deleteActivity } from './api/activities';
 import { Contact, getContacts } from './api/contacts';
+import { NetworkFilters, loadNetworkFilters, saveNetworkFilters } from './networkFilters';
 
 export default function NetworkPage() {
   const { t } = useTranslation();
@@ -34,10 +35,8 @@ export default function NetworkPage() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { data, loading, error } = useGraph();
 
-  const [selectedCircle, setSelectedCircle] = useState<string>('');
-  const [showRelationships, setShowRelationships] = useState(true);
-  const [showActivities, setShowActivities] = useState(true);
-  const [showCircles, setShowCircles] = useState(false);
+  const [filters, setFilters] = useState<NetworkFilters>(loadNetworkFilters);
+  const { selectedCircle, showRelationships, showActivities, showCircles } = filters;
   const [centeredNodeId, setCenteredNodeId] = useState<string | null>(() => {
     return localStorage.getItem('network-centered-node-id');
   });
@@ -50,6 +49,14 @@ export default function NetworkPage() {
     activityContacts?: Contact[];
   }>({});
   const [allContacts, setAllContacts] = useState<Contact[]>([]);
+
+  const updateFilters = useCallback((patch: Partial<NetworkFilters>) => {
+    setFilters(prev => ({ ...prev, ...patch }));
+  }, []);
+
+  useEffect(() => {
+    saveNetworkFilters(filters);
+  }, [filters]);
 
   useEffect(() => {
     if (centeredNodeId !== null) {
@@ -78,6 +85,15 @@ export default function NetworkPage() {
     });
     return Array.from(allCircles).sort();
   }, [data]);
+
+  // Drop a persisted circle filter that no longer exists, so the graph doesn't
+  // come up empty after the circle was renamed or removed.
+  useEffect(() => {
+    if (!data || !selectedCircle) return;
+    if (!circles.includes(selectedCircle)) {
+      updateFilters({ selectedCircle: '' });
+    }
+  }, [data, circles, selectedCircle, updateFilters]);
 
   // Contact nodes for the center-on-contact autocomplete
   const contactNodes = useMemo(() => {
@@ -146,7 +162,7 @@ export default function NetworkPage() {
   };
 
   const handleCircleChange = (event: SelectChangeEvent<string>) => {
-    setSelectedCircle(event.target.value);
+    updateFilters({ selectedCircle: event.target.value });
   };
 
   if (loading) {
@@ -223,7 +239,7 @@ export default function NetworkPage() {
           control={
             <Switch
               checked={showRelationships}
-              onChange={(e) => setShowRelationships(e.target.checked)}
+              onChange={(e) => updateFilters({ showRelationships: e.target.checked })}
               color="primary"
             />
           }
@@ -234,7 +250,7 @@ export default function NetworkPage() {
           control={
             <Switch
               checked={showActivities}
-              onChange={(e) => setShowActivities(e.target.checked)}
+              onChange={(e) => updateFilters({ showActivities: e.target.checked })}
               color="secondary"
             />
           }
@@ -245,7 +261,7 @@ export default function NetworkPage() {
           control={
             <Switch
               checked={showCircles}
-              onChange={(e) => setShowCircles(e.target.checked)}
+              onChange={(e) => updateFilters({ showCircles: e.target.checked })}
               color="warning"
             />
           }

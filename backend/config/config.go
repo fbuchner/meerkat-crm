@@ -24,37 +24,39 @@ type OIDCConfig struct {
 }
 
 type Config struct {
-	DBPath                  string
-	ReminderTime            string
-	ReminderTimezone        string
-	FrontendURL             string
-	Port                    string
-	TrustedProxies          []string
-	UseResend               bool
-	ResendAPIKey            string
-	ResendFromEmail         string
-	ResendToEmail           string
-	UseSMTP                 bool
-	SMTPHost                string
-	SMTPPort                int
-	SMTPUsername            string
-	SMTPPassword            string
-	SMTPFromEmail           string
-	SMTPUseTLS              bool // implicit TLS (e.g. port 465); otherwise STARTTLS is used when available
-	JWTSecretKey            string
-	JWTExpiryHours          int
-	ReadTimeout             int    // HTTP server read timeout in seconds
-	WriteTimeout            int    // HTTP server write timeout in seconds
-	IdleTimeout             int    // HTTP server idle timeout in seconds
-	ProfilePhotoDir         string // Directory for storing profile photos (must be absolute path)
-	CardDAVEnabled          bool   // Enable CardDAV server for contact sync
-	CookieSecure            bool   // Set Secure flag on auth cookie (requires HTTPS)
-	CookieDomain            string // Domain for auth cookie (empty = current domain only)
-	RegistrationDisabled    bool   // Disable new user registration
-	WebhookBlockPrivateURLs bool   // Block webhook deliveries to private/loopback addresses (useful for cloud deployments)
-	CalDAVSyncIntervalHours int    // Interval in hours for the scheduled calendar sync job
-	CalDAVBlockPrivateURLs  bool   // Block calendar sync requests to private/loopback addresses (useful for cloud deployments)
-	OIDC                    OIDCConfig
+	DBPath                   string
+	ReminderTime             string
+	ReminderTimezone         string
+	FrontendURL              string
+	Port                     string
+	TrustedProxies           []string
+	UseResend                bool
+	ResendAPIKey             string
+	ResendFromEmail          string
+	ResendToEmail            string
+	UseSMTP                  bool
+	SMTPHost                 string
+	SMTPPort                 int
+	SMTPUsername             string
+	SMTPPassword             string
+	SMTPFromEmail            string
+	SMTPUseTLS               bool // implicit TLS (e.g. port 465); otherwise STARTTLS is used when available
+	JWTSecretKey             string
+	JWTExpiryHours           int
+	ReadTimeout              int    // HTTP server read timeout in seconds
+	WriteTimeout             int    // HTTP server write timeout in seconds
+	IdleTimeout              int    // HTTP server idle timeout in seconds
+	ProfilePhotoDir          string // Directory for storing profile photos (must be absolute path)
+	CardDAVEnabled           bool   // Enable CardDAV server for contact sync
+	CookieSecure             bool   // Set Secure flag on auth cookie (requires HTTPS)
+	CookieDomain             string // Domain for auth cookie (empty = current domain only)
+	RegistrationDisabled     bool   // Disable new user registration
+	WebhookBlockPrivateURLs  bool   // Block webhook deliveries to private/loopback addresses (useful for cloud deployments)
+	CalDAVSyncIntervalHours  int    // Interval in hours for the scheduled calendar sync job
+	CalDAVBlockPrivateURLs   bool   // Block calendar sync requests to private/loopback addresses (useful for cloud deployments)
+	CardDAVSyncIntervalHours int    // Interval in hours for the scheduled CardDAV contact sync job
+	CardDAVBlockPrivateURLs  bool   // Block contact sync requests to private/loopback addresses (defaults to CALDAV_BLOCK_PRIVATE_URLS)
+	OIDC                     OIDCConfig
 }
 
 func LoadConfig() *Config {
@@ -105,6 +107,13 @@ func LoadConfig() *Config {
 		log.Println("WARN: CALDAV_SYNC_INTERVAL_HOURS must be at least 1, using 1")
 		cfg.CalDAVSyncIntervalHours = 1
 	}
+
+	cfg.CardDAVSyncIntervalHours = getIntEnv("CARDDAV_SYNC_INTERVAL_HOURS", 6)
+	if cfg.CardDAVSyncIntervalHours < 1 {
+		log.Println("WARN: CARDDAV_SYNC_INTERVAL_HOURS must be at least 1, using 1")
+		cfg.CardDAVSyncIntervalHours = 1
+	}
+	cfg.CardDAVBlockPrivateURLs = getBoolEnv("CARDDAV_BLOCK_PRIVATE_URLS", cfg.CalDAVBlockPrivateURLs)
 
 	// An email channel is enabled only when it is fully configured
 	cfg.UseResend = cfg.ResendAPIKey != "" && cfg.ResendFromEmail != ""

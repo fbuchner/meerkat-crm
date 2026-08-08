@@ -18,6 +18,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # The images are tagged by docker/metadata-action's `{{version}}`, which
+      # strips the leading "v" from the git tag. github.ref_name keeps it, so
+      # quoting it in the release notes advertised a tag that is never pushed
+      # (ghcr.io/...:v1.6.2 -> manifest unknown). Strip it here to match.
+      - name: Derive image tag from git tag
+        id: version
+        run: echo "image_tag=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -29,13 +37,13 @@ jobs:
 
             All-in-one image (frontend + backend in one container):
             ```
-            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}:${{ steps.version.outputs.image_tag }}
             ```
 
             Separate images:
             ```
-            ghcr.io/${{ github.repository }}-backend:${{ github.ref_name }}
-            ghcr.io/${{ github.repository }}-frontend:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}-backend:${{ steps.version.outputs.image_tag }}
+            ghcr.io/${{ github.repository }}-frontend:${{ steps.version.outputs.image_tag }}
             ```
 
   build-and-push:

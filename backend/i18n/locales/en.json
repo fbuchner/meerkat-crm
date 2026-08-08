@@ -20,5 +20,21 @@
   },
   "calendar": {
     "untitledEvent": "Untitled calendar event"
+  },
+  "monicaImport": {
+    "untitledActivity": "Activity",
+    "gift": {
+      "idea": "idea",
+      "offered": "given",
+      "received": "received"
+    },
+    "note": {
+      "call": "Call on {{date}} (imported from Monica):\n{{content}}",
+      "task": "Open task (imported from Monica): {{title}}",
+      "taskCompleted": "Completed task (imported from Monica): {{title}}",
+      "gift": "Gift ({{status}}, imported from Monica): {{name}}",
+      "debtYouOwe": "Debt (imported from Monica): I owe {{amount}}",
+      "debtTheyOwe": "Debt (imported from Monica): owes me {{amount}}"
+    }
   }
 }

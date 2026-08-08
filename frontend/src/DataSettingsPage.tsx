@@ -12,14 +12,17 @@ import {
   CircularProgress,
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
+import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import { exportDataAsCsv, exportContactsAsVcf } from './api/export';
 import CustomFieldsSettings from './components/CustomFieldsSettings';
 import ContactFieldSettings from './components/ContactFieldSettings';
 import CalendarSyncSettings from './components/CalendarSyncSettings';
 import ContactSyncSettings from './components/ContactSyncSettings';
+import MonicaImportDialog from './components/MonicaImportDialog';
 
 export default function DataSettingsPage() {
   const { t } = useTranslation();
+  const [monicaDialogOpen, setMonicaDialogOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');
   const [exportSuccess, setExportSuccess] = useState('');
@@ -72,6 +75,38 @@ export default function DataSettingsPage() {
       <CalendarSyncSettings />
 
       <ContactSyncSettings />
+
+      <Card sx={{ mb: 2 }}>
+        <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <CloudDownloadIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+              {t('settings.monicaImport.title')}
+            </Typography>
+          </Box>
+          <Divider sx={{ mb: 1.5 }} />
+
+          <Stack spacing={1.5}>
+            <Typography variant="body2" color="text.secondary">
+              {t('settings.monicaImport.description')}
+            </Typography>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<CloudDownloadIcon />}
+              onClick={() => setMonicaDialogOpen(true)}
+            >
+              {t('settings.monicaImport.button')}
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
+
+      <MonicaImportDialog
+        open={monicaDialogOpen}
+        onClose={() => setMonicaDialogOpen(false)}
+        onImportComplete={() => undefined}
+      />
 
       <Card sx={{ mb: 2 }}>
         <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>

@@ -549,6 +549,90 @@ func DetectDuplicate(db *gorm.DB, userID uint, firstname, lastname, email, phone
 	return nil
 }
 
+func newDuplicateMatch(c *models.Contact, reason string) *models.DuplicateMatch {
+	return &models.DuplicateMatch{
+		ExistingContactID: c.ID,
+		ExistingFirstname: c.Firstname,
+		ExistingLastname:  c.Lastname,
+		ExistingEmail:     c.Email,
+		ExistingPhone:     c.Phone,
+		MatchReason:       reason,
+	}
+}
+
+// DuplicateIndex answers the same question as DetectDuplicate, but from a
+// single preloaded snapshot of the user's contacts. DetectDuplicate issues
+// queries per call — including a full-table scan in its phone branch — which
+// is O(n*m) for a bulk import. Match priority (email, then name, then phone) and first-match-wins
+// ordering are identical.
+type DuplicateIndex struct {
+	contacts []models.Contact
+	byEmail  map[string]*models.Contact
+	byName   map[string]*models.Contact
+	byPhone  map[string]*models.Contact
+}
+
+func nameKey(firstname, lastname string) string {
+	return strings.ToLower(firstname) + "\x1f" + strings.ToLower(lastname)
+}
+
+// NewDuplicateIndex loads every contact of the user and indexes them.
+func NewDuplicateIndex(db *gorm.DB, userID uint) (*DuplicateIndex, error) {
+	idx := &DuplicateIndex{
+		byEmail: map[string]*models.Contact{},
+		byName:  map[string]*models.Contact{},
+		byPhone: map[string]*models.Contact{},
+	}
+	// Ordered by id so the lowest-id contact wins a key, matching the
+	// ORDER BY id that GORM's First() applies in DetectDuplicate.
+	if err := db.Where("user_id = ?", userID).Order("id").Find(&idx.contacts).Error; err != nil {
+		return nil, err
+	}
+	put := func(m map[string]*models.Contact, key string, c *models.Contact) {
+		if _, taken := m[key]; !taken {
+			m[key] = c
+		}
+	}
+	for i := range idx.contacts {
+		c := &idx.contacts[i]
+		if c.Email != "" {
+			put(idx.byEmail, strings.ToLower(c.Email), c)
+		}
+		if c.Firstname != "" && c.Lastname != "" {
+			put(idx.byName, nameKey(c.Firstname, c.Lastname), c)
+		}
+		if c.Phone != "" {
+			if normalized := normalizePhoneForComparison(c.Phone); len(normalized) >= 5 {
+				put(idx.byPhone, normalized, c)
+			}
+		}
+	}
+	return idx, nil
+}
+
+// Detect returns the best duplicate match for the given fields, or nil.
+func (idx *DuplicateIndex) Detect(firstname, lastname, email, phone string) *models.DuplicateMatch {
+	if email != "" {
+		if c, found := idx.byEmail[strings.ToLower(email)]; found {
+			return newDuplicateMatch(c, "email")
+		}
+	}
+	if firstname != "" && lastname != "" {
+		if c, found := idx.byName[nameKey(firstname, lastname)]; found {
+			return newDuplicateMatch(c, "name")
+		}
+	}
+	if phone != "" {
+		normalized := normalizePhoneForComparison(phone)
+		if len(normalized) >= 5 {
+			if c, found := idx.byPhone[normalized]; found {
+				return newDuplicateMatch(c, "phone")
+			}
+		}
+	}
+	return nil
+}
+
 // ParseCircles parses circles from a separated string
 func ParseCircles(input string) []string {
 	if input == "" {

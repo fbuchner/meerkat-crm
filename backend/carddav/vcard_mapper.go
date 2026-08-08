@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
+	"image/gif"
 	"image/jpeg"
 	"image/png"
+	"io"
 	"meerkat/httputil"
 	"meerkat/models"
 	"net/http"
@@ -20,6 +22,7 @@ import (
 	"github.com/gen2brain/heic"
 	"github.com/google/uuid"
 	"github.com/nfnt/resize"
+	"golang.org/x/image/webp"
 )
 
 // for unmapped vCard properties
@@ -461,6 +464,10 @@ func SaveContactPhoto(photoData []byte, mediaType string, photoDir string) (stri
 		img, err = jpeg.Decode(reader)
 	case strings.Contains(mediaType, "png"):
 		img, err = png.Decode(reader)
+	case strings.Contains(mediaType, "gif"):
+		img, err = gif.Decode(reader)
+	case strings.Contains(mediaType, "webp"):
+		img, err = webp.Decode(reader)
 	case strings.Contains(mediaType, "heic") || strings.Contains(mediaType, "heif"):
 		img, err = heic.Decode(reader)
 	default:
@@ -472,15 +479,14 @@ func SaveContactPhoto(photoData []byte, mediaType string, photoDir string) (stri
 				img, err = heic.Decode(reader)
 			}
 		}
-		// Try to decode as JPEG first, then PNG, then HEIC
+		// Media type missing or unrecognized: try each decoder in turn.
 		if img == nil {
-			img, err = jpeg.Decode(reader)
-			if err != nil {
-				reader.Seek(0, 0)
-				img, err = png.Decode(reader)
-				if err != nil {
-					reader.Seek(0, 0)
-					img, err = heic.Decode(reader)
+			for _, decode := range []func(io.Reader) (image.Image, error){
+				jpeg.Decode, png.Decode, gif.Decode, webp.Decode, heic.Decode,
+			} {
+				reader.Seek(0, io.SeekStart)
+				if img, err = decode(reader); err == nil {
+					break
 				}
 			}
 		}

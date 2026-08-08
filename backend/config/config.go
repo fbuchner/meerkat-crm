@@ -56,6 +56,7 @@ type Config struct {
 	CalDAVBlockPrivateURLs   bool   // Block calendar sync requests to private/loopback addresses (useful for cloud deployments)
 	CardDAVSyncIntervalHours int    // Interval in hours for the scheduled CardDAV contact sync job
 	CardDAVBlockPrivateURLs  bool   // Block contact sync requests to private/loopback addresses (defaults to CALDAV_BLOCK_PRIVATE_URLS)
+	MonicaBlockPrivateURLs   bool   // Block Monica import requests to private/loopback addresses (useful for cloud deployments)
 	OIDC                     OIDCConfig
 }
 
@@ -101,6 +102,7 @@ func LoadConfig() *Config {
 		WebhookBlockPrivateURLs: getBoolEnv("WEBHOOK_BLOCK_PRIVATE_URLS", false),
 		CalDAVSyncIntervalHours: getIntEnv("CALDAV_SYNC_INTERVAL_HOURS", 6),
 		CalDAVBlockPrivateURLs:  getBoolEnv("CALDAV_BLOCK_PRIVATE_URLS", false),
+		MonicaBlockPrivateURLs:  getBoolEnv("MONICA_BLOCK_PRIVATE_URLS", false),
 	}
 
 	if cfg.CalDAVSyncIntervalHours < 1 {

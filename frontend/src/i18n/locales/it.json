@@ -448,6 +448,77 @@
       "success": "I tuoi contatti sono stati esportati con successo.",
       "error": "Esportazione contatti fallita. Riprova."
     },
+    "monicaImport": {
+      "title": "Importa da Monica",
+      "description": "Importa contatti, attività, note, promemoria e relazioni da un'istanza Monica CRM tramite la sua API. Chiamate, compiti, regali e debiti possono essere importati come note.",
+      "button": "Avvia importazione",
+      "steps": {
+        "connect": "Connetti",
+        "fetch": "Recupero",
+        "review": "Revisione",
+        "import": "Importa",
+        "done": "Fatto"
+      },
+      "connect": {
+        "description": "Importa i tuoi contatti, attività, note, promemoria e relazioni da un'istanza Monica in esecuzione. Crea un token API in Monica in Impostazioni → API.",
+        "tokenHelp": "Come ottenere un token API",
+        "baseUrl": "URL di Monica",
+        "apiToken": "Token API",
+        "connect": "Connetti",
+        "startFetch": "Recupera dati",
+        "connected": "Connesso! Questo account Monica contiene:",
+        "contactsCount": "{{count}} contatti",
+        "activitiesCount": "{{count}} attività",
+        "notesCount": "{{count}} note",
+        "remindersCount": "{{count}} promemoria",
+        "extrasCount": "{{count}} chiamate, compiti, regali e debiti",
+        "includeRelationships": "Importa le relazioni (più lento: richiede una richiesta per contatto)",
+        "collapseReciprocal": "Importa ogni relazione una sola volta",
+        "collapseReciprocalHelp": "Monica salva ogni relazione su entrambi i contatti. A Meerkat basta una sola voce: l'altro contatto la mostra in «Relazioni in entrata». Disattiva questa opzione per creare una voce separata su ogni contatto, come fa Monica.",
+        "includeExtras": "Importa chiamate, compiti, regali e debiti come note",
+        "estimate": "Tempo di recupero stimato: circa {{duration}} (Monica limita le richieste API)",
+        "seconds": "{{count}} secondi",
+        "minutes": "{{count}} minuti"
+      },
+      "fetchingTitle": "Recupero dei dati da Monica…",
+      "importingTitle": "Download delle foto dei contatti…",
+      "keepOpen": "Puoi lasciare aperta questa finestra: l'importazione continua sul server.",
+      "phase": {
+        "connecting": "Connessione",
+        "fetching_contacts": "Recupero dei contatti",
+        "fetching_activities": "Recupero delle attività",
+        "fetching_notes": "Recupero delle note",
+        "fetching_reminders": "Recupero dei promemoria",
+        "fetching_extras": "Recupero di chiamate, compiti, regali e debiti",
+        "fetching_relationships": "Recupero delle relazioni",
+        "building_preview": "Preparazione dell'anteprima",
+        "ready": "Pronto",
+        "importing": "Importazione",
+        "importing_photos": "Download delle foto",
+        "done": "Completato",
+        "failed": "Non riuscito"
+      },
+      "review": {
+        "related": "Dati collegati",
+        "setAll": "Imposta tutto su…",
+        "activities": "{{count}} attività",
+        "notes": "{{count}} note",
+        "reminders": "{{count}} promemoria",
+        "relationships": "{{count}} relazioni"
+      },
+      "result": {
+        "activities": "{{count}} attività importate",
+        "notes": "{{count}} note importate",
+        "reminders": "{{count}} promemoria importati",
+        "relationships": "{{count}} relazioni importate",
+        "relationshipsCollapsed": "{{count}} duplicati reciproci saltati (mostrati come relazioni in entrata)",
+        "photos": "{{count}} foto importate",
+        "photosFailed": "{{count}} foto non sono state scaricate"
+      },
+      "errors": {
+        "fetchFailed": "Recupero dei dati da Monica non riuscito"
+      }
+    },
     "calendarSync": {
       "title": "Sincronizzazione calendario",
       "description": "Importa eventi da calendari CalDAV o iCalendar (.ics) come attività. I partecipanti il cui indirizzo e-mail corrisponde ai tuoi contatti vengono collegati automaticamente.",

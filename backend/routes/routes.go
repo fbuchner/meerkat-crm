@@ -80,6 +80,18 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 				controllers.ConfirmVCFImport(c, cfg)
 			})
 
+			// Contact import routes (Monica CRM, via its REST API)
+			protected.POST("/contacts/import/monica/connect", middleware.ValidateJSONMiddleware(&models.MonicaConnectRequest{}), func(c *gin.Context) {
+				controllers.ConnectMonicaImport(c, cfg)
+			})
+			protected.POST("/contacts/import/monica/fetch", middleware.ValidateJSONMiddleware(&models.MonicaFetchRequest{}), controllers.StartMonicaFetch)
+			protected.GET("/contacts/import/monica/status", controllers.GetMonicaImportStatus)
+			protected.GET("/contacts/import/monica/preview", controllers.GetMonicaImportPreview)
+			protected.POST("/contacts/import/monica/confirm", middleware.ValidateJSONMiddleware(&models.MonicaConfirmRequest{}), func(c *gin.Context) {
+				controllers.ConfirmMonicaImport(c, cfg)
+			})
+			protected.DELETE("/contacts/import/monica/session", controllers.CancelMonicaImport)
+
 			// Relationship routes
 			protected.GET("/contacts/:id/relationships", controllers.GetRelationships)
 			protected.GET("/contacts/:id/incoming-relationships", controllers.GetIncomingRelationships)

@@ -448,6 +448,77 @@
       "success": "Vos contacts ont été exportés avec succès.",
       "error": "Échec de l'exportation des contacts. Veuillez réessayer."
     },
+    "monicaImport": {
+      "title": "Importer depuis Monica",
+      "description": "Importez contacts, activités, notes, rappels et relations depuis une instance Monica CRM via son API. Les appels, tâches, cadeaux et dettes peuvent être importés sous forme de notes.",
+      "button": "Démarrer l'import",
+      "steps": {
+        "connect": "Connexion",
+        "fetch": "Récupération",
+        "review": "Vérification",
+        "import": "Import",
+        "done": "Terminé"
+      },
+      "connect": {
+        "description": "Importez vos contacts, activités, notes, rappels et relations depuis une instance Monica en fonctionnement. Créez un jeton d'API dans Monica sous Paramètres → API.",
+        "tokenHelp": "Comment obtenir un jeton d'API",
+        "baseUrl": "URL de Monica",
+        "apiToken": "Jeton d'API",
+        "connect": "Se connecter",
+        "startFetch": "Récupérer les données",
+        "connected": "Connecté ! Ce compte Monica contient :",
+        "contactsCount": "{{count}} contacts",
+        "activitiesCount": "{{count}} activités",
+        "notesCount": "{{count}} notes",
+        "remindersCount": "{{count}} rappels",
+        "extrasCount": "{{count}} appels, tâches, cadeaux et dettes",
+        "includeRelationships": "Importer les relations (plus lent : une requête par contact)",
+        "collapseReciprocal": "N'importer chaque relation qu'une seule fois",
+        "collapseReciprocalHelp": "Monica enregistre chaque relation sur les deux contacts. Meerkat n'a besoin que d'une seule entrée : l'autre contact l'affiche sous « Relations entrantes ». Désactivez cette option pour créer une entrée distincte sur chaque contact, comme le fait Monica.",
+        "includeExtras": "Importer les appels, tâches, cadeaux et dettes comme notes",
+        "estimate": "Durée estimée de récupération : environ {{duration}} (Monica limite les requêtes API)",
+        "seconds": "{{count}} secondes",
+        "minutes": "{{count}} minutes"
+      },
+      "fetchingTitle": "Récupération des données depuis Monica…",
+      "importingTitle": "Téléchargement des photos de contacts…",
+      "keepOpen": "Vous pouvez laisser cette fenêtre ouverte — l'import se poursuit sur le serveur.",
+      "phase": {
+        "connecting": "Connexion",
+        "fetching_contacts": "Récupération des contacts",
+        "fetching_activities": "Récupération des activités",
+        "fetching_notes": "Récupération des notes",
+        "fetching_reminders": "Récupération des rappels",
+        "fetching_extras": "Récupération des appels, tâches, cadeaux et dettes",
+        "fetching_relationships": "Récupération des relations",
+        "building_preview": "Préparation de l'aperçu",
+        "ready": "Prêt",
+        "importing": "Import en cours",
+        "importing_photos": "Téléchargement des photos",
+        "done": "Terminé",
+        "failed": "Échec"
+      },
+      "review": {
+        "related": "Données liées",
+        "setAll": "Tout définir sur…",
+        "activities": "{{count}} activités",
+        "notes": "{{count}} notes",
+        "reminders": "{{count}} rappels",
+        "relationships": "{{count}} relations"
+      },
+      "result": {
+        "activities": "{{count}} activités importées",
+        "notes": "{{count}} notes importées",
+        "reminders": "{{count}} rappels importés",
+        "relationships": "{{count}} relations importées",
+        "relationshipsCollapsed": "{{count}} doublons réciproques ignorés (affichés comme relations entrantes)",
+        "photos": "{{count}} photos importées",
+        "photosFailed": "{{count}} photos n'ont pas pu être téléchargées"
+      },
+      "errors": {
+        "fetchFailed": "Échec de la récupération des données depuis Monica"
+      }
+    },
     "calendarSync": {
       "title": "Synchronisation de calendrier",
       "description": "Importez des événements depuis des calendriers CalDAV ou iCalendar (.ics) comme activités. Les participants dont l'adresse e-mail correspond à vos contacts sont liés automatiquement.",

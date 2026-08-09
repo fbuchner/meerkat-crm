@@ -415,7 +415,9 @@ func (m *ImportSessionManager) ConfirmVCF(db *gorm.DB, userID uint, req models.I
 			continue
 		}
 
-		if err := db.Model(&models.Contact{}).Where("id = ?", task.contactID).Updates(map[string]interface{}{
+		// primary key must be set on model (not only in Where clause) so contact save hooks can stamp  ETag for row being updated.
+		contact := models.Contact{Model: gorm.Model{ID: task.contactID}}
+		if err := db.Model(&contact).Updates(map[string]interface{}{
 			"photo":           photoPath,
 			"photo_thumbnail": thumbnailData,
 		}).Error; err != nil {

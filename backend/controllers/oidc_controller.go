@@ -89,7 +89,7 @@ func OIDCCallbackHandler(provider *services.OIDCProvider, cfg *config.Config) gi
 			return
 		}
 
-		idToken, err := provider.ExchangeAndVerify(c.Request.Context(), code)
+		idToken, oauthToken, err := provider.ExchangeAndVerify(c.Request.Context(), code)
 		if err != nil {
 			log.Error().Err(err).Msg("OIDC token exchange/verification failed")
 			c.Redirect(http.StatusFound, "/login?error=oidc_error")
@@ -107,6 +107,13 @@ func OIDCCallbackHandler(provider *services.OIDCProvider, cfg *config.Config) gi
 			log.Error().Err(err).Msg("OIDC: failed to extract claims")
 			c.Redirect(http.StatusFound, "/login?error=oidc_error")
 			return
+		}
+
+		// some providers expose email/profile claims via the userinfo endpoint (Fallback)
+		if claims.NeedsUserInfo() {
+			if err := provider.EnrichFromUserInfo(c.Request.Context(), oauthToken, claims); err != nil {
+				log.Warn().Err(err).Msg("OIDC: userinfo lookup failed, continuing with id_token claims only")
+			}
 		}
 
 		db := c.MustGet("db").(*gorm.DB)

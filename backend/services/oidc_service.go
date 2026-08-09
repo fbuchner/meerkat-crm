@@ -64,53 +64,96 @@ func (p *OIDCProvider) BuildAuthURL(state, nonce string) string {
 	return p.oauth2Cfg.AuthCodeURL(state, oauth2.SetAuthURLParam("nonce", nonce))
 }
 
-// ExchangeAndVerify exchanges an authorization code for tokens and verifies the ID token.
-func (p *OIDCProvider) ExchangeAndVerify(ctx context.Context, code string) (*oidc.IDToken, error) {
+// ExchangeAndVerify exchanges an authorization code for tokens and verifies the ID token, OAuth2 token is returned alongside
+func (p *OIDCProvider) ExchangeAndVerify(ctx context.Context, code string) (*oidc.IDToken, *oauth2.Token, error) {
 	token, err := p.oauth2Cfg.Exchange(ctx, code)
 	if err != nil {
-		return nil, fmt.Errorf("failed to exchange code: %w", err)
+		return nil, nil, fmt.Errorf("failed to exchange code: %w", err)
 	}
 
 	rawIDToken, ok := token.Extra("id_token").(string)
 	if !ok {
-		return nil, errors.New("missing id_token in token response")
+		return nil, nil, errors.New("missing id_token in token response")
 	}
 
 	idToken, err := p.verifier.Verify(ctx, rawIDToken)
 	if err != nil {
-		return nil, fmt.Errorf("failed to verify id_token: %w", err)
+		return nil, nil, fmt.Errorf("failed to verify id_token: %w", err)
 	}
 
-	return idToken, nil
+	return idToken, token, nil
 }
 
 // OIDCClaims holds the normalized user identity from an ID token.
 type OIDCClaims struct {
-	Subject       string
-	Email         string
-	EmailVerified bool
-	Name          string
-	Provider      string
+	Subject           string
+	Email             string
+	EmailVerified     bool
+	Name              string
+	PreferredUsername string
+	Provider          string
+}
+
+// standard claims we care about, shared by the ID token and userinfo response.
+type profileClaims struct {
+	Email             string `json:"email"`
+	EmailVerified     bool   `json:"email_verified"`
+	Name              string `json:"name"`
+	PreferredUsername string `json:"preferred_username"`
 }
 
 // ExtractClaims parses standard claims out of a verified ID token.
 func ExtractClaims(idToken *oidc.IDToken, providerURL string) (*OIDCClaims, error) {
-	var raw struct {
-		Email         string `json:"email"`
-		Name          string `json:"name"`
-		EmailVerified bool   `json:"email_verified"`
-	}
+	var raw profileClaims
 	if err := idToken.Claims(&raw); err != nil {
 		return nil, fmt.Errorf("failed to extract claims: %w", err)
 	}
 
 	return &OIDCClaims{
-		Subject:       idToken.Subject,
-		Email:         raw.Email,
-		EmailVerified: raw.EmailVerified,
-		Name:          raw.Name,
-		Provider:      providerURL,
+		Subject:           idToken.Subject,
+		Email:             raw.Email,
+		EmailVerified:     raw.EmailVerified,
+		Name:              raw.Name,
+		PreferredUsername: raw.PreferredUsername,
+		Provider:          providerURL,
 	}, nil
+}
+
+// NeedsUserInfo reports whether the ID token lacked the identity claims we need to
+// provision an account, meaning the userinfo endpoint should be queried.
+func (c *OIDCClaims) NeedsUserInfo() bool {
+	return c.Email == "" || (c.Name == "" && c.PreferredUsername == "")
+}
+
+// queries the provider's userinfo endpoint and fills in any identity claims missing from the ID token. Providers such as Authelia only return `sub` in the
+func (p *OIDCProvider) EnrichFromUserInfo(ctx context.Context, token *oauth2.Token, claims *OIDCClaims) error {
+	userInfo, err := p.provider.UserInfo(ctx, oauth2.StaticTokenSource(token))
+	if err != nil {
+		return fmt.Errorf("failed to fetch userinfo: %w", err)
+	}
+
+	// OIDC Core 5.3.2: the userinfo subject MUST match the ID token subject.
+	if userInfo.Subject != claims.Subject {
+		return fmt.Errorf("userinfo subject %q does not match id_token subject %q", userInfo.Subject, claims.Subject)
+	}
+
+	var raw profileClaims
+	if err := userInfo.Claims(&raw); err != nil {
+		return fmt.Errorf("failed to parse userinfo claims: %w", err)
+	}
+
+	if claims.Email == "" && raw.Email != "" {
+		claims.Email = raw.Email
+		claims.EmailVerified = raw.EmailVerified
+	}
+	if claims.Name == "" {
+		claims.Name = raw.Name
+	}
+	if claims.PreferredUsername == "" {
+		claims.PreferredUsername = raw.PreferredUsername
+	}
+
+	return nil
 }
 
 // FindOrProvisionUser finds an existing user by OIDC subject/email, or creates one
@@ -122,6 +165,15 @@ func FindOrProvisionUser(db *gorm.DB, claims *OIDCClaims, cfg *config.Config) (*
 	// 1. Look up by oidc_subject + oidc_provider (fastest path on subsequent logins)
 	err := db.Where("oidc_subject = ? AND oidc_provider = ?", claims.Subject, claims.Provider).First(&user).Error
 	if err == nil {
+		// Backfill the email for accounts provisioned before the provider supplied one
+		// (e.g. when the ID token carried no email claim). A failure here must not
+		// block the login, so it is only best-effort.
+		if user.Email == "" && claims.Email != "" {
+			user.Email = strings.ToLower(claims.Email)
+			if saveErr := db.Save(&user).Error; saveErr != nil {
+				user.Email = ""
+			}
+		}
 		return &user, nil
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -181,38 +233,47 @@ func FindOrProvisionUser(db *gorm.DB, claims *OIDCClaims, cfg *config.Config) (*
 	return &newUser, nil
 }
 
-// deriveUsername builds a clean lowercase username from email local-part or display name.
+// deriveUsername builds a clean lowercase username from the preferred_username claim,
+// the email local-part, or the display name, in that order.
 func deriveUsername(claims *OIDCClaims) string {
-	if claims.Email != "" {
-		parts := strings.Split(claims.Email, "@")
-		if len(parts) > 0 && parts[0] != "" {
-			cleaned := strings.Map(func(r rune) rune {
-				switch {
-				case r >= 'a' && r <= 'z' || r >= '0' && r <= '9':
-					return r
-				case r == '_' || r == '-' || r == '.':
-					return '_'
-				default:
-					return -1
-				}
-			}, strings.ToLower(parts[0]))
-			if cleaned != "" {
-				return cleaned
-			}
-		}
+	// preferred_username is a UPN on some providers (Entra ID), so treat it like an
+	// address and keep the local part — usernames may not contain "@".
+	if cleaned := sanitizeUsername(localPart(claims.PreferredUsername)); cleaned != "" {
+		return cleaned
 	}
-	if claims.Name != "" {
-		return strings.Map(func(r rune) rune {
-			if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' {
-				return r
-			}
-			return '_'
-		}, strings.ToLower(claims.Name))
+	if cleaned := sanitizeUsername(localPart(claims.Email)); cleaned != "" {
+		return cleaned
+	}
+	if cleaned := sanitizeUsername(claims.Name); cleaned != "" {
+		return cleaned
 	}
 	return "oidc_user"
 }
 
-// ProviderName extracts a human-readable name from a provider URL (e.g. "accounts.google.com" → "accounts.google.com").
+// localPart returns everything before the first "@", or the input unchanged if there is none.
+func localPart(s string) string {
+	if i := strings.Index(s, "@"); i >= 0 {
+		return s[:i]
+	}
+	return s
+}
+
+// sanitizeUsername lowercases and strips anything that is not alphanumeric, mapping
+// separators to underscores.
+func sanitizeUsername(s string) string {
+	return strings.Map(func(r rune) rune {
+		switch {
+		case r >= 'a' && r <= 'z' || r >= '0' && r <= '9':
+			return r
+		case r == '_' || r == '-' || r == '.' || r == ' ':
+			return '_'
+		default:
+			return -1
+		}
+	}, strings.ToLower(s))
+}
+
+// ProviderName extracts a human-readable name from a provider URL
 func ProviderName(providerURL string) string {
 	u, err := url.Parse(providerURL)
 	if err != nil || u.Host == "" {

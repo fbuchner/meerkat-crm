@@ -2,6 +2,7 @@ package monica
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -23,6 +25,7 @@ var (
 	ErrInvalidURL     = errors.New("monica: base URL is invalid")
 	ErrPrivateAddress = errors.New("monica: URL resolves to a private address")
 	ErrInvalidData    = errors.New("monica: response could not be parsed")
+	ErrNoPhoto        = errors.New("monica: contact has no retrievable photo")
 )
 
 const (
@@ -295,9 +298,52 @@ func (c *Client) FetchContactRelationships(ctx context.Context, contactID int) (
 	return fetchAll[Relationship](ctx, c, fmt.Sprintf("/contacts/%d/relationships", contactID), nil, nil)
 }
 
-// FetchAvatar downloads a contact photo. The bearer token is only sent when
-// the avatar is served by the Monica instance itself, never to third-party
-// hosts (gravatar, presigned S3 URLs).
+// FetchContactPhoto downloads a contact's avatar through the photos endpoint.
+// Cannot use Contact.Information.Avatar.Source "photo" (web route, not API)
+func (c *Client) FetchContactPhoto(ctx context.Context, contactID int, avatarURL string) (data []byte, mediaType string, err error) {
+	photos, err := fetchAll[Photo](ctx, c, fmt.Sprintf("/contacts/%d/photos", contactID), nil, nil)
+	if err != nil {
+		return nil, "", err
+	}
+	photo := selectAvatarPhoto(photos, avatarURL)
+	if photo == nil {
+		return nil, "", fmt.Errorf("%w: %d photo(s) returned, none matching the avatar", ErrNoPhoto, len(photos))
+	}
+	// Keep the payload of "data:<media type>;base64,<payload>"
+	_, payload, found := strings.Cut(photo.DataURL, ",")
+	if !found {
+		return nil, "", fmt.Errorf("%w: photo is not a data URL", ErrInvalidData)
+	}
+	data, err = base64.StdEncoding.DecodeString(payload)
+	if err != nil {
+		return nil, "", fmt.Errorf("%w: photo payload: %v", ErrInvalidData, err)
+	}
+	return data, photo.MimeType, nil
+}
+
+// selectAvatarPhoto picks the record the avatar URL refers to, falling back to
+// the sole photo when the filenames do not line up.
+func selectAvatarPhoto(photos []Photo, avatarURL string) *Photo {
+	// Match on the URL path only: Monica appends cache-busting queries.
+	if u, err := url.Parse(avatarURL); err == nil && u.Path != "" {
+		base := path.Base(u.Path)
+		for i := range photos {
+			if strings.HasSuffix(photos[i].NewFilename, base) {
+				return &photos[i]
+			}
+		}
+	}
+	if len(photos) == 1 {
+		return &photos[0]
+	}
+	return nil
+}
+
+// FetchAvatar downloads an avatar straight from its URL, which works for
+// third-party hosts such as gravatar. Monica's own /store URLs need
+// FetchContactPhoto instead. The bearer token is only sent when the avatar is
+// served by the Monica instance itself, never to third-party hosts (gravatar,
+// presigned S3 URLs).
 func (c *Client) FetchAvatar(ctx context.Context, avatarURL string) (data []byte, mediaType string, err error) {
 	u, err := url.Parse(avatarURL)
 	if err != nil || (u.Scheme != "http" && u.Scheme != "https") {

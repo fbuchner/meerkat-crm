@@ -14,11 +14,19 @@ import (
 // This file maps Monica API entities to Meerkat models. All functions are
 // pure (no DB access); linking via contact IDs happens in the session layer.
 
+// Monica avatar sources worth downloading. Photos live behind the Monica API
+// (see monica.Client.FetchContactPhoto); gravatars are plain public URLs.
+const (
+	avatarSourcePhoto    = "photo"
+	avatarSourceGravatar = "gravatar"
+)
+
 // MonicaMappedContact pairs a mapped contact with its Monica identity.
 type MonicaMappedContact struct {
-	MonicaID  int
-	Contact   models.Contact
-	AvatarURL string
+	MonicaID     int
+	Contact      models.Contact
+	AvatarURL    string
+	AvatarSource string // avatarSourcePhoto or avatarSourceGravatar; empty when there is nothing to fetch
 }
 
 // MapMonicaContact converts a Monica contact. The avatar URL is returned
@@ -120,15 +128,16 @@ func MapMonicaContact(mc monica.Contact) MonicaMappedContact {
 		contact.Address = models.FormatAddress(contact.Addresses[0])
 	}
 
-	avatarURL := ""
+	avatarURL, avatarSource := "", ""
 	if mc.Information.Avatar.URL != nil && mc.Information.Avatar.Source != nil {
 		// "default" and "adorable" are generated placeholder avatars.
-		if src := *mc.Information.Avatar.Source; src == "photo" || src == "gravatar" {
+		if src := *mc.Information.Avatar.Source; src == avatarSourcePhoto || src == avatarSourceGravatar {
 			avatarURL = *mc.Information.Avatar.URL
+			avatarSource = src
 		}
 	}
 
-	return MonicaMappedContact{MonicaID: mc.ID, Contact: contact, AvatarURL: avatarURL}
+	return MonicaMappedContact{MonicaID: mc.ID, Contact: contact, AvatarURL: avatarURL, AvatarSource: avatarSource}
 }
 
 // Custom field names created by the Monica import (added to the user's
@@ -343,12 +352,43 @@ func MapMonicaReminder(mr monica.Reminder, now time.Time, birthdayMonthDay strin
 	reoccurFromCompletion := !isBirthdayReminder(recurrence, remindAt, birthdayMonthDay)
 	reminder = models.Reminder{
 		Message:               truncateRunes(message, 500),
-		RemindAt:              remindAt,
+		RemindAt:              nextRecurrenceOnOrAfter(remindAt, recurrence, now),
 		Recurrence:            recurrence,
 		ByMail:                &byMail,
 		ReoccurFromCompletion: &reoccurFromCompletion,
 	}
 	return reminder, mr.Contact.ID, true
+}
+
+// nextRecurrenceOnOrAfter moves a recurring reminder to its first occurrence on or after today.
+// Monica dates a birthday reminder from the birth date.
+func nextRecurrenceOnOrAfter(remindAt time.Time, recurrence string, now time.Time) time.Time {
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, remindAt.Location())
+	if !remindAt.Before(today) {
+		return remindAt
+	}
+	var after func(periods int) time.Time
+	switch recurrence {
+	case "weekly":
+		after = func(p int) time.Time { return remindAt.AddDate(0, 0, 7*p) }
+	case "monthly":
+		after = func(p int) time.Time { return addMonths(remindAt, p) }
+	case "quarterly":
+		after = func(p int) time.Time { return addMonths(remindAt, 3*p) }
+	case "six-months":
+		after = func(p int) time.Time { return addMonths(remindAt, 6*p) }
+	case "yearly":
+		after = func(p int) time.Time { return addYears(remindAt, p) }
+	default:
+		// "once" keeps its date: a past one-time reminder is dropped earlier,
+		// and inventing a future date for it would be wrong.
+		return remindAt
+	}
+	next := remindAt
+	for p := 1; next.Before(today); p++ {
+		next = after(p)
+	}
+	return next
 }
 
 // isBirthdayReminder recognizes Monica's auto-created birthday reminders by

@@ -463,7 +463,9 @@ export default function MonicaImportDialog({
           sx={{ maxWidth: 400, mx: 'auto' }}
         />
         <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-          {t('settings.monicaImport.keepOpen', 'You can leave this dialog open — the import continues on the server.')}
+          {mode === 'fetching'
+            ? t('settings.monicaImport.keepOpenFetching', 'Keep this dialog open — closing it cancels the fetch.')
+            : t('settings.monicaImport.keepOpenImporting', 'You can close this dialog — photos keep downloading on the server.')}
         </Typography>
       </Box>
     );
@@ -702,8 +704,11 @@ export default function MonicaImportDialog({
           </>
         );
       case 'fetching':
-      case 'importing':
         return <Button onClick={handleClose}>{t('common.cancel', 'Cancel')}</Button>;
+      case 'importing':
+        // Contacts are already committed and photos finish server-side, so
+        // this only dismisses the progress view — it cancels nothing.
+        return <Button onClick={handleClose}>{t('common.close', 'Close')}</Button>;
       case 'review':
         return (
           <>

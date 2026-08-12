@@ -482,7 +482,8 @@
       },
       "fetchingTitle": "Fetching data from Monica…",
       "importingTitle": "Downloading contact photos…",
-      "keepOpen": "You can leave this dialog open — the import continues on the server.",
+      "keepOpenFetching": "Keep this dialog open — closing it cancels the fetch.",
+      "keepOpenImporting": "You can close this dialog — photos keep downloading on the server.",
       "phase": {
         "connecting": "Connecting",
         "fetching_contacts": "Fetching contacts",

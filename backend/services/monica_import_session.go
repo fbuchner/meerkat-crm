@@ -550,8 +550,10 @@ func (m *MonicaImportManager) Preview(userID uint, sessionID string) (*models.Mo
 
 // avatarTask defers a contact photo download until after the import commits.
 type avatarTask struct {
-	contactID uint
+	contactID uint // Meerkat contact
+	monicaID  int  // Monica contact, needed to reach the photos endpoint
 	avatarURL string
+	source    string // avatarSourcePhoto or avatarSourceGravatar
 }
 
 // Confirm executes the import in one transaction: first the contacts pass
@@ -612,7 +614,8 @@ func (m *MonicaImportManager) Confirm(db *gorm.DB, userID uint, req models.Monic
 				result.Created++
 				idMap[contactData.MonicaID] = contact.ID
 				if contactData.AvatarURL != "" {
-					avatarTasks = append(avatarTasks, avatarTask{contactID: contact.ID, avatarURL: contactData.AvatarURL})
+					avatarTasks = append(avatarTasks, avatarTask{contactID: contact.ID, monicaID: contactData.MonicaID,
+						avatarURL: contactData.AvatarURL, source: contactData.AvatarSource})
 				}
 
 			case "update":
@@ -650,7 +653,8 @@ func (m *MonicaImportManager) Confirm(db *gorm.DB, userID uint, req models.Monic
 				result.Updated++
 				idMap[contactData.MonicaID] = existing.ID
 				if existing.Photo == "" && contactData.AvatarURL != "" {
-					avatarTasks = append(avatarTasks, avatarTask{contactID: existing.ID, avatarURL: contactData.AvatarURL})
+					avatarTasks = append(avatarTasks, avatarTask{contactID: existing.ID, monicaID: contactData.MonicaID,
+						avatarURL: contactData.AvatarURL, source: contactData.AvatarSource})
 				}
 			}
 		}
@@ -733,9 +737,18 @@ func (m *MonicaImportManager) processAvatars(db *gorm.DB, s *monicaImportSession
 
 	for i, task := range tasks {
 		saved := false
-		photoData, mediaType, err := s.client.FetchAvatar(ctx, task.avatarURL)
+		// Photos hosted by Monica are only reachable through the API; every
+		// other source (gravatar) is a public URL fetched directly.
+		var photoData []byte
+		var mediaType string
+		var err error
+		if task.source == avatarSourcePhoto {
+			photoData, mediaType, err = s.client.FetchContactPhoto(ctx, task.monicaID, task.avatarURL)
+		} else {
+			photoData, mediaType, err = s.client.FetchAvatar(ctx, task.avatarURL)
+		}
 		if err != nil {
-			log.Warn().Err(err).Uint("contact_id", task.contactID).Msg("Failed to fetch Monica avatar")
+			log.Warn().Err(err).Uint("contact_id", task.contactID).Str("source", task.source).Msg("Failed to fetch Monica avatar")
 		} else {
 			photoPath, thumbnailData, saveErr := carddav.SaveContactPhoto(photoData, mediaType, cfg.ProfilePhotoDir)
 			if saveErr != nil {

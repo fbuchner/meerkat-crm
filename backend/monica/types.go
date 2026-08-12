@@ -97,6 +97,15 @@ type Contact struct {
 	ContactFields []ContactField `json:"contactFields"`
 }
 
+// Photo is one of a contact's stored photos. Monica serves the image bytes
+// inline as a base64 data URL
+type Photo struct {
+	ID          int    `json:"id"`
+	NewFilename string `json:"new_filename"` // e.g. "photos/<hash>.jpg"
+	MimeType    string `json:"mime_type"`
+	DataURL     string `json:"dataUrl"`
+}
+
 // Activity is a shared event linked to one or more contacts.
 type Activity struct {
 	ID           int    `json:"id"`

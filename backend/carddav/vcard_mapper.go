@@ -489,6 +489,14 @@ func SaveContactPhoto(photoData []byte, mediaType string, photoDir string) (stri
 					break
 				}
 			}
+			if img == nil {
+				start := photoData
+				if len(start) > 24 {
+					start = start[:24]
+				}
+				err = fmt.Errorf("no decoder accepted the data: %d bytes, media type %q, sniffed as %q, starting with %q",
+					len(photoData), mediaType, http.DetectContentType(photoData), start)
+			}
 		}
 	}
 	if err != nil {

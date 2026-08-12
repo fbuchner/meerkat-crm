@@ -162,6 +162,14 @@ func TestMapMonicaContactSkipsGeneratedAvatars(t *testing.T) {
 
 	mc.Information.Avatar.Source = strPtr("gravatar")
 	assert.Equal(t, "https://monica.example.com/avatar.png", MapMonicaContact(mc).AvatarURL)
+
+	// The source decides how the photo is fetched: Monica-hosted photos need
+	// the API, gravatars are plain public URLs.
+	assert.Equal(t, avatarSourceGravatar, MapMonicaContact(mc).AvatarSource)
+	mc.Information.Avatar.Source = strPtr("photo")
+	assert.Equal(t, avatarSourcePhoto, MapMonicaContact(mc).AvatarSource)
+	mc.Information.Avatar.Source = strPtr("default")
+	assert.Empty(t, MapMonicaContact(mc).AvatarSource)
 }
 
 func TestMapMonicaActivity(t *testing.T) {
@@ -405,4 +413,62 @@ func TestBirthdayMonthDayByMonicaID(t *testing.T) {
 	})
 
 	assert.Equal(t, map[int]string{1: "12-10", 2: "03-05"}, got)
+}
+
+// Monica dates a birthday reminder from the birth date (not the current date)
+func TestMapMonicaReminderRollsRecurrenceIntoTheFuture(t *testing.T) {
+	now := time.Date(2026, 8, 12, 9, 0, 0, 0, time.UTC)
+	reminderOn := func(date, frequency string, number int) monica.Reminder {
+		d := date
+		return monica.Reminder{
+			Title: "Wish happy birthday", FrequencyType: frequency, FrequencyNumber: number,
+			NextExpectedDate: &d, Contact: &monica.ContactRef{ID: 10},
+		}
+	}
+
+	cases := []struct {
+		name       string
+		date       string
+		frequency  string
+		number     int
+		wantRemind string
+	}{
+		{"birthday decades ago", "1950-12-01", "year", 1, "2026-12-01"},
+		{"birthday already passed this year", "1950-04-19", "year", 1, "2027-04-19"},
+		{"future date is left alone", "2026-12-10", "year", 1, "2026-12-10"},
+		{"monthly", "2025-01-15", "month", 1, "2026-08-15"},
+		// Feb/May/Aug/Nov cadence: the Aug 10 step falls two days short of
+		// "today", so the next one is Nov.
+		{"quarterly keeps its cadence", "2024-02-10", "month", 3, "2026-11-10"},
+		// Landing exactly on today counts as due, not past.
+		{"weekly", "2026-07-01", "week", 1, "2026-08-12"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			reminder, _, ok := MapMonicaReminder(reminderOn(tc.date, tc.frequency, tc.number), now, "")
+			require.True(t, ok)
+			assert.Equal(t, tc.wantRemind, reminder.RemindAt.Format("2006-01-02"))
+			assert.False(t, reminder.RemindAt.Before(now.Truncate(24*time.Hour)), "must not be in the past")
+		})
+	}
+}
+
+// Rolling forward must not cost a Feb 29 birthday its date in later leap years,
+// which is what stepping year-by-year from each new result would do.
+func TestMapMonicaReminderKeepsLeapDayAcrossRollForward(t *testing.T) {
+	now := time.Date(2026, 8, 12, 9, 0, 0, 0, time.UTC)
+	date := "2000-02-29"
+	mr := monica.Reminder{
+		Title: "Wish happy birthday", FrequencyType: "year", FrequencyNumber: 1,
+		NextExpectedDate: &date, Contact: &monica.ContactRef{ID: 10},
+	}
+
+	reminder, _, ok := MapMonicaReminder(mr, now, "02-29")
+	require.True(t, ok)
+
+	// 2027 is not a leap year, so the next occurrence clamps to Feb 28.
+	assert.Equal(t, "2027-02-28", reminder.RemindAt.Format("2006-01-02"))
+	// Still recognized as a birthday: the check runs on the original date.
+	require.NotNil(t, reminder.ReoccurFromCompletion)
+	assert.False(t, *reminder.ReoccurFromCompletion)
 }

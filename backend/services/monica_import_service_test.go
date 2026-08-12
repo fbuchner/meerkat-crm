@@ -162,6 +162,14 @@ func TestMapMonicaContactSkipsGeneratedAvatars(t *testing.T) {
 
 	mc.Information.Avatar.Source = strPtr("gravatar")
 	assert.Equal(t, "https://monica.example.com/avatar.png", MapMonicaContact(mc).AvatarURL)
+
+	// The source decides how the photo is fetched: Monica-hosted photos need
+	// the API, gravatars are plain public URLs.
+	assert.Equal(t, avatarSourceGravatar, MapMonicaContact(mc).AvatarSource)
+	mc.Information.Avatar.Source = strPtr("photo")
+	assert.Equal(t, avatarSourcePhoto, MapMonicaContact(mc).AvatarSource)
+	mc.Information.Avatar.Source = strPtr("default")
+	assert.Empty(t, MapMonicaContact(mc).AvatarSource)
 }
 
 func TestMapMonicaActivity(t *testing.T) {

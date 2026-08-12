@@ -14,11 +14,19 @@ import (
 // This file maps Monica API entities to Meerkat models. All functions are
 // pure (no DB access); linking via contact IDs happens in the session layer.
 
+// Monica avatar sources worth downloading. Photos live behind the Monica API
+// (see monica.Client.FetchContactPhoto); gravatars are plain public URLs.
+const (
+	avatarSourcePhoto    = "photo"
+	avatarSourceGravatar = "gravatar"
+)
+
 // MonicaMappedContact pairs a mapped contact with its Monica identity.
 type MonicaMappedContact struct {
-	MonicaID  int
-	Contact   models.Contact
-	AvatarURL string
+	MonicaID     int
+	Contact      models.Contact
+	AvatarURL    string
+	AvatarSource string // avatarSourcePhoto or avatarSourceGravatar; empty when there is nothing to fetch
 }
 
 // MapMonicaContact converts a Monica contact. The avatar URL is returned
@@ -120,15 +128,16 @@ func MapMonicaContact(mc monica.Contact) MonicaMappedContact {
 		contact.Address = models.FormatAddress(contact.Addresses[0])
 	}
 
-	avatarURL := ""
+	avatarURL, avatarSource := "", ""
 	if mc.Information.Avatar.URL != nil && mc.Information.Avatar.Source != nil {
 		// "default" and "adorable" are generated placeholder avatars.
-		if src := *mc.Information.Avatar.Source; src == "photo" || src == "gravatar" {
+		if src := *mc.Information.Avatar.Source; src == avatarSourcePhoto || src == avatarSourceGravatar {
 			avatarURL = *mc.Information.Avatar.URL
+			avatarSource = src
 		}
 	}
 
-	return MonicaMappedContact{MonicaID: mc.ID, Contact: contact, AvatarURL: avatarURL}
+	return MonicaMappedContact{MonicaID: mc.ID, Contact: contact, AvatarURL: avatarURL, AvatarSource: avatarSource}
 }
 
 // Custom field names created by the Monica import (added to the user's

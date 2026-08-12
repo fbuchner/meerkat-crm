@@ -352,12 +352,43 @@ func MapMonicaReminder(mr monica.Reminder, now time.Time, birthdayMonthDay strin
 	reoccurFromCompletion := !isBirthdayReminder(recurrence, remindAt, birthdayMonthDay)
 	reminder = models.Reminder{
 		Message:               truncateRunes(message, 500),
-		RemindAt:              remindAt,
+		RemindAt:              nextRecurrenceOnOrAfter(remindAt, recurrence, now),
 		Recurrence:            recurrence,
 		ByMail:                &byMail,
 		ReoccurFromCompletion: &reoccurFromCompletion,
 	}
 	return reminder, mr.Contact.ID, true
+}
+
+// nextRecurrenceOnOrAfter moves a recurring reminder to its first occurrence on or after today.
+// Monica dates a birthday reminder from the birth date.
+func nextRecurrenceOnOrAfter(remindAt time.Time, recurrence string, now time.Time) time.Time {
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, remindAt.Location())
+	if !remindAt.Before(today) {
+		return remindAt
+	}
+	var after func(periods int) time.Time
+	switch recurrence {
+	case "weekly":
+		after = func(p int) time.Time { return remindAt.AddDate(0, 0, 7*p) }
+	case "monthly":
+		after = func(p int) time.Time { return addMonths(remindAt, p) }
+	case "quarterly":
+		after = func(p int) time.Time { return addMonths(remindAt, 3*p) }
+	case "six-months":
+		after = func(p int) time.Time { return addMonths(remindAt, 6*p) }
+	case "yearly":
+		after = func(p int) time.Time { return addYears(remindAt, p) }
+	default:
+		// "once" keeps its date: a past one-time reminder is dropped earlier,
+		// and inventing a future date for it would be wrong.
+		return remindAt
+	}
+	next := remindAt
+	for p := 1; next.Before(today); p++ {
+		next = after(p)
+	}
+	return next
 }
 
 // isBirthdayReminder recognizes Monica's auto-created birthday reminders by

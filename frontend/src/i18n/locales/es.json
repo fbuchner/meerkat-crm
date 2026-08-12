@@ -482,7 +482,8 @@
       },
       "fetchingTitle": "Obteniendo datos de Monica…",
       "importingTitle": "Descargando fotos de contactos…",
-      "keepOpen": "Puedes dejar este diálogo abierto: la importación continúa en el servidor.",
+      "keepOpenFetching": "Mantén este diálogo abierto: cerrarlo cancela la obtención de datos.",
+      "keepOpenImporting": "Puedes cerrar este diálogo: las fotos se siguen descargando en el servidor.",
       "phase": {
         "connecting": "Conectando",
         "fetching_contacts": "Obteniendo contactos",

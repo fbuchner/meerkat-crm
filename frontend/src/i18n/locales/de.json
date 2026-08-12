@@ -482,7 +482,8 @@
       },
       "fetchingTitle": "Daten werden von Monica abgerufen…",
       "importingTitle": "Kontaktfotos werden heruntergeladen…",
-      "keepOpen": "Du kannst diesen Dialog geöffnet lassen — der Import läuft auf dem Server weiter.",
+      "keepOpenFetching": "Lass diesen Dialog geöffnet — beim Schließen wird der Abruf abgebrochen.",
+      "keepOpenImporting": "Du kannst diesen Dialog schließen — die Fotos werden auf dem Server weiter heruntergeladen.",
       "phase": {
         "connecting": "Verbinden",
         "fetching_contacts": "Kontakte werden abgerufen",

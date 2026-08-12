@@ -482,7 +482,8 @@
       },
       "fetchingTitle": "Recupero dei dati da Monica…",
       "importingTitle": "Download delle foto dei contatti…",
-      "keepOpen": "Puoi lasciare aperta questa finestra: l'importazione continua sul server.",
+      "keepOpenFetching": "Tieni aperta questa finestra: chiuderla annulla il recupero dei dati.",
+      "keepOpenImporting": "Puoi chiudere questa finestra: il download delle foto continua sul server.",
       "phase": {
         "connecting": "Connessione",
         "fetching_contacts": "Recupero dei contatti",

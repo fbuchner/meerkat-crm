@@ -10,7 +10,7 @@
 
 
 ## About the project
-Meerkat CRM (Contact Relationship Management) is a  self-hosted solution to keep track of your important contacts. As your digital rolodex it reminds you of birthdays, helps you to keep in mind dietary habits as well as names of spouses of contacts - and much more.
+Meerkat CRM (Contact Relationship Management) is a self-hosted solution to keep track of your important contacts. As your digital rolodex it reminds you of birthdays, helps you to keep in mind dietary habits as well as names of spouses of contacts - and much more.
 
 You can find the detailed documentation here: [fbuchner.github.io/meerkat-crm/](https://fbuchner.github.io/meerkat-crm/)
 
@@ -29,18 +29,25 @@ You can find the detailed documentation here: [fbuchner.github.io/meerkat-crm/](
     - add and search contacts
     - group contacts by circles (e.g. friends, family, work)
     - store relationships of contacts (e.g. spouses, children)
-    - CardDav server for two-way synchronization with your phone's contact list
+    - CardDAV server for two-way synchronization with your phone's contact list and CardDAV client to use with your own external server
+    - Network graph to visualize your contacts and relationships
 - Notes and activities
     - social network style timeline for contacts
     - notes assigned to individual contacts
     - activities with one or multiple contacts
     - general notes (for e.g. journaling)
 - Reminders
-    - Keep in touch through reminders and get e-mail notifications
+    - Keep in touch through reminders and get e-mail notifications (via SMTP or resend)
     - See upcoming birthdays
+- Integrations
+    - Import data (from CSV, VCF and Monica), export data to CSV and VCF
+    - Connect external calendars
+    - Webhooks to integrate with your own systems
+    - SSO
 - Usability
-    - Multiple languages (currently EN and DE)
+    - Multiple languages (currently EN, DE, IT, ES, FR)
     - Light and dark mode
+
 
 ## Installation
 
@@ -73,13 +80,18 @@ it is with Docker Compose:
 4. **Access the application:**
     Open http://localhost:7300 in your browser.
 
-Prefer to skip Compose? You can run the image directly:
+Prefer to skip Compose? You can run the image directly. 
+
 ```sh
-docker run -d -p 7300:8080 \
-  -v ./data:/app/data \
-  -v ./photos:/app/static/photos \
+docker run -d --name meerkat --restart unless-stopped \
+  -p 7300:8080 \
+  -e JWT_SECRET_KEY='<paste a secret here, changing it will invalidate logins>' \
+  -v "$(pwd)/data:/app/data" \
+  -v "$(pwd)/photos:/app/static/photos" \
   ghcr.io/fbuchner/meerkat-crm:latest
 ```
+
+All other settings are optional, see [`.env.example`](.env.example) for e-mail notifications, CardDAV, and SSO. Pass them with additional `-e` flags, or use `--env-file .env`.
 
 
 ## Contributing

@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, useMemo } from 'react';
+import { useState, useEffect, Suspense, useMemo, MouseEvent as ReactMouseEvent } from 'react';
 import ContactsPage from './ContactsPage';
 import ContactDetailPage from './ContactDetailPage';
 import ActivitiesPage from './ActivitiesPage';
@@ -33,7 +33,10 @@ import {
   TextField,
   Autocomplete,
   InputAdornment,
-  Collapse
+  Collapse,
+  Tooltip,
+  Menu,
+  MenuItem
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
@@ -51,9 +54,13 @@ import StorageIcon from '@mui/icons-material/Storage';
 import LogoutIcon from '@mui/icons-material/Logout';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import './App.css';
 
-const drawerWidth = 180;
+const EXPANDED_DRAWER_WIDTH = 240;
+const COLLAPSED_DRAWER_WIDTH = 64;
+const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sidebarCollapsed';
 
 // Scroll to top on route change
 function ScrollToTop() {
@@ -75,12 +82,26 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === 'true'
+  );
+  const [settingsFlyoutAnchor, setSettingsFlyoutAnchor] = useState<HTMLElement | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Contact[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  
+
+  const drawerWidth = sidebarCollapsed ? COLLAPSED_DRAWER_WIDTH : EXPANDED_DRAWER_WIDTH;
+
   const handleDrawerToggle = () => {
     setMobileDrawerOpen(!mobileDrawerOpen);
+  };
+
+  const handleSidebarCollapseToggle = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(next));
+      return next;
+    });
   };
 
   // Debounced search for contacts
@@ -141,8 +162,16 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
     return items;
   }, [t, userIsAdmin]);
 
-  const handleSettingsMenuToggle = () => {
-    setSettingsMenuOpen(!settingsMenuOpen);
+  const handleSettingsMenuToggle = (event: ReactMouseEvent<HTMLElement>, collapsed: boolean) => {
+    if (collapsed) {
+      setSettingsFlyoutAnchor(event.currentTarget);
+    } else {
+      setSettingsMenuOpen(!settingsMenuOpen);
+    }
+  };
+
+  const handleSettingsFlyoutClose = () => {
+    setSettingsFlyoutAnchor(null);
   };
 
   const isSettingsActive = location.pathname.startsWith('/settings') || location.pathname.startsWith('/users') || location.pathname.startsWith('/api-tokens');
@@ -155,18 +184,44 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
     return location.pathname.startsWith(path);
   };
 
-  const drawerContent = (
+  const renderDrawerContent = (collapsed: boolean) => (
     <Box>
       <Toolbar />
       <List>
         {mainNavItems.map((item) => (
           <ListItem key={item.text} disablePadding>
+            <Tooltip title={collapsed ? item.text : ''} placement="right">
+              <ListItemButton
+                component={Link}
+                to={item.path}
+                onClick={isMobile ? handleDrawerToggle : undefined}
+                selected={isActiveRoute(item.path)}
+                sx={{
+                  justifyContent: collapsed ? 'center' : 'flex-start',
+                  px: collapsed ? 2 : 2.5,
+                  '&.Mui-selected': {
+                    backgroundColor: 'action.selected',
+                  },
+                  '&.Mui-selected:hover': {
+                    backgroundColor: 'action.selected',
+                  },
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: collapsed ? 0 : 40, justifyContent: 'center' }}>{item.icon}</ListItemIcon>
+                {!collapsed && <ListItemText primary={item.text} />}
+              </ListItemButton>
+            </Tooltip>
+          </ListItem>
+        ))}
+        {/* Settings submenu */}
+        <ListItem disablePadding>
+          <Tooltip title={collapsed ? t('nav.settings') : ''} placement="right">
             <ListItemButton
-              component={Link}
-              to={item.path}
-              onClick={isMobile ? handleDrawerToggle : undefined}
-              selected={isActiveRoute(item.path)}
+              onClick={(event) => handleSettingsMenuToggle(event, collapsed)}
+              selected={isSettingsActive && !settingsMenuOpen}
               sx={{
+                justifyContent: collapsed ? 'center' : 'flex-start',
+                px: collapsed ? 2 : 2.5,
                 '&.Mui-selected': {
                   backgroundColor: 'action.selected',
                 },
@@ -175,57 +230,63 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
                 },
               }}
             >
+              <ListItemIcon sx={{ minWidth: collapsed ? 0 : 40, justifyContent: 'center' }}><SettingsIcon /></ListItemIcon>
+              {!collapsed && <ListItemText primary={t('nav.settings')} />}
+              {!collapsed && (settingsMenuOpen ? <ExpandLess /> : <ExpandMore />)}
+            </ListItemButton>
+          </Tooltip>
+        </ListItem>
+        {!collapsed && (
+          <Collapse in={settingsMenuOpen} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding>
+              {settingsSubItems.map((item) => (
+                <ListItem key={item.text} disablePadding>
+                  <ListItemButton
+                    component={Link}
+                    to={item.path}
+                    onClick={isMobile ? handleDrawerToggle : undefined}
+                    selected={item.path === '/settings' ? location.pathname === '/settings' : isActiveRoute(item.path)}
+                    sx={{
+                      pl: 4,
+                      '&.Mui-selected': {
+                        backgroundColor: 'action.selected',
+                      },
+                      '&.Mui-selected:hover': {
+                        backgroundColor: 'action.selected',
+                      },
+                    }}
+                  >
+                    <ListItemIcon>{item.icon}</ListItemIcon>
+                    <ListItemText primary={item.text} />
+                  </ListItemButton>
+                </ListItem>
+              ))}
+            </List>
+          </Collapse>
+        )}
+      </List>
+      {collapsed && (
+        <Menu
+          anchorEl={settingsFlyoutAnchor}
+          open={Boolean(settingsFlyoutAnchor)}
+          onClose={handleSettingsFlyoutClose}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        >
+          {settingsSubItems.map((item) => (
+            <MenuItem
+              key={item.text}
+              component={Link}
+              to={item.path}
+              onClick={handleSettingsFlyoutClose}
+              selected={item.path === '/settings' ? location.pathname === '/settings' : isActiveRoute(item.path)}
+            >
               <ListItemIcon>{item.icon}</ListItemIcon>
               <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-        {/* Settings submenu */}
-        <ListItem disablePadding>
-          <ListItemButton
-            onClick={handleSettingsMenuToggle}
-            selected={isSettingsActive && !settingsMenuOpen}
-            sx={{
-              '&.Mui-selected': {
-                backgroundColor: 'action.selected',
-              },
-              '&.Mui-selected:hover': {
-                backgroundColor: 'action.selected',
-              },
-            }}
-          >
-            <ListItemIcon><SettingsIcon /></ListItemIcon>
-            <ListItemText primary={t('nav.settings')} />
-            {settingsMenuOpen ? <ExpandLess /> : <ExpandMore />}
-          </ListItemButton>
-        </ListItem>
-        <Collapse in={settingsMenuOpen} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
-            {settingsSubItems.map((item) => (
-              <ListItem key={item.text} disablePadding>
-                <ListItemButton
-                  component={Link}
-                  to={item.path}
-                  onClick={isMobile ? handleDrawerToggle : undefined}
-                  selected={item.path === '/settings' ? location.pathname === '/settings' : isActiveRoute(item.path)}
-                  sx={{
-                    pl: 4,
-                    '&.Mui-selected': {
-                      backgroundColor: 'action.selected',
-                    },
-                    '&.Mui-selected:hover': {
-                      backgroundColor: 'action.selected',
-                    },
-                  }}
-                >
-                  <ListItemIcon>{item.icon}</ListItemIcon>
-                  <ListItemText primary={item.text} />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        </Collapse>
-      </List>
+            </MenuItem>
+          ))}
+        </Menu>
+      )}
     </Box>
   );
 
@@ -242,12 +303,16 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
 
   return (
     <>
-      <AppBar 
-        position="fixed" 
-        sx={{ 
+      <AppBar
+        position="fixed"
+        sx={{
           zIndex: (theme) => theme.zIndex.drawer + 1,
           width: { md: `calc(100% - ${drawerWidth}px)` },
-          ml: { md: `${drawerWidth}px` }
+          ml: { md: `${drawerWidth}px` },
+          transition: (theme) => theme.transitions.create(['width', 'margin'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
         }}
       >
         <Toolbar>
@@ -390,16 +455,16 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
       </AppBar>
 
       {/* Mobile drawer */}
-      <Drawer 
+      <Drawer
         variant="temporary"
-        open={mobileDrawerOpen} 
+        open={mobileDrawerOpen}
         onClose={handleDrawerToggle}
         sx={{
           display: { xs: 'block', md: 'none' },
-          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth }
+          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: EXPANDED_DRAWER_WIDTH }
         }}
       >
-        {drawerContent}
+        {renderDrawerContent(false)}
       </Drawer>
 
       {/* Desktop drawer */}
@@ -409,22 +474,45 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
           display: { xs: 'none', md: 'block' },
           width: drawerWidth,
           flexShrink: 0,
-          '& .MuiDrawer-paper': { 
-            width: drawerWidth, 
-            boxSizing: 'border-box' 
+          whiteSpace: 'nowrap',
+          transition: (theme) => theme.transitions.create('width', {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
+          '& .MuiDrawer-paper': {
+            width: drawerWidth,
+            boxSizing: 'border-box',
+            overflowX: 'hidden',
+            transition: (theme) => theme.transitions.create('width', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
           }
         }}
       >
-        {drawerContent}
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <Box sx={{ flexGrow: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+            {renderDrawerContent(sidebarCollapsed)}
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: sidebarCollapsed ? 'center' : 'flex-end', p: 1 }}>
+            <IconButton onClick={handleSidebarCollapseToggle} size="small" aria-label={sidebarCollapsed ? t('nav.expandSidebar') : t('nav.collapseSidebar')}>
+              {sidebarCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+            </IconButton>
+          </Box>
+        </Box>
       </Drawer>
 
-      <Box 
-        component="main" 
-        sx={{ 
-          flexGrow: 1, 
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
           p: 2,
           width: { md: `calc(100% - ${drawerWidth}px)` },
-          mt: 7
+          mt: 7,
+          transition: (theme) => theme.transitions.create('width', {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
         }}
       >
         <Routes>

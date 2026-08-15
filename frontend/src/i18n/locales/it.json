@@ -16,7 +16,9 @@
     "users": "Utenti",
     "apiTokens": "Token API",
     "integrations": "Integrazioni",
-    "data": "Dati"
+    "data": "Dati",
+    "collapseSidebar": "Comprimi barra laterale",
+    "expandSidebar": "Espandi barra laterale"
   },
   "dashboard": {
     "welcome": "Benvenuto nel Cruscotto di Meerkat CRM",

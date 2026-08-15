@@ -23,7 +23,7 @@ source .env
 go run main.go
 ```
 
-The server starts on `HOST_PORT` (default `8080`). Migrations run automatically.
+The server starts on `PORT` (default `8080`). Migrations run automatically.
 
 ## Adding a New Endpoint
 

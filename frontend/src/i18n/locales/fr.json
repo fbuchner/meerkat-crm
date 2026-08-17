@@ -222,6 +222,7 @@
     "jobTitle": "Poste",
     "role": "Rôle",
     "anniversary": "Anniversaire de mariage",
+    "deceased": "Décédé(e)",
     "fieldType": "Type",
     "types": {
       "home": "Domicile",
@@ -250,6 +251,9 @@
     "phone": "Téléphone",
     "birthday": "Anniversaire",
     "birthdayError": "Format de date invalide. Vérifiez votre paramètre de format de date.",
+    "deceased": "Décédé(e)",
+    "deceasedDate": "Date de décès",
+    "deceasedDateError": "Date invalide. Doit être une date réelle et passée, égale ou postérieure à l'anniversaire.",
     "address": "Adresse",
     "workInfo": "Informations professionnelles",
     "foodPreferences": "Préférences alimentaires",

@@ -13,6 +13,7 @@ interface DateFormatContextValue {
   getBirthdayPlaceholder: () => string;
   getBirthdayFormatHint: () => string;
   getDatePlaceholder: () => string;
+  getDateFnsFormat: () => string;
   calculateAge: (birthday: string) => number | null;
 }
 
@@ -123,6 +124,22 @@ export function calculateAgeAtDate(birthday: string, atDateString: string): numb
 /**
  * Format a standard date (ISO format) to the user's preferred display format
  */
+/**
+ * Map the user's date-format preference to the equivalent date-fns format
+ * string, for components (e.g. MUI's DatePicker) that render/parse dates
+ * via a date-fns format string rather than these helpers directly.
+ */
+export function dateFnsFormatFor(format: DateFormat): string {
+  switch (format) {
+    case 'eu':
+      return 'dd.MM.yyyy';
+    case 'iso':
+      return 'yyyy-MM-dd';
+    default: // us
+      return 'MM/dd/yyyy';
+  }
+}
+
 export function formatDateWithFormat(dateString: string, format: DateFormat): string {
   if (!dateString) return '';
   
@@ -469,6 +486,8 @@ export function DateFormatProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  const getDateFnsFormat = useCallback(() => dateFnsFormatFor(dateFormat), [dateFormat]);
+
   const contextValue = useMemo(
     () => ({
       dateFormat,
@@ -481,9 +500,10 @@ export function DateFormatProvider({ children }: { children: ReactNode }) {
       getBirthdayPlaceholder,
       getBirthdayFormatHint,
       getDatePlaceholder,
+      getDateFnsFormat,
       calculateAge,
     }),
-    [dateFormat, formatDate, formatBirthday, formatBirthdayForInput, parseBirthdayInput, autoFormatBirthdayInput, getBirthdayPlaceholder, getBirthdayFormatHint, getDatePlaceholder, calculateAge]
+    [dateFormat, formatDate, formatBirthday, formatBirthdayForInput, parseBirthdayInput, autoFormatBirthdayInput, getBirthdayPlaceholder, getBirthdayFormatHint, getDatePlaceholder, getDateFnsFormat, calculateAge]
   );
 
   return (

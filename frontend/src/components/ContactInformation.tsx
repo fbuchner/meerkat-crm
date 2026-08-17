@@ -75,7 +75,7 @@ export default function ContactInformation({
   customFieldNames = [],
 }: ContactInformationProps) {
   const { t } = useTranslation();
-  const { formatBirthday, getBirthdayPlaceholder, calculateAge } = useDateFormat();
+  const { formatBirthday, getBirthdayPlaceholder, getDateFnsFormat, calculateAge } = useDateFormat();
   const [activeTab, setActiveTab] = useState(0);
   const enabled = enabledFields ?? resolveEnabledFields(null);
   const isOn = (key: ContactFieldKey) => enabled.has(key);
@@ -291,6 +291,7 @@ export default function ContactInformation({
                       <LocalizationProvider dateAdapter={AdapterDateFns}>
                         <DatePicker
                           label={t('contactDetail.deceasedDate')}
+                          format={getDateFnsFormat()}
                           value={draft.deceasedDate ? parse(draft.deceasedDate, 'yyyy-MM-dd', new Date()) : null}
                           maxDate={new Date()}
                           minDate={contact.birthday && !contact.birthday.startsWith('--') ? parse(contact.birthday, 'yyyy-MM-dd', new Date()) : undefined}

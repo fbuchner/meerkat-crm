@@ -289,7 +289,11 @@
     "archive": "Archiver",
     "unarchive": "Désarchiver",
     "archivedBadge": "Archivé",
-    "archiveConfirmation": "Êtes-vous sûr de vouloir archiver ce contact ? Tous les rappels seront supprimés. Vous pourrez le désarchiver plus tard, mais les rappels ne seront pas restaurés."
+    "archiveConfirmation": "Êtes-vous sûr de vouloir archiver ce contact ? Tous les rappels seront supprimés. Vous pourrez le désarchiver plus tard, mais les rappels ne seront pas restaurés.",
+    "exportVcard": "Exporter en vCard",
+    "exportVcard3": "vCard 3.0 (compatibilité optimale)",
+    "exportVcard4": "vCard 4.0",
+    "exportVcardError": "Échec de l'exportation du contact en vCard. Veuillez réessayer."
   },
   "noteDialog": {
     "title": "Ajouter une note",
@@ -452,6 +456,7 @@
     "exportVcf": {
       "title": "Exporter les contacts en VCF",
       "description": "Téléchargez tous vos contacts au format VCF (vCard). Ce format est compatible avec la plupart des applications de contacts et inclut les photos de profil.",
+      "versionLabel": "Version vCard",
       "downloadButton": "Télécharger le VCF",
       "exporting": "Exportation en cours...",
       "success": "Vos contacts ont été exportés avec succès.",

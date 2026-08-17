@@ -102,7 +102,7 @@ func main() {
 	corsConfig := cors.Config{
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "PROPFIND", "REPORT", "MKCOL", "COPY", "MOVE"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Depth", "If-Match", "If-None-Match"},
-		ExposeHeaders:    []string{"Content-Length", "ETag"},
+		ExposeHeaders:    []string{"Content-Length", "ETag", "Content-Disposition"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour, // Cache preflight for 12 hours
 	}

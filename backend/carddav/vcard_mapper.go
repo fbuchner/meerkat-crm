@@ -30,12 +30,26 @@ type VCardExtra struct {
 	Properties map[string][]vcard.Field `json:"properties,omitempty"`
 }
 
-// ContactToVCard converts a Contact to a vCard 3.0 card.
+// ContactToVCard converts a Contact to a vCard 3.0 card. vCard 3.0 is used
+// everywhere internally (CardDAV sync, hashing) since it's what iOS/macOS
+// Contacts requires; user-triggered file exports can request 4.0 instead via
+// ContactToVCardVersion.
 func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
+	return ContactToVCardVersion(contact, photoDir, "3.0")
+}
+
+// ContactToVCardVersion converts a Contact to a vCard, encoded for the given
+// VERSION ("3.0" or "4.0"). The two versions differ only in the VERSION
+// property and how the photo is embedded - vCard 3.0 requires ENCODING=b/TYPE
+// params (what iOS/macOS Contacts expects), while vCard 4.0 embeds the photo
+// as a data: URI per RFC 6350.
+func ContactToVCardVersion(contact *models.Contact, photoDir string, version string) vcard.Card {
 	card := make(vcard.Card)
 
-	// Required: VERSION - use 3.0 for iOS compatibility
-	card.SetValue(vcard.FieldVersion, "3.0")
+	if version != "4.0" {
+		version = "3.0"
+	}
+	card.SetValue(vcard.FieldVersion, version)
 
 	// UID - use VCardUID if set, otherwise generate a new one
 	uid := contact.VCardUID
@@ -93,8 +107,13 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 		if e.Value == "" {
 			continue
 		}
-		// EMAIL always carries INTERNET (vCard 3.0) regardless of label.
-		addTypedField(card, vcard.FieldEmail, &vcard.Field{Value: e.Value}, e.Type, nextGroup, "INTERNET")
+		// INTERNET distinguished EMAIL from X.400 addresses in vCard 3.0; vCard 4.0
+		// dropped it as a registered EMAIL TYPE value, so only emit it pre-4.0.
+		var baseTokens []string
+		if version != "4.0" {
+			baseTokens = []string{"INTERNET"}
+		}
+		addTypedField(card, vcard.FieldEmail, &vcard.Field{Value: e.Value}, e.Type, nextGroup, version, baseTokens...)
 	}
 
 	// TEL (phone) - emit every entry; fall back to the legacy scalar if the array is empty
@@ -106,7 +125,7 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 		if p.Value == "" {
 			continue
 		}
-		addTypedField(card, vcard.FieldTelephone, &vcard.Field{Value: p.Value}, p.Type, nextGroup)
+		addTypedField(card, vcard.FieldTelephone, &vcard.Field{Value: p.Value}, p.Type, nextGroup, version)
 	}
 
 	// ADR (address) - structured: POBox;Extended;Street;Locality;Region;Postal;Country
@@ -123,7 +142,7 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 		for i := range comps {
 			comps[i] = escapeComponent(comps[i])
 		}
-		addTypedField(card, vcard.FieldAddress, &vcard.Field{Value: strings.Join(comps, ";")}, a.Type, nextGroup)
+		addTypedField(card, vcard.FieldAddress, &vcard.Field{Value: strings.Join(comps, ";")}, a.Type, nextGroup, version)
 	}
 
 	// URL (websites)
@@ -131,7 +150,7 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 		if u.Value == "" {
 			continue
 		}
-		addTypedField(card, vcard.FieldURL, &vcard.Field{Value: u.Value}, u.Type, nextGroup)
+		addTypedField(card, vcard.FieldURL, &vcard.Field{Value: u.Value}, u.Type, nextGroup, version)
 	}
 
 	// IMPP (instant messaging / social handles) - service goes in the X-SERVICE-TYPE param
@@ -184,23 +203,27 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 	}
 
 	// PHOTO - read from disk, fall back to thumbnail
-	// Include both vCard 3.0 and 4.0 parameters for maximum compatibility:
-	// - ENCODING=b and TYPE=JPEG for vCard 3.0 (required by iOS)
-	// - MEDIATYPE=image/jpeg for vCard 4.0
 	photoData, mediaType := readContactPhoto(contact, photoDir)
 	if photoData != "" {
-		// Extract just the image type (e.g., "JPEG" from "image/jpeg")
-		imageType := "JPEG"
-		if strings.Contains(mediaType, "png") {
-			imageType = "PNG"
+		if version == "4.0" {
+			// vCard 4.0 (RFC 6350): PHOTO is a URI; embed inline as a data: URI.
+			card.Set(vcard.FieldPhoto, &vcard.Field{
+				Value: fmt.Sprintf("data:%s;base64,%s", mediaType, photoData),
+			})
+		} else {
+			// vCard 3.0: ENCODING=b and TYPE=JPEG/PNG, required by iOS.
+			imageType := "JPEG"
+			if strings.Contains(mediaType, "png") {
+				imageType = "PNG"
+			}
+			card.Set(vcard.FieldPhoto, &vcard.Field{
+				Value: photoData,
+				Params: vcard.Params{
+					"ENCODING": {"b"},
+					"TYPE":     {imageType},
+				},
+			})
 		}
-		card.Set(vcard.FieldPhoto, &vcard.Field{
-			Value: photoData,
-			Params: vcard.Params{
-				"ENCODING": {"b"},       // vCard 3.0: base64 encoding
-				"TYPE":     {imageType}, // vCard 3.0: image type
-			},
-		})
 	}
 
 	// Restore unmapped properties from VCardExtra. Skip any property that is now
@@ -718,12 +741,12 @@ func isCustomType(t string) bool {
 // emitted as a grouped X-ABLabel (Apple convention) so it survives round-trips
 // and renders as a named label. baseTypeTokens are TYPE values
 // always present regardless of the label (e.g. INTERNET for EMAIL).
-func addTypedField(card vcard.Card, fieldName string, field *vcard.Field, t string, nextGroup func() string, baseTypeTokens ...string) {
+func addTypedField(card vcard.Card, fieldName string, field *vcard.Field, t string, nextGroup func() string, version string, baseTypeTokens ...string) {
 	if isCustomType(t) {
 		group := nextGroup()
 		field.Group = group
 		if len(baseTypeTokens) > 0 {
-			field.Params = vcard.Params{vcard.ParamType: append([]string(nil), baseTypeTokens...)}
+			field.Params = vcard.Params{vcard.ParamType: caseTypeTokens(baseTypeTokens, version)}
 		}
 		card.Add(fieldName, field)
 		card.Add(fieldABLabel, &vcard.Field{Group: group, Value: strings.TrimSpace(t)})
@@ -731,9 +754,26 @@ func addTypedField(card vcard.Card, fieldName string, field *vcard.Field, t stri
 	}
 	tokens := append(append([]string(nil), baseTypeTokens...), typeTokens(t)...)
 	if len(tokens) > 0 {
-		field.Params = vcard.Params{vcard.ParamType: tokens}
+		field.Params = vcard.Params{vcard.ParamType: caseTypeTokens(tokens, version)}
 	}
 	card.Add(fieldName, field)
+}
+
+// caseTypeTokens matches TYPE parameter casing to convention: vCard 3.0
+// clients (notably iOS) write TYPE values upper case, while vCard 4.0
+// producers write them lower case. Both cases are valid per spec (TYPE is
+// case-insensitive), but matching convention keeps exported cards looking
+// native to their declared version.
+func caseTypeTokens(tokens []string, version string) []string {
+	out := make([]string, len(tokens))
+	for i, tok := range tokens {
+		if version == "4.0" {
+			out[i] = strings.ToLower(tok)
+		} else {
+			out[i] = strings.ToUpper(tok)
+		}
+	}
+	return out
 }
 
 // typeForField resolves the internal type token for an imported field, preferring

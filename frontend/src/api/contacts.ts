@@ -50,6 +50,8 @@ export interface Contact {
   job_title?: string;
   role?: string;
   anniversary?: string;
+  is_deceased?: boolean;
+  deceased_date?: string;
 }
 
 export interface Birthday {

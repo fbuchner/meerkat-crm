@@ -1,0 +1,2 @@
+ALTER TABLE contacts ADD COLUMN is_deceased INTEGER DEFAULT 0 NOT NULL;
+ALTER TABLE contacts ADD COLUMN deceased_date TEXT DEFAULT '';

@@ -3,6 +3,7 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
+	"meerkat/middleware"
 	"meerkat/models"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetContacts(t *testing.T) {
@@ -679,4 +681,73 @@ func TestDeleteContactWithNoPhotos(t *testing.T) {
 	var respBody map[string]string
 	json.Unmarshal(w.Body.Bytes(), &respBody)
 	assert.Equal(t, "Contact deleted", respBody["message"])
+}
+
+func TestCreateContact_DeceasedFields(t *testing.T) {
+	db, router := setupRouter()
+
+	router.POST("/contacts", withValidated(func() any { return &models.ContactInput{} }), CreateContact)
+
+	body := `{"firstname":"Jane","is_deceased":true,"deceased_date":"2020-01-15"}`
+	req, _ := http.NewRequest("POST", "/contacts", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	var created models.Contact
+	require.NoError(t, db.Where("firstname = ?", "Jane").First(&created).Error)
+	assert.True(t, created.IsDeceased)
+	assert.Equal(t, "2020-01-15", created.DeceasedDate)
+}
+
+func TestUpdateContact_DeceasedFields(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+
+	router.PUT("/contacts/:id", withValidated(func() any { return &models.ContactInput{} }), UpdateContact)
+
+	contact := models.Contact{UserID: user.ID, Firstname: "John", Lastname: "Doe"}
+	require.NoError(t, db.Create(&contact).Error)
+
+	body := `{"firstname":"John","lastname":"Doe","is_deceased":true,"deceased_date":"2019-06-01"}`
+	req, _ := http.NewRequest("PUT", "/contacts/"+strconv.Itoa(int(contact.ID)), bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var updated models.Contact
+	require.NoError(t, db.First(&updated, contact.ID).Error)
+	assert.True(t, updated.IsDeceased)
+	assert.Equal(t, "2019-06-01", updated.DeceasedDate)
+}
+
+// TestUpdateContact_RejectsDeceasedDateBeforeBirthday exercises the real
+// production validation middleware (rather than the test-only withValidated
+// helper, which only runs gin's "binding" tags and skips the "validate" tags
+// that carry the deceased_date rule) so that the deceased_date-before-birthday
+// rejection is actually enforced.
+func TestUpdateContact_RejectsDeceasedDateBeforeBirthday(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+
+	router.PUT("/contacts/:id", middleware.ValidateJSONMiddleware(&models.ContactInput{}), UpdateContact)
+
+	contact := models.Contact{UserID: user.ID, Firstname: "John", Lastname: "Doe", Birthday: "1990-05-01"}
+	require.NoError(t, db.Create(&contact).Error)
+
+	body := `{"firstname":"John","lastname":"Doe","birthday":"1990-05-01","is_deceased":true,"deceased_date":"1980-01-01"}`
+	req, _ := http.NewRequest("PUT", "/contacts/"+strconv.Itoa(int(contact.ID)), bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }

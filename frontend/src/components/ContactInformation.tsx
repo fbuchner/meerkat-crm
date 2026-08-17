@@ -82,10 +82,12 @@ export default function ContactInformation({
 
   const birthdayAgeSuffix = useMemo(() => {
     if (!contact.birthday) return undefined;
-    const age = calculateAge(contact.birthday);
+    const age = contact.is_deceased && contact.deceased_date
+      ? calculateAgeAtDate(contact.birthday, contact.deceased_date)
+      : calculateAge(contact.birthday);
     if (age === null) return undefined;
     return t('dashboard.yearsOld', { age });
-  }, [contact.birthday, t, calculateAge]);
+  }, [contact.birthday, contact.is_deceased, contact.deceased_date, t, calculateAge]);
 
   const renderValueList = (rows: ContactValue[] | undefined) => {
     if (!rows || rows.length === 0) return <Typography variant="body2" color="text.disabled">—</Typography>;
@@ -264,8 +266,7 @@ export default function ContactInformation({
                     : null;
                   return (
                     <Typography variant="body2">
-                      {t('contactDetail.deceased')}
-                      {v.deceasedDate && ` — ${formatBirthday(v.deceasedDate)}`}
+                      {v.deceasedDate ? formatBirthday(v.deceasedDate) : t('contactDetail.deceasedYes')}
                       {age !== null && ` ${t('dashboard.yearsOld', { age })}`}
                     </Typography>
                   );

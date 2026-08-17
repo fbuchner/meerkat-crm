@@ -254,6 +254,7 @@
     "deceased": "Verstorben",
     "deceasedDate": "Todesdatum",
     "deceasedDateError": "Ungültiges Datum. Muss ein echtes, vergangenes Datum am oder nach dem Geburtstag sein.",
+    "deceasedYes": "Ja",
     "address": "Adresse",
     "workInfo": "Arbeitsinformationen",
     "foodPreferences": "Essensvorlieben",

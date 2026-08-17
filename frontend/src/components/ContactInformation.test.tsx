@@ -36,7 +36,21 @@ test('shows Deceased label and date when contact is deceased', () => {
     />
   );
   expect(screen.getByText(/15\.01\.2020/)).toBeInTheDocument();
-  expect(screen.getByText(/\(29 years old\)/)).toBeInTheDocument();
+  // Age-at-death (29) is shown on both the Deceased row and the Birthday row
+  // (which shows age-at-death, not age-as-of-today, for deceased contacts).
+  expect(screen.getAllByText(/\(29 years old\)/)).toHaveLength(2);
+});
+
+test('birthday row shows age-at-death (not age-as-of-today) for a deceased contact', () => {
+  renderWithI18n(
+    <ContactInformation
+      {...baseProps}
+      contact={{ firstname: 'Jane', birthday: '1990-05-01', is_deceased: true, deceased_date: '2020-01-15' }}
+      onUpdateContact={vi.fn()}
+    />
+  );
+  // Should not show today's age (would be much higher than 29).
+  expect(screen.queryByText(/\(36 years old\)/)).not.toBeInTheDocument();
 });
 
 test('checking the Deceased checkbox and saving calls onUpdateContact with is_deceased true', async () => {

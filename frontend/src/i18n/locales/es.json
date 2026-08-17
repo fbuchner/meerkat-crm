@@ -254,6 +254,7 @@
     "deceased": "Fallecido/a",
     "deceasedDate": "Fecha de fallecimiento",
     "deceasedDateError": "Fecha no válida. Debe ser una fecha real y pasada, igual o posterior al cumpleaños.",
+    "deceasedYes": "Sí",
     "address": "Dirección",
     "workInfo": "Información Laboral",
     "foodPreferences": "Preferencias Alimentarias",

@@ -254,6 +254,7 @@
     "deceased": "Deceased",
     "deceasedDate": "Date of death",
     "deceasedDateError": "Invalid date. Must be a real, past date on or after the birthday.",
+    "deceasedYes": "Yes",
     "address": "Address",
     "workInfo": "Work Information",
     "foodPreferences": "Food Preferences",

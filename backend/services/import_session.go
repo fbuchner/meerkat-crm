@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 )
@@ -46,6 +47,23 @@ func generateSessionID() string {
 	bytes := make([]byte, 16)
 	rand.Read(bytes)
 	return hex.EncodeToString(bytes)
+}
+
+// avoidVCardUIDCollision mints a fresh VCardUID for contact if its current one is
+// already taken by another row for this user (soft-deleted tombstone or live
+// contact). Called before creating a contact via the "add" action: choosing "add"
+// is an explicit request for a separate contact, so it must not collide with the
+// unique (user_id, vcard_uid) index the deleted/live row is still holding.
+func avoidVCardUIDCollision(tx *gorm.DB, userID uint, contact *models.Contact) {
+	if contact.VCardUID == "" {
+		return
+	}
+	var collision models.Contact
+	if err := tx.Unscoped().
+		Where("user_id = ? AND vcard_uid = ?", userID, contact.VCardUID).
+		First(&collision).Error; err == nil {
+		contact.VCardUID = uuid.New().String()
+	}
 }
 
 // CleanupExpired removes expired import sessions. Safe to call from a goroutine.
@@ -206,6 +224,7 @@ func (m *ImportSessionManager) Confirm(db *gorm.DB, userID uint, req models.Impo
 					contact = sessionData.csvContacts[preview.RowIndex]
 				}
 				contact.UserID = userID
+				avoidVCardUIDCollision(tx, userID, &contact)
 
 				if err := tx.Create(&contact).Error; err != nil {
 					result.Errors = append(result.Errors, fmt.Sprintf("Row %d: Failed to create contact: %v", preview.RowIndex+1, err))
@@ -225,7 +244,7 @@ func (m *ImportSessionManager) Confirm(db *gorm.DB, userID uint, req models.Impo
 				}
 
 				var existing models.Contact
-				if err := tx.First(&existing, preview.DuplicateMatch.ExistingContactID).Error; err != nil {
+				if err := tx.Unscoped().First(&existing, preview.DuplicateMatch.ExistingContactID).Error; err != nil {
 					result.Errors = append(result.Errors, fmt.Sprintf("Row %d: Failed to fetch existing contact: %v", preview.RowIndex+1, err))
 					result.Skipped++
 					continue
@@ -246,7 +265,16 @@ func (m *ImportSessionManager) Confirm(db *gorm.DB, userID uint, req models.Impo
 					MergeImportedContact(&existing, &csvContact)
 				}
 
-				if err := tx.Save(&existing).Error; err != nil {
+				// A matched vcard_uid can point at a soft-deleted contact (re-importing
+				// a previously deleted vCard); restore it instead of leaving it deleted.
+				wasDeleted := existing.DeletedAt.Valid
+				existing.DeletedAt = gorm.DeletedAt{}
+
+				saveTx := tx
+				if wasDeleted {
+					saveTx = tx.Unscoped()
+				}
+				if err := saveTx.Save(&existing).Error; err != nil {
 					result.Errors = append(result.Errors, fmt.Sprintf("Row %d: Failed to update contact: %v", preview.RowIndex+1, err))
 					result.Skipped++
 				} else {
@@ -324,6 +352,7 @@ func (m *ImportSessionManager) ConfirmVCF(db *gorm.DB, userID uint, req models.I
 			case "add":
 				contact := *vcfData.Contact
 				contact.UserID = userID
+				avoidVCardUIDCollision(tx, userID, &contact)
 
 				if err := tx.Create(&contact).Error; err != nil {
 					result.Errors = append(result.Errors, fmt.Sprintf("Row %d: Failed to create contact: %v", preview.RowIndex+1, err))
@@ -349,7 +378,7 @@ func (m *ImportSessionManager) ConfirmVCF(db *gorm.DB, userID uint, req models.I
 				}
 
 				var existing models.Contact
-				if err := tx.First(&existing, preview.DuplicateMatch.ExistingContactID).Error; err != nil {
+				if err := tx.Unscoped().First(&existing, preview.DuplicateMatch.ExistingContactID).Error; err != nil {
 					result.Errors = append(result.Errors, fmt.Sprintf("Row %d: Failed to fetch existing contact: %v", preview.RowIndex+1, err))
 					result.Skipped++
 					continue
@@ -361,7 +390,16 @@ func (m *ImportSessionManager) ConfirmVCF(db *gorm.DB, userID uint, req models.I
 
 				MergeImportedContact(&existing, vcfData.Contact)
 
-				if err := tx.Save(&existing).Error; err != nil {
+				// A matched vcard_uid can point at a soft-deleted contact (re-importing
+				// a previously deleted vCard); restore it instead of leaving it deleted.
+				wasDeleted := existing.DeletedAt.Valid
+				existing.DeletedAt = gorm.DeletedAt{}
+
+				saveTx := tx
+				if wasDeleted {
+					saveTx = tx.Unscoped()
+				}
+				if err := saveTx.Save(&existing).Error; err != nil {
 					result.Errors = append(result.Errors, fmt.Sprintf("Row %d: Failed to update contact: %v", preview.RowIndex+1, err))
 					result.Skipped++
 				} else {

@@ -191,7 +191,8 @@ func validateDeceasedDate(fl validator.FieldLevel) bool {
 	if err != nil {
 		return false
 	}
-	if parsedDeceased.After(time.Now()) {
+	todayUTC := time.Now().UTC().Truncate(24 * time.Hour)
+	if parsedDeceased.After(todayUTC) {
 		return false
 	}
 

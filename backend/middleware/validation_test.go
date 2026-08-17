@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -365,4 +366,14 @@ func TestValidateDeceasedDate_SkipsBirthdayCheckWhenYearUnknown(t *testing.T) {
 	s := deceasedTestStruct{Birthday: "--05-01", DeceasedDate: "2020-01-15"}
 	err := validate.Struct(s)
 	assert.NoError(t, err)
+}
+
+func TestValidateDeceasedDate_AcceptsTodaysDate(t *testing.T) {
+	// This test ensures that today's UTC calendar date is always accepted,
+	// regardless of time-of-day or local timezone.
+	// Catches regression of timezone-dependent false-positive bug.
+	todayUTC := time.Now().UTC().Format("2006-01-02")
+	s := deceasedTestStruct{DeceasedDate: todayUTC}
+	err := validate.Struct(s)
+	assert.NoError(t, err, "today's UTC date (%s) should be accepted", todayUTC)
 }

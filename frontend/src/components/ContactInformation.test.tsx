@@ -35,8 +35,8 @@ test('shows Deceased label and date when contact is deceased', () => {
       onUpdateContact={vi.fn()}
     />
   );
-  expect(screen.getByText(/2020-01-15/)).toBeInTheDocument();
-  expect(screen.getByText(/29/)).toBeInTheDocument();
+  expect(screen.getByText(/15\.01\.2020/)).toBeInTheDocument();
+  expect(screen.getByText(/\(29 years old\)/)).toBeInTheDocument();
 });
 
 test('checking the Deceased checkbox and saving calls onUpdateContact with is_deceased true', async () => {

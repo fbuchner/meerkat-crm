@@ -265,8 +265,8 @@ export default function ContactInformation({
                   return (
                     <Typography variant="body2">
                       {t('contactDetail.deceased')}
-                      {v.deceasedDate && ` — ${v.deceasedDate}`}
-                      {age !== null && ` (${t('dashboard.yearsOld', { age })})`}
+                      {v.deceasedDate && ` — ${formatBirthday(v.deceasedDate)}`}
+                      {age !== null && ` ${t('dashboard.yearsOld', { age })}`}
                     </Typography>
                   );
                 }}

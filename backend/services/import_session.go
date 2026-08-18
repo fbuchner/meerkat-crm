@@ -370,6 +370,11 @@ func (m *ImportSessionManager) ConfirmVCF(db *gorm.DB, userID uint, req models.I
 					result.Skipped++
 				} else {
 					result.Created++
+					if len(vcfData.Relationships) > 0 {
+						if err := carddav.ResolveAndUpsertRelationships(tx, userID, contact.ID, vcfData.Relationships); err != nil {
+							log.Warn().Err(err).Uint("contact_id", contact.ID).Msg("Failed to persist relationships from VCF import")
+						}
+					}
 					// Queue photo processing (either embedded data or URL)
 					if len(vcfData.PhotoData) > 0 || vcfData.PhotoURL != "" {
 						photoTasks = append(photoTasks, photoTask{
@@ -419,6 +424,11 @@ func (m *ImportSessionManager) ConfirmVCF(db *gorm.DB, userID uint, req models.I
 					result.Skipped++
 				} else {
 					result.Updated++
+					if len(vcfData.Relationships) > 0 {
+						if err := carddav.ResolveAndUpsertRelationships(tx, userID, existing.ID, vcfData.Relationships); err != nil {
+							log.Warn().Err(err).Uint("contact_id", existing.ID).Msg("Failed to persist relationships from VCF import")
+						}
+					}
 					// Queue photo processing only if contact doesn't already have a photo
 					if existing.Photo == "" && (len(vcfData.PhotoData) > 0 || vcfData.PhotoURL != "") {
 						photoTasks = append(photoTasks, photoTask{

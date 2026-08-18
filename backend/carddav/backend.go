@@ -162,12 +162,12 @@ func (b *Backend) GetAddressObject(ctx context.Context, urlPath string, req *car
 	var contact models.Contact
 
 	// Try to find by vcard_uid first, then by ID
-	err = db.Where("user_id = ? AND vcard_uid = ?", userID, uid).First(&contact).Error
+	err = db.Preload("Relationships.RelatedContact").Where("user_id = ? AND vcard_uid = ?", userID, uid).First(&contact).Error
 	if err == gorm.ErrRecordNotFound {
 		// Try parsing as numeric ID for backwards compatibility
 		var id uint
 		if _, scanErr := fmt.Sscanf(uid, "%d", &id); scanErr == nil {
-			err = db.Where("user_id = ? AND id = ?", userID, id).First(&contact).Error
+			err = db.Preload("Relationships.RelatedContact").Where("user_id = ? AND id = ?", userID, id).First(&contact).Error
 		}
 	}
 	if err != nil {
@@ -186,7 +186,7 @@ func (b *Backend) ListAddressObjects(ctx context.Context, urlPath string, req *c
 
 	db := b.getDB(ctx)
 	var contacts []models.Contact
-	if err := db.Where("user_id = ?", userID).Find(&contacts).Error; err != nil {
+	if err := db.Preload("Relationships.RelatedContact").Where("user_id = ?", userID).Find(&contacts).Error; err != nil {
 		return nil, err
 	}
 
@@ -248,7 +248,7 @@ func (b *Backend) PutAddressObject(ctx context.Context, urlPath string, card vca
 	}
 
 	// Convert vCard to contact
-	updatedContact, photoData, photoMediaType, photoURL := VCardToContact(card, &contact)
+	updatedContact, parsedRelationships, photoData, photoMediaType, photoURL := VCardToContact(card, &contact)
 	updatedContact.UserID = userID
 
 	// Ensure VCardUID is set (RFC 6352 requires every contact to have a UID)
@@ -304,6 +304,15 @@ func (b *Backend) PutAddressObject(ctx context.Context, urlPath string, card vca
 	// Save contact
 	if err := db.Save(updatedContact).Error; err != nil {
 		return nil, err
+	}
+
+	if len(parsedRelationships) > 0 {
+		if err := ResolveAndUpsertRelationships(db, userID, updatedContact.ID, parsedRelationships); err != nil {
+			logger.Warn().
+				Err(err).
+				Str("vcard_uid", updatedContact.VCardUID).
+				Msg("CardDAV: failed to persist relationships from RELATED")
+		}
 	}
 
 	return b.contactToAddressObject(ctx, updatedContact), nil

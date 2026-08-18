@@ -606,7 +606,7 @@ func (r *contactSyncRun) loadLocalState() error {
 	// They do not count towards the sync limit, which is about live contacts —
 	// otherwise a user who has deleted enough contacts could never sync again.
 	var contacts []models.Contact
-	if err := r.db.Unscoped().Where("user_id = ?", r.conn.UserID).Find(&contacts).Error; err != nil {
+	if err := r.db.Unscoped().Preload("Relationships.RelatedContact").Where("user_id = ?", r.conn.UserID).Find(&contacts).Error; err != nil {
 		return fmt.Errorf("failed to load contacts: %w", err)
 	}
 
@@ -916,7 +916,7 @@ func (r *contactSyncRun) mergeRemoteCreation(obj *remoteObject) {
 // name and primary email as the card. Ambiguous matches return nil: creating
 // a duplicate is recoverable, silently merging the wrong people is not.
 func (r *contactSyncRun) matchByIdentity(card vcard.Card) *models.Contact {
-	imported, _, _, _ := mcarddav.VCardToContact(card, nil)
+	imported, _, _, _, _ := mcarddav.VCardToContact(card, nil)
 	key := identityKey(imported.Firstname, imported.Lastname, imported.Email)
 	if key == "" {
 		return nil
@@ -959,7 +959,7 @@ func (r *contactSyncRun) newLink(contact *models.Contact, obj *remoteObject) *mo
 // pullCreate imports a remote object as a new local contact. When link is
 // non-nil the existing link row is reused (contact row vanished).
 func (r *contactSyncRun) pullCreate(obj *remoteObject, link *models.CardDAVContactLink) {
-	contact, photoData, mediaType, photoURL := mcarddav.VCardToContact(obj.Card, nil)
+	contact, relationships, photoData, mediaType, photoURL := mcarddav.VCardToContact(obj.Card, nil)
 	contact.UserID = r.conn.UserID
 	if contact.VCardUID == "" {
 		contact.VCardUID = remoteUID(obj)
@@ -970,6 +970,11 @@ func (r *contactSyncRun) pullCreate(obj *remoteObject, link *models.CardDAVConta
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(contact).Error; err != nil {
 			return err
+		}
+		if len(relationships) > 0 {
+			if err := mcarddav.ResolveAndUpsertRelationships(tx, r.conn.UserID, contact.ID, relationships); err != nil {
+				return err
+			}
 		}
 		now := time.Now().UTC()
 		if link == nil {
@@ -1000,7 +1005,7 @@ func (r *contactSyncRun) pullCreate(obj *remoteObject, link *models.CardDAVConta
 
 // pullUpdate applies a remote card onto an existing local contact.
 func (r *contactSyncRun) pullUpdate(obj *remoteObject, link *models.CardDAVContactLink, contact *models.Contact) {
-	updated, photoData, mediaType, photoURL := mcarddav.VCardToContact(obj.Card, contact)
+	updated, relationships, photoData, mediaType, photoURL := mcarddav.VCardToContact(obj.Card, contact)
 	updated.UserID = r.conn.UserID
 	r.applyPhoto(updated, photoData, mediaType, photoURL)
 	r.invalidateLocalHash(updated.ID) // the contact just changed
@@ -1009,6 +1014,11 @@ func (r *contactSyncRun) pullUpdate(obj *remoteObject, link *models.CardDAVConta
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Save(updated).Error; err != nil {
 			return err
+		}
+		if len(relationships) > 0 {
+			if err := mcarddav.ResolveAndUpsertRelationships(tx, r.conn.UserID, updated.ID, relationships); err != nil {
+				return err
+			}
 		}
 		now := time.Now().UTC()
 		hash = canonicalVCardHash(mcarddav.ContactToVCard(updated, r.cfg.ProfilePhotoDir))

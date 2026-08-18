@@ -190,5 +190,13 @@ export const RELATIONSHIP_TYPES = [
   'Caregiver',
   'Doctor',
   'Lawyer',
+  'Met',
+  'Kin',
+  'Muse',
+  'Crush',
+  'Date',
+  'Sweetheart',
+  'Agent',
+  'Emergency Contact',
   'Other',
 ] as const;

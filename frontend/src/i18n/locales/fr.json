@@ -250,6 +250,7 @@
     "phone": "Téléphone",
     "birthday": "Anniversaire",
     "birthdayError": "Format de date invalide. Vérifiez votre paramètre de format de date.",
+    "birthdayReminder": "Rappel d'anniversaire",
     "address": "Adresse",
     "workInfo": "Informations professionnelles",
     "foodPreferences": "Préférences alimentaires",

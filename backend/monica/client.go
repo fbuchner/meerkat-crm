@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -29,7 +30,6 @@ var (
 )
 
 const (
-	requestTimeout   = 30 * time.Second
 	maxRetries       = 3
 	maxRetryAfter    = 90 * time.Second
 	maxResponseBytes = 10 << 20 // per page/avatar
@@ -37,6 +37,12 @@ const (
 	// maxPages bounds the paging loop in case an endpoint keeps returning
 	// full pages while ignoring the page parameter.
 	maxPages = 1000
+)
+
+var (
+	requestTimeout = 120 * time.Second
+	// delay before a retry
+	retryBackoff = 2 * time.Second
 )
 
 // Client is a rate-limited, read-only Monica API client. Monica enforces
@@ -113,7 +119,7 @@ func privateBlockingDialContext(ctx context.Context, network, addr string) (net.
 }
 
 // get performs one rate-limited GET against the API and decodes the JSON
-// response into out, retrying 429s per Retry-After and 5xx once.
+// response into out, retrying 429s per Retry-After, 5xx, and request timeouts.
 func (c *Client) get(ctx context.Context, path string, query url.Values, out any) error {
 	u := *c.baseURL
 	u.Path = c.baseURL.Path + path
@@ -140,7 +146,14 @@ func (c *Client) get(ctx context.Context, path string, query url.Values, out any
 			if errors.Is(err, ErrPrivateAddress) {
 				return ErrPrivateAddress
 			}
-			return fmt.Errorf("%w: %v", ErrUnreachable, err)
+			wrapped := fmt.Errorf("%w: %v", ErrUnreachable, err)
+			if !isTimeout(err) || attempt >= maxRetries {
+				return wrapped
+			}
+			if waitErr := sleepCtx(ctx, retryBackoff); waitErr != nil {
+				return waitErr
+			}
+			continue
 		}
 
 		retry, err := c.handleResponse(resp, out)
@@ -150,11 +163,26 @@ func (c *Client) get(ctx context.Context, path string, query url.Values, out any
 		if !retry || attempt >= maxRetries {
 			return err
 		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(retryDelay(resp)):
+		if waitErr := sleepCtx(ctx, retryDelay(resp)); waitErr != nil {
+			return waitErr
 		}
+	}
+}
+
+func isTimeout(err error) bool {
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+	return errors.Is(err, context.DeadlineExceeded) || errors.Is(err, os.ErrDeadlineExceeded)
+}
+
+func sleepCtx(ctx context.Context, d time.Duration) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(d):
+		return nil
 	}
 }
 
@@ -183,7 +211,7 @@ func (c *Client) handleResponse(resp *http.Response, out any) (retry bool, err e
 }
 
 func retryDelay(resp *http.Response) time.Duration {
-	delay := 2 * time.Second
+	delay := retryBackoff
 	if s := resp.Header.Get("Retry-After"); s != "" {
 		if secs, err := strconv.Atoi(s); err == nil && secs >= 0 {
 			delay = time.Duration(secs) * time.Second

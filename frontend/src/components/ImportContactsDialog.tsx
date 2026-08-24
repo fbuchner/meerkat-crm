@@ -32,6 +32,7 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
 import ErrorIcon from '@mui/icons-material/Error';
+import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
 import CloseIcon from '@mui/icons-material/Close';
 import { useSnackbar } from '../context/SnackbarContext';
 import { getErrorMessage } from '../utils/errorHandler';
@@ -500,11 +501,19 @@ export default function ImportContactsDialog({
                       <Tooltip title={row.validation_errors.join(', ')}>
                         <Chip icon={<ErrorIcon />} label={t('contacts.import.preview.error')} size="small" color="error" />
                       </Tooltip>
+                    ) : row.duplicate_match?.existing_deleted ? (
+                      <Tooltip
+                        title={t('contacts.import.preview.restoreOf', 'Previously deleted: {{name}}. Importing will restore it.', {
+                          name: `${row.duplicate_match.existing_firstname} ${row.duplicate_match.existing_lastname}`,
+                        })}
+                      >
+                        <Chip icon={<RestoreFromTrashIcon />} label={t('contacts.import.preview.restoreStatus', 'Deleted contact')} size="small" color="info" />
+                      </Tooltip>
                     ) : row.duplicate_match ? (
                       <Tooltip
                         title={t('contacts.import.preview.duplicateOf', 'Matches: {{name}} ({{reason}})', {
                           name: `${row.duplicate_match.existing_firstname} ${row.duplicate_match.existing_lastname}`,
-                          reason: row.duplicate_match.match_reason,
+                          reason: t(`contacts.import.preview.matchReason.${row.duplicate_match.match_reason}`, row.duplicate_match.match_reason),
                         })}
                       >
                         <Chip icon={<WarningIcon />} label={t('contacts.import.preview.duplicateStatus')} size="small" color="warning" />
@@ -528,7 +537,9 @@ export default function ImportContactsDialog({
                         </MenuItem>
                         {row.duplicate_match && (
                           <MenuItem value="update">
-                            {t('contacts.import.preview.actionUpdate', 'Update Existing')}
+                            {row.duplicate_match.existing_deleted
+                              ? t('contacts.import.preview.actionRestore', 'Restore Deleted Contact')
+                              : t('contacts.import.preview.actionUpdate', 'Update Existing')}
                           </MenuItem>
                         )}
                       </Select>

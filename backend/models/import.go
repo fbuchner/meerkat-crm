@@ -44,7 +44,8 @@ type DuplicateMatch struct {
 	ExistingLastname  string `json:"existing_lastname"`
 	ExistingEmail     string `json:"existing_email"`
 	ExistingPhone     string `json:"existing_phone"`
-	MatchReason       string `json:"match_reason"` // "email", "name", or "phone"
+	MatchReason       string `json:"match_reason"`     // "email", "name", "phone", or "vcard_uid"
+	ExistingDeleted   bool   `json:"existing_deleted"` // true if the matched contact is soft-deleted
 }
 
 // ImportRowPreview represents one row in the import preview

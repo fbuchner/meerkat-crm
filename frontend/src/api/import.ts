@@ -24,7 +24,9 @@ export interface DuplicateMatch {
   existing_firstname: string;
   existing_lastname: string;
   existing_email: string;
-  match_reason: 'name' | 'email';
+  existing_phone: string;
+  match_reason: 'name' | 'email' | 'phone' | 'vcard_uid';
+  existing_deleted: boolean;
 }
 
 // Preview row with parsed contact and status

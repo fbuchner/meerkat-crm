@@ -128,19 +128,22 @@ func ParseVCF(reader io.Reader, db *gorm.DB, userID uint) (contacts []VCFContact
 			// deleted contact must be restored rather than re-created, which would
 			// collide with the unique (user_id, vcard_uid) index.
 			var duplicate *models.DuplicateMatch
-			var existingByUID models.Contact
-			if err := db.Unscoped().Where("user_id = ? AND vcard_uid = ?", userID, contact.VCardUID).
-				First(&existingByUID).Error; err == nil {
-				duplicate = &models.DuplicateMatch{
-					ExistingContactID: existingByUID.ID,
-					ExistingFirstname: existingByUID.Firstname,
-					ExistingLastname:  existingByUID.Lastname,
-					ExistingEmail:     existingByUID.Email,
-					ExistingPhone:     existingByUID.Phone,
-					MatchReason:       "vcard_uid",
-					ExistingDeleted:   existingByUID.DeletedAt.Valid,
+			if contact.VCardUID != "" {
+				var existingByUID models.Contact
+				if err := db.Unscoped().Where("user_id = ? AND vcard_uid = ?", userID, contact.VCardUID).
+					First(&existingByUID).Error; err == nil {
+					duplicate = &models.DuplicateMatch{
+						ExistingContactID: existingByUID.ID,
+						ExistingFirstname: existingByUID.Firstname,
+						ExistingLastname:  existingByUID.Lastname,
+						ExistingEmail:     existingByUID.Email,
+						ExistingPhone:     existingByUID.Phone,
+						MatchReason:       "vcard_uid",
+						ExistingDeleted:   existingByUID.DeletedAt.Valid,
+					}
 				}
-			} else {
+			}
+			if duplicate == nil {
 				duplicate = DetectDuplicate(db, userID, contact.Firstname, contact.Lastname, contact.Email, contact.Phone)
 			}
 			if duplicate != nil {

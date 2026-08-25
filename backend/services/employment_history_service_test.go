@@ -55,10 +55,15 @@ func TestRecomputeContactEmploymentScalars_ClearsWhenNoOpenEntries(t *testing.T)
 	db.Create(&contact)
 	db.Create(&models.EmploymentHistory{UserID: 1, ContactID: contact.ID, Organization: "Stale Co", StartDate: "2020", EndDate: "2021"})
 
-	// Contact has no organization scalar set going in — AfterSave had nothing to
-	// sync, so this closed entry is the only EmploymentHistory row for this contact.
-	// Recompute should find zero open entries and clear the scalars (they were
-	// already empty, but this exercises the "len(openEntries) == 0" branch).
+	// Force a non-empty organization onto the contact row directly, bypassing
+	// AfterSave (UpdateColumn skips hooks), so the assertion below actually
+	// proves recompute clears a populated scalar rather than being a no-op
+	// against an already-empty one.
+	if err := db.Model(&contact).UpdateColumn("organization", "Stale Co").Error; err != nil {
+		t.Fatalf("failed to force stale organization: %v", err)
+	}
+
+	// Recompute should find zero open entries and clear the scalars.
 	if err := RecomputeContactEmploymentScalars(db, 1, contact.ID); err != nil {
 		t.Fatalf("RecomputeContactEmploymentScalars failed: %v", err)
 	}

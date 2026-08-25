@@ -171,6 +171,12 @@ func (c *Contact) AfterSave(tx *gorm.DB) error {
 // recompute the scalars and save the Contact (services.RecomputeContactEmploymentScalars),
 // which lands back here as a no-op because the values already match.
 func (c *Contact) syncCurrentEmploymentHistory(tx *gorm.DB) error {
+	// This is not just a "nothing to sync" shortcut: a Contact save that blanks
+	// all four scalars (e.g. clearing Organization via the API or an import)
+	// does NOT close out or clear the underlying EmploymentHistory entry here.
+	// There is no way to express "this contact now has no employer" purely
+	// through the Contact scalars — that must go through the EmploymentHistory
+	// CRUD API directly (ending or deleting the entry).
 	if c.Organization == "" && c.Department == "" && c.JobTitle == "" && c.Role == "" {
 		return nil
 	}

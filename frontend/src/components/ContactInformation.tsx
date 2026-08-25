@@ -15,6 +15,12 @@ import ClearAllIcon from '@mui/icons-material/ClearAll';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import PeopleIcon from '@mui/icons-material/People';
 import AddIcon from '@mui/icons-material/Add';
+import { Checkbox, FormControlLabel } from '@mui/material';
+import HeartBrokenIcon from '@mui/icons-material/HeartBroken';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { format, parse, isValid } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import EditableField from './EditableField';
 import EditableArrayField from './EditableArrayField';
@@ -24,7 +30,7 @@ import RelationshipList from './RelationshipList';
 import { Relationship, IncomingRelationship } from '../api/relationships';
 import { Contact, ContactValue, ContactAddress } from '../api/contacts';
 import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
-import { useDateFormat } from '../DateFormatProvider';
+import { useDateFormat, calculateAgeAtDate } from '../DateFormatProvider';
 
 interface ContactInformationProps {
   contact: Partial<Contact>;
@@ -69,17 +75,19 @@ export default function ContactInformation({
   customFieldNames = [],
 }: ContactInformationProps) {
   const { t } = useTranslation();
-  const { formatBirthday, getBirthdayPlaceholder, calculateAge } = useDateFormat();
+  const { formatBirthday, getBirthdayPlaceholder, getDateFnsFormat, calculateAge } = useDateFormat();
   const [activeTab, setActiveTab] = useState(0);
   const enabled = enabledFields ?? resolveEnabledFields(null);
   const isOn = (key: ContactFieldKey) => enabled.has(key);
 
   const birthdayAgeSuffix = useMemo(() => {
     if (!contact.birthday) return undefined;
-    const age = calculateAge(contact.birthday);
+    const age = contact.is_deceased && contact.deceased_date
+      ? calculateAgeAtDate(contact.birthday, contact.deceased_date)
+      : calculateAge(contact.birthday);
     if (age === null) return undefined;
     return t('dashboard.yearsOld', { age });
-  }, [contact.birthday, t, calculateAge]);
+  }, [contact.birthday, contact.is_deceased, contact.deceased_date, t, calculateAge]);
 
   const renderValueList = (rows: ContactValue[] | undefined) => {
     if (!rows || rows.length === 0) return <Typography variant="body2" color="text.disabled">—</Typography>;
@@ -237,6 +245,74 @@ export default function ContactInformation({
                 onEditCancel={onEditCancel}
                 onEditSave={onEditSave}
                 onEditValueChange={onEditValueChange}
+              />
+            )}
+
+            {isOn('is_deceased') && (
+              <EditableArrayField<{ isDeceased: boolean; deceasedDate: string }>
+                icon={<HeartBrokenIcon sx={iconSx} />}
+                label={t('contactDetail.deceased')}
+                value={{
+                  isDeceased: contact.is_deceased ?? false,
+                  deceasedDate: contact.deceased_date ?? '',
+                }}
+                cloneValue={(v) => ({ ...v })}
+                renderDisplay={(v) => {
+                  if (!v.isDeceased) {
+                    return <Typography variant="body2" color="text.disabled">—</Typography>;
+                  }
+                  const age = v.deceasedDate && contact.birthday
+                    ? calculateAgeAtDate(contact.birthday, v.deceasedDate)
+                    : null;
+                  return (
+                    <Typography variant="body2">
+                      {v.deceasedDate ? formatBirthday(v.deceasedDate) : t('contactDetail.deceasedYes')}
+                      {age !== null && ` ${t('dashboard.yearsOld', { age })}`}
+                    </Typography>
+                  );
+                }}
+                renderEditor={(draft, setDraft) => (
+                  <Box>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={draft.isDeceased}
+                          onChange={(e) =>
+                            setDraft({
+                              isDeceased: e.target.checked,
+                              deceasedDate: e.target.checked ? draft.deceasedDate : '',
+                            })
+                          }
+                        />
+                      }
+                      label={t('contactDetail.deceased')}
+                    />
+                    {draft.isDeceased && (
+                      <LocalizationProvider dateAdapter={AdapterDateFns}>
+                        <DatePicker
+                          label={t('contactDetail.deceasedDate')}
+                          format={getDateFnsFormat()}
+                          value={draft.deceasedDate ? parse(draft.deceasedDate, 'yyyy-MM-dd', new Date()) : null}
+                          maxDate={new Date()}
+                          minDate={contact.birthday && !contact.birthday.startsWith('--') ? parse(contact.birthday, 'yyyy-MM-dd', new Date()) : undefined}
+                          onChange={(date) =>
+                            setDraft({
+                              ...draft,
+                              deceasedDate: date && isValid(date) ? format(date, 'yyyy-MM-dd') : '',
+                            })
+                          }
+                          slotProps={{ textField: { size: 'small', fullWidth: true, sx: { mt: 1 } } }}
+                        />
+                      </LocalizationProvider>
+                    )}
+                  </Box>
+                )}
+                onSave={(draft) =>
+                  onUpdateContact({
+                    is_deceased: draft.isDeceased,
+                    deceased_date: draft.isDeceased ? draft.deceasedDate : '',
+                  })
+                }
               />
             )}
 

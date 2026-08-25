@@ -222,6 +222,7 @@
     "jobTitle": "Cargo",
     "role": "Rol",
     "anniversary": "Aniversario",
+    "deceased": "Fallecido/a",
     "fieldType": "Tipo",
     "types": {
       "home": "Casa",
@@ -250,6 +251,10 @@
     "phone": "Teléfono",
     "birthday": "Cumpleaños",
     "birthdayError": "Formato de fecha inválido. Verifica tu configuración de formato de fecha.",
+    "deceased": "Fallecido/a",
+    "deceasedDate": "Fecha de fallecimiento",
+    "deceasedDateError": "Fecha no válida. Debe ser una fecha real y pasada, igual o posterior al cumpleaños.",
+    "deceasedYes": "Sí",
     "address": "Dirección",
     "workInfo": "Información Laboral",
     "foodPreferences": "Preferencias Alimentarias",

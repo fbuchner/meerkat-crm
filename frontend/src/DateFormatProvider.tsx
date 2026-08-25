@@ -13,6 +13,7 @@ interface DateFormatContextValue {
   getBirthdayPlaceholder: () => string;
   getBirthdayFormatHint: () => string;
   getDatePlaceholder: () => string;
+  getDateFnsFormat: () => string;
   calculateAge: (birthday: string) => number | null;
 }
 
@@ -46,14 +47,11 @@ const getStoredFormat = (): DateFormat => {
 };
 
 /**
- * Calculate age from a birthday string (YYYY-MM-DD or --MM-DD)
- * Returns null if no year is provided or if the format is invalid
+ * Shared age-in-years math between two full dates. birthday must be
+ * YYYY-MM-DD (year-unknown "--MM-DD" is rejected by callers before this
+ * is reached). Returns null if age would be negative.
  */
-export function calculateAgeFromBirthday(birthday: string): number | null {
-  if (!birthday || birthday.startsWith('--')) {
-    return null;
-  }
-
+function ageBetween(birthday: string, atDate: Date): number | null {
   const parts = birthday.split('-');
   if (parts.length !== 3 || parts[0].length !== 4) {
     return null;
@@ -67,15 +65,12 @@ export function calculateAgeFromBirthday(birthday: string): number | null {
     return null;
   }
 
-  const today = new Date();
-  const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth() + 1;
-  const currentDay = today.getDate();
+  const atYear = atDate.getFullYear();
+  const atMonth = atDate.getMonth() + 1;
+  const atDay = atDate.getDate();
 
-  let age = currentYear - birthYear;
-
-  // Adjust if birthday hasn't occurred yet this year
-  if (month > currentMonth || (month === currentMonth && day > currentDay)) {
+  let age = atYear - birthYear;
+  if (month > atMonth || (month === atMonth && day > atDay)) {
     age--;
   }
 
@@ -83,8 +78,68 @@ export function calculateAgeFromBirthday(birthday: string): number | null {
 }
 
 /**
+ * Calculate age from a birthday string (YYYY-MM-DD or --MM-DD) as of today.
+ * Returns null if no year is provided or if the format is invalid.
+ */
+export function calculateAgeFromBirthday(birthday: string): number | null {
+  if (!birthday || birthday.startsWith('--')) {
+    return null;
+  }
+  return ageBetween(birthday, new Date());
+}
+
+/**
+ * Calculate age at a specific full date (e.g. age at death). Both
+ * birthday and atDateString must be full YYYY-MM-DD dates; returns null
+ * if either is missing, year-unknown, or malformed.
+ */
+export function calculateAgeAtDate(birthday: string, atDateString: string): number | null {
+  if (!birthday || birthday.startsWith('--')) {
+    return null;
+  }
+  if (!atDateString) {
+    return null;
+  }
+
+  const atParts = atDateString.split('-');
+  if (atParts.length !== 3 || atParts[0].length !== 4) {
+    return null;
+  }
+
+  const atYear = parseInt(atParts[0], 10);
+  const atMonth = parseInt(atParts[1], 10);
+  const atDay = parseInt(atParts[2], 10);
+  if (isNaN(atYear) || isNaN(atMonth) || isNaN(atDay)) {
+    return null;
+  }
+
+  const atDate = new Date(atYear, atMonth - 1, atDay);
+  if (isNaN(atDate.getTime())) {
+    return null;
+  }
+
+  return ageBetween(birthday, atDate);
+}
+
+/**
  * Format a standard date (ISO format) to the user's preferred display format
  */
+/**
+ * Map the user's date-format preference to the equivalent date-fns format
+ * string, for components (e.g. MUI's DatePicker) that render/parse dates
+ * via a date-fns format string rather than these helpers directly.
+ */
+export function dateFnsFormatFor(format: DateFormat): string {
+  switch (format) {
+    case 'eu':
+      return 'dd.MM.yyyy';
+    case 'iso':
+      return 'yyyy-MM-dd';
+    default: // us
+      return 'MM/dd/yyyy';
+  }
+}
+
 export function formatDateWithFormat(dateString: string, format: DateFormat): string {
   if (!dateString) return '';
   
@@ -431,6 +486,8 @@ export function DateFormatProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  const getDateFnsFormat = useCallback(() => dateFnsFormatFor(dateFormat), [dateFormat]);
+
   const contextValue = useMemo(
     () => ({
       dateFormat,
@@ -443,9 +500,10 @@ export function DateFormatProvider({ children }: { children: ReactNode }) {
       getBirthdayPlaceholder,
       getBirthdayFormatHint,
       getDatePlaceholder,
+      getDateFnsFormat,
       calculateAge,
     }),
-    [dateFormat, formatDate, formatBirthday, formatBirthdayForInput, parseBirthdayInput, autoFormatBirthdayInput, getBirthdayPlaceholder, getBirthdayFormatHint, getDatePlaceholder, calculateAge]
+    [dateFormat, formatDate, formatBirthday, formatBirthdayForInput, parseBirthdayInput, autoFormatBirthdayInput, getBirthdayPlaceholder, getBirthdayFormatHint, getDatePlaceholder, getDateFnsFormat, calculateAge]
   );
 
   return (

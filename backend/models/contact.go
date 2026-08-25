@@ -89,6 +89,11 @@ type Contact struct {
 	// Anniversary date (vCard X-ANNIVERSARY), same format as Birthday
 	Anniversary string `json:"anniversary" validate:"omitempty,birthday"`
 
+	// Deceased status. DeceasedDate is a full YYYY-MM-DD date only (unlike
+	// Birthday/Anniversary, no --MM-DD year-unknown variant is supported).
+	IsDeceased   bool   `gorm:"default:false" json:"is_deceased"`
+	DeceasedDate string `json:"deceased_date" validate:"omitempty,deceased_date"`
+
 	// CardDAV fields
 	VCardUID   string `gorm:"column:vcard_uid;index" json:"-"` // Permanent RFC 6350 UID
 	VCardExtra string `gorm:"column:vcard_extra" json:"-"`     // JSON for unmapped vCard properties

@@ -145,10 +145,32 @@ func TestMapMonicaContactDeceased(t *testing.T) {
 	mc := monica.Contact{FirstName: "A", IsDead: true}
 	deceased := "2020-01-15T00:00:00Z"
 	mc.Information.Dates.DeceasedDate = monica.SpecialDate{Date: &deceased}
-	assert.Equal(t, "2020-01-15", MapMonicaContact(mc).Contact.CustomFields["Deceased"])
+	mapped := MapMonicaContact(mc).Contact
+	assert.True(t, mapped.IsDeceased)
+	assert.Equal(t, "2020-01-15", mapped.DeceasedDate)
+	assert.NotContains(t, mapped.CustomFields, "Deceased")
 
 	mc.Information.Dates.DeceasedDate = monica.SpecialDate{}
-	assert.Equal(t, "yes", MapMonicaContact(mc).Contact.CustomFields["Deceased"])
+	mapped = MapMonicaContact(mc).Contact
+	assert.True(t, mapped.IsDeceased)
+	assert.Equal(t, "", mapped.DeceasedDate)
+	assert.NotContains(t, mapped.CustomFields, "Deceased")
+}
+
+func TestMapMonicaContactDeceased_YearUnknownDateDroppedButFlagged(t *testing.T) {
+	mc := monica.Contact{FirstName: "A", IsDead: true}
+	deceased := "2020-01-15T00:00:00Z"
+	mc.Information.Dates.DeceasedDate = monica.SpecialDate{Date: &deceased, IsYearUnknown: true}
+	mapped := MapMonicaContact(mc).Contact
+	assert.True(t, mapped.IsDeceased)
+	assert.Equal(t, "", mapped.DeceasedDate)
+}
+
+func TestMapMonicaContactNotDeceased(t *testing.T) {
+	mc := monica.Contact{FirstName: "A", IsDead: false}
+	mapped := MapMonicaContact(mc).Contact
+	assert.False(t, mapped.IsDeceased)
+	assert.Equal(t, "", mapped.DeceasedDate)
 }
 
 func TestMapMonicaContactSkipsGeneratedAvatars(t *testing.T) {

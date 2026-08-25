@@ -222,6 +222,7 @@
     "jobTitle": "Job Title",
     "role": "Role",
     "anniversary": "Anniversary",
+    "deceased": "Deceased",
     "fieldType": "Type",
     "types": {
       "home": "Home",
@@ -250,6 +251,10 @@
     "phone": "Phone",
     "birthday": "Birthday",
     "birthdayError": "Invalid date format. Check your date format setting.",
+    "deceased": "Deceased",
+    "deceasedDate": "Date of death",
+    "deceasedDateError": "Invalid date. Must be a real, past date on or after the birthday.",
+    "deceasedYes": "Yes",
     "address": "Address",
     "workInfo": "Work Information",
     "foodPreferences": "Food Preferences",

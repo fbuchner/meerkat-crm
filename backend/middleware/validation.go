@@ -27,6 +27,7 @@ func init() {
 	}{
 		{"phone", validatePhone},
 		{"birthday", validateBirthday},
+		{"partialdate", validatePartialDate},
 		{"deceased_date", validateDeceasedDate},
 		{"strong_password", validateStrongPassword},
 		{"unique_circles", validateUniqueCircles},
@@ -220,6 +221,26 @@ func validateDeceasedDate(fl validator.FieldLevel) bool {
 	}
 
 	return true
+}
+
+// validatePartialDate validates date format YYYY, YYYY-MM, or YYYY-MM-DD
+func validatePartialDate(fl validator.FieldLevel) bool {
+	v := fl.Field().String()
+	if v == "" {
+		return true // Allow empty (use 'required' tag if needed)
+	}
+
+	match, _ := regexp.MatchString(`^\d{4}(-\d{2}(-\d{2})?)?$`, v)
+	if !match {
+		return false
+	}
+
+	for _, layout := range []string{"2006-01-02", "2006-01", "2006"} {
+		if _, err := time.Parse(layout, v); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 // validateStrongPassword checks password strength based on entropy

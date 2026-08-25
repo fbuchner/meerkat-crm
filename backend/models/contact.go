@@ -65,6 +65,7 @@ type Contact struct {
 	Activities         []Activity     `gorm:"many2many:activity_contacts;foreignKey:ID;joinForeignKey:ContactID;References:ID;joinReferences:ActivityID" json:"activities,omitempty"`
 	Notes              []Note         `json:"notes,omitempty"`     // One-to-many relationship with notes
 	Reminders          []Reminder     `json:"reminders,omitempty"` // One-to-many relationship with reminders
+	EmploymentHistories []EmploymentHistory `json:"employment_histories,omitempty"` // One-to-many relationship with employment history entries
 
 	// Multi-valued vCard fields (stored as JSON arrays). The legacy Email/Phone/Address
 	// scalars above are kept in sync (see BeforeSave) as the denormalized "primary" value

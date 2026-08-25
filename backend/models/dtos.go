@@ -100,6 +100,17 @@ type NoteInput struct {
 	ContactID *uint     `json:"contact_id" validate:"omitempty,gt=0"`
 }
 
+// EmploymentHistoryInput represents the DTO for creating/updating employment history entries
+type EmploymentHistoryInput struct {
+	Organization string `json:"organization" validate:"required,min=1,max=200"`
+	Department   string `json:"department" validate:"max=200"`
+	JobTitle     string `json:"job_title" validate:"max=200"`
+	Role         string `json:"role" validate:"max=200"`
+	StartDate    string `json:"start_date" validate:"omitempty,partialdate"`
+	EndDate      string `json:"end_date" validate:"omitempty,partialdate"`
+	Notes        string `json:"notes" validate:"max=1000"`
+}
+
 // ContactInput represents the DTO for creating/updating contacts
 type ContactInput struct {
 	Firstname          string            `json:"firstname" validate:"required,min=1,max=100"`
@@ -316,7 +327,7 @@ type ApiTokenCreateResponse struct {
 type WebhookInput struct {
 	Name     string   `json:"name" validate:"required,min=1,max=200"`
 	URL      string   `json:"url" validate:"required,http_url"`
-	Events   []string `json:"events" validate:"required,min=1,dive,oneof=contact.created contact.updated contact.deleted note.created note.updated note.deleted activity.created activity.updated activity.deleted reminder.triggered birthday.occurred"`
+	Events   []string `json:"events" validate:"required,min=1,dive,oneof=contact.created contact.updated contact.deleted note.created note.updated note.deleted activity.created activity.updated activity.deleted reminder.triggered birthday.occurred employment_history.created employment_history.updated employment_history.deleted"`
 	IsActive bool     `json:"is_active"`
 }
 

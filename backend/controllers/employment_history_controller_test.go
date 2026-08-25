@@ -39,6 +39,32 @@ func TestCreateEmploymentHistory(t *testing.T) {
 	assert.Equal(t, "Engineer", updatedContact.JobTitle)
 }
 
+func TestCreateEmploymentHistory_RejectsEndDateBeforeStartDate(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+	router.POST("/contacts/:id/employment-history",
+		withValidated(func() any { return &models.EmploymentHistoryInput{} }), CreateEmploymentHistory)
+
+	contact := models.Contact{UserID: user.ID, Firstname: "Eve"}
+	db.Create(&contact)
+
+	input := models.EmploymentHistoryInput{Organization: "Acme", StartDate: "2022-06", EndDate: "2021-01"}
+	jsonValue, _ := json.Marshal(input)
+	req, _ := http.NewRequest("POST", "/contacts/"+strconv.Itoa(int(contact.ID))+"/employment-history", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var count int64
+	db.Model(&models.EmploymentHistory{}).Where("contact_id = ?", contact.ID).Count(&count)
+	assert.Equal(t, int64(0), count, "no entry should be created when validation fails")
+}
+
 func TestGetEmploymentHistory_OrdersMostRecentFirst(t *testing.T) {
 	db, router := setupRouter()
 

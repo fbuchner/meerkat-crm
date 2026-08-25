@@ -51,6 +51,27 @@ func GetEmploymentHistory(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"employment_history": entries})
 }
 
+// validateEmploymentHistoryDates rejects an entry whose EndDate is before its
+// StartDate. Either field may be empty (an open-ended or undated entry), in
+// which case there is nothing to compare.
+func validateEmploymentHistoryDates(startDate, endDate string) *apperrors.AppError {
+	if startDate == "" || endDate == "" {
+		return nil
+	}
+
+	start, startOk := models.PartialDateStart(startDate)
+	end, endOk := models.PartialDateStart(endDate)
+	if !startOk || !endOk {
+		return nil
+	}
+
+	if end.Before(start) {
+		return apperrors.ErrInvalidInput("end_date", "End date must not be before start date")
+	}
+
+	return nil
+}
+
 // CreateEmploymentHistory creates a new employment history entry for a given contact.
 func CreateEmploymentHistory(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
@@ -73,6 +94,11 @@ func CreateEmploymentHistory(c *gin.Context) {
 		return
 	}
 
+	if err := validateEmploymentHistoryDates(input.StartDate, input.EndDate); err != nil {
+		apperrors.AbortWithError(c, err)
+		return
+	}
+
 	entry := models.EmploymentHistory{
 		UserID:       userID,
 		ContactID:    contact.ID,
@@ -84,13 +110,15 @@ func CreateEmploymentHistory(c *gin.Context) {
 		EndDate:      input.EndDate,
 		Notes:        input.Notes,
 	}
-	if err := db.Create(&entry).Error; err != nil {
-		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save employment history entry").WithError(err))
-		return
-	}
 
-	if err := services.RecomputeContactEmploymentScalars(db, userID, contact.ID); err != nil {
-		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update contact from employment history").WithError(err))
+	txErr := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&entry).Error; err != nil {
+			return err
+		}
+		return services.RecomputeContactEmploymentScalars(tx, userID, contact.ID)
+	})
+	if txErr != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to save employment history entry").WithError(txErr))
 		return
 	}
 
@@ -130,6 +158,11 @@ func UpdateEmploymentHistory(c *gin.Context) {
 		return
 	}
 
+	if err := validateEmploymentHistoryDates(input.StartDate, input.EndDate); err != nil {
+		apperrors.AbortWithError(c, err)
+		return
+	}
+
 	entry.Organization = input.Organization
 	entry.Department = input.Department
 	entry.JobTitle = input.JobTitle
@@ -138,13 +171,14 @@ func UpdateEmploymentHistory(c *gin.Context) {
 	entry.EndDate = input.EndDate
 	entry.Notes = input.Notes
 
-	if err := db.Save(&entry).Error; err != nil {
-		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update employment history entry").WithError(err))
-		return
-	}
-
-	if err := services.RecomputeContactEmploymentScalars(db, userID, entry.ContactID); err != nil {
-		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update contact from employment history").WithError(err))
+	txErr := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(&entry).Error; err != nil {
+			return err
+		}
+		return services.RecomputeContactEmploymentScalars(tx, userID, entry.ContactID)
+	})
+	if txErr != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update employment history entry").WithError(txErr))
 		return
 	}
 
@@ -169,13 +203,14 @@ func DeleteEmploymentHistory(c *gin.Context) {
 
 	contactID := entry.ContactID
 
-	if err := db.Delete(&entry).Error; err != nil {
+	err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Delete(&entry).Error; err != nil {
+			return err
+		}
+		return services.RecomputeContactEmploymentScalars(tx, userID, contactID)
+	})
+	if err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to delete employment history entry").WithError(err))
-		return
-	}
-
-	if err := services.RecomputeContactEmploymentScalars(db, userID, contactID); err != nil {
-		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update contact from employment history").WithError(err))
 		return
 	}
 
@@ -204,14 +239,16 @@ func EndEmploymentHistory(c *gin.Context) {
 		return
 	}
 
-	entry.EndDate = time.Now().Format("2006-01-02")
-	if err := db.Save(&entry).Error; err != nil {
-		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update employment history entry").WithError(err))
-		return
-	}
+	entry.EndDate = time.Now().UTC().Format("2006-01-02")
 
-	if err := services.RecomputeContactEmploymentScalars(db, userID, entry.ContactID); err != nil {
-		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update contact from employment history").WithError(err))
+	err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(&entry).Error; err != nil {
+			return err
+		}
+		return services.RecomputeContactEmploymentScalars(tx, userID, entry.ContactID)
+	})
+	if err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to update employment history entry").WithError(err))
 		return
 	}
 

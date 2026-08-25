@@ -761,6 +761,9 @@
         "activity.created": "Activity Created",
         "activity.updated": "Activity Updated",
         "activity.deleted": "Activity Deleted",
+        "employment_history.created": "Employment History Created",
+        "employment_history.updated": "Employment History Updated",
+        "employment_history.deleted": "Employment History Deleted",
         "reminder.triggered": "Reminder Triggered",
         "birthday.occurred": "Birthday"
       },

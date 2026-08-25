@@ -841,6 +841,25 @@
     "filterByContact": "Center on Contact",
     "showCircles": "Circles"
   },
+  "employmentHistory": {
+    "title": "Employment History",
+    "addEntry": "Add Job",
+    "editEntry": "Edit Job",
+    "noEntries": "No employment history yet",
+    "current": "Current",
+    "endJob": "End this job",
+    "endMessage": "Mark this job as ended (sets the end date to today)?",
+    "deleteMessage": "Delete this employment history entry?",
+    "organizationRequired": "Organization is required",
+    "dateFormatError": "Dates must be YYYY, YYYY-MM, or YYYY-MM-DD",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "dateFormatHelp": "YYYY, YYYY-MM, or YYYY-MM-DD",
+    "endDateHelp": "Leave blank if this is the current job",
+    "notes": "Notes",
+    "unknownDate": "Unknown",
+    "present": "Present"
+  },
   "relationships": {
     "title": "Relationships",
     "addRelationship": "Add Relationship",

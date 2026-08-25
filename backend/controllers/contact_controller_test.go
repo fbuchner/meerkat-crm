@@ -661,6 +661,42 @@ func TestDeleteContact(t *testing.T) {
 	assert.Equal(t, "Contact deleted", responseBody["message"])
 }
 
+func TestDeleteContactCascadesEmploymentHistory(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+
+	router.DELETE("/contacts/:id", DeleteContact)
+
+	// Create a contact with an employment history entry
+	contact := models.Contact{
+		UserID:    user.ID,
+		Firstname: "Erin",
+		Lastname:  "Employed",
+	}
+	db.Create(&contact)
+
+	entry := models.EmploymentHistory{
+		UserID:       user.ID,
+		ContactID:    contact.ID,
+		Organization: "Acme",
+		StartDate:    "2020-01-01",
+	}
+	db.Create(&entry)
+
+	// Make the request to delete the contact
+	req, _ := http.NewRequest("DELETE", "/contacts/"+strconv.Itoa(int(contact.ID)), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var count int64
+	db.Model(&models.EmploymentHistory{}).Where("id = ?", entry.ID).Count(&count)
+	assert.Equal(t, int64(0), count, "employment history entry should be deleted when the contact is deleted")
+}
+
 func TestGetCircles(t *testing.T) {
 	db, router := setupRouter()
 

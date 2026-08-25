@@ -467,6 +467,11 @@ func DeleteContact(c *gin.Context) {
 			return err
 		}
 
+		// Manually delete associated employment history entries
+		if err := tx.Where("contact_id = ? AND user_id = ?", id, userID).Delete(&models.EmploymentHistory{}).Error; err != nil {
+			return err
+		}
+
 		// Finally, delete the contact
 		if err := tx.Delete(&contact).Error; err != nil {
 			return err

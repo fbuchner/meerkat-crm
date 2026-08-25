@@ -289,7 +289,11 @@
     "archive": "Archivia",
     "unarchive": "Ripristina",
     "archivedBadge": "Archiviato",
-    "archiveConfirmation": "Sei sicuro di voler archiviare questo contatto? Tutti i promemoria verranno eliminati. Potrai ripristinarlo in seguito, ma i promemoria non verranno recuperati."
+    "archiveConfirmation": "Sei sicuro di voler archiviare questo contatto? Tutti i promemoria verranno eliminati. Potrai ripristinarlo in seguito, ma i promemoria non verranno recuperati.",
+    "exportVcard": "Esporta vCard",
+    "exportVcard3": "vCard 3.0 (massima compatibilità)",
+    "exportVcard4": "vCard 4.0",
+    "exportVcardError": "Impossibile esportare il contatto come vCard. Riprova."
   },
   "noteDialog": {
     "title": "Aggiungi Nota",
@@ -452,6 +456,7 @@
     "exportVcf": {
       "title": "Esporta Contatti come VCF",
       "description": "Scarica tutti i tuoi contatti come file VCF (vCard). Questo formato è compatibile con la maggior parte delle app contatti e include le foto profilo.",
+      "versionLabel": "Versione vCard",
       "downloadButton": "Scarica VCF",
       "exporting": "Esportazione in corso...",
       "success": "I tuoi contatti sono stati esportati con successo.",

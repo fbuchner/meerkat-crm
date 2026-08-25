@@ -289,7 +289,11 @@
     "archive": "Archivieren",
     "unarchive": "Wiederherstellen",
     "archivedBadge": "Archiviert",
-    "archiveConfirmation": "Möchten Sie diesen Kontakt wirklich archivieren? Alle Erinnerungen werden gelöscht. Sie können den Kontakt später wiederherstellen, aber die Erinnerungen werden nicht wiederhergestellt."
+    "archiveConfirmation": "Möchten Sie diesen Kontakt wirklich archivieren? Alle Erinnerungen werden gelöscht. Sie können den Kontakt später wiederherstellen, aber die Erinnerungen werden nicht wiederhergestellt.",
+    "exportVcard": "vCard exportieren",
+    "exportVcard3": "vCard 3.0 (beste Kompatibilität)",
+    "exportVcard4": "vCard 4.0",
+    "exportVcardError": "Kontakt konnte nicht als vCard exportiert werden. Bitte versuchen Sie es erneut."
   },
   "noteDialog": {
     "title": "Notiz hinzufügen",
@@ -452,6 +456,7 @@
     "exportVcf": {
       "title": "Kontakte als VCF exportieren",
       "description": "Laden Sie alle Ihre Kontakte als VCF-Datei (vCard) herunter. Dieses Format ist mit den meisten Kontakt-Apps kompatibel und enthält Profilfotos.",
+      "versionLabel": "vCard-Version",
       "downloadButton": "VCF herunterladen",
       "exporting": "Exportiere...",
       "success": "Ihre Kontakte wurden erfolgreich exportiert.",

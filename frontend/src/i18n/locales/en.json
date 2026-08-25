@@ -250,6 +250,7 @@
     "phone": "Phone",
     "birthday": "Birthday",
     "birthdayError": "Invalid date format. Check your date format setting.",
+    "birthdayReminder": "Birthday reminder",
     "address": "Address",
     "workInfo": "Work Information",
     "foodPreferences": "Food Preferences",

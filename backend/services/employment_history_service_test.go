@@ -51,10 +51,14 @@ func TestRecomputeContactEmploymentScalars_PicksMostRecentOpenEntry(t *testing.T
 func TestRecomputeContactEmploymentScalars_ClearsWhenNoOpenEntries(t *testing.T) {
 	db := setupTestDB(t)
 
-	contact := models.Contact{UserID: 1, Firstname: "Jane", Organization: "Stale Co"}
+	contact := models.Contact{UserID: 1, Firstname: "Jane"}
 	db.Create(&contact)
 	db.Create(&models.EmploymentHistory{UserID: 1, ContactID: contact.ID, Organization: "Stale Co", StartDate: "2020", EndDate: "2021"})
 
+	// Contact has no organization scalar set going in — AfterSave had nothing to
+	// sync, so this closed entry is the only EmploymentHistory row for this contact.
+	// Recompute should find zero open entries and clear the scalars (they were
+	// already empty, but this exercises the "len(openEntries) == 0" branch).
 	if err := RecomputeContactEmploymentScalars(db, 1, contact.ID); err != nil {
 		t.Fatalf("RecomputeContactEmploymentScalars failed: %v", err)
 	}

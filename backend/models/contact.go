@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -155,7 +156,75 @@ func (c *Contact) AfterSave(tx *gorm.DB) error {
 	newETag := fmt.Sprintf("e-%d-%d", c.ID, c.UpdatedAt.Unix())
 	if newETag != c.ETag {
 		c.ETag = newETag
-		return tx.Model(c).UpdateColumn("etag", c.ETag).Error
+		if err := tx.Model(c).UpdateColumn("etag", c.ETag).Error; err != nil {
+			return err
+		}
 	}
-	return nil
+	return c.syncCurrentEmploymentHistory(tx)
+}
+
+// syncCurrentEmploymentHistory keeps the "current" (open-ended) EmploymentHistory
+// entry in step with the denormalized Organization/Department/JobTitle/Role
+// scalars whenever a Contact is saved directly (CSV/Monica import, CardDAV
+// sync, or a plain API PUT that round-trips unchanged values). Editing history
+// through its own CRUD endpoints is the other half of the sync: those
+// recompute the scalars and save the Contact (services.RecomputeContactEmploymentScalars),
+// which lands back here as a no-op because the values already match.
+func (c *Contact) syncCurrentEmploymentHistory(tx *gorm.DB) error {
+	if c.Organization == "" && c.Department == "" && c.JobTitle == "" && c.Role == "" {
+		return nil
+	}
+
+	var openEntries []EmploymentHistory
+	if err := tx.Where("contact_id = ? AND end_date = ''", c.ID).Find(&openEntries).Error; err != nil {
+		return err
+	}
+
+	current := mostRecentOpenEntry(openEntries)
+	if current == nil {
+		return tx.Create(&EmploymentHistory{
+			UserID:       c.UserID,
+			ContactID:    c.ID,
+			Organization: c.Organization,
+			Department:   c.Department,
+			JobTitle:     c.JobTitle,
+			Role:         c.Role,
+		}).Error
+	}
+
+	if current.Organization == c.Organization && current.Department == c.Department &&
+		current.JobTitle == c.JobTitle && current.Role == c.Role {
+		return nil
+	}
+
+	return tx.Model(current).Updates(map[string]interface{}{
+		"organization": c.Organization,
+		"department":   c.Department,
+		"job_title":    c.JobTitle,
+		"role":         c.Role,
+	}).Error
+}
+
+// mostRecentOpenEntry picks the open entry whose StartDate is latest. An
+// entry with no parseable StartDate loses to any entry that has one; if none
+// have a parseable StartDate, the first entry is returned as a deterministic
+// fallback.
+func mostRecentOpenEntry(entries []EmploymentHistory) *EmploymentHistory {
+	var best *EmploymentHistory
+	var bestTime time.Time
+	for i := range entries {
+		e := &entries[i]
+		t, ok := PartialDateStart(e.StartDate)
+		if !ok {
+			continue
+		}
+		if best == nil || t.After(bestTime) {
+			best = e
+			bestTime = t
+		}
+	}
+	if best == nil && len(entries) > 0 {
+		return &entries[0]
+	}
+	return best
 }

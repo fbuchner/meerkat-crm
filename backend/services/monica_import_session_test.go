@@ -24,7 +24,7 @@ func newMonicaImportDB(t *testing.T) *gorm.DB {
 	sqlDB.SetMaxOpenConns(1)
 	require.NoError(t, db.AutoMigrate(
 		&models.User{}, &models.Contact{}, &models.Activity{},
-		&models.Note{}, &models.Reminder{}, &models.Relationship{},
+		&models.Note{}, &models.Reminder{}, &models.Relationship{}, &models.EmploymentHistory{},
 	))
 	return db
 }

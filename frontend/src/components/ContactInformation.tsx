@@ -29,7 +29,9 @@ import EditableArrayField from './EditableArrayField';
 import MultiValueField from './MultiValueField';
 import AddressFields from './AddressFields';
 import RelationshipList from './RelationshipList';
+import EmploymentHistoryList from './EmploymentHistoryList';
 import { Relationship, IncomingRelationship } from '../api/relationships';
+import { EmploymentHistoryEntry } from '../api/employmentHistory';
 import { Contact, ContactValue, ContactAddress } from '../api/contacts';
 import { Reminder } from '../api/reminders';
 import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
@@ -55,6 +57,12 @@ interface ContactInformationProps {
   onAddRelationship?: () => void;
   onEditRelationship?: (relationship: Relationship) => void;
   onDeleteRelationship?: (relationshipId: number) => void;
+  // Employment history props
+  employmentHistory?: EmploymentHistoryEntry[];
+  onAddEmploymentHistory?: () => void;
+  onEditEmploymentHistory?: (entry: EmploymentHistoryEntry) => void;
+  onDeleteEmploymentHistory?: (entryId: number) => void;
+  onEndEmploymentHistory?: (entryId: number) => void;
   // Custom fields
   customFieldNames?: string[];
   // Birthday reminder
@@ -82,6 +90,11 @@ export default function ContactInformation({
   onAddRelationship,
   onEditRelationship,
   onDeleteRelationship,
+  employmentHistory = [],
+  onAddEmploymentHistory,
+  onEditEmploymentHistory,
+  onDeleteEmploymentHistory,
+  onEndEmploymentHistory,
   customFieldNames = [],
   reminders = [],
   onToggleBirthdayReminder,
@@ -409,7 +422,8 @@ export default function ContactInformation({
           label={t('contacts.organization')}
           field="organization"
           value={contact.organization || ''}
-          isEditing={editingField === 'organization'}
+          isEditing={false}
+readOnly
           editValue={editValue}
           validationError={validationError}
           onEditStart={onEditStart}
@@ -425,7 +439,8 @@ export default function ContactInformation({
           label={t('contacts.department')}
           field="department"
           value={contact.department || ''}
-          isEditing={editingField === 'department'}
+          isEditing={false}
+readOnly
           editValue={editValue}
           validationError={validationError}
           onEditStart={onEditStart}
@@ -441,7 +456,8 @@ export default function ContactInformation({
           label={t('contacts.jobTitle')}
           field="job_title"
           value={contact.job_title || ''}
-          isEditing={editingField === 'job_title'}
+          isEditing={false}
+readOnly
           editValue={editValue}
           validationError={validationError}
           onEditStart={onEditStart}
@@ -457,7 +473,8 @@ export default function ContactInformation({
           label={t('contacts.role')}
           field="role"
           value={contact.role || ''}
-          isEditing={editingField === 'role'}
+          isEditing={false}
+readOnly
           editValue={editValue}
           validationError={validationError}
           onEditStart={onEditStart}
@@ -564,6 +581,7 @@ export default function ContactInformation({
         <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} aria-label="contact information tabs">
           <Tab label={t('contactDetail.generalInfo')} />
           <Tab label={t('relationships.title')} />
+          <Tab label={t('employmentHistory.title')} />
         </Tabs>
       </Box>
 
@@ -612,6 +630,29 @@ export default function ContactInformation({
             incomingRelationships={incomingRelationships}
             onEdit={onEditRelationship || (() => {})}
             onDelete={onDeleteRelationship || (() => {})}
+          />
+        </CardContent>
+      )}
+
+      {/* Employment History Tab */}
+      {activeTab === 2 && (
+        <CardContent sx={{ py: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
+            <Button
+              startIcon={<AddIcon />}
+              onClick={onAddEmploymentHistory}
+              variant="outlined"
+              size="small"
+            >
+              {t('employmentHistory.addEntry')}
+            </Button>
+          </Box>
+          <Divider sx={{ mb: 1.5 }} />
+          <EmploymentHistoryList
+            entries={employmentHistory}
+            onEdit={onEditEmploymentHistory || (() => {})}
+            onDelete={onDeleteEmploymentHistory || (() => {})}
+            onEnd={onEndEmploymentHistory || (() => {})}
           />
         </CardContent>
       )}

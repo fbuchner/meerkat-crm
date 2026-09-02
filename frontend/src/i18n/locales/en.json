@@ -299,7 +299,8 @@
     "cancel": "Cancel",
     "save": "Save",
     "required": "Content is required",
-    "saveError": "Failed to save note"
+    "saveError": "Failed to save note",
+    "dateError": "Invalid date format. Check your date format setting."
   },
   "activityDialog": {
     "title": "Add Activity",
@@ -314,7 +315,8 @@
     "selectContacts": "Select contacts...",
     "cancel": "Cancel",
     "save": "Save",
-    "required": "Title and date are required"
+    "required": "Title and date are required",
+    "dateError": "Invalid date format. Check your date format setting."
   },
   "activities": {
     "title": "Activities",
@@ -374,7 +376,8 @@
       "quarterly": "Quarterly",
       "six-months": "Every 6 months",
       "yearly": "Yearly"
-    }
+    },
+    "dateInvalid": "Invalid date format. Check your date format setting."
   },
   "common": {
     "save": "Save",

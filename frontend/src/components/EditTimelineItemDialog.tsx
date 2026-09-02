@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import AppDialog from './AppDialog';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { useDateFormat } from '../DateFormatProvider';
 
 export interface TimelineItemValues {
   noteContent?: string;
@@ -32,6 +33,7 @@ interface EditTimelineItemDialogProps {
   values: TimelineItemValues;
   onChange: (values: TimelineItemValues) => void;
   allContacts: { ID: number; firstname: string; lastname: string; nickname?: string }[];
+  dateError?: string;
 }
 
 export default function EditTimelineItemDialog({
@@ -42,9 +44,11 @@ export default function EditTimelineItemDialog({
   type,
   values,
   onChange,
-  allContacts
+  allContacts,
+  dateError
 }: EditTimelineItemDialogProps) {
   const { t } = useTranslation();
+  const { autoFormatDateInput, getDatePlaceholder } = useDateFormat();
 
   const handleSave = () => {
     onSave();
@@ -77,11 +81,12 @@ export default function EditTimelineItemDialog({
             />
             <TextField
               fullWidth
-              type="date"
               value={values.noteDate || ''}
-              onChange={(e) => onChange({ ...values, noteDate: e.target.value })}
+              onChange={(e) => onChange({ ...values, noteDate: autoFormatDateInput(e.target.value, values.noteDate || '') })}
               label={t('noteDialog.date')}
-              InputLabelProps={{ shrink: true }}
+              placeholder={getDatePlaceholder()}
+              error={!!dateError}
+              helperText={dateError}
             />
           </Box>
         ) : (
@@ -110,11 +115,12 @@ export default function EditTimelineItemDialog({
             />
             <TextField
               fullWidth
-              type="date"
               value={values.activityDate || ''}
-              onChange={(e) => onChange({ ...values, activityDate: e.target.value })}
+              onChange={(e) => onChange({ ...values, activityDate: autoFormatDateInput(e.target.value, values.activityDate || '') })}
               label={t('activityDialog.date')}
-              InputLabelProps={{ shrink: true }}
+              placeholder={getDatePlaceholder()}
+              error={!!dateError}
+              helperText={dateError}
             />
             <Autocomplete
               multiple

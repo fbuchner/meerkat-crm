@@ -299,7 +299,8 @@
     "cancel": "Annulla",
     "save": "Salva",
     "required": "Il contenuto è obbligatorio",
-    "saveError": "Impossibile salvare la nota"
+    "saveError": "Impossibile salvare la nota",
+    "dateError": "Formato data non valido. Controlla le impostazioni del formato data."
   },
   "activityDialog": {
     "title": "Aggiungi Attività",
@@ -314,7 +315,8 @@
     "selectContacts": "Seleziona contatti...",
     "cancel": "Annulla",
     "save": "Salva",
-    "required": "Titolo e data sono obbligatori"
+    "required": "Titolo e data sono obbligatori",
+    "dateError": "Formato data non valido. Controlla le impostazioni del formato data."
   },
   "activities": {
     "title": "Attività",
@@ -374,7 +376,8 @@
       "quarterly": "Trimestrale",
       "six-months": "Ogni 6 mesi",
       "yearly": "Annuale"
-    }
+    },
+    "dateInvalid": "Formato data non valido. Controlla le impostazioni del formato data."
   },
   "common": {
     "save": "Salva",

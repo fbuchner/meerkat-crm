@@ -15,6 +15,7 @@ import {
 import AppDialog from './AppDialog';
 import { Reminder, ReminderFormData } from '../api/reminders';
 import { getErrorMessage } from '../utils/errorHandler';
+import { useDateFormat } from '../DateFormatProvider';
 
 interface InitialReminderValues {
   message?: string;
@@ -39,9 +40,10 @@ export default function ReminderDialog({
   initialValues
 }: ReminderDialogProps) {
   const { t } = useTranslation();
+  const { formatDate, parseDateInput, autoFormatDateInput, getDatePlaceholder } = useDateFormat();
   const [message, setMessage] = useState('');
   const [byMail, setByMail] = useState(true);
-  const [remindAt, setRemindAt] = useState('');
+  const [remindAtInput, setRemindAtInput] = useState('');
   const [recurrence, setRecurrence] = useState<ReminderFormData['recurrence']>('once');
   const [reoccurFromCompletion, setReoccurFromCompletion] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +65,7 @@ export default function ReminderDialog({
     if (reminder) {
       setMessage(reminder.message);
       setByMail(reminder.by_mail);
-      setRemindAt(reminder.remind_at.split('T')[0]); // Extract date part
+      setRemindAtInput(formatDate(reminder.remind_at));
       setRecurrence(reminder.recurrence);
       setReoccurFromCompletion(reminder.reoccur_from_completion);
     } else {
@@ -72,7 +74,7 @@ export default function ReminderDialog({
       setMessage(initialValues?.message || '');
       setByMail(true);
       setRecurrence(initialRec);
-      setRemindAt(getDateForRecurrence(initialRec));
+      setRemindAtInput(formatDate(getDateForRecurrence(initialRec)));
       setReoccurFromCompletion(true);
     }
     setError(null);
@@ -81,7 +83,7 @@ export default function ReminderDialog({
   const handleRecurrenceChange = (newRecurrence: ReminderFormData['recurrence']) => {
     setRecurrence(newRecurrence);
     if (!reminder) {
-      setRemindAt(getDateForRecurrence(newRecurrence));
+      setRemindAtInput(formatDate(getDateForRecurrence(newRecurrence)));
     }
   };
 
@@ -91,8 +93,14 @@ export default function ReminderDialog({
       setError(t('reminders.messageRequired'));
       return;
     }
-    if (!remindAt) {
+    if (!remindAtInput) {
       setError(t('reminders.dateRequired'));
+      return;
+    }
+
+    const parsedDate = parseDateInput(remindAtInput);
+    if (!parsedDate) {
+      setError(t('reminders.dateInvalid'));
       return;
     }
 
@@ -103,7 +111,7 @@ export default function ReminderDialog({
       const reminderData: ReminderFormData = {
         message: message.trim(),
         by_mail: byMail,
-        remind_at: new Date(remindAt).toISOString(),
+        remind_at: new Date(parsedDate).toISOString(),
         recurrence,
         reoccur_from_completion: reoccurFromCompletion,
         contact_id: contactId
@@ -166,12 +174,11 @@ export default function ReminderDialog({
 
           <TextField
             label={t('reminders.date')}
-            type="date"
-            value={remindAt}
-            onChange={(e) => setRemindAt(e.target.value)}
+            placeholder={getDatePlaceholder()}
+            value={remindAtInput}
+            onChange={(e) => setRemindAtInput(autoFormatDateInput(e.target.value, remindAtInput))}
             required
             fullWidth
-            slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: new Date().toISOString().split('T')[0] } }}
           />
 
           {recurrence !== 'once' && (

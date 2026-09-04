@@ -10,7 +10,7 @@ has_children: false
 
 Contacts are the core of Meerkat CRM and represent people from your network. Use **circles** to group your contacts (e.g. Business, Friends, Bowling Group). 
 
-When creating a contact you can optionally create a birthday reminder. This simply adds a reminder for this contact's birthday. Indepenently of that you will receive emails (if set up) for all birthdays anyway. 
+When creating a contact you can optionally create a birthday reminder. This simply adds a reminder for this contact's birthday. Independently of that you will receive emails (if set up) for all birthdays anyway. 
 
 You can add **custom fields** through the settings menu. These will appear on every contact and can hold any text value. When deleting a custom field the information will still be stored in the database but not be visible. It will reappear when you add the same custom field again.
 

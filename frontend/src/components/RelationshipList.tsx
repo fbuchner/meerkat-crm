@@ -52,7 +52,7 @@ export default function RelationshipList({
 
 
   const formatRelationshipType = (type: string) => {
-    const typeKey = type.toLowerCase().replace(/\s+/g, '_');
+    const typeKey = type.toLowerCase().replace(/[\s-]+/g, '_');
     const translationKey = `relationships.types.${typeKey}`;
     const translated = t(translationKey);
     // If translation returns the key itself, no translation exists - use original

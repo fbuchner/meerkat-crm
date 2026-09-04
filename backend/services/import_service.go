@@ -28,6 +28,7 @@ const (
 // VCFContactData holds parsed VCF contact data with photo for import
 type VCFContactData struct {
 	Contact        *models.Contact
+	Relationships  []carddav.ParsedRelationship
 	PhotoData      []byte
 	PhotoMediaType string
 	PhotoURL       string // URL to fetch photo from (if not embedded)
@@ -91,7 +92,7 @@ func ParseVCF(reader io.Reader, db *gorm.DB, userID uint) (contacts []VCFContact
 		}
 
 		// Convert vCard to Contact using existing carddav mapper
-		contact, photoData, photoMediaType, photoURL := carddav.VCardToContact(card, nil)
+		contact, relationships, photoData, photoMediaType, photoURL := carddav.VCardToContact(card, nil)
 
 		// Generate UUID for contacts without one to avoid unique constraint violation
 		if contact.VCardUID == "" {
@@ -100,6 +101,7 @@ func ParseVCF(reader io.Reader, db *gorm.DB, userID uint) (contacts []VCFContact
 
 		contacts = append(contacts, VCFContactData{
 			Contact:        contact,
+			Relationships:  relationships,
 			PhotoData:      photoData,
 			PhotoMediaType: photoMediaType,
 			PhotoURL:       photoURL,

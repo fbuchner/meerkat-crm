@@ -23,11 +23,22 @@ import (
 	"github.com/google/uuid"
 	"github.com/nfnt/resize"
 	"golang.org/x/image/webp"
+	"gorm.io/gorm"
 )
 
 // for unmapped vCard properties
 type VCardExtra struct {
 	Properties map[string][]vcard.Field `json:"properties,omitempty"`
+}
+
+// ParsedRelationship is a RELATED entry read off an incoming vCard. Resolving
+// RelatedContactUID to a local Relationship.RelatedContactID requires a DB
+// lookup, which this package-level mapper has no access to - that's left to
+// the caller (see ResolveAndUpsertRelationships).
+type ParsedRelationship struct {
+	Name              string // free-text name; empty when the field carried a URI instead
+	Type              string // Meerkat relationship type label
+	RelatedContactUID string // VCardUID of the linked contact, if the field was a urn:uuid: URI
 }
 
 // ContactToVCard converts a Contact to a vCard 3.0 card.
@@ -183,6 +194,32 @@ func ContactToVCard(contact *models.Contact, photoDir string) vcard.Card {
 		card.SetValue(vcard.FieldRole, contact.Role)
 	}
 
+	// RELATED (RFC 6350 §6.6.6) - one entry per relationship. Callers must
+	// preload Relationships (and Relationships.RelatedContact for the URI form)
+	// or this is silently skipped.
+	for _, rel := range contact.Relationships {
+		field := &vcard.Field{Value: rel.Name}
+		if rel.RelatedContact != nil && rel.RelatedContact.VCardUID != "" {
+			field.Value = "urn:uuid:" + rel.RelatedContact.VCardUID
+			field.Params = vcard.Params{vcard.ParamValue: {"uri"}}
+		}
+		if token, ok := relationshipTypeToRFC[strings.ToLower(rel.Type)]; ok {
+			if field.Params == nil {
+				field.Params = vcard.Params{}
+			}
+			field.Params[vcard.ParamType] = []string{token}
+			card.Add(vcard.FieldRelated, field)
+		} else {
+			// No RFC TYPE for this label: keep the exact Meerkat type via the
+			// same grouped X-ABLabel convention used for custom TEL/EMAIL/URL
+			// labels, rather than guessing an approximate TYPE.
+			group := nextGroup()
+			field.Group = group
+			card.Add(vcard.FieldRelated, field)
+			card.Add(fieldABLabel, &vcard.Field{Group: group, Value: rel.Type})
+		}
+	}
+
 	// PHOTO - read from disk, fall back to thumbnail
 	// Include both vCard 3.0 and 4.0 parameters for maximum compatibility:
 	// - ENCODING=b and TYPE=JPEG for vCard 3.0 (required by iOS)
@@ -261,7 +298,7 @@ func ParseRevision(card vcard.Card) (time.Time, bool) {
 
 // VCardToContact converts a vCard to a Contact, updating existing fields
 // Returns the updated contact, photo data if embedded, media type, and photo URL if remote
-func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact, []byte, string, string) {
+func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact, []ParsedRelationship, []byte, string, string) {
 	contact := existing
 	if contact == nil {
 		contact = &models.Contact{}
@@ -424,6 +461,34 @@ func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact,
 		contact.Anniversary = normalizeBirthday(anniv)
 	}
 
+	// RELATED (RFC 6350 §6.6.6) - a grouped X-ABLabel (custom Meerkat type) takes
+	// priority over the TYPE param, mirroring typeForField; an unrecognized TYPE
+	// token is kept verbatim rather than collapsed to "Other".
+	var relationships []ParsedRelationship
+	for _, f := range card[vcard.FieldRelated] {
+		if f.Value == "" {
+			continue
+		}
+		relType := "Other"
+		if label := labelFromGroup(card, f); label != "" {
+			relType = label
+		} else if tokens := f.Params[vcard.ParamType]; len(tokens) > 0 {
+			token := strings.ToLower(strings.TrimSpace(tokens[0]))
+			if label, ok := rfcToRelationshipType[token]; ok {
+				relType = label
+			} else if token != "" {
+				relType = tokens[0]
+			}
+		}
+		pr := ParsedRelationship{Type: relType}
+		if uid, ok := strings.CutPrefix(f.Value, "urn:uuid:"); ok {
+			pr.RelatedContactUID = uid
+		} else {
+			pr.Name = f.Value
+		}
+		relationships = append(relationships, pr)
+	}
+
 	// Extract photo data for separate processing
 	var photoData []byte
 	var photoMediaType string
@@ -439,7 +504,51 @@ func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact,
 		contact.VCardExtra = string(extraJSON)
 	}
 
-	return contact, photoData, photoMediaType, photoURL
+	return contact, relationships, photoData, photoMediaType, photoURL
+}
+
+// ResolveAndUpsertRelationships persists parsed RELATED entries as Relationship
+// rows for contactID, resolving RelatedContactUID to a local contact by VCardUID.
+// Existing relationships are matched by (ContactID, Name, Type) and left alone if
+// already present; nothing is ever deleted, so a repeated sync never discards a
+// relationship the user edited or created locally.
+func ResolveAndUpsertRelationships(db *gorm.DB, userID, contactID uint, parsed []ParsedRelationship) error {
+	for _, pr := range parsed {
+		rel := models.Relationship{
+			UserID:    userID,
+			ContactID: contactID,
+			Type:      pr.Type,
+			Name:      pr.Name,
+		}
+		if pr.RelatedContactUID != "" {
+			var related models.Contact
+			if err := db.Where("user_id = ? AND vcard_uid = ?", userID, pr.RelatedContactUID).First(&related).Error; err == nil {
+				rel.RelatedContactID = &related.ID
+				if rel.Name == "" {
+					rel.Name = strings.TrimSpace(related.Firstname + " " + related.Lastname)
+				}
+			}
+		}
+		if rel.Name == "" {
+			// Unresolvable URI and no free-text name: nothing satisfies
+			// Relationship.Name's required validation, so skip it.
+			continue
+		}
+
+		var count int64
+		if err := db.Model(&models.Relationship{}).
+			Where("user_id = ? AND contact_id = ? AND name = ? AND type = ?", userID, contactID, rel.Name, rel.Type).
+			Count(&count).Error; err != nil {
+			return err
+		}
+		if count > 0 {
+			continue
+		}
+		if err := db.Create(&rel).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // SaveContactPhoto saves photo data to disk and generates thumbnail
@@ -688,6 +797,61 @@ func typeTokens(t string) []string {
 	}
 }
 
+// relationshipTypeToRFC maps a Relationship.Type (lowercased) to the RFC 6350
+// §6.6.6 RELATED TYPE token it exactly corresponds to. Only exact semantic
+// matches are listed here (plus Brother/Sister->sibling and Mother/Father->parent,
+// which the RFC has no finer token for) - every other Meerkat type is preserved
+// as free text with no TYPE param rather than guessing an approximate one.
+var relationshipTypeToRFC = map[string]string{
+	"child":             vcard.TypeChild,
+	"parent":            vcard.TypeParent,
+	"mother":            vcard.TypeParent,
+	"father":            vcard.TypeParent,
+	"spouse":            vcard.TypeSpouse,
+	"sibling":           vcard.TypeSibling,
+	"brother":           vcard.TypeSibling,
+	"sister":            vcard.TypeSibling,
+	"friend":            vcard.TypeFriend,
+	"colleague":         vcard.TypeColleague,
+	"neighbor":          vcard.TypeNeighbor,
+	"coworker":          vcard.TypeCoWorker,
+	"roommate":          vcard.TypeCoResident,
+	"acquaintance":      vcard.TypeAcquaintance,
+	"met":               vcard.TypeMet,
+	"kin":               vcard.TypeKin,
+	"muse":              vcard.TypeMuse,
+	"crush":             vcard.TypeCrush,
+	"date":              vcard.TypeDate,
+	"sweetheart":        vcard.TypeSweetheart,
+	"agent":             vcard.TypeAgent,
+	"emergency contact": vcard.TypeEmergency,
+}
+
+// rfcToRelationshipType is the inverse of relationshipTypeToRFC, giving the
+// canonical Meerkat label to use on import for a recognized RFC TYPE token.
+// Where several Meerkat types map to the same token (e.g. parent/mother/father),
+// the most generic label is used.
+var rfcToRelationshipType = map[string]string{
+	vcard.TypeChild:        "Child",
+	vcard.TypeParent:       "Parent",
+	vcard.TypeSpouse:       "Spouse",
+	vcard.TypeSibling:      "Sibling",
+	vcard.TypeFriend:       "Friend",
+	vcard.TypeColleague:    "Colleague",
+	vcard.TypeNeighbor:     "Neighbor",
+	vcard.TypeCoWorker:     "Coworker",
+	vcard.TypeCoResident:   "Roommate",
+	vcard.TypeAcquaintance: "Acquaintance",
+	vcard.TypeMet:          "Met",
+	vcard.TypeKin:          "Kin",
+	vcard.TypeMuse:         "Muse",
+	vcard.TypeCrush:        "Crush",
+	vcard.TypeDate:         "Date",
+	vcard.TypeSweetheart:   "Sweetheart",
+	vcard.TypeAgent:        "Agent",
+	vcard.TypeEmergency:    "Emergency Contact",
+}
+
 // fieldABLabel is the (non-standard but ubiquitous) property Apple Contacts and
 // most CardDAV clients use to carry a human-readable custom label for a value,
 // linked to that value via a shared property group (e.g. item1.X-ABLabel).
@@ -915,6 +1079,7 @@ func mappedVCardFields() map[string]bool {
 		vcard.FieldTitle:         true,
 		vcard.FieldRole:          true,
 		vcard.FieldAnniversary:   true,
+		vcard.FieldRelated:       true,
 		fieldABLabel:             true,
 	}
 }

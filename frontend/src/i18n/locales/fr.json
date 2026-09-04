@@ -16,7 +16,9 @@
     "users": "Utilisateurs",
     "apiTokens": "Jetons API",
     "integrations": "Intégrations",
-    "data": "Données"
+    "data": "Données",
+    "collapseSidebar": "Réduire la barre latérale",
+    "expandSidebar": "Développer la barre latérale"
   },
   "dashboard": {
     "welcome": "Bienvenue sur le tableau de bord Meerkat CRM",

@@ -299,7 +299,8 @@
     "cancel": "Cancelar",
     "save": "Guardar",
     "required": "El contenido es obligatorio",
-    "saveError": "Error al guardar la nota"
+    "saveError": "Error al guardar la nota",
+    "dateError": "Formato de fecha inválido. Verifica tu configuración de formato de fecha."
   },
   "activityDialog": {
     "title": "Agregar Actividad",
@@ -314,7 +315,8 @@
     "selectContacts": "Seleccionar contactos...",
     "cancel": "Cancelar",
     "save": "Guardar",
-    "required": "El título y la fecha son obligatorios"
+    "required": "El título y la fecha son obligatorios",
+    "dateError": "Formato de fecha inválido. Verifica tu configuración de formato de fecha."
   },
   "activities": {
     "title": "Actividades",
@@ -374,7 +376,8 @@
       "quarterly": "Trimestral",
       "six-months": "Cada 6 meses",
       "yearly": "Anual"
-    }
+    },
+    "dateInvalid": "Formato de fecha inválido. Verifica tu configuración de formato de fecha."
   },
   "common": {
     "save": "Guardar",

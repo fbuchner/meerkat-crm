@@ -32,13 +32,15 @@ import { handleError } from './utils/errorHandler';
 import { useDateFormat } from './DateFormatProvider';
 
 const NotesPage: React.FC = () => {
-  const { t, i18n } = useTranslation();
-  const { formatDate, getDatePlaceholder } = useDateFormat();
+  const { t } = useTranslation();
+  const { formatDate, parseDateInput, autoFormatDateInput, getDatePlaceholder } = useDateFormat();
   const [searchInput, setSearchInput] = useState('');
   const debouncedSearch = useDebouncedValue(searchInput, 400);
   const [page, setPage] = useState(1);
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
+  const [fromDateInput, setFromDateInput] = useState('');
+  const [toDateInput, setToDateInput] = useState('');
+  const fromDate = useMemo(() => parseDateInput(fromDateInput) || '', [parseDateInput, fromDateInput]);
+  const toDate = useMemo(() => parseDateInput(toDateInput) || '', [parseDateInput, toDateInput]);
   const NOTES_PER_PAGE = 25;
 
   const notesParams = useMemo(
@@ -62,6 +64,7 @@ const NotesPage: React.FC = () => {
   } = useNotes(undefined, notesParams);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [editError, setEditError] = useState('');
   const [editValues, setEditValues] = useState<{ noteContent?: string; noteDate?: string }>({});
   const [infoAnchorEl, setInfoAnchorEl] = useState<HTMLElement | null>(null);
   const infoOpen = Boolean(infoAnchorEl);
@@ -73,12 +76,12 @@ const NotesPage: React.FC = () => {
   };
 
   const handleFromDateChange = (value: string) => {
-    setFromDate(value);
+    setFromDateInput(autoFormatDateInput(value, fromDateInput));
     setPage(1);
   };
 
   const handleToDateChange = (value: string) => {
-    setToDate(value);
+    setToDateInput(autoFormatDateInput(value, toDateInput));
     setPage(1);
   };
 
@@ -107,19 +110,27 @@ const NotesPage: React.FC = () => {
 
   const handleEditClick = (note: Note) => {
     setEditingNote(note);
+    setEditError('');
     setEditValues({
       noteContent: note.content || '',
-      noteDate: note.date ? new Date(note.date).toISOString().split('T')[0] : '',
+      noteDate: note.date ? formatDate(note.date) : '',
     });
   };
 
   const handleSaveEdit = async () => {
     if (!editingNote || !editValues.noteContent?.trim()) return;
 
+    const parsedDate = editValues.noteDate ? parseDateInput(editValues.noteDate) : '';
+    if (editValues.noteDate && !parsedDate) {
+      setEditError(t('noteDialog.dateError'));
+      return;
+    }
+    setEditError('');
+
     try {
       await updateNote(editingNote.ID, {
         content: editValues.noteContent,
-        date: editValues.noteDate ? new Date(editValues.noteDate).toISOString() : new Date().toISOString(),
+        date: parsedDate ? new Date(parsedDate).toISOString() : new Date().toISOString(),
       });
       setEditingNote(null);
       setEditValues({});
@@ -132,6 +143,7 @@ const NotesPage: React.FC = () => {
   const handleCancelEdit = () => {
     setEditingNote(null);
     setEditValues({});
+    setEditError('');
   };
 
   const handleDeleteNote = async () => {
@@ -200,21 +212,19 @@ const NotesPage: React.FC = () => {
           <TextField
             size="small"
             label={t('notes.fromDate')}
-            type="date"
-            value={fromDate}
+            placeholder={getDatePlaceholder()}
+            value={fromDateInput}
             onChange={(e) => handleFromDateChange(e.target.value)}
             variant="outlined"
-            slotProps={{ inputLabel: { shrink: true }, input: { placeholder: getDatePlaceholder(), lang: i18n.language } }}
             sx={{ width: 160 }}
           />
           <TextField
             size="small"
             label={t('notes.toDate')}
-            type="date"
-            value={toDate}
+            placeholder={getDatePlaceholder()}
+            value={toDateInput}
             onChange={(e) => handleToDateChange(e.target.value)}
             variant="outlined"
-            slotProps={{ inputLabel: { shrink: true }, input: { placeholder: getDatePlaceholder(), lang: i18n.language } }}
             sx={{ width: 160 }}
           />
         </Box>
@@ -302,8 +312,12 @@ const NotesPage: React.FC = () => {
           onDelete={handleDeleteNote}
           type="note"
           values={editValues}
-          onChange={setEditValues}
+          onChange={(newValues) => {
+            setEditValues(newValues);
+            setEditError('');
+          }}
           allContacts={[]}
+          dateError={editError}
         />
       )}
     </Box>

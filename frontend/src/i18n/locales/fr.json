@@ -299,7 +299,8 @@
     "cancel": "Annuler",
     "save": "Enregistrer",
     "required": "Le contenu est requis",
-    "saveError": "Échec de l'enregistrement de la note"
+    "saveError": "Échec de l'enregistrement de la note",
+    "dateError": "Format de date invalide. Vérifiez votre paramètre de format de date."
   },
   "activityDialog": {
     "title": "Ajouter une activité",
@@ -314,7 +315,8 @@
     "selectContacts": "Sélectionnez des contacts...",
     "cancel": "Annuler",
     "save": "Enregistrer",
-    "required": "Le titre et la date sont requis"
+    "required": "Le titre et la date sont requis",
+    "dateError": "Format de date invalide. Vérifiez votre paramètre de format de date."
   },
   "activities": {
     "title": "Activités",
@@ -374,7 +376,8 @@
       "quarterly": "Trimestriel",
       "six-months": "Tous les 6 mois",
       "yearly": "Annuel"
-    }
+    },
+    "dateInvalid": "Format de date invalide. Vérifiez votre paramètre de format de date."
   },
   "common": {
     "save": "Enregistrer",

@@ -64,6 +64,6 @@
     "@vitejs/plugin-react": "^4",
     "jsdom": "^26",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.11"
   }
 }

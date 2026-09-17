@@ -42,7 +42,7 @@ func TestVCardRoundTrip(t *testing.T) {
 	}
 
 	card := ContactToVCard(original, "")
-	got, _, _, _ := VCardToContact(card, nil)
+	got, _, _, _, _ := VCardToContact(card, nil)
 
 	if got.Firstname != original.Firstname || got.Lastname != original.Lastname {
 		t.Errorf("name mismatch: got %q %q", got.Firstname, got.Lastname)
@@ -96,7 +96,7 @@ func TestVCardUnmappedPreserved(t *testing.T) {
 	card.SetValue(vcard.FieldName, "Person;Test;;;")
 	card.Add("X-CUSTOM-PROP", &vcard.Field{Value: "keep-me"})
 
-	got, _, _, _ := VCardToContact(card, nil)
+	got, _, _, _, _ := VCardToContact(card, nil)
 	if got.VCardExtra == "" {
 		t.Fatal("expected VCardExtra to capture unmapped X-CUSTOM-PROP")
 	}
@@ -168,7 +168,7 @@ func TestStructuredSemicolonRoundTrip(t *testing.T) {
 	}
 
 	card := ContactToVCard(original, "")
-	got, _, _, _ := VCardToContact(card, nil)
+	got, _, _, _, _ := VCardToContact(card, nil)
 
 	if got.Organization != original.Organization {
 		t.Errorf("organization corrupted: got %q want %q", got.Organization, original.Organization)
@@ -193,7 +193,7 @@ func TestComponentBackslashRoundTrip(t *testing.T) {
 		Lastname:     "Slash",
 		Organization: `Path\To\Co`,
 	}
-	got, _, _, _ := VCardToContact(ContactToVCard(original, ""), nil)
+	got, _, _, _, _ := VCardToContact(ContactToVCard(original, ""), nil)
 	if got.Organization != `Path\To\Co` {
 		t.Errorf("backslash corrupted: got %q", got.Organization)
 	}
@@ -225,7 +225,7 @@ func TestCustomLabelRoundTrip(t *testing.T) {
 		t.Fatalf("expected 3 X-ABLabel entries, got %d", len(labels))
 	}
 
-	got, _, _, _ := VCardToContact(card, nil)
+	got, _, _, _, _ := VCardToContact(card, nil)
 	if len(got.Emails) != 1 || got.Emails[0].Type != "School" {
 		t.Errorf("custom email label lost: %+v", got.Emails)
 	}
@@ -251,7 +251,7 @@ func TestApplePseudoLabelImport(t *testing.T) {
 	card.Add(vcard.FieldTelephone, &vcard.Field{Group: "item1", Value: "+15551112222"})
 	card.Add(fieldABLabel, &vcard.Field{Group: "item1", Value: "_$!<Mobile>!$_"})
 
-	got, _, _, _ := VCardToContact(card, nil)
+	got, _, _, _, _ := VCardToContact(card, nil)
 	if len(got.Phones) != 1 || got.Phones[0].Type != "cell" {
 		t.Errorf("apple pseudo-label not normalized to cell: %+v", got.Phones)
 	}
@@ -267,7 +267,7 @@ func TestRevisionReflectsLocalModification(t *testing.T) {
 	card.SetValue(vcard.FieldName, "Person;Rev;;;")
 	card.SetValue(vcard.FieldRevision, "20200101T000000Z")
 
-	contact, _, _, _ := VCardToContact(card, nil)
+	contact, _, _, _, _ := VCardToContact(card, nil)
 	if strings.Contains(contact.VCardExtra, "REV") {
 		t.Errorf("imported REV must not be kept in VCardExtra, got %q", contact.VCardExtra)
 	}

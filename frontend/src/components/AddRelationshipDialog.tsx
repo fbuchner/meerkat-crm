@@ -404,7 +404,7 @@ export default function AddRelationshipDialog({
               <MenuItem value="custom">{t('relationships.customType')}</MenuItem>
               {RELATIONSHIP_TYPES.map((relType) => (
                 <MenuItem key={relType} value={relType}>
-                  {t(`relationships.types.${relType.toLowerCase().replace(' ', '_')}`, relType)}
+                  {t(`relationships.types.${relType.toLowerCase().replace(/[\s-]+/g, '_')}`, relType)}
                 </MenuItem>
               ))}
             </Select>

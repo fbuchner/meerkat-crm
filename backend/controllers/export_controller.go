@@ -349,7 +349,8 @@ func ExportContactsAsVCF(c *gin.Context, photoDir string) {
 
 	// Fetch all user contacts
 	var contacts []models.Contact
-	if err := db.Where("user_id = ?", userID).
+	if err := db.Preload("Relationships.RelatedContact").
+		Where("user_id = ?", userID).
 		Order("firstname ASC, lastname ASC").
 		Find(&contacts).Error; err != nil {
 		log.Error().Err(err).Msg("Failed to fetch contacts for VCF export")

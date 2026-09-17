@@ -10,6 +10,8 @@ interface DateFormatContextValue {
   formatBirthdayForInput: (birthday: string) => string;
   parseBirthdayInput: (input: string) => string | null;
   autoFormatBirthdayInput: (newValue: string, prevValue: string) => string;
+  parseDateInput: (input: string) => string | null;
+  autoFormatDateInput: (newValue: string, prevValue: string) => string;
   getBirthdayPlaceholder: () => string;
   getBirthdayFormatHint: () => string;
   getDatePlaceholder: () => string;
@@ -301,6 +303,65 @@ export function parseBirthdayInputWithFormat(input: string, format: DateFormat):
   return null;
 }
 
+/**
+ * Parse user input in display format back to ISO format for storage.
+ * Unlike parseBirthdayInputWithFormat, the year is always required.
+ * Returns null if input is invalid
+ */
+export function parseDateInputWithFormat(input: string, format: DateFormat): string | null {
+  if (!input || input.trim() === '') return '';
+
+  const trimmed = input.trim();
+
+  const isoDateRegex = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
+  const isoMatch = trimmed.match(isoDateRegex);
+  if (isoMatch) {
+    const year = isoMatch[1];
+    const month = isoMatch[2].padStart(2, '0');
+    const day = isoMatch[3].padStart(2, '0');
+    const monthNum = parseInt(month, 10);
+    const dayNum = parseInt(day, 10);
+    if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) {
+      return null;
+    }
+    return `${year}-${month}-${day}`;
+  }
+
+  if (format === 'eu') {
+    const euMatch = trimmed.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+    if (euMatch) {
+      const day = euMatch[1].padStart(2, '0');
+      const month = euMatch[2].padStart(2, '0');
+      const year = euMatch[3];
+
+      const dayNum = parseInt(day, 10);
+      const monthNum = parseInt(month, 10);
+      if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) {
+        return null;
+      }
+
+      return `${year}-${month}-${day}`;
+    }
+  } else if (format === 'us') {
+    const usMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (usMatch) {
+      const month = usMatch[1].padStart(2, '0');
+      const day = usMatch[2].padStart(2, '0');
+      const year = usMatch[3];
+
+      const dayNum = parseInt(day, 10);
+      const monthNum = parseInt(month, 10);
+      if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) {
+        return null;
+      }
+
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  return null;
+}
+
 export function autoFormatBirthdayInputWithFormat(newValue: string, prevValue: string, format: DateFormat): string {
   const newDigits = newValue.replace(/[^0-9]/g, '');
   const prevDigits = prevValue.replace(/[^0-9]/g, '');
@@ -393,6 +454,17 @@ export function DateFormatProvider({ children }: { children: ReactNode }) {
     [dateFormat]
   );
 
+  const parseDateInput = useCallback(
+    (input: string) => parseDateInputWithFormat(input, dateFormat),
+    [dateFormat]
+  );
+
+  const autoFormatDateInput = useCallback(
+    (newValue: string, prevValue: string) =>
+      autoFormatBirthdayInputWithFormat(newValue, prevValue, dateFormat),
+    [dateFormat]
+  );
+
   const getBirthdayPlaceholder = useCallback(() => {
     switch (dateFormat) {
       case "eu":
@@ -440,12 +512,14 @@ export function DateFormatProvider({ children }: { children: ReactNode }) {
       formatBirthdayForInput,
       parseBirthdayInput,
       autoFormatBirthdayInput,
+      parseDateInput,
+      autoFormatDateInput,
       getBirthdayPlaceholder,
       getBirthdayFormatHint,
       getDatePlaceholder,
       calculateAge,
     }),
-    [dateFormat, formatDate, formatBirthday, formatBirthdayForInput, parseBirthdayInput, autoFormatBirthdayInput, getBirthdayPlaceholder, getBirthdayFormatHint, getDatePlaceholder, calculateAge]
+    [dateFormat, formatDate, formatBirthday, formatBirthdayForInput, parseBirthdayInput, autoFormatBirthdayInput, parseDateInput, autoFormatDateInput, getBirthdayPlaceholder, getBirthdayFormatHint, getDatePlaceholder, calculateAge]
   );
 
   return (

@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import AppDialog from './AppDialog';
 import { useTranslation } from 'react-i18next';
+import { useDateFormat } from '../DateFormatProvider';
 
 interface AddNoteDialogProps {
   open: boolean;
@@ -18,8 +19,9 @@ interface AddNoteDialogProps {
 
 export default function AddNoteDialog({ open, onClose, onSave }: AddNoteDialogProps) {
   const { t } = useTranslation();
+  const { formatDate, parseDateInput, autoFormatDateInput, getDatePlaceholder } = useDateFormat();
   const [content, setContent] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(formatDate(new Date().toISOString().split('T')[0]));
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -29,9 +31,15 @@ export default function AddNoteDialog({ open, onClose, onSave }: AddNoteDialogPr
       return;
     }
 
+    const parsedDate = parseDateInput(date);
+    if (date && !parsedDate) {
+      setError(t('noteDialog.dateError'));
+      return;
+    }
+
     setSaving(true);
     try {
-      await onSave(content, date);
+      await onSave(content, parsedDate || new Date().toISOString().split('T')[0]);
       handleClose();
     } catch (err) {
       setError(t('noteDialog.saveError'));
@@ -42,7 +50,7 @@ export default function AddNoteDialog({ open, onClose, onSave }: AddNoteDialogPr
 
   const handleClose = () => {
     setContent('');
-    setDate(new Date().toISOString().split('T')[0]);
+    setDate(formatDate(new Date().toISOString().split('T')[0]));
     setError('');
     onClose();
   };
@@ -70,13 +78,10 @@ export default function AddNoteDialog({ open, onClose, onSave }: AddNoteDialogPr
           />
           <TextField
             label={t('noteDialog.date')}
-            type="date"
+            placeholder={getDatePlaceholder()}
             value={date}
-            onChange={(e) => setDate(e.target.value)}
+            onChange={(e) => setDate(autoFormatDateInput(e.target.value, date))}
             fullWidth
-            InputLabelProps={{
-              shrink: true,
-            }}
           />
         </Box>
       </DialogContent>

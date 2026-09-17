@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Card, CardContent, Divider, Stack, Box, Tabs, Tab, Button, Typography } from '@mui/material';
+import { Card, CardContent, Divider, Stack, Box, Tabs, Tab, Button, Typography, FormControlLabel, Switch } from '@mui/material';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
 import CakeIcon from '@mui/icons-material/Cake';
@@ -23,8 +23,10 @@ import AddressFields from './AddressFields';
 import RelationshipList from './RelationshipList';
 import { Relationship, IncomingRelationship } from '../api/relationships';
 import { Contact, ContactValue, ContactAddress } from '../api/contacts';
+import { Reminder } from '../api/reminders';
 import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
 import { useDateFormat } from '../DateFormatProvider';
+import { findBirthdayReminder } from '../utils/birthdayReminder';
 
 interface ContactInformationProps {
   contact: Partial<Contact>;
@@ -45,6 +47,9 @@ interface ContactInformationProps {
   onDeleteRelationship?: (relationshipId: number) => void;
   // Custom fields
   customFieldNames?: string[];
+  // Birthday reminder
+  reminders?: Reminder[];
+  onToggleBirthdayReminder?: () => void;
 }
 
 const iconSx = { mr: 1, color: 'text.secondary', fontSize: '1.2rem' };
@@ -67,12 +72,19 @@ export default function ContactInformation({
   onEditRelationship,
   onDeleteRelationship,
   customFieldNames = [],
+  reminders = [],
+  onToggleBirthdayReminder,
 }: ContactInformationProps) {
   const { t } = useTranslation();
   const { formatBirthday, getBirthdayPlaceholder, calculateAge } = useDateFormat();
   const [activeTab, setActiveTab] = useState(0);
   const enabled = enabledFields ?? resolveEnabledFields(null);
   const isOn = (key: ContactFieldKey) => enabled.has(key);
+
+  const hasBirthdayReminder = useMemo(
+    () => !!(contact.birthday && findBirthdayReminder(reminders, contact.birthday)),
+    [reminders, contact.birthday]
+  );
 
   const birthdayAgeSuffix = useMemo(() => {
     if (!contact.birthday) return undefined;
@@ -204,22 +216,36 @@ export default function ContactInformation({
             )}
 
             {isOn('birthday') && (
-              <EditableField
-                icon={<CakeIcon sx={iconSx} />}
-                label={t('contactDetail.birthday')}
-                field="birthday"
-                value={contact.birthday || ''}
-                formattedDisplayValue={contact.birthday ? formatBirthday(contact.birthday) : undefined}
-                placeholder={getBirthdayPlaceholder()}
-                displaySuffix={birthdayAgeSuffix}
-                isEditing={editingField === 'birthday'}
-                editValue={editValue}
-                validationError={validationError}
-                onEditStart={onEditStart}
-                onEditCancel={onEditCancel}
-                onEditSave={onEditSave}
-                onEditValueChange={onEditValueChange}
-              />
+              <>
+                <EditableField
+                  icon={<CakeIcon sx={iconSx} />}
+                  label={t('contactDetail.birthday')}
+                  field="birthday"
+                  value={contact.birthday || ''}
+                  formattedDisplayValue={contact.birthday ? formatBirthday(contact.birthday) : undefined}
+                  placeholder={getBirthdayPlaceholder()}
+                  displaySuffix={birthdayAgeSuffix}
+                  isEditing={editingField === 'birthday'}
+                  editValue={editValue}
+                  validationError={validationError}
+                  onEditStart={onEditStart}
+                  onEditCancel={onEditCancel}
+                  onEditSave={onEditSave}
+                  onEditValueChange={onEditValueChange}
+                />
+                {contact.birthday && onToggleBirthdayReminder && (
+                  <FormControlLabel
+                    sx={{ ml: 4 }}
+                    control={
+                      <Switch
+                        checked={hasBirthdayReminder}
+                        onChange={onToggleBirthdayReminder}
+                      />
+                    }
+                    label={t('contactDetail.birthdayReminder')}
+                  />
+                )}
+              </>
             )}
 
             {isOn('anniversary') && (

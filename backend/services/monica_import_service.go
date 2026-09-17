@@ -66,12 +66,11 @@ func MapMonicaContact(mc monica.Contact) MonicaMappedContact {
 			contact.CustomFields[monicaFieldApproximateAge] = fmt.Sprintf("%d", age)
 		}
 	}
+	contact.IsDeceased = mc.IsDead
 	if mc.IsDead {
-		deceased := "yes"
-		if d := mapMonicaSpecialDate(mc.Information.Dates.DeceasedDate); d != "" {
-			deceased = d
+		if d := mapMonicaSpecialDate(mc.Information.Dates.DeceasedDate); d != "" && !strings.HasPrefix(d, "--") {
+			contact.DeceasedDate = d
 		}
-		contact.CustomFields[monicaFieldDeceased] = deceased
 	}
 	if mc.IsStarred {
 		contact.CustomFields[monicaFieldStarred] = "yes"
@@ -143,7 +142,6 @@ func MapMonicaContact(mc monica.Contact) MonicaMappedContact {
 // Custom field names created by the Monica import (added to the user's
 // CustomFieldNames on confirm).
 const (
-	monicaFieldDeceased       = "Deceased"
 	monicaFieldStarred        = "Starred"
 	monicaFieldApproximateAge = "Approximate age"
 )

@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   calculateAgeFromBirthday,
+  calculateAgeAtDate,
   formatDateWithFormat,
   formatBirthdayWithFormat,
   formatBirthdayForInputWithFormat,
@@ -89,6 +90,36 @@ describe('calculateAgeFromBirthday', () => {
 
   test('returns null for future birth years', () => {
     expect(calculateAgeFromBirthday('2030-01-01')).toBeNull();
+  });
+});
+
+describe('calculateAgeAtDate', () => {
+  test('computes age at a full date', () => {
+    expect(calculateAgeAtDate('1990-05-01', '2020-01-15')).toBe(29);
+  });
+
+  test('adjusts down when death date is before the birthday that year', () => {
+    expect(calculateAgeAtDate('1990-05-01', '2020-04-30')).toBe(29);
+  });
+
+  test('adjusts up when death date is on or after the birthday that year', () => {
+    expect(calculateAgeAtDate('1990-05-01', '2020-05-01')).toBe(30);
+  });
+
+  test('returns null when birthday has no year', () => {
+    expect(calculateAgeAtDate('--05-01', '2020-01-15')).toBeNull();
+  });
+
+  test('returns null when birthday is empty', () => {
+    expect(calculateAgeAtDate('', '2020-01-15')).toBeNull();
+  });
+
+  test('returns null when the target date is empty', () => {
+    expect(calculateAgeAtDate('1990-05-01', '')).toBeNull();
+  });
+
+  test('returns null when the target date is malformed', () => {
+    expect(calculateAgeAtDate('1990-05-01', 'not-a-date')).toBeNull();
   });
 });
 

@@ -1,4 +1,5 @@
-import { Box, Card, CardContent, Avatar, Typography, Chip, IconButton, Stack, TextField, Autocomplete, Button } from '@mui/material';
+import { useState } from 'react';
+import { Box, Card, CardContent, Avatar, Typography, Chip, IconButton, Stack, TextField, Autocomplete, Button, Tooltip, Menu, MenuItem } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
@@ -8,6 +9,7 @@ import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import AutoModeIcon from '@mui/icons-material/AutoMode';
 import ArchiveIcon from '@mui/icons-material/Archive';
 import UnarchiveIcon from '@mui/icons-material/Unarchive';
+import ContactMailIcon from '@mui/icons-material/ContactMail';
 import { useTranslation } from 'react-i18next';
 import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
 
@@ -54,6 +56,7 @@ interface ContactHeaderProps {
   onStayInTouch?: () => void;
   onArchiveContact?: () => void;
   onUnarchiveContact?: () => void;
+  onExportVcard?: (version: '3.0' | '4.0') => void;
 }
 
 export default function ContactHeader({
@@ -77,11 +80,18 @@ export default function ContactHeader({
   onUploadProfilePicture,
   onStayInTouch,
   onArchiveContact,
-  onUnarchiveContact
+  onUnarchiveContact,
+  onExportVcard
 }: ContactHeaderProps) {
   const { t } = useTranslation();
   const enabled = enabledFields ?? resolveEnabledFields(null);
   const isOn = (key: ContactFieldKey) => enabled.has(key);
+
+  const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(null);
+  const handleExportVersion = (version: '3.0' | '4.0') => {
+    setExportMenuAnchor(null);
+    onExportVcard?.(version);
+  };
 
   const displayName = [
     contact.prefix,
@@ -261,7 +271,31 @@ export default function ContactHeader({
                       <EditIcon fontSize="small" />
                     </IconButton>
                   </Box>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    {onExportVcard && (
+                      <>
+                        <Tooltip title={t('contactDetail.exportVcard')}>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => setExportMenuAnchor(e.currentTarget)}
+                          >
+                            <ContactMailIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Menu
+                          anchorEl={exportMenuAnchor}
+                          open={Boolean(exportMenuAnchor)}
+                          onClose={() => setExportMenuAnchor(null)}
+                        >
+                          <MenuItem onClick={() => handleExportVersion('3.0')}>
+                            {t('contactDetail.exportVcard3')}
+                          </MenuItem>
+                          <MenuItem onClick={() => handleExportVersion('4.0')}>
+                            {t('contactDetail.exportVcard4')}
+                          </MenuItem>
+                        </Menu>
+                      </>
+                    )}
                     {contact.archived ? (
                       onUnarchiveContact && (
                         <Button

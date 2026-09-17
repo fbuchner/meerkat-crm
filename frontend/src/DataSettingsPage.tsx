@@ -10,10 +10,14 @@ import {
   Stack,
   Alert,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
-import { exportDataAsCsv, exportContactsAsVcf } from './api/export';
+import { exportDataAsCsv, exportContactsAsVcf, VCardVersion } from './api/export';
 import CustomFieldsSettings from './components/CustomFieldsSettings';
 import ContactFieldSettings from './components/ContactFieldSettings';
 import CalendarSyncSettings from './components/CalendarSyncSettings';
@@ -29,6 +33,7 @@ export default function DataSettingsPage() {
   const [exportingVcf, setExportingVcf] = useState(false);
   const [exportVcfError, setExportVcfError] = useState('');
   const [exportVcfSuccess, setExportVcfSuccess] = useState('');
+  const [vcfVersion, setVcfVersion] = useState<VCardVersion>('3.0');
 
   const handleExportData = async () => {
     setExportError('');
@@ -52,7 +57,7 @@ export default function DataSettingsPage() {
     setExportingVcf(true);
 
     try {
-      await exportContactsAsVcf();
+      await exportContactsAsVcf(vcfVersion);
       setExportVcfSuccess(t('settings.exportVcf.success'));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : t('settings.exportVcf.error');
@@ -153,15 +158,29 @@ export default function DataSettingsPage() {
             </Typography>
             {exportVcfError && <Alert severity="error" sx={{ py: 0 }}>{exportVcfError}</Alert>}
             {exportVcfSuccess && <Alert severity="success" sx={{ py: 0 }}>{exportVcfSuccess}</Alert>}
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={exportingVcf ? <CircularProgress size={16} color="inherit" /> : <DownloadIcon />}
-              onClick={handleExportVcf}
-              disabled={exportingVcf}
-            >
-              {exportingVcf ? t('settings.exportVcf.exporting') : t('settings.exportVcf.downloadButton')}
-            </Button>
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <FormControl size="small" sx={{ minWidth: 220 }}>
+                <InputLabel id="vcf-version-label">{t('settings.exportVcf.versionLabel')}</InputLabel>
+                <Select
+                  labelId="vcf-version-label"
+                  label={t('settings.exportVcf.versionLabel')}
+                  value={vcfVersion}
+                  onChange={(e) => setVcfVersion(e.target.value as VCardVersion)}
+                >
+                  <MenuItem value="3.0">{t('contactDetail.exportVcard3')}</MenuItem>
+                  <MenuItem value="4.0">{t('contactDetail.exportVcard4')}</MenuItem>
+                </Select>
+              </FormControl>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={exportingVcf ? <CircularProgress size={16} color="inherit" /> : <DownloadIcon />}
+                onClick={handleExportVcf}
+                disabled={exportingVcf}
+              >
+                {exportingVcf ? t('settings.exportVcf.exporting') : t('settings.exportVcf.downloadButton')}
+              </Button>
+            </Stack>
           </Stack>
         </CardContent>
       </Card>

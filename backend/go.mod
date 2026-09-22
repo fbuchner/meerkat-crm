@@ -6,7 +6,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.20.0
 	github.com/emersion/go-ical v0.0.0-20250609112844-439c63cef608
 	github.com/gen2brain/heic v0.7.1
-	github.com/gin-contrib/cors v1.7.7
+	github.com/gin-contrib/cors v1.7.8
 	github.com/gin-gonic/gin v1.12.0
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-co-op/gocron v1.37.0

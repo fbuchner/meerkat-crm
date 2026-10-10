@@ -62,7 +62,7 @@ func RunMigrations(db *sql.DB) error {
 
 	if dirty {
 		logger.Warn().Uint("version", version).Msg("Database is in dirty state, forcing version")
-		if err := m.Force(int(version)); err != nil {
+		if err := m.Force(int(version)); err != nil { //nolint:gosec // migration version, small and positive
 			return fmt.Errorf("failed to force version: %w", err)
 		}
 	}

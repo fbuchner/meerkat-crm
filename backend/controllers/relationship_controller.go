@@ -92,7 +92,7 @@ func CreateRelationship(c *gin.Context) {
 
 	// Get the contact ID from the request parameters
 	contactIDParam := c.Param("id")
-	contactID, err := strconv.Atoi(contactIDParam)
+	contactID, err := strconv.ParseUint(contactIDParam, 10, 64)
 	if err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("contact_id", "Invalid contact ID"))
 		return

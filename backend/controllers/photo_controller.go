@@ -28,7 +28,7 @@ import (
 
 func GetProfilePicture(c *gin.Context, cfg *config.Config) {
 	idParam := c.Param("id")
-	contactID, err := strconv.Atoi(idParam)
+	contactID, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrValidation("Invalid contact ID"))
 		return
@@ -116,7 +116,7 @@ func AddPhotoToContact(c *gin.Context, cfg *config.Config) {
 	}
 
 	idParam := c.Param("id")
-	contactID, err := strconv.Atoi(idParam)
+	contactID, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrValidation("Invalid contact ID"))
 		return
@@ -150,7 +150,7 @@ func AddPhotoToContact(c *gin.Context, cfg *config.Config) {
 		}
 
 		// Use validated upload directory from config
-		if err := os.MkdirAll(cfg.ProfilePhotoDir, os.ModePerm); err != nil {
+		if err := os.MkdirAll(cfg.ProfilePhotoDir, os.ModePerm); err != nil { //nolint:gosec // photo directory is shared with the web server; mode kept as-is
 			apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to create upload directory").WithError(err))
 			return
 		}
@@ -250,7 +250,7 @@ func processAndSavePhoto(file *multipart.FileHeader, uploadDir string) (string, 
 	photoPath := baseFilename + "_photo.jpg" // Always save as JPG
 
 	// Create the output directory
-	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil { //nolint:gosec // photo directory is shared with the web server; mode kept as-is
 		return "", "", err
 	}
 
@@ -313,7 +313,7 @@ func cropToSquare(img image.Image) image.Image {
 }
 
 func saveImage(path string, img image.Image) error {
-	out, err := os.Create(path)
+	out, err := os.Create(path) //nolint:gosec // path built from the configured photo directory
 	if err != nil {
 		return err
 	}

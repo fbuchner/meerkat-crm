@@ -28,3 +28,77 @@ jobs:
         with:
           version: v2.5.0
           working-directory: backend
+
+  frontend:
+    permissions:
+      contents: read
+    name: Frontend (ESLint, tsc)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'yarn'
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: yarn install --frozen-lockfile
+
+      - name: ESLint
+        working-directory: frontend
+        run: npx eslint --max-warnings=0 src
+
+      - name: Type check
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+  format:
+    permissions:
+      contents: read
+    name: Format (gofmt, Prettier; changed files)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Full history so the base commit of the change is available.
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'yarn'
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: yarn install --frozen-lockfile
+
+      # Only files changed by the pull request (or push) are checked, so legacy
+      # unformatted files do not block unrelated work. For stacked PRs the base
+      # is the previous branch, not main.
+      - name: Check formatting of changed files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          base="$(git merge-base "$BASE_SHA" HEAD 2>/dev/null || true)"
+          if [ -z "$base" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            base="$(git rev-parse HEAD~1)"
+          fi
+          make format-check BASE="$base"

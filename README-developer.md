@@ -17,7 +17,7 @@
 - Styling blends global CSS (App.css/index.css) with MUI theming; photo uploads land in backend static storage under `static/photos`.
 
 **Workflows**
-- Root `Makefile` runs both apps: `make install`, `make precommit` (gofmt on changed Go files, go vet, ESLint, tsc, unit tests), `make test-e2e`. `make help` lists all targets.
+- Root `Makefile` runs both apps: `make install`, `make precommit` (gofmt on changed Go files, Prettier on changed frontend files, go vet, ESLint, tsc, unit tests), `make test-e2e`. `make help` lists all targets.
 - Source backend/my_environment.env to `.env` before running the server
 - Start the backend with `go run main.go` (or `make dev`) from backend/ after `go mod tidy`; migrations are embedded in the binary and auto-run on boot. Use `make migrate-up` or cmd/migrate for manual control during development.
 - Frontend uses Yarn: `yarn install` then `yarn start` from frontend/; CRA proxies should point at the backend URL defined in `.env`.

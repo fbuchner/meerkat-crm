@@ -12,14 +12,24 @@ install: ## Install backend and frontend dependencies
 	cd backend && go mod download
 	cd frontend && $(YARN) install --frozen-lockfile
 
-format: ## gofmt Go files changed since BASE
+# Frontend files (relative to frontend/) changed since BASE, for Prettier. The scope
+# (src/**/*.ts(x) and e2e/*.ts) is deliberate: config, JSON, CSS and generated files are
+# left alone.
+FRONTEND_CHANGED = (git diff --name-only --diff-filter=d $(BASE) -- 'frontend/src/*.ts' 'frontend/src/*.tsx' 'frontend/e2e/*.ts'; \
+	git ls-files --others --exclude-standard -- 'frontend/src/*.ts' 'frontend/src/*.tsx' 'frontend/e2e/*.ts') | sed 's|^frontend/||'
+
+format: ## gofmt and Prettier on files changed since BASE
 	@files=$$(git diff --name-only --diff-filter=d $(BASE) -- 'backend/*.go'; git ls-files --others --exclude-standard -- 'backend/*.go'); \
 	[ -z "$$files" ] || gofmt -w $$files
+	@files=$$( $(FRONTEND_CHANGED) ); \
+	[ -z "$$files" ] || (cd frontend && npx prettier --write $$files)
 
-format-check: ## Fail if Go files changed since BASE are not gofmt-clean
+format-check: ## Fail if files changed since BASE are not gofmt/Prettier-clean
 	@files=$$(git diff --name-only --diff-filter=d $(BASE) -- 'backend/*.go'; git ls-files --others --exclude-standard -- 'backend/*.go'); \
 	bad=$$([ -z "$$files" ] || gofmt -l $$files); \
 	if [ -n "$$bad" ]; then echo "Not gofmt-clean:"; echo "$$bad"; exit 1; fi
+	@files=$$( $(FRONTEND_CHANGED) ); \
+	[ -z "$$files" ] || (cd frontend && npx prettier --check $$files)
 
 lint: ## go vet + eslint
 	cd backend && go vet ./...

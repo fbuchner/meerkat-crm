@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -67,7 +68,11 @@ func ParseCSV(reader io.Reader) (headers []string, rows [][]string, err error) {
 
 // ParseVCF reads and parses a VCF file, returning contact data and previews
 func ParseVCF(reader io.Reader, db *gorm.DB, userID uint) (contacts []VCFContactData, previews []models.ImportRowPreview, stats ImportStats, err error) {
-	decoder := vcard.NewDecoder(reader)
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, nil, stats, fmt.Errorf("failed to read VCF file: %w", err)
+	}
+	decoder := vcard.NewDecoder(bytes.NewReader(carddav.NormalizeLegacyVCF(data)))
 
 	for rowIdx := 0; ; rowIdx++ {
 		card, decodeErr := decoder.Decode()

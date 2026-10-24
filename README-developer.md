@@ -19,7 +19,7 @@
 - Any date shown to a user is formatted through [frontend/src/DateFormatProvider.tsx](frontend/src/DateFormatProvider.tsx), which honors the user's date-format preference. Never call `toLocaleDateString` or hand-roll a format — a date rendered directly ignores that preference.
 
 **Workflows**
-- Root `Makefile` runs both apps: `make install`, `make precommit` (gofmt on changed Go files, go vet, ESLint, tsc, unit tests), `make test-e2e`. `make help` lists all targets.
+- Root `Makefile` runs both apps: `make install`, `make precommit` (gofmt on changed Go files, go vet, ESLint, tsc, unit tests). `make help` lists all targets.
 - Source backend/my_environment.env to `.env` before running the server
 - Start the backend with `go run main.go` (or `make dev`) from backend/ after `go mod tidy`; migrations are embedded in the binary and auto-run on boot. Use `make migrate-up` or cmd/migrate for manual control during development.
 - Frontend uses Yarn: `yarn install` then `yarn start` from frontend/; CRA proxies should point at the backend URL defined in `.env`.
@@ -41,7 +41,6 @@
 - Frontend unit tests run with `yarn test` and rely on React Testing Library setup in [frontend/src/setupTests.ts](frontend/src/setupTests.ts), which already registers jest-dom.
 
 **E2E Testing (Playwright)**
-- Without Docker: `make test-e2e` builds both apps and runs Playwright against a local stack ([scripts/e2e-stack.mjs](scripts/e2e-stack.mjs)). `E2E_SKIP_BUILD=1` reuses builds; `ARGS=e2e/contacts.spec.ts` narrows the run. `node scripts/e2e-stack.mjs` alone keeps the stack up on :7300.
 - End-to-end tests use Playwright against a real backend running in Docker; test files live in [frontend/e2e](frontend/e2e).
 - Start the test stack: `docker compose -f docker-compose.test.yml up -d --build`
 - Run tests: `cd frontend && npm run test:e2e` (or `test:e2e:ui` for interactive mode)

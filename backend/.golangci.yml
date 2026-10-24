@@ -1,0 +1,55 @@
+version: "2"
+
+# Baseline: linters that find real defects rather than style. Rules that are
+# noisy on the existing code are excluded below with the reason, so CI starts
+# green and stays strict for new code.
+
+run:
+  timeout: 5m
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - staticcheck
+    - bodyclose
+    - sqlclosecheck
+  settings:
+    errcheck:
+      exclude-functions:
+        # Close/Seek/Remove on read paths and best-effort cleanup.
+        - (io.Closer).Close
+        - (io.ReadCloser).Close
+        - (*os.File).Close
+        - (*database/sql.DB).Close
+        - (*database/sql.Rows).Close
+        - (*net/smtp.Client).Close
+        - (io.Seeker).Seek
+        - (io.ReadSeeker).Seek
+        - (*bytes.Reader).Seek
+        - (*os.File).Seek
+        - os.Remove
+        # Never returns an error since Go 1.24.
+        - crypto/rand.Read
+        # Builder method that returns its receiver; the result is not an error.
+        - (*meerkat/errors.AppError).WithDetails
+    staticcheck:
+      checks:
+        - all
+        # Doc-comment style rules, noisy on existing code (same as the default set).
+        - -ST1000
+        - -ST1003
+        - -ST1016
+        - -ST1020
+        - -ST1021
+        - -ST1022
+        # Style-only quick fixes (De Morgan, tagged switch, Fprintf).
+        - -QF1001
+        - -QF1002
+        - -QF1012
+  exclusions:
+    rules:
+      # Tests: unchecked errors in setup are fine.
+      - path: _test\.go
+        linters:
+          - errcheck

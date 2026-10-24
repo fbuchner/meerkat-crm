@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	apperrors "meerkat/errors"
 	"meerkat/logger"
 	"reflect"
@@ -19,12 +20,22 @@ func init() {
 	validate = validator.New()
 
 	// Register custom validators
-	validate.RegisterValidation("phone", validatePhone)
-	validate.RegisterValidation("birthday", validateBirthday)
-	validate.RegisterValidation("strong_password", validateStrongPassword)
-	validate.RegisterValidation("unique_circles", validateUniqueCircles)
-	validate.RegisterValidation("no_at_sign", validateNoAtSign)
-	validate.RegisterValidation("safeurl", validateSafeURL)
+	validators := []struct {
+		tag string
+		fn  validator.Func
+	}{
+		{"phone", validatePhone},
+		{"birthday", validateBirthday},
+		{"strong_password", validateStrongPassword},
+		{"unique_circles", validateUniqueCircles},
+		{"no_at_sign", validateNoAtSign},
+		{"safeurl", validateSafeURL},
+	}
+	for _, v := range validators {
+		if err := validate.RegisterValidation(v.tag, v.fn); err != nil {
+			panic(fmt.Sprintf("register validator %q: %v", v.tag, err))
+		}
+	}
 }
 
 // ValidationError represents a validation error response

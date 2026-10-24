@@ -296,7 +296,9 @@
     "archive": "Archive",
     "unarchive": "Unarchive",
     "archivedBadge": "Archived",
-    "archiveConfirmation": "Are you sure you want to archive this contact? All reminders will be deleted. You can unarchive later, but reminders won't be restored."
+    "archiveConfirmation": "Are you sure you want to archive this contact? All reminders will be deleted. You can unarchive later, but reminders won't be restored.",
+    "exportVcard": "Export vCard",
+    "exportVcardError": "Failed to export contact as vCard. Please try again."
   },
   "noteDialog": {
     "title": "Add Note",

@@ -296,7 +296,9 @@
     "archive": "Archiver",
     "unarchive": "Désarchiver",
     "archivedBadge": "Archivé",
-    "archiveConfirmation": "Êtes-vous sûr de vouloir archiver ce contact ? Tous les rappels seront supprimés. Vous pourrez le désarchiver plus tard, mais les rappels ne seront pas restaurés."
+    "archiveConfirmation": "Êtes-vous sûr de vouloir archiver ce contact ? Tous les rappels seront supprimés. Vous pourrez le désarchiver plus tard, mais les rappels ne seront pas restaurés.",
+    "exportVcard": "Exporter en vCard",
+    "exportVcardError": "Échec de l'exportation du contact en vCard. Veuillez réessayer."
   },
   "noteDialog": {
     "title": "Ajouter une note",

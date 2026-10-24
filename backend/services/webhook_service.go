@@ -138,8 +138,8 @@ func deliverWebhook(db *gorm.DB, cfg config.Config, wh models.Webhook, eventType
 		return saveDelivery(db, wh.ID, eventType, string(body), nil, &errStr, attempt, retryAt(attempt))
 	}
 	defer func() {
-		io.Copy(io.Discard, resp.Body) //nolint:errcheck
-		resp.Body.Close()
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
 	}()
 
 	statusCode := resp.StatusCode

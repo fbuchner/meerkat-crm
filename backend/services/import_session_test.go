@@ -166,3 +166,36 @@ func TestVCFReimport_AfterDelete_AddAsNewGetsFreshUID(t *testing.T) {
 	assert.NotEqual(t, uid, newContact.VCardUID)
 	assert.NotEmpty(t, newContact.VCardUID)
 }
+
+// Regression test: a vCard 2.1 file (older phones) used to import with only the
+// name, because its bare "TEL;CELL:" parameters swallowed the values.
+func TestVCFImport_V21KeepsFields(t *testing.T) {
+	db := newImportSessionTestDB(t)
+	log := zerolog.Nop()
+	const userID = uint(1)
+
+	contacts, previews, _, err := ParseVCF(strings.NewReader("BEGIN:VCARD\r\n"+
+		"VERSION:2.1\r\n"+
+		"N:Doe;Jane;;;\r\n"+
+		"FN:Jane Doe\r\n"+
+		"TEL;CELL:+49 170 1234567\r\n"+
+		"EMAIL;HOME:jane@example.com\r\n"+
+		"END:VCARD\r\n"), db, userID)
+	require.NoError(t, err)
+	require.Len(t, previews, 1)
+
+	mgr := NewImportSessionManager()
+	sessionID := mgr.CreateVCFSession(userID, contacts, previews)
+	_, appErr := mgr.ConfirmVCF(db, userID, models.ImportConfirmRequest{
+		SessionID: sessionID,
+		Actions:   []models.RowImportAction{{RowIndex: 0, Action: "add"}},
+	}, &config.Config{}, &log)
+	require.Nil(t, appErr)
+
+	var stored models.Contact
+	require.NoError(t, db.Where("user_id = ?", userID).First(&stored).Error)
+	assert.Equal(t, "+49 170 1234567", stored.Phone)
+	assert.Equal(t, []models.ContactPhone{{Type: "cell", Value: "+49 170 1234567"}}, stored.Phones)
+	assert.Equal(t, "jane@example.com", stored.Email)
+	assert.Equal(t, []models.ContactEmail{{Type: "home", Value: "jane@example.com"}}, stored.Emails)
+}

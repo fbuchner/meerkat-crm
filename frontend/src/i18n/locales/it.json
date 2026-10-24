@@ -296,7 +296,9 @@
     "archive": "Archivia",
     "unarchive": "Ripristina",
     "archivedBadge": "Archiviato",
-    "archiveConfirmation": "Sei sicuro di voler archiviare questo contatto? Tutti i promemoria verranno eliminati. Potrai ripristinarlo in seguito, ma i promemoria non verranno recuperati."
+    "archiveConfirmation": "Sei sicuro di voler archiviare questo contatto? Tutti i promemoria verranno eliminati. Potrai ripristinarlo in seguito, ma i promemoria non verranno recuperati.",
+    "exportVcard": "Esporta vCard",
+    "exportVcardError": "Impossibile esportare il contatto come vCard. Riprova."
   },
   "noteDialog": {
     "title": "Aggiungi Nota",

@@ -28,7 +28,7 @@ import (
 
 func GetProfilePicture(c *gin.Context, cfg *config.Config) {
 	idParam := c.Param("id")
-	contactID, err := strconv.Atoi(idParam)
+	contactID, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrValidation("Invalid contact ID"))
 		return
@@ -116,7 +116,7 @@ func AddPhotoToContact(c *gin.Context, cfg *config.Config) {
 	}
 
 	idParam := c.Param("id")
-	contactID, err := strconv.Atoi(idParam)
+	contactID, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrValidation("Invalid contact ID"))
 		return

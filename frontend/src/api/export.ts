@@ -1,8 +1,6 @@
 // Export API functions
 import { API_BASE_URL, apiFetch, getAuthHeaders, parseErrorResponse } from './client';
 
-export type VCardVersion = '3.0' | '4.0';
-
 /**
  * Helper function to download a file from an API response
  */
@@ -53,8 +51,8 @@ export async function exportDataAsCsv(): Promise<void> {
  * Export all contacts as VCF (vCard)
  * Downloads a VCF file containing all contacts with their photos
  */
-export async function exportContactsAsVcf(version: VCardVersion = '3.0'): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/export/vcf?version=${version}`, {
+export async function exportContactsAsVcf(): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/export/vcf`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
@@ -71,8 +69,8 @@ export async function exportContactsAsVcf(version: VCardVersion = '3.0'): Promis
  * Export a single contact as VCF (vCard)
  * Downloads a VCF file for the given contact
  */
-export async function exportContactAsVcf(contactId: number | string, version: VCardVersion = '3.0'): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/contacts/${contactId}/vcf?version=${version}`, {
+export async function exportContactAsVcf(contactId: number | string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/contacts/${contactId}/vcf`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });

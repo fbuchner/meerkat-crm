@@ -349,8 +349,6 @@ func ExportContactsAsVCF(c *gin.Context, photoDir string) {
 		return
 	}
 
-	version := vcardVersionParam(c)
-
 	// Fetch all user contacts
 	var contacts []models.Contact
 	if err := db.Where("user_id = ?", userID).
@@ -366,7 +364,7 @@ func ExportContactsAsVCF(c *gin.Context, photoDir string) {
 	encoder := vcard.NewEncoder(&buf)
 
 	for _, contact := range contacts {
-		card := carddav.ContactToVCardVersion(&contact, photoDir, version)
+		card := carddav.ContactToVCard(&contact, photoDir)
 		if err := encoder.Encode(card); err != nil {
 			log.Error().Err(err).Uint("contact_id", contact.ID).Msg("Failed to encode contact as vCard")
 			// Continue with other contacts instead of failing completely
@@ -401,7 +399,6 @@ func ExportContactAsVCF(c *gin.Context, photoDir string) {
 	}
 
 	contactID := c.Param("id")
-	version := vcardVersionParam(c)
 
 	var contact models.Contact
 	if err := db.Where("user_id = ?", userID).First(&contact, contactID).Error; err != nil {
@@ -415,7 +412,7 @@ func ExportContactAsVCF(c *gin.Context, photoDir string) {
 
 	var buf bytes.Buffer
 	encoder := vcard.NewEncoder(&buf)
-	card := carddav.ContactToVCardVersion(&contact, photoDir, version)
+	card := carddav.ContactToVCard(&contact, photoDir)
 	if err := encoder.Encode(card); err != nil {
 		log.Error().Err(err).Uint("contact_id", contact.ID).Msg("Failed to encode contact as vCard")
 		apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to generate vCard"))
@@ -432,15 +429,6 @@ func ExportContactAsVCF(c *gin.Context, photoDir string) {
 	c.Data(http.StatusOK, "text/vcard; charset=utf-8", buf.Bytes())
 
 	log.Info().Uint("contact_id", contact.ID).Msg("Single contact VCF export completed successfully")
-}
-
-// vcardVersionParam reads the ?version= query param and returns a valid
-// vCard VERSION ("3.0" or "4.0"), defaulting to "3.0" for anything else.
-func vcardVersionParam(c *gin.Context) string {
-	if c.Query("version") == "4.0" {
-		return "4.0"
-	}
-	return "3.0"
 }
 
 var filenameUnsafeChars = regexp.MustCompile(`[^a-z0-9]+`)

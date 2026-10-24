@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Box, Card, CardContent, Avatar, Typography, Chip, IconButton, Stack, TextField, Autocomplete, Button, Tooltip, Menu, MenuItem } from '@mui/material';
+import { Box, Card, CardContent, Avatar, Typography, Chip, IconButton, Stack, TextField, Autocomplete, Button, Tooltip } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
@@ -56,7 +55,7 @@ interface ContactHeaderProps {
   onStayInTouch?: () => void;
   onArchiveContact?: () => void;
   onUnarchiveContact?: () => void;
-  onExportVcard?: (version: '3.0' | '4.0') => void;
+  onExportVcard?: () => void;
 }
 
 export default function ContactHeader({
@@ -86,12 +85,6 @@ export default function ContactHeader({
   const { t } = useTranslation();
   const enabled = enabledFields ?? resolveEnabledFields(null);
   const isOn = (key: ContactFieldKey) => enabled.has(key);
-
-  const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(null);
-  const handleExportVersion = (version: '3.0' | '4.0') => {
-    setExportMenuAnchor(null);
-    onExportVcard?.(version);
-  };
 
   const displayName = [
     contact.prefix,
@@ -273,28 +266,11 @@ export default function ContactHeader({
                   </Box>
                   <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                     {onExportVcard && (
-                      <>
-                        <Tooltip title={t('contactDetail.exportVcard')}>
-                          <IconButton
-                            size="small"
-                            onClick={(e) => setExportMenuAnchor(e.currentTarget)}
-                          >
-                            <ContactMailIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Menu
-                          anchorEl={exportMenuAnchor}
-                          open={Boolean(exportMenuAnchor)}
-                          onClose={() => setExportMenuAnchor(null)}
-                        >
-                          <MenuItem onClick={() => handleExportVersion('3.0')}>
-                            {t('contactDetail.exportVcard3')}
-                          </MenuItem>
-                          <MenuItem onClick={() => handleExportVersion('4.0')}>
-                            {t('contactDetail.exportVcard4')}
-                          </MenuItem>
-                        </Menu>
-                      </>
+                      <Tooltip title={t('contactDetail.exportVcard')}>
+                        <IconButton size="small" onClick={() => onExportVcard()}>
+                          <ContactMailIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     )}
                     {contact.archived ? (
                       onUnarchiveContact && (

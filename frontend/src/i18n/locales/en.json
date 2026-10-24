@@ -293,8 +293,6 @@
     "archivedBadge": "Archived",
     "archiveConfirmation": "Are you sure you want to archive this contact? All reminders will be deleted. You can unarchive later, but reminders won't be restored.",
     "exportVcard": "Export vCard",
-    "exportVcard3": "vCard 3.0 (best compatibility)",
-    "exportVcard4": "vCard 4.0",
     "exportVcardError": "Failed to export contact as vCard. Please try again."
   },
   "noteDialog": {
@@ -458,7 +456,6 @@
     "exportVcf": {
       "title": "Export Contacts as VCF",
       "description": "Download all your contacts as a VCF (vCard) file. This format is compatible with most contact apps and includes profile photos.",
-      "versionLabel": "vCard version",
       "downloadButton": "Download VCF",
       "exporting": "Exporting...",
       "success": "Your contacts have been exported successfully.",

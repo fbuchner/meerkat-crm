@@ -555,11 +555,11 @@ export default function ContactDetailPage() {
     }
   };
 
-  const handleExportVcard = async (version: '3.0' | '4.0') => {
+  const handleExportVcard = async () => {
     if (!id) return;
 
     try {
-      await exportContactAsVcf(id, version);
+      await exportContactAsVcf(id);
     } catch (err) {
       console.error('Error exporting contact as vCard:', err);
       if (err instanceof ApiError) {

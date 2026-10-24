@@ -19,6 +19,7 @@
 - Any date shown to a user is formatted through [frontend/src/DateFormatProvider.tsx](frontend/src/DateFormatProvider.tsx), which honors the user's date-format preference. Never call `toLocaleDateString` or hand-roll a format — a date rendered directly ignores that preference.
 
 **Workflows**
+- Root `Makefile` runs both apps: `make install`, `make precommit` (gofmt on changed Go files, go vet, ESLint, tsc, unit tests). `make help` lists all targets.
 - Source backend/my_environment.env to `.env` before running the server
 - Start the backend with `go run main.go` (or `make dev`) from backend/ after `go mod tidy`; migrations are embedded in the binary and auto-run on boot. Use `make migrate-up` or cmd/migrate for manual control during development.
 - Frontend uses Yarn: `yarn install` then `yarn start` from frontend/; CRA proxies should point at the backend URL defined in `.env`.

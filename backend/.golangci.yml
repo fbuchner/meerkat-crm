@@ -43,9 +43,10 @@ linters:
         - -ST1020
         - -ST1021
         - -ST1022
-        # Style-only quick fixes (De Morgan, tagged switch).
+        # Style-only quick fixes (De Morgan, tagged switch, Fprintf).
         - -QF1001
         - -QF1002
+        - -QF1012
   exclusions:
     rules:
       # Tests: unchecked errors in setup are fine.

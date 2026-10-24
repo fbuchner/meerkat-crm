@@ -308,7 +308,8 @@
     "cancel": "Abbrechen",
     "save": "Speichern",
     "required": "Inhalt ist erforderlich",
-    "saveError": "Notiz konnte nicht gespeichert werden"
+    "saveError": "Notiz konnte nicht gespeichert werden",
+    "dateError": "Ungültiges Datumsformat. Überprüfen Sie Ihre Datumsformat-Einstellung."
   },
   "activityDialog": {
     "title": "Aktivität hinzufügen",
@@ -323,7 +324,8 @@
     "selectContacts": "Kontakte auswählen...",
     "cancel": "Abbrechen",
     "save": "Speichern",
-    "required": "Titel und Datum sind erforderlich"
+    "required": "Titel und Datum sind erforderlich",
+    "dateError": "Ungültiges Datumsformat. Überprüfen Sie Ihre Datumsformat-Einstellung."
   },
   "activities": {
     "title": "Aktivitäten",
@@ -383,7 +385,8 @@
       "quarterly": "Vierteljährlich",
       "six-months": "Alle 6 Monate",
       "yearly": "Jährlich"
-    }
+    },
+    "dateInvalid": "Ungültiges Datumsformat. Überprüfen Sie Ihre Datumsformat-Einstellung."
   },
   "common": {
     "save": "Speichern",

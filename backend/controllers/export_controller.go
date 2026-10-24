@@ -3,12 +3,14 @@ package controllers
 import (
 	"bytes"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"meerkat/carddav"
 	apperrors "meerkat/errors"
 	"meerkat/logger"
 	"meerkat/models"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -384,4 +386,60 @@ func ExportContactsAsVCF(c *gin.Context, photoDir string) {
 	log.Info().
 		Int("contacts", len(contacts)).
 		Msg("VCF export completed successfully")
+}
+
+// ExportContactAsVCF exports a single user contact as a VCF (vCard) file
+func ExportContactAsVCF(c *gin.Context, photoDir string) {
+	db := c.MustGet("db").(*gorm.DB)
+	log := logger.FromContext(c)
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	contactID := c.Param("id")
+
+	var contact models.Contact
+	if err := db.Where("user_id = ?", userID).First(&contact, contactID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", contactID))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrDatabase("Failed to retrieve contact").WithError(err))
+		}
+		return
+	}
+
+	var buf bytes.Buffer
+	encoder := vcard.NewEncoder(&buf)
+	card := carddav.ContactToVCard(&contact, photoDir)
+	if err := encoder.Encode(card); err != nil {
+		log.Error().Err(err).Uint("contact_id", contact.ID).Msg("Failed to encode contact as vCard")
+		apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to generate vCard"))
+		return
+	}
+
+	filename := fmt.Sprintf("%s.vcf", contactFilenameSlug(contact.Firstname, contact.Lastname))
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+	c.Header("Content-Type", "text/vcard; charset=utf-8")
+	c.Header("Content-Length", fmt.Sprintf("%d", buf.Len()))
+
+	c.Data(http.StatusOK, "text/vcard; charset=utf-8", buf.Bytes())
+
+	log.Info().Uint("contact_id", contact.ID).Msg("Single contact VCF export completed successfully")
+}
+
+var filenameUnsafeChars = regexp.MustCompile(`[^a-z0-9]+`)
+
+// contactFilenameSlug builds a lowercase, hyphenated filename stem from a
+// contact's name, falling back to "contact" if nothing usable remains.
+func contactFilenameSlug(firstname, lastname string) string {
+	slug := filenameUnsafeChars.ReplaceAllString(strings.ToLower(strings.TrimSpace(firstname+"-"+lastname)), "-")
+	slug = strings.Trim(slug, "-")
+	if slug == "" {
+		return "contact"
+	}
+	return slug
 }

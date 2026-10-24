@@ -64,3 +64,21 @@ export async function exportContactsAsVcf(): Promise<void> {
 
   await downloadFileFromResponse(response, 'meerkat-contacts.vcf');
 }
+
+/**
+ * Export a single contact as VCF (vCard)
+ * Downloads a VCF file for the given contact
+ */
+export async function exportContactAsVcf(contactId: number | string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/contacts/${contactId}/vcf`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await parseErrorResponse(response);
+    throw error;
+  }
+
+  await downloadFileFromResponse(response, `contact-${contactId}.vcf`);
+}

@@ -13,6 +13,7 @@ import {
 import AppDialog from './AppDialog';
 import { useTranslation } from 'react-i18next';
 import { Contact, getContacts } from '../api/contacts';
+import { useDateFormat } from '../DateFormatProvider';
 
 interface AddActivityDialogProps {
   open: boolean;
@@ -34,10 +35,11 @@ export default function AddActivityDialog({
   preselectedContactId,
 }: AddActivityDialogProps) {
   const { t } = useTranslation();
+  const { formatDate, parseDateInput, autoFormatDateInput, getDatePlaceholder } = useDateFormat();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(formatDate(new Date().toISOString().split('T')[0]));
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [searchInput, setSearchInput] = useState('');
@@ -95,13 +97,19 @@ export default function AddActivityDialog({
       return;
     }
 
+    const parsedDate = parseDateInput(date);
+    if (!parsedDate) {
+      setError(t('activityDialog.dateError'));
+      return;
+    }
+
     setSaving(true);
     try {
       await onSave({
         title,
         description,
         location,
-        date,
+        date: parsedDate,
         contact_ids: selectedContacts.map((c) => c.ID),
       });
       handleClose();
@@ -116,7 +124,7 @@ export default function AddActivityDialog({
     setTitle('');
     setDescription('');
     setLocation('');
-    setDate(new Date().toISOString().split('T')[0]);
+    setDate(formatDate(new Date().toISOString().split('T')[0]));
     setSelectedContacts([]);
     setSearchInput('');
     setContacts([]);
@@ -168,14 +176,11 @@ export default function AddActivityDialog({
           
           <TextField
             label={t('activityDialog.date')}
-            type="date"
+            placeholder={getDatePlaceholder()}
             value={date}
-            onChange={(e) => setDate(e.target.value)}
+            onChange={(e) => setDate(autoFormatDateInput(e.target.value, date))}
             fullWidth
             required
-            InputLabelProps={{
-              shrink: true,
-            }}
           />
           
           <Autocomplete

@@ -12,6 +12,7 @@ import {
   archiveContact,
   unarchiveContact
 } from './api/contacts';
+import { exportContactAsVcf } from './api/export';
 import { getCurrentUser } from './api/admin';
 import { resolveEnabledFields, ContactFieldKey } from './contactFields';
 import { 
@@ -77,7 +78,7 @@ const CONTACT_FIELDS = [
   'circles', 'photo', 'custom_fields', 'archived',
   'emails', 'phones', 'addresses', 'urls', 'impps',
   'prefix', 'middle_name', 'suffix', 'organization', 'department',
-  'job_title', 'role', 'anniversary'
+  'job_title', 'role', 'anniversary', 'is_deceased', 'deceased_date'
 ];
 
 export default function ContactDetailPage() {
@@ -603,6 +604,21 @@ export default function ContactDetailPage() {
     }
   };
 
+  const handleExportVcard = async () => {
+    if (!id) return;
+
+    try {
+      await exportContactAsVcf(id);
+    } catch (err) {
+      console.error('Error exporting contact as vCard:', err);
+      if (err instanceof ApiError) {
+        showError(err.getDisplayMessage());
+      } else {
+        showError(t('contactDetail.exportVcardError'));
+      }
+    }
+  };
+
   const handleUnarchiveContact = async () => {
     if (!contact || !id) return;
 
@@ -699,6 +715,7 @@ export default function ContactDetailPage() {
         onStayInTouch={contact.archived ? undefined : handleStayInTouch}
         onArchiveContact={contact.archived ? undefined : handleArchiveContact}
         onUnarchiveContact={contact.archived ? handleUnarchiveContact : undefined}
+        onExportVcard={handleExportVcard}
       />
 
       {/* General Information and Timeline - Two Column Layout */}

@@ -16,9 +16,14 @@ import (
 //   - QUOTED-PRINTABLE values, including their "=" soft line breaks, are decoded.
 //   - values in a CHARSET other than UTF-8 are converted to UTF-8.
 //
-// Lines without bare parameters, ENCODING=QUOTED-PRINTABLE or CHARSET are emitted
-// unchanged (unfolded), so vCard 3.0 and 4.0 input decodes as before.
+// Only files that declare VERSION:2.1 are rewritten. Anything else is returned
+// byte for byte, so vCard 3.0 and 4.0 imports cannot be affected by the rewrites
+// below — unfolding alone would otherwise rewrite valid modern cards.
 func NormalizeLegacyVCF(data []byte) []byte {
+	if !hasVCard21(data) {
+		return data
+	}
+
 	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
 
 	var out strings.Builder
@@ -45,6 +50,24 @@ func NormalizeLegacyVCF(data []byte) []byte {
 	}
 	flush()
 	return []byte(out.String())
+}
+
+// hasVCard21 reports whether data declares a vCard 2.1 card. Mixed-version files
+// are normalized as a whole, since a 2.1 card in them needs it either way.
+func hasVCard21(data []byte) bool {
+	for _, line := range strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n") {
+		colon := indexUnquoted(line, ':')
+		if colon < 0 {
+			continue
+		}
+		if !strings.EqualFold(splitUnquoted(line[:colon], ';')[0], "VERSION") {
+			continue
+		}
+		if strings.TrimSpace(line[colon+1:]) == "2.1" {
+			return true
+		}
+	}
+	return false
 }
 
 // isQuotedPrintable reports whether a property line declares a quoted-printable

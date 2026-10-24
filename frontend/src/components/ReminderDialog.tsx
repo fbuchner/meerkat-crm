@@ -78,7 +78,7 @@ export default function ReminderDialog({
       setReoccurFromCompletion(true);
     }
     setError(null);
-  }, [reminder, open, initialValues]);
+  }, [reminder, open, initialValues, formatDate]);
 
   const handleRecurrenceChange = (newRecurrence: ReminderFormData['recurrence']) => {
     setRecurrence(newRecurrence);

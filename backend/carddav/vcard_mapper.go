@@ -511,7 +511,7 @@ func SaveContactPhoto(photoData []byte, mediaType string, photoDir string) (stri
 	photoPath := baseFilename + "_photo.jpg"
 
 	// Ensure directory exists
-	if err := os.MkdirAll(photoDir, os.ModePerm); err != nil { //nolint:gosec // photo directory is shared with the web server; mode kept as-is
+	if err := os.MkdirAll(photoDir, os.ModePerm); err != nil {
 		return "", "", err
 	}
 
@@ -523,7 +523,7 @@ func SaveContactPhoto(photoData []byte, mediaType string, photoDir string) (stri
 		photoImg = resize.Resize(maxPhotoSize, maxPhotoSize, img, resize.Lanczos3)
 	}
 	fullPhotoPath := filepath.Join(photoDir, photoPath)
-	outFile, err := os.Create(fullPhotoPath) //nolint:gosec // path built from the configured photo directory
+	outFile, err := os.Create(fullPhotoPath)
 	if err != nil {
 		return "", "", err
 	}
@@ -590,7 +590,7 @@ func readContactPhoto(contact *models.Contact, photoDir string) (string, string)
 	// Try to read full photo from disk
 	if contact.Photo != "" && photoDir != "" {
 		photoPath := filepath.Join(photoDir, contact.Photo)
-		data, err := os.ReadFile(photoPath) //nolint:gosec // path built from the configured photo directory
+		data, err := os.ReadFile(photoPath)
 		if err == nil {
 			mediaType := http.DetectContentType(data)
 			return base64.StdEncoding.EncodeToString(data), mediaType

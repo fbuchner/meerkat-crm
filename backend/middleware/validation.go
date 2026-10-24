@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/gin-gonic/gin"
@@ -26,6 +27,7 @@ func init() {
 	}{
 		{"phone", validatePhone},
 		{"birthday", validateBirthday},
+		{"deceased_date", validateDeceasedDate},
 		{"strong_password", validateStrongPassword},
 		{"unique_circles", validateUniqueCircles},
 		{"no_at_sign", validateNoAtSign},
@@ -78,6 +80,8 @@ func formatValidationError(err validator.FieldError) string {
 		return field + " must be a valid phone number"
 	case "birthday":
 		return field + " must be in YYYY-MM-DD format (use --MM-DD if year unknown)"
+	case "deceased_date":
+		return field + " must be a valid past date (YYYY-MM-DD) on or after the birthday"
 	case "strong_password":
 		return field + " is too weak. Use a longer password (15+ characters) or a passphrase (20+ characters). Avoid common passwords."
 	case "unique_circles":
@@ -177,6 +181,44 @@ func validateBirthday(fl validator.FieldLevel) bool {
 	}
 
 	// Additional validation could check if date is valid
+	return true
+}
+
+// validateDeceasedDate validates that a deceased date is a full YYYY-MM-DD
+// date, not in the future, and not before the contact's Birthday (when
+// Birthday is present and has a known year).
+func validateDeceasedDate(fl validator.FieldLevel) bool {
+	deceasedDate := fl.Field().String()
+	if deceasedDate == "" {
+		return true
+	}
+
+	match, _ := regexp.MatchString(`^\d{4}-\d{2}-\d{2}$`, deceasedDate)
+	if !match {
+		return false
+	}
+
+	parsedDeceased, err := time.Parse("2006-01-02", deceasedDate)
+	if err != nil {
+		return false
+	}
+	todayUTC := time.Now().UTC().Truncate(24 * time.Hour)
+	if parsedDeceased.After(todayUTC) {
+		return false
+	}
+
+	birthdayField := fl.Parent().FieldByName("Birthday")
+	if birthdayField.IsValid() && birthdayField.Kind() == reflect.String {
+		birthday := birthdayField.String()
+		if birthday != "" && !strings.HasPrefix(birthday, "--") {
+			if parsedBirthday, err := time.Parse("2006-01-02", birthday); err == nil {
+				if parsedDeceased.Before(parsedBirthday) {
+					return false
+				}
+			}
+		}
+	}
+
 	return true
 }
 

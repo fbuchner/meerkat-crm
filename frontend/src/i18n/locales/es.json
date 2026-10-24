@@ -252,6 +252,7 @@
     "phone": "Teléfono",
     "birthday": "Cumpleaños",
     "birthdayError": "Formato de fecha inválido. Verifica tu configuración de formato de fecha.",
+    "birthdayReminder": "Recordatorio de cumpleaños",
     "address": "Dirección",
     "workInfo": "Información Laboral",
     "foodPreferences": "Preferencias Alimentarias",

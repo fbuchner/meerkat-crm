@@ -108,7 +108,7 @@ func (t *contactRoundTripper) RoundTrip(req *http.Request) (*http.Response, erro
 		return nil, errContactSyncUnsupported
 	}
 	resp.Body = &limitedBody{inner: resp.Body, remaining: maxContactResponseBytes, errTooLarge: ErrContactSyncTooLarge}
-	return resp, nil
+	return quoteETags(resp)
 }
 
 func isContactSyncSentinel(err error) bool {

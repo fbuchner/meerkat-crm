@@ -15,8 +15,11 @@
 - Resource-specific modules in [frontend/src/api](frontend/src/api) pair with hooks in [frontend/src/hooks](frontend/src/hooks); pages like [frontend/src/ContactsPage.tsx](frontend/src/ContactsPage.tsx) consume `{ data, loading, error, refetch }` contracts.
 - Auth helpers in [frontend/src/auth.ts](frontend/src/auth.ts) persist JWTs in localStorage; frontend assumes `REACT_APP_API_URL` when constructing base URLs.
 - Styling blends global CSS (App.css/index.css) with MUI theming; photo uploads land in backend static storage under `static/photos`.
+- All user-facing copy goes through `useTranslation()` and must be added to **every** locale in [frontend/src/i18n/locales](frontend/src/i18n/locales) — `en.json`, `de.json`, `fr.json`, `es.json`, `it.json`. An English-only string is an incomplete change; CI-adjacent tooling flags locales whose keys drift from `en.json`.
+- Any date shown to a user is formatted through [frontend/src/DateFormatProvider.tsx](frontend/src/DateFormatProvider.tsx), which honors the user's date-format preference. Never call `toLocaleDateString` or hand-roll a format — a date rendered directly ignores that preference.
 
 **Workflows**
+- Root `Makefile` runs both apps: `make install`, `make precommit` (gofmt on changed Go files, go vet, ESLint, tsc, unit tests). `make help` lists all targets.
 - Source backend/my_environment.env to `.env` before running the server
 - Start the backend with `go run main.go` (or `make dev`) from backend/ after `go mod tidy`; migrations are embedded in the binary and auto-run on boot. Use `make migrate-up` or cmd/migrate for manual control during development.
 - Frontend uses Yarn: `yarn install` then `yarn start` from frontend/; CRA proxies should point at the backend URL defined in `.env`.

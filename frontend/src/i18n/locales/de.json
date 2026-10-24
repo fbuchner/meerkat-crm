@@ -224,6 +224,7 @@
     "jobTitle": "Position",
     "role": "Rolle",
     "anniversary": "Jahrestag",
+    "deceased": "Verstorben",
     "fieldType": "Typ",
     "types": {
       "home": "Privat",
@@ -252,6 +253,10 @@
     "phone": "Telefon",
     "birthday": "Geburtstag",
     "birthdayError": "Ungültiges Datumsformat. Überprüfen Sie Ihre Datumsformat-Einstellung.",
+    "deceased": "Verstorben",
+    "deceasedDate": "Todesdatum",
+    "deceasedDateError": "Ungültiges Datum. Muss ein echtes, vergangenes Datum am oder nach dem Geburtstag sein.",
+    "deceasedYes": "Ja",
     "address": "Adresse",
     "workInfo": "Arbeitsinformationen",
     "foodPreferences": "Essensvorlieben",
@@ -291,7 +296,9 @@
     "archive": "Archivieren",
     "unarchive": "Wiederherstellen",
     "archivedBadge": "Archiviert",
-    "archiveConfirmation": "Möchten Sie diesen Kontakt wirklich archivieren? Alle Erinnerungen werden gelöscht. Sie können den Kontakt später wiederherstellen, aber die Erinnerungen werden nicht wiederhergestellt."
+    "archiveConfirmation": "Möchten Sie diesen Kontakt wirklich archivieren? Alle Erinnerungen werden gelöscht. Sie können den Kontakt später wiederherstellen, aber die Erinnerungen werden nicht wiederhergestellt.",
+    "exportVcard": "vCard exportieren",
+    "exportVcardError": "Kontakt konnte nicht als vCard exportiert werden. Bitte versuchen Sie es erneut."
   },
   "noteDialog": {
     "title": "Notiz hinzufügen",

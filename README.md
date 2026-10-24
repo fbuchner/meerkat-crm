@@ -101,7 +101,7 @@ This application is under development. You can [open an issue](https://github.co
 
 You can also participate and open up a pull request. 
 
-While AI-assistants can be used to support coding, please note that you are ultimately responsible for code quality. Do not open pull requests for hands-off "vibe-coding" developments, rather stick to feature requests in these cases.
+AI assistants are welcome — this repository uses Claude Code itself, and some pull requests here are opened by maintainer-run automation. The standard is the same either way: you are responsible for the quality of what you submit, and you should understand it well enough to explain it in review. Please don't open hands-off "vibe-coded" pull requests you haven't read and tested — in those cases a feature request is far more useful than a patch nobody can vouch for.
 
 ### Development
 To set up this repository for development, follow these steps:

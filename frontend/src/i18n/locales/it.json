@@ -224,6 +224,7 @@
     "jobTitle": "Posizione",
     "role": "Ruolo",
     "anniversary": "Anniversario",
+    "deceased": "Deceduto/a",
     "fieldType": "Tipo",
     "types": {
       "home": "Casa",
@@ -252,6 +253,10 @@
     "phone": "Telefono",
     "birthday": "Compleanno",
     "birthdayError": "Formato data non valido. Controlla le impostazioni del formato data.",
+    "deceased": "Deceduto/a",
+    "deceasedDate": "Data di decesso",
+    "deceasedDateError": "Data non valida. Deve essere una data reale e passata, uguale o successiva al compleanno.",
+    "deceasedYes": "Sì",
     "address": "Indirizzo",
     "workInfo": "Informazioni Lavorative",
     "foodPreferences": "Preferenze Alimentari",
@@ -291,7 +296,9 @@
     "archive": "Archivia",
     "unarchive": "Ripristina",
     "archivedBadge": "Archiviato",
-    "archiveConfirmation": "Sei sicuro di voler archiviare questo contatto? Tutti i promemoria verranno eliminati. Potrai ripristinarlo in seguito, ma i promemoria non verranno recuperati."
+    "archiveConfirmation": "Sei sicuro di voler archiviare questo contatto? Tutti i promemoria verranno eliminati. Potrai ripristinarlo in seguito, ma i promemoria non verranno recuperati.",
+    "exportVcard": "Esporta vCard",
+    "exportVcardError": "Impossibile esportare il contatto come vCard. Riprova."
   },
   "noteDialog": {
     "title": "Aggiungi Nota",

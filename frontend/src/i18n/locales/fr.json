@@ -224,6 +224,7 @@
     "jobTitle": "Poste",
     "role": "Rôle",
     "anniversary": "Anniversaire de mariage",
+    "deceased": "Décédé(e)",
     "fieldType": "Type",
     "types": {
       "home": "Domicile",
@@ -252,6 +253,10 @@
     "phone": "Téléphone",
     "birthday": "Anniversaire",
     "birthdayError": "Format de date invalide. Vérifiez votre paramètre de format de date.",
+    "deceased": "Décédé(e)",
+    "deceasedDate": "Date de décès",
+    "deceasedDateError": "Date invalide. Doit être une date réelle et passée, égale ou postérieure à l'anniversaire.",
+    "deceasedYes": "Oui",
     "address": "Adresse",
     "workInfo": "Informations professionnelles",
     "foodPreferences": "Préférences alimentaires",
@@ -291,7 +296,9 @@
     "archive": "Archiver",
     "unarchive": "Désarchiver",
     "archivedBadge": "Archivé",
-    "archiveConfirmation": "Êtes-vous sûr de vouloir archiver ce contact ? Tous les rappels seront supprimés. Vous pourrez le désarchiver plus tard, mais les rappels ne seront pas restaurés."
+    "archiveConfirmation": "Êtes-vous sûr de vouloir archiver ce contact ? Tous les rappels seront supprimés. Vous pourrez le désarchiver plus tard, mais les rappels ne seront pas restaurés.",
+    "exportVcard": "Exporter en vCard",
+    "exportVcardError": "Échec de l'exportation du contact en vCard. Veuillez réessayer."
   },
   "noteDialog": {
     "title": "Ajouter une note",

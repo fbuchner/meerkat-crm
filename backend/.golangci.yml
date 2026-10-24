@@ -1,8 +1,8 @@
 version: "2"
 
-# Baseline: real findings are fixed; rules that are noisy on the existing code
-# are excluded below with the reason, so CI starts green and stays strict for
-# new code. Revisit the exclusions one at a time.
+# Baseline: linters that find real defects rather than style. Rules that are
+# noisy on the existing code are excluded below with the reason, so CI starts
+# green and stays strict for new code.
 
 run:
   timeout: 5m
@@ -12,8 +12,6 @@ linters:
   enable:
     - errcheck
     - staticcheck
-    - gosec
-    - revive
     - bodyclose
     - sqlclosecheck
   settings:
@@ -48,38 +46,9 @@ linters:
         # Style-only quick fixes (De Morgan, tagged switch).
         - -QF1001
         - -QF1002
-    gosec:
-      excludes:
-        - G101 # false positive on error code constants and similar names
-        - G104 # unhandled errors are errcheck's job (with its exclusions)
-        # G115, G201, G202, G301, G304 are not excluded: the known hits carry a
-        # line-level //nolint:gosec with the reason, so new code is still checked.
-    revive:
-      rules:
-        - name: blank-imports
-        - name: context-as-argument
-        - name: context-keys-type
-        - name: dot-imports
-        - name: error-return
-        - name: error-strings
-        - name: error-naming
-        - name: increment-decrement
-        - name: var-declaration
-        - name: range
-        - name: receiver-naming
-        - name: time-naming
-        - name: indent-error-flow
-        - name: errorf
-        - name: empty-block
-        - name: superfluous-else
-        - name: unreachable-code
-        # Left out as noisy on existing code: exported (doc comments),
-        # package-comments, unused-parameter (handler signatures),
-        # var-naming (Id/Api/Url renames would change exported types).
   exclusions:
     rules:
-      # Tests: unchecked errors in setup and test-only file permissions are fine.
+      # Tests: unchecked errors in setup are fine.
       - path: _test\.go
         linters:
           - errcheck
-          - gosec

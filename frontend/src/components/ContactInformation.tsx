@@ -15,7 +15,7 @@ import ClearAllIcon from '@mui/icons-material/ClearAll';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import PeopleIcon from '@mui/icons-material/People';
 import AddIcon from '@mui/icons-material/Add';
-import { Checkbox, FormControlLabel } from '@mui/material';
+import { Checkbox } from '@mui/material';
 import HeartBrokenIcon from '@mui/icons-material/HeartBroken';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -31,9 +31,8 @@ import { Relationship, IncomingRelationship } from '../api/relationships';
 import { Contact, ContactValue, ContactAddress } from '../api/contacts';
 import { Reminder } from '../api/reminders';
 import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
-import { useDateFormat } from '../DateFormatProvider';
-import { findBirthdayReminder } from '../utils/birthdayReminder';
 import { useDateFormat, calculateAgeAtDate } from '../DateFormatProvider';
+import { findBirthdayReminder } from '../utils/birthdayReminder';
 
 interface ContactInformationProps {
   contact: Partial<Contact>;

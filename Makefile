@@ -1,4 +1,4 @@
-.PHONY: help install format format-check lint typecheck test test-e2e precommit build
+.PHONY: help install format format-check lint typecheck test precommit build
 
 YARN ?= corepack yarn
 # Base for format-check: only files changed since it are checked, so legacy
@@ -41,9 +41,6 @@ typecheck: ## TypeScript type check
 test: ## Backend and frontend unit tests
 	cd backend && go test ./...
 	cd frontend && $(YARN) test
-
-test-e2e: ## Playwright E2E against a local stack (no Docker; see scripts/e2e-stack.mjs)
-	node scripts/e2e-stack.mjs -- npx playwright test $(ARGS)
 
 precommit: format-check lint typecheck test ## All checks except E2E
 

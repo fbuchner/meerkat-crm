@@ -253,6 +253,7 @@
     "phone": "Phone",
     "birthday": "Birthday",
     "birthdayError": "Invalid date format. Check your date format setting.",
+    "birthdayReminder": "Birthday reminder",
     "deceased": "Deceased",
     "deceasedDate": "Date of death",
     "deceasedDateError": "Invalid date. Must be a real, past date on or after the birthday.",

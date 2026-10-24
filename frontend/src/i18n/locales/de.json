@@ -253,6 +253,7 @@
     "phone": "Telefon",
     "birthday": "Geburtstag",
     "birthdayError": "Ungültiges Datumsformat. Überprüfen Sie Ihre Datumsformat-Einstellung.",
+    "birthdayReminder": "Geburtstagserinnerung",
     "deceased": "Verstorben",
     "deceasedDate": "Todesdatum",
     "deceasedDateError": "Ungültiges Datum. Muss ein echtes, vergangenes Datum am oder nach dem Geburtstag sein.",

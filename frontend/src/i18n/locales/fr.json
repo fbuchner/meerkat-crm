@@ -253,6 +253,7 @@
     "phone": "Téléphone",
     "birthday": "Anniversaire",
     "birthdayError": "Format de date invalide. Vérifiez votre paramètre de format de date.",
+    "birthdayReminder": "Rappel d'anniversaire",
     "deceased": "Décédé(e)",
     "deceasedDate": "Date de décès",
     "deceasedDateError": "Date invalide. Doit être une date réelle et passée, égale ou postérieure à l'anniversaire.",

@@ -253,6 +253,7 @@
     "phone": "Telefono",
     "birthday": "Compleanno",
     "birthdayError": "Formato data non valido. Controlla le impostazioni del formato data.",
+    "birthdayReminder": "Promemoria compleanno",
     "deceased": "Deceduto/a",
     "deceasedDate": "Data di decesso",
     "deceasedDateError": "Data non valida. Deve essere una data reale e passata, uguale o successiva al compleanno.",

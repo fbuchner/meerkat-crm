@@ -253,6 +253,7 @@
     "phone": "Teléfono",
     "birthday": "Cumpleaños",
     "birthdayError": "Formato de fecha inválido. Verifica tu configuración de formato de fecha.",
+    "birthdayReminder": "Recordatorio de cumpleaños",
     "deceased": "Fallecido/a",
     "deceasedDate": "Fecha de fallecimiento",
     "deceasedDateError": "Fecha no válida. Debe ser una fecha real y pasada, igual o posterior al cumpleaños.",

@@ -1,0 +1,93 @@
+name: Claude Review
+
+# Automatic review on every pull request that is opened or pushed to.
+#
+# Two guards keep this from firing where it cannot work or is not wanted:
+#   - fork PRs are skipped, because the `pull_request` event gives a fork no
+#     access to repository secrets, so the run would only fail. This repository
+#     is public, so contributor PRs do arrive from forks.
+#   - draft PRs are skipped.
+# `allowed_bots: claude[bot]` is set so that pull requests Claude itself opened
+# from the @claude workflow still get reviewed; the action blocks all bot actors
+# by default.
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+
+jobs:
+  review:
+    name: Review pull request
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.draft == false
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+      actions: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          # Vitest config passes --no-experimental-webstorage, which requires Node >= 22.4
+          node-version: 22
+          cache: 'yarn'
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Run Claude review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          allowed_bots: 'claude[bot]'
+          additional_permissions: |
+            actions: read
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this pull request. The PR branch is already checked out in the
+            working directory. Read .github/CLAUDE_INSTRUCTIONS.md first — it lists
+            this repository's definition of done and its specific traps.
+
+            Weigh these repository-specific failure modes first, before generic
+            code-quality remarks:
+            - A new or renamed `contacts` column must appear in BOTH allowlists:
+              `contactSelectableFields` in backend/controllers/contact_controller.go
+              and `CONTACT_FIELDS` in frontend/src/ContactDetailPage.tsx. Missing the
+              frontend one is silent data loss that unit tests do not catch.
+            - Every new user-facing string must exist in all five locale files
+              (en, de, fr, es, it) under frontend/src/i18n/locales/.
+            - Every date shown to a user must go through DateFormatProvider, never
+              `toLocaleDateString` or a hand-rolled format.
+            - A new migration must ship a matching `.down.sql`.
+            - Every user-scoped query must filter by `UserID`; multi-entity writes
+              belong in a transaction.
+            - Controllers must not decode the request body again — the validation
+              middleware already did, and the payload is on `c.Get("validated")`.
+
+            Then correctness, security and performance in general.
+
+            Do not approve or request changes as a formal review, and do not merge.
+            Use `gh pr comment` for top-level feedback and
+            `mcp__github_inline_comment__create_inline_comment` (with `confirmed: true`)
+            for specific lines. Post your findings only as GitHub comments — do not
+            return the review as a chat message. If you find nothing worth raising,
+            say so in one short comment.
+          claude_args: |
+            --max-turns 20
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(cd:*),Bash(go vet:*),Bash(go test:*),Bash(gofmt:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"

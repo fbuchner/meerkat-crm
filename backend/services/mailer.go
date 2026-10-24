@@ -121,7 +121,7 @@ func sendViaSMTP(cfg config.Config, msg EmailMessage) error {
 
 // sendSMTPImplicitTLS sends a message over a connection that is wrapped in TLS (implicit TLS, typically port 465).
 func sendSMTPImplicitTLS(cfg config.Config, addr string, auth smtp.Auth, to string, body []byte) error {
-	conn, err := tls.Dial("tcp", addr, &tls.Config{ServerName: cfg.SMTPHost})
+	conn, err := tls.Dial("tcp", addr, &tls.Config{ServerName: cfg.SMTPHost, MinVersion: tls.VersionTLS12})
 	if err != nil {
 		return fmt.Errorf("tls dial: %w", err)
 	}

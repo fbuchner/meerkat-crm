@@ -62,7 +62,7 @@ jobs:
   format:
     permissions:
       contents: read
-    name: Format (gofmt, Prettier; changed files)
+    name: Format (gofmt; changed files)
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -79,20 +79,8 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'yarn'
-          cache-dependency-path: frontend/yarn.lock
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: yarn install --frozen-lockfile
-
-      # Only files changed by the pull request (or push) are checked, so legacy
-      # unformatted files do not block unrelated work. For stacked PRs the base
-      # is the previous branch, not main.
+      # Only files changed by the pull request (or push) are checked, so the few
+      # legacy files that are not gofmt-clean do not block unrelated work.
       - name: Check formatting of changed files
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}

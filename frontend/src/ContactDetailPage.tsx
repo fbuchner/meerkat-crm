@@ -12,6 +12,7 @@ import {
   archiveContact,
   unarchiveContact
 } from './api/contacts';
+import { exportContactAsVcf } from './api/export';
 import { getCurrentUser } from './api/admin';
 import { resolveEnabledFields, ContactFieldKey } from './contactFields';
 import { 
@@ -25,8 +26,12 @@ import {
 import {
   ReminderCompletion,
   getCompletionsForContact,
-  deleteCompletion
+  deleteCompletion,
+  createReminder,
+  updateReminder,
+  deleteReminder
 } from './api/reminders';
+import { computeNextBirthdayOccurrence, findBirthdayReminder, buildBirthdayReminderPayload } from './utils/birthdayReminder';
 import {
   Box,
   Card,
@@ -73,7 +78,7 @@ const CONTACT_FIELDS = [
   'circles', 'photo', 'custom_fields', 'archived',
   'emails', 'phones', 'addresses', 'urls', 'impps',
   'prefix', 'middle_name', 'suffix', 'organization', 'department',
-  'job_title', 'role', 'anniversary'
+  'job_title', 'role', 'anniversary', 'is_deceased', 'deceased_date'
 ];
 
 export default function ContactDetailPage() {
@@ -374,6 +379,7 @@ export default function ContactDetailPage() {
     }
 
     try {
+      const previousBirthday = field === 'birthday' ? contact.birthday : undefined;
       const updatedContact = await updateContact(id!, {
         ...contact,
         [field]: valueToSave
@@ -382,12 +388,56 @@ export default function ContactDetailPage() {
       setEditingField(null);
       setEditValue('');
       setValidationError('');
+
+      if (field === 'birthday' && previousBirthday) {
+        const existingReminder = findBirthdayReminder(reminders, previousBirthday);
+        if (existingReminder) {
+          if (!valueToSave) {
+            await deleteReminder(existingReminder.ID);
+            await refreshReminders();
+          } else {
+            const nextOccurrence = computeNextBirthdayOccurrence(valueToSave);
+            if (nextOccurrence) {
+              await updateReminder(existingReminder.ID, { remind_at: nextOccurrence.toISOString() });
+              await refreshReminders();
+            }
+          }
+        }
+      }
     } catch (err) {
       console.error('Error updating contact:', err);
       if (err instanceof ApiError) {
         const errorMessage = err.getDisplayMessage();
         setValidationError(errorMessage);
         showError(errorMessage);
+      } else {
+        showError(t('contactDetail.updateError'));
+      }
+    }
+  };
+
+  const handleToggleBirthdayReminder = async () => {
+    if (!contact || !contact.birthday) return;
+
+    const existingReminder = findBirthdayReminder(reminders, contact.birthday);
+    try {
+      if (existingReminder) {
+        await deleteReminder(existingReminder.ID);
+      } else {
+        const payload = buildBirthdayReminderPayload(
+          contact.ID,
+          contact.birthday,
+          t('reminders.birthdayMessage', { name: `${contact.firstname} ${contact.lastname}` })
+        );
+        if (payload) {
+          await createReminder(contact.ID, payload);
+        }
+      }
+      await refreshReminders();
+    } catch (err) {
+      console.error('Error toggling birthday reminder:', err);
+      if (err instanceof ApiError) {
+        showError(err.getDisplayMessage());
       } else {
         showError(t('contactDetail.updateError'));
       }
@@ -554,6 +604,21 @@ export default function ContactDetailPage() {
     }
   };
 
+  const handleExportVcard = async () => {
+    if (!id) return;
+
+    try {
+      await exportContactAsVcf(id);
+    } catch (err) {
+      console.error('Error exporting contact as vCard:', err);
+      if (err instanceof ApiError) {
+        showError(err.getDisplayMessage());
+      } else {
+        showError(t('contactDetail.exportVcardError'));
+      }
+    }
+  };
+
   const handleUnarchiveContact = async () => {
     if (!contact || !id) return;
 
@@ -650,6 +715,7 @@ export default function ContactDetailPage() {
         onStayInTouch={contact.archived ? undefined : handleStayInTouch}
         onArchiveContact={contact.archived ? undefined : handleArchiveContact}
         onUnarchiveContact={contact.archived ? handleUnarchiveContact : undefined}
+        onExportVcard={handleExportVcard}
       />
 
       {/* General Information and Timeline - Two Column Layout */}
@@ -683,6 +749,8 @@ export default function ContactDetailPage() {
           onEditRelationship={handleEditRelationship}
           onDeleteRelationship={handleDeleteRelationship}
           customFieldNames={customFieldNames}
+          reminders={reminders}
+          onToggleBirthdayReminder={handleToggleBirthdayReminder}
         />
 
         {/* Timeline and Reminders Tabs */}

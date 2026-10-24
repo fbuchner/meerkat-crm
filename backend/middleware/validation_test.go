@@ -2,6 +2,9 @@ package middleware
 
 import (
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSanitizeString(t *testing.T) {
@@ -310,4 +313,67 @@ func TestValidateStruct_NoAtSign(t *testing.T) {
 			}
 		})
 	}
+}
+
+type deceasedTestStruct struct {
+	Birthday     string `validate:"omitempty,birthday"`
+	DeceasedDate string `validate:"omitempty,deceased_date"`
+}
+
+func TestValidateDeceasedDate_EmptyIsValid(t *testing.T) {
+	s := deceasedTestStruct{DeceasedDate: ""}
+	err := validate.Struct(s)
+	assert.NoError(t, err)
+}
+
+func TestValidateDeceasedDate_ValidFullDate(t *testing.T) {
+	s := deceasedTestStruct{DeceasedDate: "2020-01-15"}
+	err := validate.Struct(s)
+	assert.NoError(t, err)
+}
+
+func TestValidateDeceasedDate_RejectsPartialDate(t *testing.T) {
+	s := deceasedTestStruct{DeceasedDate: "--01-15"}
+	err := validate.Struct(s)
+	assert.Error(t, err)
+}
+
+func TestValidateDeceasedDate_RejectsMalformed(t *testing.T) {
+	s := deceasedTestStruct{DeceasedDate: "15/01/2020"}
+	err := validate.Struct(s)
+	assert.Error(t, err)
+}
+
+func TestValidateDeceasedDate_RejectsFutureDate(t *testing.T) {
+	s := deceasedTestStruct{DeceasedDate: "2099-01-01"}
+	err := validate.Struct(s)
+	assert.Error(t, err)
+}
+
+func TestValidateDeceasedDate_RejectsBeforeBirthday(t *testing.T) {
+	s := deceasedTestStruct{Birthday: "1990-05-01", DeceasedDate: "1980-01-01"}
+	err := validate.Struct(s)
+	assert.Error(t, err)
+}
+
+func TestValidateDeceasedDate_AllowsAfterBirthday(t *testing.T) {
+	s := deceasedTestStruct{Birthday: "1990-05-01", DeceasedDate: "2020-01-15"}
+	err := validate.Struct(s)
+	assert.NoError(t, err)
+}
+
+func TestValidateDeceasedDate_SkipsBirthdayCheckWhenYearUnknown(t *testing.T) {
+	s := deceasedTestStruct{Birthday: "--05-01", DeceasedDate: "2020-01-15"}
+	err := validate.Struct(s)
+	assert.NoError(t, err)
+}
+
+func TestValidateDeceasedDate_AcceptsTodaysDate(t *testing.T) {
+	// This test ensures that today's UTC calendar date is always accepted,
+	// regardless of time-of-day or local timezone.
+	// Catches regression of timezone-dependent false-positive bug.
+	todayUTC := time.Now().UTC().Format("2006-01-02")
+	s := deceasedTestStruct{DeceasedDate: todayUTC}
+	err := validate.Struct(s)
+	assert.NoError(t, err, "today's UTC date (%s) should be accepted", todayUTC)
 }

@@ -1,4 +1,4 @@
-import { Box, Card, CardContent, Avatar, Typography, Chip, IconButton, Stack, TextField, Autocomplete, Button } from '@mui/material';
+import { Box, Card, CardContent, Avatar, Typography, Chip, IconButton, Stack, TextField, Autocomplete, Button, Tooltip } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
@@ -8,6 +8,7 @@ import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import AutoModeIcon from '@mui/icons-material/AutoMode';
 import ArchiveIcon from '@mui/icons-material/Archive';
 import UnarchiveIcon from '@mui/icons-material/Unarchive';
+import ContactMailIcon from '@mui/icons-material/ContactMail';
 import { useTranslation } from 'react-i18next';
 import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
 
@@ -54,6 +55,7 @@ interface ContactHeaderProps {
   onStayInTouch?: () => void;
   onArchiveContact?: () => void;
   onUnarchiveContact?: () => void;
+  onExportVcard?: () => void;
 }
 
 export default function ContactHeader({
@@ -77,7 +79,8 @@ export default function ContactHeader({
   onUploadProfilePicture,
   onStayInTouch,
   onArchiveContact,
-  onUnarchiveContact
+  onUnarchiveContact,
+  onExportVcard
 }: ContactHeaderProps) {
   const { t } = useTranslation();
   const enabled = enabledFields ?? resolveEnabledFields(null);
@@ -261,7 +264,14 @@ export default function ContactHeader({
                       <EditIcon fontSize="small" />
                     </IconButton>
                   </Box>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    {onExportVcard && (
+                      <Tooltip title={t('contactDetail.exportVcard')}>
+                        <IconButton size="small" onClick={() => onExportVcard()}>
+                          <ContactMailIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
                     {contact.archived ? (
                       onUnarchiveContact && (
                         <Button

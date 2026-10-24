@@ -224,6 +224,7 @@
     "jobTitle": "Poste",
     "role": "Rôle",
     "anniversary": "Anniversaire de mariage",
+    "deceased": "Décédé(e)",
     "fieldType": "Type",
     "types": {
       "home": "Domicile",
@@ -252,6 +253,11 @@
     "phone": "Téléphone",
     "birthday": "Anniversaire",
     "birthdayError": "Format de date invalide. Vérifiez votre paramètre de format de date.",
+    "birthdayReminder": "Rappel d'anniversaire",
+    "deceased": "Décédé(e)",
+    "deceasedDate": "Date de décès",
+    "deceasedDateError": "Date invalide. Doit être une date réelle et passée, égale ou postérieure à l'anniversaire.",
+    "deceasedYes": "Oui",
     "address": "Adresse",
     "workInfo": "Informations professionnelles",
     "foodPreferences": "Préférences alimentaires",
@@ -291,7 +297,9 @@
     "archive": "Archiver",
     "unarchive": "Désarchiver",
     "archivedBadge": "Archivé",
-    "archiveConfirmation": "Êtes-vous sûr de vouloir archiver ce contact ? Tous les rappels seront supprimés. Vous pourrez le désarchiver plus tard, mais les rappels ne seront pas restaurés."
+    "archiveConfirmation": "Êtes-vous sûr de vouloir archiver ce contact ? Tous les rappels seront supprimés. Vous pourrez le désarchiver plus tard, mais les rappels ne seront pas restaurés.",
+    "exportVcard": "Exporter en vCard",
+    "exportVcardError": "Échec de l'exportation du contact en vCard. Veuillez réessayer."
   },
   "noteDialog": {
     "title": "Ajouter une note",
@@ -301,7 +309,8 @@
     "cancel": "Annuler",
     "save": "Enregistrer",
     "required": "Le contenu est requis",
-    "saveError": "Échec de l'enregistrement de la note"
+    "saveError": "Échec de l'enregistrement de la note",
+    "dateError": "Format de date invalide. Vérifiez votre paramètre de format de date."
   },
   "activityDialog": {
     "title": "Ajouter une activité",
@@ -316,7 +325,8 @@
     "selectContacts": "Sélectionnez des contacts...",
     "cancel": "Annuler",
     "save": "Enregistrer",
-    "required": "Le titre et la date sont requis"
+    "required": "Le titre et la date sont requis",
+    "dateError": "Format de date invalide. Vérifiez votre paramètre de format de date."
   },
   "activities": {
     "title": "Activités",
@@ -376,7 +386,8 @@
       "quarterly": "Trimestriel",
       "six-months": "Tous les 6 mois",
       "yearly": "Annuel"
-    }
+    },
+    "dateInvalid": "Format de date invalide. Vérifiez votre paramètre de format de date."
   },
   "common": {
     "save": "Enregistrer",

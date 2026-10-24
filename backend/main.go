@@ -74,22 +74,22 @@ func main() {
 			logger.Error().Err(err).Msg("Error sending reminders")
 		}
 	}
-	s.Every(1).Day().At(cfg.ReminderTime).Do(task)
+	schedule(s.Every(1).Day().At(cfg.ReminderTime).Do(task))
 	go task() // Run initially once on startup (rate-limited to prevent duplicates)
-	s.Every(5).Minutes().Do(func() {
+	schedule(s.Every(5).Minutes().Do(func() {
 		services.ProcessWebhookRetries(db, *cfg)
-	})
+	}))
 	// Sync calendar subscriptions regularly (rate-limited via job lock)
 	calendarSyncTask := func() {
 		services.SyncCalendarsWithRateLimit(db, *cfg)
 	}
-	s.Every(cfg.CalDAVSyncIntervalHours).Hours().Do(calendarSyncTask)
+	schedule(s.Every(cfg.CalDAVSyncIntervalHours).Hours().Do(calendarSyncTask))
 	go calendarSyncTask() // Run initially once on startup (rate-limited to prevent duplicates)
 	// Sync CardDAV contact connections regularly (rate-limited via job lock)
 	contactSyncTask := func() {
 		services.SyncContactsWithRateLimit(db, *cfg)
 	}
-	s.Every(cfg.CardDAVSyncIntervalHours).Hours().Do(contactSyncTask)
+	schedule(s.Every(cfg.CardDAVSyncIntervalHours).Hours().Do(contactSyncTask))
 	go contactSyncTask() // Run initially once on startup (rate-limited to prevent duplicates)
 	go s.StartBlocking()
 
@@ -102,7 +102,7 @@ func main() {
 	corsConfig := cors.Config{
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "PROPFIND", "REPORT", "MKCOL", "COPY", "MOVE"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Depth", "If-Match", "If-None-Match"},
-		ExposeHeaders:    []string{"Content-Length", "ETag"},
+		ExposeHeaders:    []string{"Content-Length", "ETag", "Content-Disposition"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour, // Cache preflight for 12 hours
 	}
@@ -218,4 +218,11 @@ func main() {
 	}
 
 	logger.Info().Msg("Server exited gracefully")
+}
+
+// schedule logs a failure to register a scheduled job.
+func schedule(_ *gocron.Job, err error) {
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to schedule job")
+	}
 }

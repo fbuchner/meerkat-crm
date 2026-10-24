@@ -146,6 +146,9 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			protected.GET("/export/vcf", func(c *gin.Context) {
 				controllers.ExportContactsAsVCF(c, cfg.ProfilePhotoDir)
 			})
+			protected.GET("/contacts/:id/vcf", func(c *gin.Context) {
+				controllers.ExportContactAsVCF(c, cfg.ProfilePhotoDir)
+			})
 
 			// Graph/Network visualization route
 			protected.GET("/graph", controllers.GetGraph)

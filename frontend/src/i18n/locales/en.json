@@ -224,6 +224,7 @@
     "jobTitle": "Job Title",
     "role": "Role",
     "anniversary": "Anniversary",
+    "deceased": "Deceased",
     "fieldType": "Type",
     "types": {
       "home": "Home",
@@ -252,6 +253,11 @@
     "phone": "Phone",
     "birthday": "Birthday",
     "birthdayError": "Invalid date format. Check your date format setting.",
+    "birthdayReminder": "Birthday reminder",
+    "deceased": "Deceased",
+    "deceasedDate": "Date of death",
+    "deceasedDateError": "Invalid date. Must be a real, past date on or after the birthday.",
+    "deceasedYes": "Yes",
     "address": "Address",
     "workInfo": "Work Information",
     "foodPreferences": "Food Preferences",
@@ -291,7 +297,9 @@
     "archive": "Archive",
     "unarchive": "Unarchive",
     "archivedBadge": "Archived",
-    "archiveConfirmation": "Are you sure you want to archive this contact? All reminders will be deleted. You can unarchive later, but reminders won't be restored."
+    "archiveConfirmation": "Are you sure you want to archive this contact? All reminders will be deleted. You can unarchive later, but reminders won't be restored.",
+    "exportVcard": "Export vCard",
+    "exportVcardError": "Failed to export contact as vCard. Please try again."
   },
   "noteDialog": {
     "title": "Add Note",
@@ -301,7 +309,8 @@
     "cancel": "Cancel",
     "save": "Save",
     "required": "Content is required",
-    "saveError": "Failed to save note"
+    "saveError": "Failed to save note",
+    "dateError": "Invalid date format. Check your date format setting."
   },
   "activityDialog": {
     "title": "Add Activity",
@@ -316,7 +325,8 @@
     "selectContacts": "Select contacts...",
     "cancel": "Cancel",
     "save": "Save",
-    "required": "Title and date are required"
+    "required": "Title and date are required",
+    "dateError": "Invalid date format. Check your date format setting."
   },
   "activities": {
     "title": "Activities",
@@ -376,7 +386,8 @@
       "quarterly": "Quarterly",
       "six-months": "Every 6 months",
       "yearly": "Yearly"
-    }
+    },
+    "dateInvalid": "Invalid date format. Check your date format setting."
   },
   "common": {
     "save": "Save",

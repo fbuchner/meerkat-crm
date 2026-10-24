@@ -10,9 +10,12 @@ interface DateFormatContextValue {
   formatBirthdayForInput: (birthday: string) => string;
   parseBirthdayInput: (input: string) => string | null;
   autoFormatBirthdayInput: (newValue: string, prevValue: string) => string;
+  parseDateInput: (input: string) => string | null;
+  autoFormatDateInput: (newValue: string, prevValue: string) => string;
   getBirthdayPlaceholder: () => string;
   getBirthdayFormatHint: () => string;
   getDatePlaceholder: () => string;
+  getDateFnsFormat: () => string;
   calculateAge: (birthday: string) => number | null;
 }
 
@@ -46,14 +49,11 @@ const getStoredFormat = (): DateFormat => {
 };
 
 /**
- * Calculate age from a birthday string (YYYY-MM-DD or --MM-DD)
- * Returns null if no year is provided or if the format is invalid
+ * Shared age-in-years math between two full dates. birthday must be
+ * YYYY-MM-DD (year-unknown "--MM-DD" is rejected by callers before this
+ * is reached). Returns null if age would be negative.
  */
-export function calculateAgeFromBirthday(birthday: string): number | null {
-  if (!birthday || birthday.startsWith('--')) {
-    return null;
-  }
-
+function ageBetween(birthday: string, atDate: Date): number | null {
   const parts = birthday.split('-');
   if (parts.length !== 3 || parts[0].length !== 4) {
     return null;
@@ -67,15 +67,12 @@ export function calculateAgeFromBirthday(birthday: string): number | null {
     return null;
   }
 
-  const today = new Date();
-  const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth() + 1;
-  const currentDay = today.getDate();
+  const atYear = atDate.getFullYear();
+  const atMonth = atDate.getMonth() + 1;
+  const atDay = atDate.getDate();
 
-  let age = currentYear - birthYear;
-
-  // Adjust if birthday hasn't occurred yet this year
-  if (month > currentMonth || (month === currentMonth && day > currentDay)) {
+  let age = atYear - birthYear;
+  if (month > atMonth || (month === atMonth && day > atDay)) {
     age--;
   }
 
@@ -83,8 +80,68 @@ export function calculateAgeFromBirthday(birthday: string): number | null {
 }
 
 /**
+ * Calculate age from a birthday string (YYYY-MM-DD or --MM-DD) as of today.
+ * Returns null if no year is provided or if the format is invalid.
+ */
+export function calculateAgeFromBirthday(birthday: string): number | null {
+  if (!birthday || birthday.startsWith('--')) {
+    return null;
+  }
+  return ageBetween(birthday, new Date());
+}
+
+/**
+ * Calculate age at a specific full date (e.g. age at death). Both
+ * birthday and atDateString must be full YYYY-MM-DD dates; returns null
+ * if either is missing, year-unknown, or malformed.
+ */
+export function calculateAgeAtDate(birthday: string, atDateString: string): number | null {
+  if (!birthday || birthday.startsWith('--')) {
+    return null;
+  }
+  if (!atDateString) {
+    return null;
+  }
+
+  const atParts = atDateString.split('-');
+  if (atParts.length !== 3 || atParts[0].length !== 4) {
+    return null;
+  }
+
+  const atYear = parseInt(atParts[0], 10);
+  const atMonth = parseInt(atParts[1], 10);
+  const atDay = parseInt(atParts[2], 10);
+  if (isNaN(atYear) || isNaN(atMonth) || isNaN(atDay)) {
+    return null;
+  }
+
+  const atDate = new Date(atYear, atMonth - 1, atDay);
+  if (isNaN(atDate.getTime())) {
+    return null;
+  }
+
+  return ageBetween(birthday, atDate);
+}
+
+/**
  * Format a standard date (ISO format) to the user's preferred display format
  */
+/**
+ * Map the user's date-format preference to the equivalent date-fns format
+ * string, for components (e.g. MUI's DatePicker) that render/parse dates
+ * via a date-fns format string rather than these helpers directly.
+ */
+export function dateFnsFormatFor(format: DateFormat): string {
+  switch (format) {
+    case 'eu':
+      return 'dd.MM.yyyy';
+    case 'iso':
+      return 'yyyy-MM-dd';
+    default: // us
+      return 'MM/dd/yyyy';
+  }
+}
+
 export function formatDateWithFormat(dateString: string, format: DateFormat): string {
   if (!dateString) return '';
   
@@ -301,6 +358,65 @@ export function parseBirthdayInputWithFormat(input: string, format: DateFormat):
   return null;
 }
 
+/**
+ * Parse user input in display format back to ISO format for storage.
+ * Unlike parseBirthdayInputWithFormat, the year is always required.
+ * Returns null if input is invalid
+ */
+export function parseDateInputWithFormat(input: string, format: DateFormat): string | null {
+  if (!input || input.trim() === '') return '';
+
+  const trimmed = input.trim();
+
+  const isoDateRegex = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
+  const isoMatch = trimmed.match(isoDateRegex);
+  if (isoMatch) {
+    const year = isoMatch[1];
+    const month = isoMatch[2].padStart(2, '0');
+    const day = isoMatch[3].padStart(2, '0');
+    const monthNum = parseInt(month, 10);
+    const dayNum = parseInt(day, 10);
+    if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) {
+      return null;
+    }
+    return `${year}-${month}-${day}`;
+  }
+
+  if (format === 'eu') {
+    const euMatch = trimmed.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+    if (euMatch) {
+      const day = euMatch[1].padStart(2, '0');
+      const month = euMatch[2].padStart(2, '0');
+      const year = euMatch[3];
+
+      const dayNum = parseInt(day, 10);
+      const monthNum = parseInt(month, 10);
+      if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) {
+        return null;
+      }
+
+      return `${year}-${month}-${day}`;
+    }
+  } else if (format === 'us') {
+    const usMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (usMatch) {
+      const month = usMatch[1].padStart(2, '0');
+      const day = usMatch[2].padStart(2, '0');
+      const year = usMatch[3];
+
+      const dayNum = parseInt(day, 10);
+      const monthNum = parseInt(month, 10);
+      if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) {
+        return null;
+      }
+
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  return null;
+}
+
 export function autoFormatBirthdayInputWithFormat(newValue: string, prevValue: string, format: DateFormat): string {
   const newDigits = newValue.replace(/[^0-9]/g, '');
   const prevDigits = prevValue.replace(/[^0-9]/g, '');
@@ -393,6 +509,17 @@ export function DateFormatProvider({ children }: { children: ReactNode }) {
     [dateFormat]
   );
 
+  const parseDateInput = useCallback(
+    (input: string) => parseDateInputWithFormat(input, dateFormat),
+    [dateFormat]
+  );
+
+  const autoFormatDateInput = useCallback(
+    (newValue: string, prevValue: string) =>
+      autoFormatBirthdayInputWithFormat(newValue, prevValue, dateFormat),
+    [dateFormat]
+  );
+
   const getBirthdayPlaceholder = useCallback(() => {
     switch (dateFormat) {
       case "eu":
@@ -431,6 +558,8 @@ export function DateFormatProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  const getDateFnsFormat = useCallback(() => dateFnsFormatFor(dateFormat), [dateFormat]);
+
   const contextValue = useMemo(
     () => ({
       dateFormat,
@@ -440,12 +569,15 @@ export function DateFormatProvider({ children }: { children: ReactNode }) {
       formatBirthdayForInput,
       parseBirthdayInput,
       autoFormatBirthdayInput,
+      parseDateInput,
+      autoFormatDateInput,
       getBirthdayPlaceholder,
       getBirthdayFormatHint,
       getDatePlaceholder,
+      getDateFnsFormat,
       calculateAge,
     }),
-    [dateFormat, formatDate, formatBirthday, formatBirthdayForInput, parseBirthdayInput, autoFormatBirthdayInput, getBirthdayPlaceholder, getBirthdayFormatHint, getDatePlaceholder, calculateAge]
+    [dateFormat, formatDate, formatBirthday, formatBirthdayForInput, parseBirthdayInput, autoFormatBirthdayInput, parseDateInput, autoFormatDateInput, getBirthdayPlaceholder, getBirthdayFormatHint, getDatePlaceholder, getDateFnsFormat, calculateAge]
   );
 
   return (

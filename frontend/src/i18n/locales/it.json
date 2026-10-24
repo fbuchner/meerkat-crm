@@ -224,6 +224,7 @@
     "jobTitle": "Posizione",
     "role": "Ruolo",
     "anniversary": "Anniversario",
+    "deceased": "Deceduto/a",
     "fieldType": "Tipo",
     "types": {
       "home": "Casa",
@@ -252,6 +253,11 @@
     "phone": "Telefono",
     "birthday": "Compleanno",
     "birthdayError": "Formato data non valido. Controlla le impostazioni del formato data.",
+    "birthdayReminder": "Promemoria compleanno",
+    "deceased": "Deceduto/a",
+    "deceasedDate": "Data di decesso",
+    "deceasedDateError": "Data non valida. Deve essere una data reale e passata, uguale o successiva al compleanno.",
+    "deceasedYes": "Sì",
     "address": "Indirizzo",
     "workInfo": "Informazioni Lavorative",
     "foodPreferences": "Preferenze Alimentari",
@@ -291,7 +297,9 @@
     "archive": "Archivia",
     "unarchive": "Ripristina",
     "archivedBadge": "Archiviato",
-    "archiveConfirmation": "Sei sicuro di voler archiviare questo contatto? Tutti i promemoria verranno eliminati. Potrai ripristinarlo in seguito, ma i promemoria non verranno recuperati."
+    "archiveConfirmation": "Sei sicuro di voler archiviare questo contatto? Tutti i promemoria verranno eliminati. Potrai ripristinarlo in seguito, ma i promemoria non verranno recuperati.",
+    "exportVcard": "Esporta vCard",
+    "exportVcardError": "Impossibile esportare il contatto come vCard. Riprova."
   },
   "noteDialog": {
     "title": "Aggiungi Nota",
@@ -301,7 +309,8 @@
     "cancel": "Annulla",
     "save": "Salva",
     "required": "Il contenuto è obbligatorio",
-    "saveError": "Impossibile salvare la nota"
+    "saveError": "Impossibile salvare la nota",
+    "dateError": "Formato data non valido. Controlla le impostazioni del formato data."
   },
   "activityDialog": {
     "title": "Aggiungi Attività",
@@ -316,7 +325,8 @@
     "selectContacts": "Seleziona contatti...",
     "cancel": "Annulla",
     "save": "Salva",
-    "required": "Titolo e data sono obbligatori"
+    "required": "Titolo e data sono obbligatori",
+    "dateError": "Formato data non valido. Controlla le impostazioni del formato data."
   },
   "activities": {
     "title": "Attività",
@@ -376,7 +386,8 @@
       "quarterly": "Trimestrale",
       "six-months": "Ogni 6 mesi",
       "yearly": "Annuale"
-    }
+    },
+    "dateInvalid": "Formato data non valido. Controlla le impostazioni del formato data."
   },
   "common": {
     "save": "Salva",

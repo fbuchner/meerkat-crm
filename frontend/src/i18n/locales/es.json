@@ -224,6 +224,7 @@
     "jobTitle": "Cargo",
     "role": "Rol",
     "anniversary": "Aniversario",
+    "deceased": "Fallecido/a",
     "fieldType": "Tipo",
     "types": {
       "home": "Casa",
@@ -252,6 +253,11 @@
     "phone": "Teléfono",
     "birthday": "Cumpleaños",
     "birthdayError": "Formato de fecha inválido. Verifica tu configuración de formato de fecha.",
+    "birthdayReminder": "Recordatorio de cumpleaños",
+    "deceased": "Fallecido/a",
+    "deceasedDate": "Fecha de fallecimiento",
+    "deceasedDateError": "Fecha no válida. Debe ser una fecha real y pasada, igual o posterior al cumpleaños.",
+    "deceasedYes": "Sí",
     "address": "Dirección",
     "workInfo": "Información Laboral",
     "foodPreferences": "Preferencias Alimentarias",
@@ -291,7 +297,9 @@
     "archive": "Archivar",
     "unarchive": "Desarchivar",
     "archivedBadge": "Archivado",
-    "archiveConfirmation": "¿Estás seguro de que quieres archivar este contacto? Todos los recordatorios serán eliminados. Puedes desarchivarlo más tarde, pero los recordatorios no se restaurarán."
+    "archiveConfirmation": "¿Estás seguro de que quieres archivar este contacto? Todos los recordatorios serán eliminados. Puedes desarchivarlo más tarde, pero los recordatorios no se restaurarán.",
+    "exportVcard": "Exportar vCard",
+    "exportVcardError": "No se pudo exportar el contacto como vCard. Inténtalo de nuevo."
   },
   "noteDialog": {
     "title": "Agregar Nota",
@@ -301,7 +309,8 @@
     "cancel": "Cancelar",
     "save": "Guardar",
     "required": "El contenido es obligatorio",
-    "saveError": "Error al guardar la nota"
+    "saveError": "Error al guardar la nota",
+    "dateError": "Formato de fecha inválido. Verifica tu configuración de formato de fecha."
   },
   "activityDialog": {
     "title": "Agregar Actividad",
@@ -316,7 +325,8 @@
     "selectContacts": "Seleccionar contactos...",
     "cancel": "Cancelar",
     "save": "Guardar",
-    "required": "El título y la fecha son obligatorios"
+    "required": "El título y la fecha son obligatorios",
+    "dateError": "Formato de fecha inválido. Verifica tu configuración de formato de fecha."
   },
   "activities": {
     "title": "Actividades",
@@ -376,7 +386,8 @@
       "quarterly": "Trimestral",
       "six-months": "Cada 6 meses",
       "yearly": "Anual"
-    }
+    },
+    "dateInvalid": "Formato de fecha inválido. Verifica tu configuración de formato de fecha."
   },
   "common": {
     "save": "Guardar",

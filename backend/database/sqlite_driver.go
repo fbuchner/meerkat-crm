@@ -159,7 +159,7 @@ func (m *sqliteDriver) Drop() (err error) {
 			}
 		}
 		query := "VACUUM"
-		_, err = m.db.Query(query)
+		_, err = m.db.Exec(query)
 		if err != nil {
 			return &database.Error{OrigErr: err, Query: []byte(query)}
 		}

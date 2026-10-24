@@ -1,0 +1,85 @@
+version: "2"
+
+# Baseline: real findings are fixed; rules that are noisy on the existing code
+# are excluded below with the reason, so CI starts green and stays strict for
+# new code. Revisit the exclusions one at a time.
+
+run:
+  timeout: 5m
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - staticcheck
+    - gosec
+    - revive
+    - bodyclose
+    - sqlclosecheck
+  settings:
+    errcheck:
+      exclude-functions:
+        # Close/Seek/Remove on read paths and best-effort cleanup.
+        - (io.Closer).Close
+        - (io.ReadCloser).Close
+        - (*os.File).Close
+        - (*database/sql.DB).Close
+        - (*database/sql.Rows).Close
+        - (*net/smtp.Client).Close
+        - (io.Seeker).Seek
+        - (io.ReadSeeker).Seek
+        - (*bytes.Reader).Seek
+        - (*os.File).Seek
+        - os.Remove
+        # Never returns an error since Go 1.24.
+        - crypto/rand.Read
+        # Builder method that returns its receiver; the result is not an error.
+        - (*meerkat/errors.AppError).WithDetails
+    staticcheck:
+      checks:
+        - all
+        # Doc-comment style rules, noisy on existing code (same as the default set).
+        - -ST1000
+        - -ST1003
+        - -ST1016
+        - -ST1020
+        - -ST1021
+        - -ST1022
+        # Style-only quick fixes (De Morgan, tagged switch).
+        - -QF1001
+        - -QF1002
+    gosec:
+      excludes:
+        - G101 # false positive on error code constants and similar names
+        - G104 # unhandled errors are errcheck's job (with its exclusions)
+        # G115, G201, G202, G301, G304 are not excluded: the known hits carry a
+        # line-level //nolint:gosec with the reason, so new code is still checked.
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: increment-decrement
+        - name: var-declaration
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: indent-error-flow
+        - name: errorf
+        - name: empty-block
+        - name: superfluous-else
+        - name: unreachable-code
+        # Left out as noisy on existing code: exported (doc comments),
+        # package-comments, unused-parameter (handler signatures),
+        # var-naming (Id/Api/Url renames would change exported types).
+  exclusions:
+    rules:
+      # Tests: unchecked errors in setup and test-only file permissions are fine.
+      - path: _test\.go
+        linters:
+          - errcheck
+          - gosec

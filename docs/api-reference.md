@@ -113,6 +113,34 @@ Every request and response carries an `X-Request-ID` header created by the middl
 | `PUT` | `/contacts/:id/relationships/:rid` | Update a relationship |
 | `DELETE` | `/contacts/:id/relationships/:rid` | Delete a relationship |
 
+### Employment History
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/contacts/:id/employment-history` | List entries, current and most recent first |
+| `POST` | `/contacts/:id/employment-history` | Create an entry |
+| `PUT` | `/contacts/:id/employment-history/:eid` | Update an entry |
+| `DELETE` | `/contacts/:id/employment-history/:eid` | Delete an entry |
+| `POST` | `/contacts/:id/employment-history/:eid/end` | End a current entry (sets `end_date` to today); `400` if already ended |
+
+`POST` / `PUT` body:
+
+```json
+{
+  "organization": "Acme Inc.",
+  "department": "Engineering",
+  "job_title": "Developer",
+  "role": "Team lead",
+  "start_date": "2021-03",
+  "end_date": "",
+  "notes": ""
+}
+```
+
+`organization` is required. `start_date` and `end_date` accept `YYYY`, `YYYY-MM` or `YYYY-MM-DD`; an empty `end_date` marks the entry as current, and `end_date` must not be before `start_date`. Responses wrap the entry (or list) in an `employment_history` key.
+
+Every change recomputes the contact's `organization`, `department`, `job_title` and `role` from the current entry with the latest `start_date`. Entries can be embedded in `GET /contacts` with `includes=employment_history`, and are included in `GET /contacts/:id` as `employment_histories` (not when the `fields` filter is used). Webhook events: `employment_history.created`, `employment_history.updated`, `employment_history.deleted`.
+
 ### Notes
 
 | Method | Path | Description |

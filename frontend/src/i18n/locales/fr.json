@@ -761,6 +761,9 @@
         "activity.created": "Activité créée",
         "activity.updated": "Activité mise à jour",
         "activity.deleted": "Activité supprimée",
+        "employment_history.created": "Parcours professionnel créé",
+        "employment_history.updated": "Parcours professionnel mis à jour",
+        "employment_history.deleted": "Parcours professionnel supprimé",
         "reminder.triggered": "Rappel déclenché",
         "birthday.occurred": "Anniversaire"
       },
@@ -840,6 +843,25 @@
     },
     "filterByContact": "Centrer sur le contact",
     "showCircles": "Cercles"
+  },
+  "employmentHistory": {
+    "title": "Parcours professionnel",
+    "addEntry": "Ajouter un poste",
+    "editEntry": "Modifier le poste",
+    "noEntries": "Aucun parcours professionnel pour le moment",
+    "current": "Actuel",
+    "endJob": "Terminer ce poste",
+    "endMessage": "Marquer ce poste comme terminé (la date de fin sera définie à aujourd'hui) ?",
+    "deleteMessage": "Supprimer cette entrée du parcours professionnel ?",
+    "organizationRequired": "L'organisation est obligatoire",
+    "dateFormatError": "Les dates doivent être au format AAAA, AAAA-MM ou AAAA-MM-JJ",
+    "startDate": "Date de début",
+    "endDate": "Date de fin",
+    "dateFormatHelp": "AAAA, AAAA-MM ou AAAA-MM-JJ",
+    "endDateHelp": "Laisser vide s'il s'agit du poste actuel",
+    "notes": "Notes",
+    "unknownDate": "Inconnue",
+    "present": "Aujourd'hui"
   },
   "relationships": {
     "title": "Relations",

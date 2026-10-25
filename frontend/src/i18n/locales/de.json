@@ -761,6 +761,9 @@
         "activity.created": "Aktivität erstellt",
         "activity.updated": "Aktivität aktualisiert",
         "activity.deleted": "Aktivität gelöscht",
+        "employment_history.created": "Berufsverlauf erstellt",
+        "employment_history.updated": "Berufsverlauf aktualisiert",
+        "employment_history.deleted": "Berufsverlauf gelöscht",
         "reminder.triggered": "Erinnerung ausgelöst",
         "birthday.occurred": "Geburtstag"
       },
@@ -840,6 +843,25 @@
     },
     "filterByContact": "Kontakt zentrieren",
     "showCircles": "Kreise"
+  },
+  "employmentHistory": {
+    "title": "Berufsverlauf",
+    "addEntry": "Beruf hinzufügen",
+    "editEntry": "Beruf bearbeiten",
+    "noEntries": "Noch kein Berufsverlauf",
+    "current": "Aktuell",
+    "endJob": "Diese Stelle beenden",
+    "endMessage": "Diese Stelle als beendet markieren (Enddatum wird auf heute gesetzt)?",
+    "deleteMessage": "Diesen Eintrag im Berufsverlauf löschen?",
+    "organizationRequired": "Organisation ist erforderlich",
+    "dateFormatError": "Daten müssen JJJJ, JJJJ-MM oder JJJJ-MM-TT sein",
+    "startDate": "Startdatum",
+    "endDate": "Enddatum",
+    "dateFormatHelp": "JJJJ, JJJJ-MM oder JJJJ-MM-TT",
+    "endDateHelp": "Leer lassen, wenn dies die aktuelle Stelle ist",
+    "notes": "Notizen",
+    "unknownDate": "Unbekannt",
+    "present": "Heute"
   },
   "relationships": {
     "title": "Beziehungen",

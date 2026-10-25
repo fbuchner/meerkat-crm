@@ -761,6 +761,9 @@
         "activity.created": "Actividad Creada",
         "activity.updated": "Actividad Actualizada",
         "activity.deleted": "Actividad Eliminada",
+        "employment_history.created": "Historial laboral creado",
+        "employment_history.updated": "Historial laboral actualizado",
+        "employment_history.deleted": "Historial laboral eliminado",
         "reminder.triggered": "Recordatorio Activado",
         "birthday.occurred": "Cumpleaños"
       },
@@ -840,6 +843,25 @@
     },
     "filterByContact": "Centrar en Contacto",
     "showCircles": "Círculos"
+  },
+  "employmentHistory": {
+    "title": "Historial laboral",
+    "addEntry": "Añadir empleo",
+    "editEntry": "Editar empleo",
+    "noEntries": "Aún no hay historial laboral",
+    "current": "Actual",
+    "endJob": "Finalizar este empleo",
+    "endMessage": "¿Marcar este empleo como finalizado (la fecha de fin se establece en hoy)?",
+    "deleteMessage": "¿Eliminar esta entrada del historial laboral?",
+    "organizationRequired": "La organización es obligatoria",
+    "dateFormatError": "Las fechas deben ser AAAA, AAAA-MM o AAAA-MM-DD",
+    "startDate": "Fecha de inicio",
+    "endDate": "Fecha de fin",
+    "dateFormatHelp": "AAAA, AAAA-MM o AAAA-MM-DD",
+    "endDateHelp": "Dejar en blanco si es el empleo actual",
+    "notes": "Notas",
+    "unknownDate": "Desconocida",
+    "present": "Actualidad"
   },
   "relationships": {
     "title": "Relaciones",

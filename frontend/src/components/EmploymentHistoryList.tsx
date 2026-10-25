@@ -13,6 +13,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import { useTranslation } from 'react-i18next';
 import { EmploymentHistoryEntry } from '../api/employmentHistory';
+import { useDateFormat } from '../DateFormatProvider';
 
 interface EmploymentHistoryListProps {
   entries: EmploymentHistoryEntry[];
@@ -28,6 +29,10 @@ export default function EmploymentHistoryList({
   onEnd,
 }: EmploymentHistoryListProps) {
   const { t } = useTranslation();
+  const { formatDate } = useDateFormat();
+
+  // Dates may be partial (YYYY, YYYY-MM); only full dates go through the user's format.
+  const showDate = (d: string) => (/^\d{4}-\d{2}-\d{2}$/.test(d) ? formatDate(d) : d);
 
   const handleDeleteClick = (entryId: number) => {
     if (window.confirm(t('employmentHistory.deleteMessage'))) {
@@ -53,7 +58,7 @@ export default function EmploymentHistoryList({
     <Stack spacing={1.5}>
       {entries.map((entry) => {
         const isCurrent = !entry.end_date;
-        const dateRange = [entry.start_date || t('employmentHistory.unknownDate'), isCurrent ? t('employmentHistory.present') : entry.end_date]
+        const dateRange = [showDate(entry.start_date || '') || t('employmentHistory.unknownDate'), isCurrent ? t('employmentHistory.present') : showDate(entry.end_date || '')]
           .join(' – ');
 
         return (

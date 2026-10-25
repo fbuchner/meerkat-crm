@@ -85,5 +85,9 @@ test-results/
 *~
 CLAUDE.md
 BACKLOG.md
+# Local working notes. Untracked and meant to stay that way: an unscoped
+# `git add -A` committed Audit.md and PR-review-order.md to main once (#262).
+Audit.md
+PR-review-order.md
 fly.demo.toml
 fly.test.toml

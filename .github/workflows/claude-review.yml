@@ -26,9 +26,13 @@ name: Claude Review
 #      secrets.
 # persist-credentials: false keeps a git credential out of the workspace.
 #
-# Draft PRs are skipped. `allowed_bots: claude[bot]` is set so pull requests
-# Claude itself opened from the @claude workflow still get reviewed; the action
-# blocks all bot actors by default.
+# Draft PRs are skipped, and so are pull requests opened by bots other than
+# claude[bot] — dependabot's, in practice. The action refuses a bot actor by
+# exiting non-zero, which showed dependency bumps a red "Review pull request"
+# check for what is intended behaviour, so the job condition now skips them
+# before the action runs. `allowed_bots: claude[bot]` stays set, and claude[bot]
+# is let through the condition, so pull requests Claude opened from the @claude
+# workflow are still reviewed.
 
 on:
   pull_request_target:
@@ -37,7 +41,10 @@ on:
 jobs:
   review:
     name: Review pull request
-    if: github.event.pull_request.draft == false
+    if: >-
+      github.event.pull_request.draft == false &&
+      (github.event.pull_request.user.type != 'Bot' ||
+      github.event.pull_request.user.login == 'claude[bot]')
     permissions:
       contents: read
       pull-requests: write

@@ -31,6 +31,18 @@ Neither workflow merges anything, and auto-merge is not enabled anywhere.
   `gh pr diff`, as data. CodeQL enforces the first of those — it flags a PR-head
   checkout here as `actions/untrusted-checkout/high`, and it did exactly that on
   the first draft of the change.
+- **Fork PRs need two extra inputs, and this is easy to get wrong.** The action
+  authenticates with `github_token: ${{ secrets.GITHUB_TOKEN }}` rather than the
+  Claude GitHub App, because the app's OIDC token exchange rejects
+  `pull_request_target` outright — `401 Unauthorized - Invalid OIDC token`. A
+  consequence is that review comments post as `github-actions[bot]`, not
+  `claude`. And because a fork author has no write access, the action otherwise
+  stops before running Claude at all, so `allowed_non_write_users` lists the
+  contributors whose fork PRs should be reviewed. It is a named list rather than
+  `'*'` deliberately: the action's own docs warn that `'*'` bypasses its access
+  check, and on a public repository it would let a stranger trigger Claude runs
+  against this repository's quota just by opening pull requests. Add names as
+  contributors appear.
 - **`claude-review.yml` skips drafts, and skips PRs opened by bots other than
   `claude[bot]`.** The action refuses a bot actor by exiting non-zero, which
   showed every dependency bump a red `Review pull request` check for what is

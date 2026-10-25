@@ -48,7 +48,6 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      id-token: write
       actions: read
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -67,7 +66,19 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # GITHUB_TOKEN rather than GitHub App auth: the app's OIDC token
+          # exchange rejects pull_request_target with "401 Invalid OIDC token",
+          # and allowed_non_write_users below only takes effect with
+          # github_token. Comments therefore post as github-actions[bot].
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           allowed_bots: 'claude[bot]'
+          # A fork author has no write access here, so without this the action
+          # stops before running Claude — which is the point of the workflow.
+          # Named rather than '*': the action's own docs warn that '*' bypasses
+          # its access check, and on a public repository it would let any
+          # stranger trigger runs against this repository's Claude quota by
+          # opening pull requests. Add contributors here as they appear.
+          allowed_non_write_users: 'omarkohl,ymage'
           additional_permissions: |
             actions: read
           prompt: |

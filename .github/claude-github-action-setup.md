@@ -8,7 +8,7 @@ pinned to the `v1` major tag (currently resolving to `v1.0.252`).
 | Workflow | Fires on | Does |
 | --- | --- | --- |
 | [`claude.yml`](workflows/claude.yml) | an issue opened or assigned whose title or body contains `@claude`; an issue comment, PR review comment, or submitted PR review containing `@claude` | Claude reads the thread, implements the change, pushes a `claude/**` branch and opens a PR against `main` |
-| [`claude-review.yml`](workflows/claude-review.yml) | `pull_request` — `opened`, `synchronize`, `ready_for_review` | Claude reviews the diff and posts a top-level comment plus inline comments |
+| [`claude-review.yml`](workflows/claude-review.yml) | `pull_request_target` — `opened`, `synchronize`, `ready_for_review` | Claude reviews the diff and posts a top-level comment plus inline comments |
 
 Neither workflow merges anything, and auto-merge is not enabled anywhere.
 
@@ -17,16 +17,50 @@ Neither workflow merges anything, and auto-merge is not enabled anywhere.
 - **Only users with write access can trigger `claude.yml`.** The action enforces
   this itself for issue, comment and review events, so a drive-by `@claude` from a
   stranger on this public repo does nothing.
-- **`claude-review.yml` skips fork PRs** (`head.repo.full_name != github.repository`).
-  The `pull_request` event gives a fork no access to repository secrets, so the run
-  could only fail. This repo is public, so contributor PRs do arrive from forks —
-  review those by hand, or with `/code-review` locally.
-- **`claude-review.yml` skips drafts.**
-- **`claude-review.yml` sets `allowed_bots: 'claude[bot]'`** so that PRs Claude
-  opened from `claude.yml` still get reviewed. The action blocks all bot actors by
-  default, which would otherwise skip exactly the PRs you most want reviewed.
-  Dependabot is deliberately *not* in that list — add `dependabot[bot]` if you want
-  dependency bumps reviewed too, at the cost of a Claude run per bump.
+- **`claude-review.yml` reviews fork PRs too.** It used to skip them: the
+  `pull_request` event gives a fork no access to repository secrets, so the run
+  could only fail, which left exactly the contributions that most need review
+  unreviewed. It now runs on `pull_request_target`, which executes in this
+  repository's context where the secret is available.
+- **`pull_request_target` is only safe while the PR's code never reaches that
+  job**, so three properties in `claude-review.yml` are load-bearing and the
+  comment at the top of the file says so. The checkout pins the **base** commit,
+  never the PR head; there is no build, install, test or lint step; and
+  `--allowedTools` carries no code-executing tool, so Claude reads the base tree
+  and talks to the GitHub API and nothing else. Claude sees the change through
+  `gh pr diff`, as data. CodeQL enforces the first of those — it flags a PR-head
+  checkout here as `actions/untrusted-checkout/high`, and it did exactly that on
+  the first draft of the change.
+- **`claude-review.yml` skips drafts, and skips PRs opened by bots other than
+  `claude[bot]`.** The action refuses a bot actor by exiting non-zero, which
+  showed every dependency bump a red `Review pull request` check for what is
+  intended behaviour — and made a broken token indistinguishable from normal
+  operation. The job condition now decides it instead, so bot PRs resolve as a
+  clean skip. `allowed_bots: 'claude[bot]'` stays set and `claude[bot]` is let
+  through the condition, so PRs Claude opened from `claude.yml` are still
+  reviewed. To review dependency bumps as well, drop the `user.type != 'Bot'`
+  clause and add `dependabot[bot]` to `allowed_bots`, at the cost of a Claude run
+  per bump.
+
+## CodeQL
+
+[`workflows/codeql.yml`](workflows/codeql.yml) is an **advanced setup**, committed
+here rather than configured in the UI, because CodeQL's default setup does not
+analyze pull requests from forks — so fork PRs produced no CodeQL check at all.
+With `CodeQL` listed as a required check in the `Mandatory merge requests`
+ruleset, those PRs could not satisfy it and were only mergeable by admin
+override.
+
+Two things follow from that and are easy to undo by accident:
+
+- **Default setup must stay disabled.** GitHub rejects advanced-setup uploads
+  while it is on, with `CodeQL analyses from advanced configurations cannot be
+  processed when the default setup is enabled`. Re-enabling it in the UI breaks
+  every CodeQL run.
+- **The trigger is `pull_request`, never `pull_request_target`.** Fork code is
+  analyzed, but it must never run with a write token or with access to secrets.
+  `permissions` is `contents: read` at the top level; only the analyze job asks
+  for `security-events: write`.
 
 ## Required repository secrets
 

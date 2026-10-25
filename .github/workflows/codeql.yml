@@ -1,0 +1,80 @@
+name: CodeQL
+
+# Advanced setup, committed here rather than configured in the UI, because
+# CodeQL's default setup does not analyze pull requests from forks — and every
+# outside contribution to this repository arrives as a fork PR. With default
+# setup, those PRs produced no CodeQL check at all, which made a required
+# "CodeQL" check impossible for them to satisfy.
+#
+# The trigger is `pull_request`, never `pull_request_target`: fork code is
+# analyzed, but it never runs with a write token or with access to secrets.
+# The token stays read-only at the top level; only the analyze job asks for the
+# security-events write it needs to upload results.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Keep the weekly cadence the previous default setup ran on.
+    - cron: '27 4 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+      security-events: write
+      # Needed by the CodeQL action to read workflow run metadata.
+      actions: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+          - language: go
+            build-mode: autobuild
+          - language: javascript-typescript
+            build-mode: none
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Pin the toolchain to the one backend/go.mod targets, so autobuild does
+      # not fall back to whatever Go the runner image happens to ship.
+      - name: Set up Go
+        if: matrix.language == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - name: Autobuild
+        if: matrix.build-mode == 'autobuild'
+        uses: github/codeql-action/autobuild@v3
+        with:
+          working-directory: backend
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:${{ matrix.language }}

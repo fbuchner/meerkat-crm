@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -605,6 +606,78 @@ func GetEnabledContactFields(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"enabled_contact_fields": user.EnabledContactFields,
 	})
+}
+
+// GetCardDAVCircleFilter returns which circles the built-in CardDAV server shows the user's devices
+func GetCardDAVCircleFilter(c *gin.Context) {
+	log := logger.FromContext(c)
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	db := c.MustGet("db").(*gorm.DB)
+
+	var user models.User
+	if err := db.First(&user, userID).Error; err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to lookup user for CardDAV circle filter")
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("query user").WithError(err))
+		return
+	}
+
+	mode := user.CardDAVCircleMode
+	if mode == "" {
+		mode = models.CardDAVCircleModeAll
+	}
+	circles := user.CardDAVCircles
+	if circles == nil {
+		circles = []string{}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"mode": mode, "circles": circles})
+}
+
+// UpdateCardDAVCircleFilter sets which circles the built-in CardDAV server shows the user's devices
+func UpdateCardDAVCircleFilter(c *gin.Context) {
+	log := logger.FromContext(c)
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	input, err := middleware.GetValidated[models.CardDAVCircleFilterInput](c)
+	if err != nil {
+		apperrors.AbortWithError(c, err)
+		return
+	}
+
+	circles := []string{}
+	for _, circle := range input.Circles {
+		circle = strings.TrimSpace(circle)
+		if circle != "" && !slices.Contains(circles, circle) {
+			circles = append(circles, circle)
+		}
+	}
+	// An empty include list would empty every device's address book; an empty
+	// exclude list is just "all" under another name. Both are almost certainly mistakes.
+	if input.Mode != models.CardDAVCircleModeAll && len(circles) == 0 {
+		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("circles", "Select at least one circle"))
+		return
+	}
+
+	db := c.MustGet("db").(*gorm.DB)
+
+	user := models.User{CardDAVCircleMode: input.Mode, CardDAVCircles: circles}
+	user.ID = userID
+	if err := db.Model(&user).Select("CardDAVCircleMode", "CardDAVCircles").Updates(&user).Error; err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to update user CardDAV circle filter")
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("update user").WithError(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"mode": user.CardDAVCircleMode, "circles": user.CardDAVCircles})
 }
 
 func ChangePassword(context *gin.Context) {

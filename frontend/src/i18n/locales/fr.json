@@ -655,6 +655,23 @@
       "disconnectTitle": "Déconnecter le serveur CardDAV ?",
       "disconnectConfirm": "Vos contacts restent dans Meerkat ; seules la connexion et ses données de synchronisation sont supprimées."
     },
+    "carddavCircleFilter": {
+      "title": "Filtre de synchronisation du téléphone (serveur CardDAV intégré)",
+      "description": "Choisissez les contacts que le serveur CardDAV intégré de Meerkat affiche sur votre téléphone et vos autres appareils. Les contacts hors filtre restent dans Meerkat et peuvent toujours être recherchés ici.",
+      "loading": "Chargement…",
+      "loadError": "Impossible de charger le filtre de synchronisation du téléphone.",
+      "saveError": "Impossible d'enregistrer le filtre de synchronisation du téléphone.",
+      "saveSuccess": "Filtre enregistré. Vos appareils l'appliqueront lors de leur prochaine synchronisation.",
+      "modeAll": "Synchroniser tous les contacts",
+      "modeInclude": "Synchroniser uniquement les contacts de ces cercles",
+      "modeExclude": "Synchroniser tous les contacts sauf ceux de ces cercles",
+      "circlesLabel": "Cercles",
+      "circlesRequired": "Sélectionnez au moins un cercle.",
+      "noCircles": "Aucun cercle pour l'instant",
+      "includeNewContactsHint": "Les contacts créés sur un appareil sont enregistrés dans Meerkat, mais disparaissent de l'appareil à la synchronisation suivante, sauf si vous les ajoutez à l'un de ces cercles.",
+      "removalHint": "Les contacts qui sortent du filtre sont supprimés uniquement de vos appareils. Supprimer un contact synchronisé sur un appareil le supprime toujours aussi dans Meerkat.",
+      "save": "Enregistrer le filtre"
+    },
     "about": {
       "title": "À propos de Meerkat CRM",
       "description": "Meerkat CRM est une application de CRM personnelle open source conçue pour vous aider à gérer vos contacts et vos relations.",

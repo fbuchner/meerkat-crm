@@ -174,6 +174,14 @@ func (b *Backend) GetAddressObject(ctx context.Context, urlPath string, req *car
 		return nil, fmt.Errorf("contact not found")
 	}
 
+	visible, err := b.isVisible(ctx, userID, &contact)
+	if err != nil {
+		return nil, err
+	}
+	if !visible {
+		return nil, webdav.NewHTTPError(http.StatusNotFound, fmt.Errorf("contact not found"))
+	}
+
 	return b.contactToAddressObject(ctx, &contact), nil
 }
 
@@ -190,8 +198,16 @@ func (b *Backend) ListAddressObjects(ctx context.Context, urlPath string, req *c
 		return nil, err
 	}
 
+	filter, err := b.getCircleFilter(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
 	objects := make([]carddav.AddressObject, 0, len(contacts))
 	for _, contact := range contacts {
+		if !models.CardDAVCircleFilterMatches(filter.CardDAVCircleMode, filter.CardDAVCircles, contact.Circles) {
+			continue
+		}
 		objects = append(objects, *b.contactToAddressObject(ctx, &contact))
 	}
 
@@ -336,8 +352,36 @@ func (b *Backend) DeleteAddressObject(ctx context.Context, urlPath string) error
 		return fmt.Errorf("contact not found")
 	}
 
+	// A device may still hold a contact that has since left the circle filter.
+	// Deleting it there must not delete a contact the device can no longer see.
+	visible, err := b.isVisible(ctx, userID, &contact)
+	if err != nil {
+		return err
+	}
+	if !visible {
+		return webdav.NewHTTPError(http.StatusNotFound, fmt.Errorf("contact not found"))
+	}
+
 	// Soft delete
 	return db.Delete(&contact).Error
+}
+
+// getCircleFilter loads the user's CardDAV circle filter settings
+func (b *Backend) getCircleFilter(ctx context.Context, userID uint) (*models.User, error) {
+	var user models.User
+	if err := b.getDB(ctx).Select("id", "carddav_circle_mode", "carddav_circles").First(&user, userID).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+// isVisible reports whether the user's circle filter lets CardDAV clients see contact
+func (b *Backend) isVisible(ctx context.Context, userID uint, contact *models.Contact) (bool, error) {
+	filter, err := b.getCircleFilter(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+	return models.CardDAVCircleFilterMatches(filter.CardDAVCircleMode, filter.CardDAVCircles, contact.Circles), nil
 }
 
 // contactToAddressObject converts a Contact to a CardDAV AddressObject

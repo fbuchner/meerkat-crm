@@ -57,6 +57,35 @@ export async function getEnabledContactFields(): Promise<string[] | null> {
   return data?.enabled_contact_fields ?? null;
 }
 
+export type CardDAVCircleMode = 'all' | 'include' | 'exclude';
+
+export interface CardDAVCircleFilter {
+  mode: CardDAVCircleMode;
+  circles: string[];
+}
+
+// Which circles Meerkat's built-in CardDAV server shows the user's devices.
+export async function getCardDAVCircleFilter(): Promise<CardDAVCircleFilter> {
+  const response = await apiFetch(`${API_BASE_URL}/users/carddav-circle-filter`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  const data = await handleResponse(response, 'Unable to get the CardDAV circle filter.');
+  return { mode: data?.mode ?? 'all', circles: data?.circles ?? [] };
+}
+
+export async function updateCardDAVCircleFilter(filter: CardDAVCircleFilter): Promise<CardDAVCircleFilter> {
+  const response = await apiFetch(`${API_BASE_URL}/users/carddav-circle-filter`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(filter),
+  });
+
+  const data = await handleResponse(response, 'Unable to update the CardDAV circle filter.');
+  return { mode: data?.mode ?? filter.mode, circles: data?.circles ?? filter.circles };
+}
+
 export async function updateEnabledContactFields(fields: string[]): Promise<string[]> {
   const response = await apiFetch(`${API_BASE_URL}/users/enabled-contact-fields`, {
     method: 'PATCH',

@@ -151,6 +151,13 @@ type EnabledContactFieldsInput struct {
 	Fields []string `json:"fields" validate:"dive,max=50"`
 }
 
+// CardDAVCircleFilterInput represents the DTO for limiting the built-in CardDAV
+// server to, or hiding from it, a set of circles
+type CardDAVCircleFilterInput struct {
+	Mode    string   `json:"mode" validate:"required,oneof=all include exclude"`
+	Circles []string `json:"circles" validate:"dive,max=100"`
+}
+
 // UserRegistrationInput represents the DTO for user registration
 // This DTO intentionally excludes IsAdmin to prevent mass assignment attacks
 type UserRegistrationInput struct {

@@ -401,6 +401,44 @@ func TestChangePassword_Succeeds(t *testing.T) {
 // distinction between "never configured" (null -> client applies defaults) and
 // "configured empty" ([] -> no extended fields), and that the scoped column write
 // round-trips concrete values.
+func TestCardDAVCircleFilter(t *testing.T) {
+	_, router := setupRouter()
+	router.GET("/filter", GetCardDAVCircleFilter)
+	router.PATCH("/filter",
+		middleware.ValidateJSONMiddleware(&models.CardDAVCircleFilterInput{}),
+		UpdateCardDAVCircleFilter)
+
+	get := func() string {
+		req, _ := http.NewRequest("GET", "/filter", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+		return w.Body.String()
+	}
+	patch := func(jsonBody string) int {
+		req, _ := http.NewRequest("PATCH", "/filter", bytes.NewBufferString(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		return w.Code
+	}
+
+	// Never configured -> everything syncs.
+	assert.JSONEq(t, `{"mode":"all","circles":[]}`, get())
+
+	// Circles are trimmed and deduplicated.
+	assert.Equal(t, http.StatusOK, patch(`{"mode":"include","circles":["Family"," Family ","Friends",""]}`))
+	assert.JSONEq(t, `{"mode":"include","circles":["Family","Friends"]}`, get())
+
+	// A filter mode without circles and an unknown mode are rejected, leaving the setting alone.
+	assert.Equal(t, http.StatusBadRequest, patch(`{"mode":"exclude","circles":[]}`))
+	assert.Equal(t, http.StatusBadRequest, patch(`{"mode":"only","circles":["Family"]}`))
+	assert.JSONEq(t, `{"mode":"include","circles":["Family","Friends"]}`, get())
+
+	assert.Equal(t, http.StatusOK, patch(`{"mode":"all"}`))
+	assert.JSONEq(t, `{"mode":"all","circles":[]}`, get())
+}
+
 func TestEnabledContactFieldsNullVsEmpty(t *testing.T) {
 	db, router := setupRouter()
 	var user models.User

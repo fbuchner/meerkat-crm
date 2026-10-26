@@ -536,7 +536,46 @@
         "relationships": "{{count}} relationships imported",
         "relationshipsCollapsed": "{{count}} reciprocal duplicates skipped (shown as incoming relationships)",
         "photos": "{{count}} photos imported",
-        "photosFailed": "{{count}} photos could not be downloaded"
+        "photosFailed": "{{count}} photos could not be downloaded",
+        "issues": {
+          "title": "Skipped and failed items ({{count}})",
+          "hint": "Every Monica record that was not imported, or was imported without part of its data, grouped by reason.",
+          "columns": {
+            "type": "Type",
+            "contact": "Contact",
+            "item": "Item",
+            "details": "Details"
+          },
+          "failed": "failed",
+          "entities": {
+            "contact": "Contact",
+            "relationship": "Relationship",
+            "activity": "Activity",
+            "note": "Note",
+            "reminder": "Reminder",
+            "call": "Call",
+            "task": "Task",
+            "gift": "Gift",
+            "debt": "Debt",
+            "birthday": "Birthday",
+            "photo": "Photo"
+          },
+          "reasons": {
+            "not_selected": "Set to \"skip\" in the review step",
+            "invalid": "Invalid contact data",
+            "no_match": "Set to \"update\", but no matching contact was found",
+            "contact_not_imported": "Belongs to a contact that was not imported",
+            "already_exists": "Already in Meerkat (e.g. from an earlier import)",
+            "incomplete": "Missing data Meerkat needs (name, date or content)",
+            "expired": "One-time reminder whose date has passed",
+            "unsupported_frequency": "Repeat interval Meerkat does not support",
+            "approximate_birthday": "Monica only knows an approximate age, not a birth date",
+            "error": "Could not be saved",
+            "birthday_on_relationship": "Birthday kept on the relationship, which Meerkat announces already",
+            "photo_failed": "Photo could not be downloaded"
+          },
+          "rolledUp": "{{count}} items"
+        }
       },
       "errors": {
         "fetchFailed": "Fetching data from Monica failed"

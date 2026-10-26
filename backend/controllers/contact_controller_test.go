@@ -357,6 +357,42 @@ func TestGetContactsWithSearchCriteria(t *testing.T) {
 	assert.Len(t, returnedContacts, 0)
 }
 
+func TestGetContactsSearchFindsRelationshipName(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+
+	router.GET("/contacts", GetContacts)
+
+	parent := models.Contact{UserID: user.ID, Firstname: "Dana", Lastname: "Parent"}
+	db.Create(&parent)
+	linked := models.Contact{UserID: user.ID, Firstname: "Linkedkid", Lastname: "Parent"}
+	db.Create(&linked)
+	db.Create(&models.Relationship{UserID: user.ID, ContactID: parent.ID, Name: "Emma Parent", Type: "Child"})
+	db.Create(&models.Relationship{UserID: user.ID, ContactID: parent.ID, Name: "Linkedkid Parent", Type: "Child", RelatedContactID: &linked.ID})
+
+	search := func(term string) []any {
+		req, _ := http.NewRequest("GET", "/contacts?search="+term, nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+		var body map[string]any
+		json.Unmarshal(w.Body.Bytes(), &body)
+		return body["contacts"].([]any)
+	}
+
+	// An unlinked child is found through the parent it belongs to.
+	found := search("Emma")
+	assert.Len(t, found, 1)
+	assert.Equal(t, "Dana", found[0].(map[string]any)["firstname"])
+
+	// A child with a contact of its own is found as that contact only.
+	found = search("Linkedkid")
+	assert.Len(t, found, 1)
+	assert.Equal(t, "Linkedkid", found[0].(map[string]any)["firstname"])
+}
+
 func TestCreateContact(t *testing.T) {
 	_, router := setupRouter()
 

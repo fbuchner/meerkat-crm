@@ -536,7 +536,46 @@
         "relationships": "{{count}} Beziehungen importiert",
         "relationshipsCollapsed": "{{count}} doppelte Gegenrichtungen übersprungen (erscheinen als eingehende Beziehungen)",
         "photos": "{{count}} Fotos importiert",
-        "photosFailed": "{{count}} Fotos konnten nicht heruntergeladen werden"
+        "photosFailed": "{{count}} Fotos konnten nicht heruntergeladen werden",
+        "issues": {
+          "title": "Übersprungene und fehlgeschlagene Einträge ({{count}})",
+          "hint": "Jeder Monica-Eintrag, der nicht oder nur teilweise importiert wurde, nach Grund gruppiert.",
+          "columns": {
+            "type": "Typ",
+            "contact": "Kontakt",
+            "item": "Eintrag",
+            "details": "Details"
+          },
+          "failed": "fehlgeschlagen",
+          "entities": {
+            "contact": "Kontakt",
+            "relationship": "Beziehung",
+            "activity": "Aktivität",
+            "note": "Notiz",
+            "reminder": "Erinnerung",
+            "call": "Anruf",
+            "task": "Aufgabe",
+            "gift": "Geschenk",
+            "debt": "Schuld",
+            "birthday": "Geburtstag",
+            "photo": "Foto"
+          },
+          "reasons": {
+            "not_selected": "Im Prüfschritt auf „Überspringen“ gesetzt",
+            "invalid": "Ungültige Kontaktdaten",
+            "no_match": "Auf „Aktualisieren“ gesetzt, aber kein passender Kontakt gefunden",
+            "contact_not_imported": "Gehört zu einem nicht importierten Kontakt",
+            "already_exists": "Bereits in Meerkat vorhanden (z. B. aus einem früheren Import)",
+            "incomplete": "Es fehlen Daten, die Meerkat benötigt (Name, Datum oder Inhalt)",
+            "expired": "Einmalige Erinnerung, deren Datum vergangen ist",
+            "unsupported_frequency": "Wiederholungsintervall, das Meerkat nicht unterstützt",
+            "approximate_birthday": "Monica kennt nur ein ungefähres Alter, kein Geburtsdatum",
+            "error": "Konnte nicht gespeichert werden",
+            "birthday_on_relationship": "Geburtstag an der Beziehung gespeichert, die Meerkat bereits ankündigt",
+            "photo_failed": "Foto konnte nicht heruntergeladen werden"
+          },
+          "rolledUp": "{{count}} Einträge"
+        }
       },
       "errors": {
         "fetchFailed": "Abrufen der Daten von Monica fehlgeschlagen"

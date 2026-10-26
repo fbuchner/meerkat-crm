@@ -30,12 +30,16 @@ import {
   Tooltip,
   Link,
   Stack,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from '@mui/material';
 import AppDialog from './AppDialog';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
 import ErrorIcon from '@mui/icons-material/Error';
 import CloseIcon from '@mui/icons-material/Close';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useSnackbar } from '../context/SnackbarContext';
 import { getErrorMessage } from '../utils/errorHandler';
 import {
@@ -49,6 +53,7 @@ import {
   MonicaImportStatus,
   MonicaPreviewResponse,
   MonicaImportResult,
+  MonicaImportIssue,
 } from '../api/monicaImport';
 import { RowImportAction } from '../api/import';
 
@@ -603,6 +608,69 @@ export default function MonicaImportDialog({
     );
   };
 
+  const renderIssues = (issues: MonicaImportIssue[]) => {
+    if (issues.length === 0) return null;
+
+    const byReason = new Map<string, MonicaImportIssue[]>();
+    for (const issue of issues) {
+      byReason.set(issue.reason, [...(byReason.get(issue.reason) ?? []), issue]);
+    }
+
+    return (
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="subtitle2" gutterBottom>
+          {t('settings.monicaImport.result.issues.title', 'Skipped and failed items ({{count}})', { count: issues.length })}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          {t('settings.monicaImport.result.issues.hint', 'Every Monica record that was not imported, or was imported without part of its data, grouped by reason.')}
+        </Typography>
+        {[...byReason.entries()].map(([reason, group]) => (
+          // Unmounted while collapsed: a re-import can list thousands of rows.
+          <Accordion key={reason} disableGutters variant="outlined" slotProps={{ transition: { unmountOnExit: true } }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography variant="body2" color={group.some((i) => i.status === 'failed') ? 'error' : 'text.primary'}>
+                {t(`settings.monicaImport.result.issues.reasons.${reason}`, reason)} ({group.length})
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails sx={{ p: 0 }}>
+              <TableContainer sx={{ maxHeight: 320 }}>
+                <Table size="small" stickyHeader>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>{t('settings.monicaImport.result.issues.columns.type', 'Type')}</TableCell>
+                      <TableCell>{t('settings.monicaImport.result.issues.columns.contact', 'Contact')}</TableCell>
+                      <TableCell>{t('settings.monicaImport.result.issues.columns.item', 'Item')}</TableCell>
+                      <TableCell>{t('settings.monicaImport.result.issues.columns.details', 'Details')}</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {group.map((issue, index) => (
+                      <TableRow key={index}>
+                        <TableCell>
+                          {t(`settings.monicaImport.result.issues.entities.${issue.entity}`, issue.entity)}
+                          {issue.status === 'failed' && (
+                            <Chip size="small" color="error" sx={{ ml: 1 }} label={t('settings.monicaImport.result.issues.failed', 'failed')} />
+                          )}
+                        </TableCell>
+                        <TableCell>{issue.contact || '—'}</TableCell>
+                        <TableCell>
+                          {issue.count && issue.count > 1
+                            ? t('settings.monicaImport.result.issues.rolledUp', '{{count}} items', { count: issue.count })
+                            : issue.label || '—'}
+                        </TableCell>
+                        <TableCell>{issue.detail || ''}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </AccordionDetails>
+          </Accordion>
+        ))}
+      </Box>
+    );
+  };
+
   const renderResultStep = () => {
     if (!result) return null;
 
@@ -648,6 +716,8 @@ export default function MonicaImportDialog({
             </Typography>
           )}
         </Box>
+
+        {renderIssues(result.issues ?? [])}
 
         {result.errors.length > 0 && (
           <Box sx={{ mt: 2 }}>

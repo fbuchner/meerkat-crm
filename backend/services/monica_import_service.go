@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -293,8 +294,15 @@ func MapMonicaNote(mn monica.Note) (note models.Note, monicaContactID int, ok bo
 // has none; it identifies Monica's auto-created birthday reminders — see
 // isBirthdayReminder.
 func MapMonicaReminder(mr monica.Reminder, now time.Time, birthdayMonthDay string) (reminder models.Reminder, monicaContactID int, ok bool) {
+	reminder, monicaContactID, skipReason := mapMonicaReminder(mr, now, birthdayMonthDay)
+	return reminder, monicaContactID, skipReason == ""
+}
+
+// mapMonicaReminder is MapMonicaReminder reporting why a reminder was
+// dropped (a models.MonicaReason* code), or "" when it maps.
+func mapMonicaReminder(mr monica.Reminder, now time.Time, birthdayMonthDay string) (reminder models.Reminder, monicaContactID int, skipReason string) {
 	if mr.Contact == nil {
-		return models.Reminder{}, 0, false
+		return models.Reminder{}, 0, models.MonicaReasonIncomplete
 	}
 	dateStr := ""
 	if mr.NextExpectedDate != nil && *mr.NextExpectedDate != "" {
@@ -304,7 +312,7 @@ func MapMonicaReminder(mr monica.Reminder, now time.Time, birthdayMonthDay strin
 	}
 	remindAt, parsed := monicaParseTime(dateStr)
 	if !parsed {
-		return models.Reminder{}, 0, false
+		return models.Reminder{}, 0, models.MonicaReasonIncomplete
 	}
 
 	recurrence := ""
@@ -325,10 +333,10 @@ func MapMonicaReminder(mr monica.Reminder, now time.Time, birthdayMonthDay strin
 	case "year":
 		recurrence = "yearly"
 	default:
-		return models.Reminder{}, 0, false
+		return models.Reminder{}, 0, models.MonicaReasonUnsupportedFrequency
 	}
 	if recurrence == "once" && remindAt.Before(now) {
-		return models.Reminder{}, 0, false
+		return models.Reminder{}, 0, models.MonicaReasonExpired
 	}
 
 	message := strings.TrimSpace(mr.Title)
@@ -340,7 +348,7 @@ func MapMonicaReminder(mr monica.Reminder, now time.Time, birthdayMonthDay strin
 		}
 	}
 	if message == "" {
-		return models.Reminder{}, 0, false
+		return models.Reminder{}, 0, models.MonicaReasonIncomplete
 	}
 	byMail := false
 	// Meerkat's default is to reschedule a completed reminder from the
@@ -355,7 +363,7 @@ func MapMonicaReminder(mr monica.Reminder, now time.Time, birthdayMonthDay strin
 		ByMail:                &byMail,
 		ReoccurFromCompletion: &reoccurFromCompletion,
 	}
-	return reminder, mr.Contact.ID, true
+	return reminder, mr.Contact.ID, ""
 }
 
 // nextRecurrenceOnOrAfter moves a recurring reminder to its first occurrence on or after today.
@@ -402,17 +410,115 @@ func isBirthdayReminder(recurrence string, remindAt time.Time, birthdayMonthDay 
 	return remindAt.Format("01-02") == birthdayMonthDay
 }
 
-// birthdayMonthDayByMonicaID indexes the "MM-DD" of every contact's birthday.
+// birthdayMonthDayByMonicaID indexes the "MM-DD" of every known person's
+// birthday — contacts and the partial people behind relationships alike.
 // Monica stores year-unknown birthdays as "--MM-DD" and full ones as
 // "YYYY-MM-DD"; both end in the month and day.
-func birthdayMonthDayByMonicaID(snapshot *monica.Snapshot) map[int]string {
-	out := make(map[int]string, len(snapshot.Contacts))
-	for _, mc := range snapshot.Contacts {
+func birthdayMonthDayByMonicaID(people map[int]*monica.Contact) map[int]string {
+	out := make(map[int]string, len(people))
+	for id, mc := range people {
 		if birthday := mapMonicaSpecialDate(mc.Information.Dates.Birthdate); len(birthday) >= 5 {
-			out[mc.ID] = birthday[len(birthday)-5:]
+			out[id] = birthday[len(birthday)-5:]
 		}
 	}
 	return out
+}
+
+// monicaPeople indexes every person the snapshot knows about by Monica ID:
+// full contacts, partial contacts, and — for people only ever seen embedded
+// in a relationship or reminder — a contact rebuilt from that reference.
+// Full records win over references, which carry fewer fields.
+func monicaPeople(snapshot *monica.Snapshot) map[int]*monica.Contact {
+	people := make(map[int]*monica.Contact, len(snapshot.Contacts)+len(snapshot.PartialContacts))
+	for i := range snapshot.Contacts {
+		people[snapshot.Contacts[i].ID] = &snapshot.Contacts[i]
+	}
+	for i := range snapshot.PartialContacts {
+		people[snapshot.PartialContacts[i].ID] = &snapshot.PartialContacts[i]
+	}
+	addRef := func(ref *monica.ContactRef) {
+		if ref == nil || ref.ID == 0 {
+			return
+		}
+		if _, known := people[ref.ID]; known {
+			return
+		}
+		people[ref.ID] = contactFromMonicaRef(*ref)
+	}
+	for _, rels := range snapshot.Relationships {
+		for _, rel := range rels {
+			addRef(rel.OfContact)
+		}
+	}
+	for _, reminder := range snapshot.Reminders {
+		addRef(reminder.Contact)
+	}
+	return people
+}
+
+func contactFromMonicaRef(ref monica.ContactRef) *monica.Contact {
+	mc := &monica.Contact{
+		ID:         ref.ID,
+		FirstName:  ref.FirstName,
+		LastName:   ref.LastName,
+		GenderType: ref.GenderType,
+		IsPartial:  ref.IsPartial,
+	}
+	mc.Information.Dates.Birthdate = ref.Birthdate()
+	return mc
+}
+
+// monicaRefName is the display name of an embedded contact reference.
+func monicaRefName(ref *monica.ContactRef) string {
+	if ref == nil {
+		return ""
+	}
+	if name := strings.TrimSpace(ref.CompleteName); name != "" {
+		return name
+	}
+	return monicaPersonName(&monica.Contact{FirstName: ref.FirstName, LastName: ref.LastName})
+}
+
+// monicaPersonName is a display name for a Monica person, for the import
+// report.
+func monicaPersonName(mc *monica.Contact) string {
+	if mc == nil {
+		return ""
+	}
+	name := strings.TrimSpace(strings.TrimSpace(mc.FirstName) + " " + strings.TrimSpace(mc.LastName))
+	if name == "" {
+		name = strings.TrimSpace(mc.Nickname)
+	}
+	return name
+}
+
+// monicaPartialOwners maps each partial Monica person (a child entered only
+// as a relationship, typically) to the contacts that have a relationship with
+// them, lowest Monica ID first so that the choice of owner does not depend on
+// map iteration order.
+//
+// Only Monica's own is_partial flag counts: a real contact that merely is not
+// in the snapshot (archived, say) is a person of its own, and its reminders
+// must not be moved onto someone else.
+func monicaPartialOwners(snapshot *monica.Snapshot, people map[int]*monica.Contact) map[int][]int {
+	owners := map[int][]int{}
+	for ownerID, rels := range snapshot.Relationships {
+		for _, rel := range rels {
+			if rel.OfContact == nil || rel.OfContact.ID == ownerID {
+				continue
+			}
+			if person := people[rel.OfContact.ID]; person == nil || !person.IsPartial {
+				continue
+			}
+			if !slices.Contains(owners[rel.OfContact.ID], ownerID) {
+				owners[rel.OfContact.ID] = append(owners[rel.OfContact.ID], ownerID)
+			}
+		}
+	}
+	for _, ids := range owners {
+		slices.Sort(ids)
+	}
+	return owners
 }
 
 // MapMonicaRelationship converts one directed relationship edge of the given
@@ -422,10 +528,7 @@ func MapMonicaRelationship(rel monica.Relationship, related *monica.Contact) (re
 	if rel.OfContact == nil {
 		return models.Relationship{}, 0, false
 	}
-	name := strings.TrimSpace(rel.OfContact.CompleteName)
-	if name == "" {
-		name = strings.TrimSpace(strings.TrimSpace(rel.OfContact.FirstName) + " " + strings.TrimSpace(rel.OfContact.LastName))
-	}
+	name := monicaRefName(rel.OfContact)
 	relType := strings.TrimSpace(rel.RelationshipType.Name)
 	if name == "" || relType == "" {
 		return models.Relationship{}, 0, false

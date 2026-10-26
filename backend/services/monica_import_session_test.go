@@ -1,6 +1,8 @@
 package services
 
 import (
+	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -400,4 +402,213 @@ func TestImportRemindersPinsBirthdaysToTheCalendar(t *testing.T) {
 	checkIn := byMessage["Yearly check-in"]
 	require.NotNil(t, checkIn.ReoccurFromCompletion)
 	assert.True(t, *checkIn.ReoccurFromCompletion, "ordinary reminders keep the flexible default")
+}
+
+// monicaChildRef is a child as Monica embeds it in a relationship: a partial
+// contact, with its details in the short-contact shape.
+func monicaChildRef(t *testing.T, id int, first, last, genderType, birthdate string, ageBased bool) *monica.ContactRef {
+	t.Helper()
+	ref := &monica.ContactRef{}
+	payload := fmt.Sprintf(`{"id":%d,"first_name":%q,"last_name":%q,"complete_name":%q,"gender_type":%q,"is_partial":true,
+		"information":{"birthdate":{"date":%q,"is_age_based":%t,"is_year_unknown":false}}}`,
+		id, first, last, first+" "+last, genderType, birthdate, ageBased)
+	require.NoError(t, json.Unmarshal([]byte(payload), ref))
+	return ref
+}
+
+func issuesFor(result models.MonicaImportResult, entity string) []models.MonicaImportIssue {
+	var out []models.MonicaImportIssue
+	for _, issue := range result.Issues {
+		if issue.Entity == entity {
+			out = append(out, issue)
+		}
+	}
+	return out
+}
+
+// A child entered in Monica only as a relationship (a partial contact) keeps
+// its gender and birthday on the imported relationship, whether Monica
+// returned it as a partial contact or only embedded it in the relationship.
+func TestImportRelationshipsCarriesPartialContactDetails(t *testing.T) {
+	db := newMonicaImportDB(t)
+	parent := models.Contact{UserID: 1, Firstname: "Dana", Lastname: "P"}
+	require.NoError(t, db.Create(&parent).Error)
+
+	partialBirthdate := "2015-06-01T00:00:00Z"
+	listed := monica.Contact{ID: 31, FirstName: "Liam", LastName: "P", GenderType: "M", IsPartial: true}
+	listed.Information.Dates.Birthdate = monica.SpecialDate{Date: &partialBirthdate}
+
+	edge := func(ref *monica.ContactRef) monica.Relationship {
+		rel := monica.Relationship{OfContact: ref}
+		rel.RelationshipType.Name = "child"
+		return rel
+	}
+	snapshot := &monica.Snapshot{
+		Contacts:        []monica.Contact{{ID: 10, FirstName: "Dana", LastName: "P"}},
+		PartialContacts: []monica.Contact{listed},
+		Relationships: map[int][]monica.Relationship{10: {
+			edge(&monica.ContactRef{ID: 31, CompleteName: "Liam P"}),
+			edge(monicaChildRef(t, 32, "Emma", "P", "F", "2018-09-14T00:00:00Z", false)),
+			edge(monicaChildRef(t, 33, "Noah", "P", "M", "2020-01-01T00:00:00Z", true)),
+		}},
+	}
+
+	m := NewMonicaImportManager()
+	result := models.MonicaImportResult{}
+	require.NoError(t, m.importRelationships(db, 1, snapshot, map[int]uint{10: parent.ID}, false, &result))
+	assert.Equal(t, 3, result.RelationshipsCreated)
+
+	byName := map[string]models.Relationship{}
+	for _, rel := range importedRelationships(t, db) {
+		byName[rel.Name] = rel
+	}
+	assert.Equal(t, "male", byName["Liam P"].Gender)
+	assert.Equal(t, "2015-06-01", byName["Liam P"].Birthday)
+	assert.Equal(t, "female", byName["Emma P"].Gender)
+	assert.Equal(t, "2018-09-14", byName["Emma P"].Birthday)
+	assert.Equal(t, "", byName["Noah P"].Birthday, "an age is not a date")
+
+	birthdayIssues := issuesFor(result, "birthday")
+	require.Len(t, birthdayIssues, 1)
+	assert.Equal(t, "Noah P", birthdayIssues[0].Label)
+	assert.Equal(t, models.MonicaReasonApproximateBirthday, birthdayIssues[0].Reason)
+}
+
+// Monica's birthday reminder for a child that is not a contact refers to
+// the child; it has to land on the parent instead of being dropped.
+func TestImportRemindersMovesPartialContactReminderToOwner(t *testing.T) {
+	db := newMonicaImportDB(t)
+	parent := models.Contact{UserID: 1, Firstname: "Dana", Lastname: "P"}
+	require.NoError(t, db.Create(&parent).Error)
+
+	child := monicaChildRef(t, 32, "Emma", "P", "F", "2018-09-14T00:00:00Z", false)
+	rel := monica.Relationship{OfContact: child}
+	rel.RelationshipType.Name = "child"
+
+	birthday := "2027-09-14"
+	other := "2027-03-01"
+	past := "2001-01-01"
+	snapshot := &monica.Snapshot{
+		Contacts:      []monica.Contact{{ID: 10, FirstName: "Dana", LastName: "P"}, {ID: 11, FirstName: "Skipped"}},
+		Relationships: map[int][]monica.Relationship{10: {rel}},
+		Reminders: []monica.Reminder{
+			{Title: "Wish happy birthday to Emma", FrequencyType: "year", FrequencyNumber: 1, NextExpectedDate: &birthday, Contact: &monica.ContactRef{ID: 32}},
+			{Title: "School enrolment", FrequencyType: "year", FrequencyNumber: 1, NextExpectedDate: &other, Contact: &monica.ContactRef{ID: 32}},
+			{Title: "Pick up Emma", FrequencyType: "week", FrequencyNumber: 1, NextExpectedDate: &other, Contact: &monica.ContactRef{ID: 32}},
+			// A real contact the user skipped keeps its reminders out.
+			{Title: "Call", FrequencyType: "year", FrequencyNumber: 1, NextExpectedDate: &other, Contact: &monica.ContactRef{ID: 11, CompleteName: "Skipped"}},
+			{Title: "Long gone", FrequencyType: "one_time", InitialDate: &past, Contact: &monica.ContactRef{ID: 10}},
+		},
+	}
+
+	m := NewMonicaImportManager()
+	result := models.MonicaImportResult{}
+	require.NoError(t, m.importReminders(db, 1, snapshot, map[int]uint{10: parent.ID}, &result))
+	assert.Equal(t, 2, result.RemindersCreated)
+
+	var reminders []models.Reminder
+	require.NoError(t, db.Where("contact_id = ?", parent.ID).Find(&reminders).Error)
+	var messages []string
+	for _, r := range reminders {
+		messages = append(messages, r.Message)
+	}
+	assert.ElementsMatch(t, []string{
+		"Emma P: School enrolment", // names the child it is about
+		"Pick up Emma",             // already does
+	}, messages)
+
+	reasons := map[string]string{}
+	for _, issue := range issuesFor(result, "reminder") {
+		reasons[issue.Label] = issue.Reason
+	}
+	assert.Equal(t, map[string]string{
+		// The birthday lives on the relationship, which Meerkat announces.
+		"Wish happy birthday to Emma": models.MonicaReasonBirthdayOnRelationship,
+		"Call":                        models.MonicaReasonContactNotImported,
+		"Long gone":                   models.MonicaReasonExpired,
+	}, reasons)
+}
+
+// Only Monica's partial flag makes someone a child of another contact: a
+// real contact missing from the snapshot (archived, say) keeps its reminders
+// to itself.
+func TestImportRemindersKeepsNonPartialMissingContactReminders(t *testing.T) {
+	db := newMonicaImportDB(t)
+	parent := models.Contact{UserID: 1, Firstname: "Dana", Lastname: "P"}
+	require.NoError(t, db.Create(&parent).Error)
+
+	rel := monica.Relationship{OfContact: &monica.ContactRef{ID: 40, CompleteName: "Archived Friend"}}
+	rel.RelationshipType.Name = "friend"
+	date := "2027-03-01"
+	snapshot := &monica.Snapshot{
+		Contacts:      []monica.Contact{{ID: 10, FirstName: "Dana", LastName: "P"}},
+		Relationships: map[int][]monica.Relationship{10: {rel}},
+		Reminders: []monica.Reminder{
+			{Title: "Catch up", FrequencyType: "year", FrequencyNumber: 1, NextExpectedDate: &date, Contact: &monica.ContactRef{ID: 40}},
+		},
+	}
+
+	m := NewMonicaImportManager()
+	result := models.MonicaImportResult{}
+	require.NoError(t, m.importReminders(db, 1, snapshot, map[int]uint{10: parent.ID}, &result))
+	assert.Equal(t, 0, result.RemindersCreated)
+	require.Len(t, result.Issues, 1)
+	assert.Equal(t, models.MonicaReasonContactNotImported, result.Issues[0].Reason)
+}
+
+func TestContainsWords(t *testing.T) {
+	assert.True(t, containsWords("Pick up Emma", "emma"))
+	assert.True(t, containsWords("Anna-Lena's party", "Anna-Lena"))
+	assert.False(t, containsWords("Call the school", "Al"))
+}
+
+func TestRollUpMonicaIssues(t *testing.T) {
+	skipped := func(entity, contact, label, reason string) models.MonicaImportIssue {
+		return models.MonicaImportIssue{Status: models.MonicaIssueSkipped, Entity: entity, Contact: contact, Label: label, Reason: reason}
+	}
+	got := rollUpMonicaIssues([]models.MonicaImportIssue{
+		skipped("contact", "Bob", "", models.MonicaReasonNotSelected),
+		skipped("note", "Bob", "one", models.MonicaReasonContactNotImported),
+		skipped("note", "Bob", "two", models.MonicaReasonContactNotImported),
+		skipped("note", "Cleo", "solo", models.MonicaReasonContactNotImported),
+		skipped("note", "Alice", "dup", models.MonicaReasonAlreadyExists),
+	})
+	rolled := skipped("note", "Bob", "", models.MonicaReasonContactNotImported)
+	rolled.Count = 2
+	single := skipped("note", "Cleo", "solo", models.MonicaReasonContactNotImported)
+	single.Count = 1
+	assert.Equal(t, []models.MonicaImportIssue{
+		skipped("contact", "Bob", "", models.MonicaReasonNotSelected),
+		rolled,
+		single,
+		skipped("note", "Alice", "dup", models.MonicaReasonAlreadyExists),
+	}, got)
+}
+
+// Every record left out shows up in the report with the reason why.
+func TestImportNotesReportsSkippedRecords(t *testing.T) {
+	db := newMonicaImportDB(t)
+	alice := models.Contact{UserID: 1, Firstname: "Alice", Lastname: "A"}
+	require.NoError(t, db.Create(&alice).Error)
+
+	aliceRef := &monica.ContactRef{ID: 10, CompleteName: "Alice A"}
+	snapshot := &monica.Snapshot{Notes: []monica.Note{
+		{Body: "kept", CreatedAt: "2026-01-01", Contact: aliceRef},
+		{Body: "kept", CreatedAt: "2026-01-01", Contact: aliceRef},
+		{Body: "orphan", CreatedAt: "2026-01-01", Contact: &monica.ContactRef{ID: 99, CompleteName: "Bob B"}},
+		{Body: "   ", Contact: aliceRef},
+	}}
+
+	keys, err := loadNoteKeys(db, 1)
+	require.NoError(t, err)
+	m := NewMonicaImportManager()
+	result := models.MonicaImportResult{}
+	m.importNotes(db, 1, snapshot, map[int]uint{10: alice.ID}, keys, &result)
+
+	assert.Equal(t, 1, result.NotesCreated)
+	assert.Equal(t, []models.MonicaImportIssue{
+		{Status: models.MonicaIssueSkipped, Entity: "note", Contact: "Alice A", Label: "kept", Reason: models.MonicaReasonAlreadyExists},
+		{Status: models.MonicaIssueSkipped, Entity: "note", Contact: "Bob B", Label: "orphan", Reason: models.MonicaReasonContactNotImported},
+		{Status: models.MonicaIssueSkipped, Entity: "note", Contact: "Alice A", Label: "", Reason: models.MonicaReasonIncomplete},
+	}, result.Issues)
 }

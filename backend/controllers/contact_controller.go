@@ -85,8 +85,11 @@ func applyContactSearch(query *gorm.DB, searchTerm string) *gorm.DB {
 			"OR (firstname || ' ' || lastname) LIKE ? OR (nickname || ' ' || lastname) LIKE ? "+
 			"OR email LIKE ? OR phone LIKE ? "+
 			"OR (json_valid(emails) AND EXISTS (SELECT 1 FROM json_each(contacts.emails) WHERE json_extract(json_each.value, '$.value') LIKE ?)) "+
-			"OR (json_valid(phones) AND EXISTS (SELECT 1 FROM json_each(contacts.phones) WHERE json_extract(json_each.value, '$.value') LIKE ?))",
-		like, like, like, like, like, like, like, like, like,
+			"OR (json_valid(phones) AND EXISTS (SELECT 1 FROM json_each(contacts.phones) WHERE json_extract(json_each.value, '$.value') LIKE ?)) "+
+			// People without a contact of their own (e.g. a child stored only as
+			// a relationship) are found through the contact they belong to.
+			"OR EXISTS (SELECT 1 FROM relationships WHERE relationships.contact_id = contacts.id AND relationships.deleted_at IS NULL AND relationships.related_contact_id IS NULL AND relationships.name LIKE ?)",
+		like, like, like, like, like, like, like, like, like, like,
 	)
 }
 

@@ -299,7 +299,10 @@
     "archivedBadge": "Archiviato",
     "archiveConfirmation": "Sei sicuro di voler archiviare questo contatto? Tutti i promemoria verranno eliminati. Potrai ripristinarlo in seguito, ma i promemoria non verranno recuperati.",
     "exportVcard": "Esporta vCard",
-    "exportVcardError": "Impossibile esportare il contatto come vCard. Riprova."
+    "exportVcardError": "Impossibile esportare il contatto come vCard. Riprova.",
+    "showAllFields": "Mostra tutti i campi",
+    "hideEmptyFields": "Nascondi campi vuoti",
+    "noFilledFields": "Nessun dato ancora compilato."
   },
   "noteDialog": {
     "title": "Aggiungi Nota",
@@ -760,6 +763,8 @@
       "loading": "Caricamento…",
       "loadError": "Impossibile caricare le impostazioni dei campi contatto.",
       "saveError": "Impossibile salvare le impostazioni dei campi contatto.",
+      "hideEmpty": "Mostra solo i campi compilati",
+      "hideEmptyDescription": "In un contatto, i campi vuoti sono nascosti finché non fai clic su «Mostra tutti i campi».",
       "groups": {
         "communication": "Comunicazione",
         "name": "Nome",

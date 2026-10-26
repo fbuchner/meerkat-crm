@@ -45,18 +45,6 @@ export async function updateCustomFieldNames(names: string[]): Promise<string[]>
   return data?.custom_field_names || names;
 }
 
-// Returns the user's enabled extended contact fields, or null if never configured
-// (in which case the caller should apply DEFAULT_ENABLED_CONTACT_FIELDS).
-export async function getEnabledContactFields(): Promise<string[] | null> {
-  const response = await apiFetch(`${API_BASE_URL}/users/enabled-contact-fields`, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-  });
-
-  const data = await handleResponse(response, 'Unable to get enabled contact fields.');
-  return data?.enabled_contact_fields ?? null;
-}
-
 export type CardDAVCircleMode = 'all' | 'include' | 'exclude';
 
 export interface CardDAVCircleFilter {
@@ -95,4 +83,15 @@ export async function updateEnabledContactFields(fields: string[]): Promise<stri
 
   const data = await handleResponse(response, 'Unable to update enabled contact fields.');
   return data?.enabled_contact_fields || fields;
+}
+
+export async function updateContactFieldDisplay(hideEmpty: boolean): Promise<boolean> {
+  const response = await apiFetch(`${API_BASE_URL}/users/contact-field-display`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ hide_empty_contact_fields: hideEmpty }),
+  });
+
+  const data = await handleResponse(response, 'Unable to update contact field display.');
+  return data?.hide_empty_contact_fields ?? hideEmpty;
 }

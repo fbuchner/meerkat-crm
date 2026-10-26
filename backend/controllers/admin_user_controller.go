@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	apperrors "meerkat/errors"
 	"meerkat/config"
+	apperrors "meerkat/errors"
 	"meerkat/logger"
 	"meerkat/middleware"
 	"meerkat/models"
@@ -61,8 +61,9 @@ func GetCurrentUser(c *gin.Context) {
 			CreatedAt:  user.CreatedAt,
 			UpdatedAt:  user.UpdatedAt,
 		},
-		CustomFieldNames:     user.CustomFieldNames,
-		EnabledContactFields: user.EnabledContactFields,
+		CustomFieldNames:       user.CustomFieldNames,
+		EnabledContactFields:   user.EnabledContactFields,
+		HideEmptyContactFields: user.HideEmptyContactFields,
 	})
 }
 

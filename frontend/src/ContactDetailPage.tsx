@@ -125,6 +125,7 @@ export default function ContactDetailPage() {
 
   // Enabled extended contact fields (UI visibility)
   const [enabledFields, setEnabledFields] = useState<Set<ContactFieldKey>>(() => resolveEnabledFields(null));
+  const [hideEmptyFields, setHideEmptyFields] = useState(false);
 
   // Unified refresh function for notes, activities, and completions
   const refreshNotesAndActivities = async () => {
@@ -238,6 +239,7 @@ export default function ContactDetailPage() {
         setCompletions(completionsData || []);
         setCustomFieldNames(user?.custom_field_names ?? []);
         setEnabledFields(resolveEnabledFields(user?.enabled_contact_fields ?? null));
+        setHideEmptyFields(user?.hide_empty_contact_fields ?? false);
 
         // Second batch: refresh reminders and relationships in parallel
         await Promise.all([
@@ -726,6 +728,7 @@ export default function ContactDetailPage() {
       }}>
         {/* General Information */}
         <ContactInformation
+          key={contact.ID}
           contact={contact}
           editingField={editingField}
           editValue={editValue}
@@ -743,6 +746,7 @@ export default function ContactDetailPage() {
           }}
           onUpdateContact={handleUpdateContactFields}
           enabledFields={enabledFields}
+          hideEmptyFields={hideEmptyFields}
           relationships={relationships}
           incomingRelationships={incomingRelationships}
           onAddRelationship={handleAddRelationship}

@@ -1,9 +1,11 @@
 package controllers
 
 import (
-	apperrors "meerkat/errors"
+	"database/sql"
 	"meerkat/config"
+	apperrors "meerkat/errors"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,6 +15,25 @@ const (
 	defaultLimit = 25
 	maxLimit     = 100
 )
+
+var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+
+// likeAny returns a condition that is true when any of exprs contains the search
+// term bound by searchArg. The ESCAPE clause lives here so no caller can forget it;
+// a query that uses likeAny without searchArg fails instead of matching wrongly.
+func likeAny(exprs ...string) string {
+	conds := make([]string, len(exprs))
+	for i, expr := range exprs {
+		conds[i] = expr + ` LIKE @search ESCAPE '\'`
+	}
+	return strings.Join(conds, " OR ")
+}
+
+// searchArg binds a user search term for likeAny, escaping the LIKE wildcards so
+// that "50%" or "a_b" match literally.
+func searchArg(term string) sql.NamedArg {
+	return sql.Named("search", "%"+likeEscaper.Replace(term)+"%")
+}
 
 // PaginationParams represents sanitized pagination query values.
 type PaginationParams struct {

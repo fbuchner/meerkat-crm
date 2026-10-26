@@ -158,13 +158,19 @@ type CardDAVCircleFilterInput struct {
 	Circles []string `json:"circles" validate:"dive,max=100"`
 }
 
+// represents the DTO for choosing whether empty contact fields are hidden on the contact detail page
+type ContactFieldDisplayInput struct {
+	// Pointer + required so a missing key is rejected instead of silently decoding to false
+	HideEmptyContactFields *bool `json:"hide_empty_contact_fields" validate:"required"`
+}
+
 // UserRegistrationInput represents the DTO for user registration
 // This DTO intentionally excludes IsAdmin to prevent mass assignment attacks
 type UserRegistrationInput struct {
 	Username string `json:"username" validate:"required,min=1,max=50,no_at_sign"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8,strong_password"`
-	Language string `json:"language" validate:"omitempty,oneof=en de it es fr"`
+	Language string `json:"language" validate:"omitempty,oneof=en de it es fr zh"`
 }
 
 // PasswordResetRequestInput captures email for initiating password reset
@@ -247,11 +253,12 @@ type AdminUserResponse struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 
-// /users/me payload: standard user fields plus caller's UI preferences (custom field names and enabled contact fields)
+// /users/me payload: standard user fields plus caller's UI preferences (custom field names, enabled contact fields, empty-field display)
 type CurrentUserResponse struct {
 	AdminUserResponse
-	CustomFieldNames     []string `json:"custom_field_names"`
-	EnabledContactFields []string `json:"enabled_contact_fields"`
+	CustomFieldNames       []string `json:"custom_field_names"`
+	EnabledContactFields   []string `json:"enabled_contact_fields"`
+	HideEmptyContactFields bool     `json:"hide_empty_contact_fields"`
 }
 
 // AdminUserUpdateInput - DTO for admin updating a user

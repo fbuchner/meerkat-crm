@@ -703,6 +703,10 @@ func UpdateCardDAVCircleFilter(c *gin.Context) {
 		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("circles", "Select at least one circle"))
 		return
 	}
+	// "all" ignores the list, so don't store one that would look meaningful.
+	if input.Mode == models.CardDAVCircleModeAll {
+		circles = []string{}
+	}
 
 	db := c.MustGet("db").(*gorm.DB)
 

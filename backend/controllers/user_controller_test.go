@@ -458,7 +458,8 @@ func TestCardDAVCircleFilter(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, patch(`{"mode":"only","circles":["Family"]}`))
 	assert.JSONEq(t, `{"mode":"include","circles":["Family","Friends"]}`, get())
 
-	assert.Equal(t, http.StatusOK, patch(`{"mode":"all"}`))
+	// "all" ignores circles, so any sent along are dropped.
+	assert.Equal(t, http.StatusOK, patch(`{"mode":"all","circles":["Family"]}`))
 	assert.JSONEq(t, `{"mode":"all","circles":[]}`, get())
 }
 

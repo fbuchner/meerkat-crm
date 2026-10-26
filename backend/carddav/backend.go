@@ -260,6 +260,8 @@ func (b *Backend) PutAddressObject(ctx context.Context, urlPath string, card vca
 	// A device may still hold a stale copy of a contact that has since left the
 	// circle filter. Writing it back would overwrite newer data in Meerkat, so
 	// reject it as a conflict; the client re-fetches, gets 404 and drops it.
+	// New contacts are always accepted, even when their circles fall outside the
+	// filter: they are saved, then drop off the device on its next sync.
 	if !isNew {
 		filter, err := b.getCircleFilter(ctx, userID)
 		if err != nil {

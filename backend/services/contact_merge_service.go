@@ -77,6 +77,15 @@ func FindDuplicateContacts(db *gorm.DB, userID uint) ([]models.DuplicatePair, er
 		return nil, err
 	}
 
+	// Contacts are soft-deleted on every path (DeleteContact, merges, CardDAV,
+	// sync), so no foreign key can cascade to the dismissals; prune the ones
+	// whose contacts are gone here instead.
+	live := db.Model(&models.Contact{}).Select("id").Where("user_id = ?", userID)
+	if err := db.Where("user_id = ? AND (contact_a_id NOT IN (?) OR contact_b_id NOT IN (?))", userID, live, live).
+		Delete(&models.ContactDuplicateDismissal{}).Error; err != nil {
+		return nil, err
+	}
+
 	var dismissals []models.ContactDuplicateDismissal
 	if err := db.Where("user_id = ?", userID).Find(&dismissals).Error; err != nil {
 		return nil, err
@@ -297,10 +306,6 @@ func MergeContacts(db *gorm.DB, userID, targetID, sourceID uint, resolutions map
 			if err := tx.Where("contact_id = ? AND user_id = ?", targetID, userID).Delete(&models.Reminder{}).Error; err != nil {
 				return err
 			}
-		}
-		if err := tx.Where("user_id = ? AND (contact_a_id = ? OR contact_b_id = ?)", userID, sourceID, sourceID).
-			Delete(&models.ContactDuplicateDismissal{}).Error; err != nil {
-			return err
 		}
 		if err := tx.Delete(source).Error; err != nil {
 			return err

@@ -15,7 +15,7 @@ import (
 
 func TestContactMergeEndpoints(t *testing.T) {
 	db, router := setupRouter()
-	require.NoError(t, db.AutoMigrate(&models.ReminderCompletion{}))
+	require.NoError(t, db.AutoMigrate(&models.ReminderCompletion{}, &models.ContactDuplicateDismissal{}))
 
 	var user models.User
 	db.First(&user)
@@ -82,26 +82,4 @@ func TestContactMergeEndpoints(t *testing.T) {
 
 	w = do("POST", "/contacts/duplicates/dismiss", map[string]any{"contact_a_id": target.ID, "contact_b_id": source.ID})
 	assert.Equal(t, http.StatusNotFound, w.Code, "the source was deleted by the merge")
-}
-
-func TestDeleteContactRemovesDuplicateDismissals(t *testing.T) {
-	db, router := setupRouter()
-	var user models.User
-	db.First(&user)
-	router.DELETE("/contacts/:id", DeleteContact)
-
-	a := models.Contact{UserID: user.ID, Firstname: "Sam"}
-	b := models.Contact{UserID: user.ID, Firstname: "Sam"}
-	require.NoError(t, db.Create(&a).Error)
-	require.NoError(t, db.Create(&b).Error)
-	require.NoError(t, db.Create(&models.ContactDuplicateDismissal{UserID: user.ID, ContactAID: a.ID, ContactBID: b.ID}).Error)
-
-	req, _ := http.NewRequest("DELETE", fmt.Sprintf("/contacts/%d", b.ID), nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var count int64
-	db.Model(&models.ContactDuplicateDismissal{}).Count(&count)
-	assert.Zero(t, count)
 }

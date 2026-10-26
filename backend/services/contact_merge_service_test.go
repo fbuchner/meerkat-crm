@@ -70,6 +70,27 @@ func TestFindDuplicateContacts(t *testing.T) {
 	assert.ErrorIs(t, DismissDuplicatePair(db, other.ID, anna1.ID, anna2.ID), gorm.ErrRecordNotFound)
 }
 
+func TestFindDuplicateContactsPrunesStaleDismissals(t *testing.T) {
+	db, userID := setupMergeDB(t)
+	a := createContact(t, db, models.Contact{UserID: userID, Firstname: "Sam"})
+	b := createContact(t, db, models.Contact{UserID: userID, Firstname: "Sam"})
+	c := createContact(t, db, models.Contact{UserID: userID, Firstname: "Sam"})
+	require.NoError(t, DismissDuplicatePair(db, userID, a.ID, b.ID))
+	require.NoError(t, DismissDuplicatePair(db, userID, a.ID, c.ID))
+
+	// Removed outside DeleteContact, e.g. by CardDAV: a plain soft delete.
+	require.NoError(t, db.Delete(&models.Contact{}, b.ID).Error)
+
+	pairs, err := FindDuplicateContacts(db, userID)
+	require.NoError(t, err)
+	assert.Empty(t, pairs, "a/c stays dismissed")
+
+	var remaining []models.ContactDuplicateDismissal
+	require.NoError(t, db.Find(&remaining).Error)
+	require.Len(t, remaining, 1)
+	assert.Equal(t, [2]uint{a.ID, c.ID}, [2]uint{remaining[0].ContactAID, remaining[0].ContactBID})
+}
+
 func TestFindDuplicateContactsSkipsOversizedBuckets(t *testing.T) {
 	db, userID := setupMergeDB(t)
 	for i := 0; i <= maxDuplicateBucketSize; i++ {

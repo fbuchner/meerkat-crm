@@ -625,24 +625,24 @@ func (m *MonicaImportManager) Confirm(db *gorm.DB, userID uint, req models.Monic
 			}
 			result.TotalProcessed++
 			contactName := strings.TrimSpace(contactData.Contact.Firstname + " " + contactData.Contact.Lastname)
-			contactIssue := func(status, reason, detail string) {
-				addMonicaIssue(&result, status, "contact", contactName, "", reason, detail)
+			contactIssue := func(status, reason string, cause error) {
+				addMonicaFailure(&result, status, "contact", contactName, "", reason, cause)
 			}
 
 			switch action {
 			case "skip":
 				result.Skipped++
 				if len(preview.ValidationErrors) > 0 {
-					contactIssue(models.MonicaIssueSkipped, models.MonicaReasonInvalid, strings.Join(preview.ValidationErrors, "; "))
+					addMonicaIssue(&result, models.MonicaIssueSkipped, "contact", contactName, "", models.MonicaReasonInvalid, strings.Join(preview.ValidationErrors, "; "))
 				} else {
-					contactIssue(models.MonicaIssueSkipped, models.MonicaReasonNotSelected, "")
+					contactIssue(models.MonicaIssueSkipped, models.MonicaReasonNotSelected, nil)
 				}
 
 			case "add":
 				contact := contactData.Contact
 				contact.UserID = userID
 				if err := tx.Create(&contact).Error; err != nil {
-					contactIssue(models.MonicaIssueFailed, models.MonicaReasonError, err.Error())
+					contactIssue(models.MonicaIssueFailed, models.MonicaReasonError, err)
 					result.Skipped++
 					continue
 				}
@@ -655,13 +655,13 @@ func (m *MonicaImportManager) Confirm(db *gorm.DB, userID uint, req models.Monic
 
 			case "update":
 				if preview.DuplicateMatch == nil {
-					contactIssue(models.MonicaIssueFailed, models.MonicaReasonNoMatch, "")
+					contactIssue(models.MonicaIssueFailed, models.MonicaReasonNoMatch, nil)
 					result.Skipped++
 					continue
 				}
 				var existing models.Contact
 				if err := tx.Where("user_id = ?", userID).First(&existing, preview.DuplicateMatch.ExistingContactID).Error; err != nil {
-					contactIssue(models.MonicaIssueFailed, models.MonicaReasonNoMatch, err.Error())
+					contactIssue(models.MonicaIssueFailed, models.MonicaReasonNoMatch, err)
 					result.Skipped++
 					continue
 				}
@@ -681,7 +681,7 @@ func (m *MonicaImportManager) Confirm(db *gorm.DB, userID uint, req models.Monic
 					}
 				}
 				if err := tx.Save(&existing).Error; err != nil {
-					contactIssue(models.MonicaIssueFailed, models.MonicaReasonError, err.Error())
+					contactIssue(models.MonicaIssueFailed, models.MonicaReasonError, err)
 					result.Skipped++
 					continue
 				}
@@ -745,6 +745,14 @@ func (m *MonicaImportManager) Confirm(db *gorm.DB, userID uint, req models.Monic
 	}
 	s.mu.Unlock()
 
+	failed := 0
+	for _, issue := range result.Issues {
+		if issue.Status == models.MonicaIssueFailed {
+			failed++
+			log.Warn().Str("session_id", req.SessionID).Str("entity", issue.Entity).Str("reason", issue.Reason).
+				Str("error", issue.Cause).Msg("Monica record not imported")
+		}
+	}
 	log.Info().
 		Str("session_id", req.SessionID).
 		Int("created", result.Created).
@@ -757,6 +765,7 @@ func (m *MonicaImportManager) Confirm(db *gorm.DB, userID uint, req models.Monic
 		Int("photos_queued", result.PhotosQueued).
 		Int("errors", len(result.Errors)).
 		Int("issues", len(result.Issues)).
+		Int("failed", failed).
 		Msg("Monica import completed")
 
 	if len(avatarTasks) > 0 {
@@ -962,7 +971,7 @@ func (m *MonicaImportManager) importRelationships(tx *gorm.DB, userID uint, snap
 				relationship.RelatedContactID = &relatedID
 			}
 			if err := tx.Create(&relationship).Error; err != nil {
-				addMonicaIssue(result, models.MonicaIssueFailed, "relationship", ownerName, label, models.MonicaReasonError, err.Error())
+				addMonicaFailure(result, models.MonicaIssueFailed, "relationship", ownerName, label, models.MonicaReasonError, err)
 				continue
 			}
 			result.RelationshipsCreated++
@@ -1076,13 +1085,13 @@ func (m *MonicaImportManager) importActivities(tx *gorm.DB, userID uint, lang st
 
 		activity.UserID = userID
 		if err := tx.Create(&activity).Error; err != nil {
-			addMonicaIssue(result, models.MonicaIssueFailed, "activity", attendees, activity.Title, models.MonicaReasonError, err.Error())
+			addMonicaFailure(result, models.MonicaIssueFailed, "activity", attendees, activity.Title, models.MonicaReasonError, err)
 			continue
 		}
 		var contacts []models.Contact
 		if err := tx.Where("user_id = ? AND id IN ?", userID, contactIDs).Find(&contacts).Error; err == nil && len(contacts) > 0 {
 			if err := tx.Model(&activity).Association("Contacts").Append(&contacts); err != nil {
-				addMonicaIssue(result, models.MonicaIssueFailed, "activity", attendees, activity.Title, models.MonicaReasonError, "failed to link contacts: "+err.Error())
+				addMonicaFailure(result, models.MonicaIssueFailed, "activity", attendees, activity.Title, models.MonicaReasonError, fmt.Errorf("failed to link contacts: %w", err))
 			}
 		}
 		result.ActivitiesCreated++
@@ -1122,7 +1131,7 @@ func (m *MonicaImportManager) createImportedNote(tx *gorm.DB, userID uint, entit
 	note.UserID = userID
 	note.ContactID = &contactID
 	if err := tx.Create(&note).Error; err != nil {
-		addMonicaIssue(result, models.MonicaIssueFailed, entity, contactName, monicaExcerpt(note.Content), models.MonicaReasonError, err.Error())
+		addMonicaFailure(result, models.MonicaIssueFailed, entity, contactName, monicaExcerpt(note.Content), models.MonicaReasonError, err)
 		return
 	}
 	result.NotesCreated++
@@ -1234,7 +1243,7 @@ func (m *MonicaImportManager) importReminders(tx *gorm.DB, userID uint, snapshot
 		reminder.UserID = userID
 		reminder.ContactID = &contactID
 		if err := tx.Create(&reminder).Error; err != nil {
-			addMonicaIssue(result, models.MonicaIssueFailed, "reminder", personName, label, models.MonicaReasonError, err.Error())
+			addMonicaFailure(result, models.MonicaIssueFailed, "reminder", personName, label, models.MonicaReasonError, err)
 			continue
 		}
 		result.RemindersCreated++
@@ -1314,7 +1323,16 @@ func addMonicaIssue(result *models.MonicaImportResult, status, entity, contactNa
 	})
 }
 
-// monicaExcerpt shortens free text to a single line fit for the report.
+// addMonicaFailure records a record the database (or a lookup) rejected. The
+// raw error stays server-side — it is logged, never sent — since driver
+// errors can carry SQL and schema details; the reason code says enough.
+func addMonicaFailure(result *models.MonicaImportResult, status, entity, contactName, label, reason string, cause error) {
+	addMonicaIssue(result, status, entity, contactName, label, reason, "")
+	if cause != nil {
+		result.Issues[len(result.Issues)-1].Cause = cause.Error()
+	}
+}
+
 // rollUpMonicaIssues folds the records of a contact that was not imported
 // into one row per contact and record type: the contact's own row already
 // says why, and listing each of its notes one by one buries the rest.
@@ -1340,6 +1358,7 @@ func rollUpMonicaIssues(issues []models.MonicaImportIssue) []models.MonicaImport
 	return out
 }
 
+// monicaExcerpt shortens free text to a single line fit for the report.
 func monicaExcerpt(text string) string {
 	text = strings.Join(strings.Fields(text), " ")
 	if len([]rune(text)) > 80 {

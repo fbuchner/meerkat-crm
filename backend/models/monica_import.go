@@ -177,4 +177,6 @@ type MonicaImportIssue struct {
 	// rolled up into it (records of a contact that was not imported); their
 	// individual labels are then dropped.
 	Count int `json:"count,omitempty"`
+	// Cause is the raw error behind a failure, for the server log only.
+	Cause string `json:"-"`
 }

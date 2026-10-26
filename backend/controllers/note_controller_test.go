@@ -7,6 +7,7 @@ import (
 	"meerkat/models"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strconv"
 	"testing"
 	"time"
@@ -179,6 +180,28 @@ func TestGetNotesSearch(t *testing.T) {
 		t.Fatalf("expected notes array in response")
 	}
 	assert.Len(t, noteItems, 1)
+	assert.EqualValues(t, 1, responseBody["total"])
+}
+
+func TestGetNotesSearchLiteralWildcards(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+
+	router.GET("/notes", GetUnassignedNotes)
+
+	db.Create(&models.Note{UserID: user.ID, Content: "Discount 50% off"})
+	db.Create(&models.Note{UserID: user.ID, Content: "Discount 500 off"})
+
+	req, _ := http.NewRequest("GET", "/notes?search="+url.QueryEscape("50%"), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var responseBody map[string]any
+	json.Unmarshal(w.Body.Bytes(), &responseBody)
 	assert.EqualValues(t, 1, responseBody["total"])
 }
 

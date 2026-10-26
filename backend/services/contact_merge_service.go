@@ -13,6 +13,7 @@ import (
 
 	"github.com/emersion/go-vcard"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const (
@@ -193,7 +194,9 @@ func DismissDuplicatePair(db *gorm.DB, userID, contactAID, contactBID uint) erro
 	}
 	pair := orderedPair(contactAID, contactBID)
 	dismissal := models.ContactDuplicateDismissal{UserID: userID, ContactAID: pair[0], ContactBID: pair[1]}
-	if err := db.Where(dismissal).FirstOrCreate(&dismissal).Error; err != nil {
+	// ON CONFLICT DO NOTHING rather than FirstOrCreate: two concurrent
+	// dismissals of the same pair (a double click) must not trip the unique index.
+	if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&dismissal).Error; err != nil {
 		return err
 	}
 

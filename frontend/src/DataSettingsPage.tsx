@@ -18,6 +18,7 @@ import CustomFieldsSettings from './components/CustomFieldsSettings';
 import ContactFieldSettings from './components/ContactFieldSettings';
 import CalendarSyncSettings from './components/CalendarSyncSettings';
 import ContactSyncSettings from './components/ContactSyncSettings';
+import CardDAVCircleFilterSettings from './components/CardDAVCircleFilterSettings';
 import MonicaImportDialog from './components/MonicaImportDialog';
 
 export default function DataSettingsPage() {
@@ -75,6 +76,8 @@ export default function DataSettingsPage() {
       <CalendarSyncSettings />
 
       <ContactSyncSettings />
+
+      <CardDAVCircleFilterSettings />
 
       <Card sx={{ mb: 2 }}>
         <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>

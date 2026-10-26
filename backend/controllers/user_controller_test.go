@@ -3,6 +3,7 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -419,6 +420,58 @@ func TestUpdateLanguage_Chinese(t *testing.T) {
 	var updated models.User
 	db.Where("username = ?", "polyglot").First(&updated)
 	assert.Equal(t, "zh", updated.Language)
+}
+
+func TestCardDAVCircleFilter(t *testing.T) {
+	_, router := setupRouter()
+	router.GET("/filter", GetCardDAVCircleFilter)
+	router.PATCH("/filter",
+		middleware.ValidateJSONMiddleware(&models.CardDAVCircleFilterInput{}),
+		UpdateCardDAVCircleFilter)
+
+	get := func() string {
+		req, _ := http.NewRequest("GET", "/filter", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+		return w.Body.String()
+	}
+	patch := func(jsonBody string) int {
+		req, _ := http.NewRequest("PATCH", "/filter", bytes.NewBufferString(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		return w.Code
+	}
+
+	// Never configured -> everything syncs.
+	assert.JSONEq(t, `{"mode":"all","circles":[]}`, get())
+
+	// Circles are trimmed and deduplicated case-insensitively.
+	assert.Equal(t, http.StatusOK, patch(`{"mode":"include","circles":["Family"," family ","Friends",""]}`))
+	assert.JSONEq(t, `{"mode":"include","circles":["Family","Friends"]}`, get())
+
+	// Saving the same filter again still succeeds.
+	assert.Equal(t, http.StatusOK, patch(`{"mode":"include","circles":["Family","Friends"]}`))
+
+	// A filter mode without circles and an unknown mode are rejected, leaving the setting alone.
+	assert.Equal(t, http.StatusBadRequest, patch(`{"mode":"exclude","circles":[]}`))
+	assert.Equal(t, http.StatusBadRequest, patch(`{"mode":"only","circles":["Family"]}`))
+	// The circle list is capped at 200 entries; distinct names so only the cap can reject it.
+	manyCircles := make([]string, 201)
+	for i := range manyCircles {
+		manyCircles[i] = fmt.Sprintf("Circle %d", i)
+	}
+	tooMany, _ := json.Marshal(models.CardDAVCircleFilterInput{Mode: "include", Circles: manyCircles})
+	assert.Equal(t, http.StatusBadRequest, patch(string(tooMany)))
+	justEnough, _ := json.Marshal(models.CardDAVCircleFilterInput{Mode: "include", Circles: manyCircles[:200]})
+	assert.Equal(t, http.StatusOK, patch(string(justEnough)))
+	assert.Equal(t, http.StatusOK, patch(`{"mode":"include","circles":["Family","Friends"]}`))
+	assert.JSONEq(t, `{"mode":"include","circles":["Family","Friends"]}`, get())
+
+	// "all" ignores circles, so any sent along are dropped.
+	assert.Equal(t, http.StatusOK, patch(`{"mode":"all","circles":["Family"]}`))
+	assert.JSONEq(t, `{"mode":"all","circles":[]}`, get())
 }
 
 // TestEnabledContactFieldsNullVsEmpty verifies the GET/PATCH endpoints preserve the

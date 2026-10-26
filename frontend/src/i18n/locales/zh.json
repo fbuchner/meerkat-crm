@@ -299,7 +299,10 @@
     "archivedBadge": "已归档",
     "archiveConfirmation": "确定要归档此联系人吗？所有提醒都将被删除。您之后可以取消归档，但提醒不会恢复。",
     "exportVcard": "导出 vCard",
-    "exportVcardError": "将联系人导出为 vCard 失败。请重试。"
+    "exportVcardError": "将联系人导出为 vCard 失败。请重试。",
+    "showAllFields": "显示所有字段",
+    "hideEmptyFields": "隐藏空字段",
+    "noFilledFields": "尚未填写任何信息。"
   },
   "noteDialog": {
     "title": "添加笔记",
@@ -655,6 +658,25 @@
       "disconnectTitle": "断开 CardDAV 服务器？",
       "disconnectConfirm": "您的联系人会保留在 Meerkat 中；只会移除连接及其同步状态。"
     },
+    "carddavCircleFilter": {
+      "title": "手机同步筛选（内置 CardDAV 服务器）",
+      "description": "选择 Meerkat 内置 CardDAV 服务器向您的手机和其他设备显示哪些联系人。未通过筛选的联系人仍保留在 Meerkat 中，并可在此处搜索。",
+      "loading": "加载中…",
+      "loadError": "无法加载手机同步筛选。",
+      "saveError": "无法保存手机同步筛选。",
+      "saveSuccess": "筛选已保存。您的设备将在下次同步时应用。",
+      "modeAll": "同步所有联系人",
+      "modeInclude": "仅同步这些圈子中的联系人",
+      "modeExclude": "同步除这些圈子以外的所有联系人",
+      "circlesLabel": "圈子",
+      "circlesRequired": "请至少选择一个圈子。",
+      "noCircles": "暂无圈子",
+      "unusedCircles": "这些圈子中已没有任何联系人：{{circles}}",
+      "allCirclesUnused": "这些圈子中都已没有任何联系人，因此您的设备将不会显示任何联系人。",
+      "includeNewContactsHint": "您在设备上新建的联系人会保存到 Meerkat，但除非将其加入这些圈子之一，否则会在下次同步时从设备上消失。",
+      "removalHint": "不再符合筛选条件的联系人只会从您的设备上移除。在设备上删除已同步的联系人仍会同时在 Meerkat 中删除它。",
+      "save": "保存筛选"
+    },
     "about": {
       "title": "关于 Meerkat CRM",
       "description": "Meerkat CRM 是一款开源的个人 CRM 应用，旨在帮助您管理联系人和人际关系。",
@@ -741,6 +763,8 @@
       "loading": "加载中…",
       "loadError": "无法加载联系人字段设置。",
       "saveError": "无法保存联系人字段设置。",
+      "hideEmpty": "仅显示已填写的字段",
+      "hideEmptyDescription": "在联系人页面上，空字段会被隐藏，直到您点击“显示所有字段”。",
       "groups": {
         "communication": "通讯",
         "name": "姓名",

@@ -132,19 +132,18 @@ func GetActivities(c *gin.Context) {
 	}
 
 	if search != "" {
-		like := likeContains(search)
-		searchClause := db.Where("LOWER(activities.title) LIKE ?"+likeEscape, like).
-			Or("LOWER(activities.description) LIKE ?"+likeEscape, like).
-			Or("LOWER(activities.location) LIKE ?"+likeEscape, like).
-			Or("LOWER(COALESCE(contacts.firstname, '')) LIKE ?"+likeEscape, like).
-			Or("LOWER(COALESCE(contacts.lastname, '')) LIKE ?"+likeEscape, like).
-			Or("LOWER(COALESCE(contacts.nickname, '')) LIKE ?"+likeEscape, like)
-
 		baseQuery = baseQuery.
 			Select("DISTINCT activities.*").
 			Joins("LEFT JOIN activity_contacts ON activity_contacts.activity_id = activities.id").
 			Joins("LEFT JOIN contacts ON contacts.id = activity_contacts.contact_id AND contacts.user_id = ?", userID).
-			Where(searchClause)
+			Where(likeAny(
+				"LOWER(activities.title)",
+				"LOWER(activities.description)",
+				"LOWER(activities.location)",
+				"LOWER(COALESCE(contacts.firstname, ''))",
+				"LOWER(COALESCE(contacts.lastname, ''))",
+				"LOWER(COALESCE(contacts.nickname, ''))",
+			), searchArg(search))
 	}
 
 	countQuery := baseQuery.Session(&gorm.Session{})

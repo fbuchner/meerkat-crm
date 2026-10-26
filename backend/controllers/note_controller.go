@@ -161,7 +161,7 @@ func GetUnassignedNotes(c *gin.Context) {
 	}
 
 	if search != "" {
-		baseQuery = baseQuery.Where("LOWER(content) LIKE ?"+likeEscape, likeContains(search))
+		baseQuery = baseQuery.Where(likeAny("LOWER(content)"), searchArg(search))
 	}
 
 	countQuery := baseQuery.Session(&gorm.Session{})

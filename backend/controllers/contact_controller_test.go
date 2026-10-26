@@ -6,8 +6,8 @@ import (
 	"meerkat/middleware"
 	"meerkat/models"
 	"net/http"
-	"net/url"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -132,7 +132,8 @@ func TestGetContactsSearchMultiValue(t *testing.T) {
 }
 
 // TestGetContactsSearchLiteralWildcards verifies that LIKE wildcards in a search term
-// match literally, in both the name columns and the emails JSON array.
+// match literally in every searched column: names, the combined name, and the
+// emails/phones JSON arrays.
 func TestGetContactsSearchLiteralWildcards(t *testing.T) {
 	db, router := setupRouter()
 
@@ -142,7 +143,7 @@ func TestGetContactsSearchLiteralWildcards(t *testing.T) {
 	router.GET("/contacts", GetContacts)
 
 	db.Create(&models.Contact{UserID: user.ID, Firstname: "Fifty%", Lastname: "Percent"})
-	db.Create(&models.Contact{UserID: user.ID, Firstname: "Fifty5", Lastname: "Five"})
+	db.Create(&models.Contact{UserID: user.ID, Firstname: "Fifty5", Lastname: "Percent"})
 	db.Create(&models.Contact{
 		UserID:    user.ID,
 		Firstname: "Under",
@@ -154,6 +155,19 @@ func TestGetContactsSearchLiteralWildcards(t *testing.T) {
 		Emails:    []models.ContactEmail{{Type: "home", Value: "axb@example.com"}},
 	})
 	db.Create(&models.Contact{UserID: user.ID, Firstname: `Back\slash`})
+	db.Create(&models.Contact{
+		UserID:    user.ID,
+		Firstname: "Ext",
+		Phones: []models.ContactPhone{
+			{Type: "cell", Value: "+15550000"},
+			{Type: "work", Value: "555_0100"},
+		},
+	})
+	db.Create(&models.Contact{
+		UserID:    user.ID,
+		Firstname: "Noext",
+		Phones:    []models.ContactPhone{{Type: "work", Value: "55500100"}},
+	})
 
 	search := func(term string) int {
 		req, _ := http.NewRequest("GET", "/contacts?search="+url.QueryEscape(term), nil)
@@ -167,6 +181,8 @@ func TestGetContactsSearchLiteralWildcards(t *testing.T) {
 
 	assert.Equal(t, 1, search("Fifty%"), "% should match only a literal percent sign")
 	assert.Equal(t, 1, search("a_b"), "_ should match only a literal underscore")
+	assert.Equal(t, 1, search("Fifty% Percent"), "combined name should match % literally")
+	assert.Equal(t, 1, search("555_01"), "secondary phone should match _ literally")
 	assert.Equal(t, 0, search("%_"), "wildcard-only term should match nothing literal")
 	assert.Equal(t, 1, search(`k\s`), "backslash should match literally")
 }

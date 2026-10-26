@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"meerkat/models"
 	"net/http"
-	"net/url"
 	"net/http/httptest"
+	"net/url"
 	"strconv"
 
 	"testing"

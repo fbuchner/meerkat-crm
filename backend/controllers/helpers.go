@@ -1,8 +1,9 @@
 package controllers
 
 import (
-	apperrors "meerkat/errors"
+	"database/sql"
 	"meerkat/config"
+	apperrors "meerkat/errors"
 	"strconv"
 	"strings"
 
@@ -15,15 +16,23 @@ const (
 	maxLimit     = 100
 )
 
-// likeEscape is the ESCAPE clause that must follow every LIKE matched against likeContains.
-const likeEscape = ` ESCAPE '\'`
-
 var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
 
-// likeContains builds a "contains" LIKE pattern from a user search term, escaping
-// the LIKE wildcards so that "50%" or "a_b" match literally.
-func likeContains(term string) string {
-	return "%" + likeEscaper.Replace(term) + "%"
+// likeAny returns a condition that is true when any of exprs contains the search
+// term bound by searchArg. The ESCAPE clause lives here so no caller can forget it;
+// a query that uses likeAny without searchArg fails instead of matching wrongly.
+func likeAny(exprs ...string) string {
+	conds := make([]string, len(exprs))
+	for i, expr := range exprs {
+		conds[i] = expr + ` LIKE @search ESCAPE '\'`
+	}
+	return strings.Join(conds, " OR ")
+}
+
+// searchArg binds a user search term for likeAny, escaping the LIKE wildcards so
+// that "50%" or "a_b" match literally.
+func searchArg(term string) sql.NamedArg {
+	return sql.Named("search", "%"+likeEscaper.Replace(term)+"%")
 }
 
 // PaginationParams represents sanitized pagination query values.

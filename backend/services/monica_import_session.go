@@ -1224,7 +1224,9 @@ func (m *MonicaImportManager) importReminders(tx *gorm.DB, userID uint, snapshot
 		// MapMonicaReminder pins exactly the birthday reminders to the
 		// calendar. A partial person's birthday is imported onto the
 		// relationship, which Meerkat already announces; a reminder on top
-		// would announce it twice.
+		// would announce it twice. A child with only an approximate age has
+		// no birthday to match, so its reminder is not recognized as one and
+		// still moves to the parent — the only place it can survive.
 		if movedToOwner && !*reminder.ReoccurFromCompletion {
 			addMonicaIssue(result, models.MonicaIssueSkipped, "reminder", personName, label, models.MonicaReasonBirthdayOnRelationship, "")
 			continue

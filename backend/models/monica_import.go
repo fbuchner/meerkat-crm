@@ -161,7 +161,8 @@ const (
 	MonicaReasonBirthdayOnRelationship = "birthday_on_relationship"
 	// MonicaReasonPhotoFailed: the contact's photo could not be downloaded or stored.
 	MonicaReasonPhotoFailed = "photo_failed"
-	// MonicaReasonError: the database rejected the record (Detail has the error).
+	// MonicaReasonError: the database rejected the record (the raw error is
+	// in Cause, which is logged but never sent).
 	MonicaReasonError = "error"
 )
 

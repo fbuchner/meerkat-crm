@@ -64,11 +64,12 @@
     "@types/node": "^24.9.1",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
-    "@vitejs/plugin-react": "^4",
+    "@vitejs/plugin-react": "^6",
     "eslint": "8.57.1",
     "eslint-config-react-app": "7.0.1",
-    "jsdom": "^26",
+    "jsdom": "^30",
     "typescript": "^6.0.3",
-    "vitest": "^3.2.4"
+    "vite": "^8",
+    "vitest": "^5"
   }
 }

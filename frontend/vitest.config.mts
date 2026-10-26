@@ -11,10 +11,6 @@ export default defineConfig({
     // Node >= 22 ships its own experimental localStorage global, which is
     // undefined without --localstorage-file and shadows jsdom's working one
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        execArgv: ['--no-experimental-webstorage'],
-      },
-    },
+    execArgv: ['--no-experimental-webstorage'],
   },
 });

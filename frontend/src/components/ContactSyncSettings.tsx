@@ -276,7 +276,9 @@ export default function ContactSyncSettings() {
           <Divider sx={{ mb: 1.5 }} />
 
           <Stack spacing={1.5}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               {t('settings.contactSync.description')}
             </Typography>
             {error && <Alert severity="error" sx={{ py: 0 }} onClose={() => setError('')}>{error}</Alert>}
@@ -287,7 +289,12 @@ export default function ContactSyncSettings() {
                 <CircularProgress size={24} />
               </Box>
             ) : !connection ? (
-              <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "text.secondary",
+                  fontStyle: 'italic'
+                }}>
                 {t('settings.contactSync.empty')}
               </Typography>
             ) : (
@@ -301,7 +308,9 @@ export default function ContactSyncSettings() {
                 }}
               >
                 <Box>
-                  <Stack direction="row" spacing={1} alignItems="center">
+                  <Stack direction="row" spacing={1} sx={{
+                    alignItems: "center"
+                  }}>
                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
                       {connection.address_book_name || connection.address_book_path}
                     </Typography>
@@ -320,7 +329,9 @@ export default function ContactSyncSettings() {
                       statusChip(connection)
                     )}
                   </Stack>
-                  <Typography variant="caption" color="text.secondary" component="span">
+                  <Typography variant="caption" component="span" sx={{
+                    color: "text.secondary"
+                  }}>
                     {connection.base_url} — {formatLastSync(connection)}
                   </Typography>
                 </Box>
@@ -428,7 +439,9 @@ export default function ContactSyncSettings() {
           ) : (
             <Stack spacing={2} sx={{ mt: 1 }}>
               {dialogError && <Alert severity="error" sx={{ py: 0 }}>{dialogError}</Alert>}
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 {t('settings.contactSync.chooseAddressBook')}
               </Typography>
               <RadioGroup value={selectedPath} onChange={e => setSelectedPath(e.target.value)}>
@@ -441,7 +454,9 @@ export default function ContactSyncSettings() {
                       <Box>
                         <Typography variant="body2">{book.name || book.path}</Typography>
                         {book.description && (
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" sx={{
+                            color: "text.secondary"
+                          }}>
                             {book.description}
                           </Typography>
                         )}

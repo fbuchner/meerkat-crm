@@ -136,14 +136,18 @@ export default function CustomFieldsSettings() {
           <Divider sx={{ mb: 1.5 }} />
 
           <Stack spacing={1.5}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               {t('settings.customFields.description')}
             </Typography>
 
             {error && <Alert severity="error" sx={{ py: 0 }}>{error}</Alert>}
 
             {loading ? (
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 {t('settings.customFields.loading')}
               </Typography>
             ) : (
@@ -189,7 +193,12 @@ export default function CustomFieldsSettings() {
                     ))}
                   </List>
                 ) : (
-                  <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "text.secondary",
+                      fontStyle: 'italic'
+                    }}>
                     {t('settings.customFields.noFields')}
                   </Typography>
                 )}

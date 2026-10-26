@@ -198,7 +198,9 @@ export default function ContactHeader({
                   value={profileValues.gender}
                   onChange={(e) => onProfileValueChange({ ...profileValues, gender: e.target.value })}
                   size="small"
-                  SelectProps={{ native: true }}
+                  slotProps={{
+                    select: { native: true }
+                  }}
                 >
                   <option value=""></option>
                   <option value="male">{t('contactDetail.male')}</option>
@@ -312,7 +314,12 @@ export default function ContactHeader({
                   </Box>
                 </Box>
                 {contact.gender && (
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "text.secondary",
+                      mt: 0.25
+                    }}>
                     {t(`contactDetail.${contact.gender}`)}
                   </Typography>
                 )}
@@ -329,7 +336,9 @@ export default function ContactHeader({
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>
                   {t('contactDetail.circles')}
                 </Typography>
                 <IconButton
@@ -349,7 +358,14 @@ export default function ContactHeader({
               {editingCircles ? (
                 // Edit Mode
                 <Box>
-                  <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 1, mb: 1 }}>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{
+                      flexWrap: "wrap",
+                      gap: 1,
+                      mb: 1
+                    }}>
                     {contact.circles && contact.circles.length > 0 ? (
                       contact.circles.map((circle, index) => (
                         <Chip
@@ -361,7 +377,9 @@ export default function ContactHeader({
                         />
                       ))
                     ) : (
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>
                         {t('contactDetail.noCircles')}
                       </Typography>
                     )}
@@ -411,13 +429,21 @@ export default function ContactHeader({
                 </Box>
               ) : (
                 // View Mode
-                <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 1 }}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{
+                    flexWrap: "wrap",
+                    gap: 1
+                  }}>
                   {contact.circles && contact.circles.length > 0 ? (
                     contact.circles.map((circle, index) => (
                       <Chip key={index} label={circle} size="small" color="primary" />
                     ))
                   ) : (
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" sx={{
+                      color: "text.secondary"
+                    }}>
                       {t('contactDetail.noCircles')}
                     </Typography>
                   )}

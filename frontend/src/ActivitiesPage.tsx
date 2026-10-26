@@ -211,8 +211,19 @@ const ActivitiesPage: React.FC = () => {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 2 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Box display="flex" alignItems="center" gap={1}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2
+        }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1
+          }}>
           <Typography variant="h5">{t('activities.title')}</Typography>
           <IconButton
             size="small"
@@ -240,7 +251,12 @@ const ActivitiesPage: React.FC = () => {
       </Popover>
 
       <Paper sx={{ p: 1.5, mb: 2 }}>
-        <Box display="flex" gap={2} flexWrap="wrap">
+        <Box
+          sx={{
+            display: "flex",
+            gap: 2,
+            flexWrap: "wrap"
+          }}>
           <TextField
             size="small"
             label={t('activities.search')}
@@ -274,7 +290,9 @@ const ActivitiesPage: React.FC = () => {
         <ListSkeleton count={8} />
       ) : activities.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant="body1" sx={{
+            color: "text.secondary"
+          }}>
             {hasFilters ? t('activities.noResults') : t('activities.noActivities')}
           </Typography>
         </Paper>
@@ -282,7 +300,11 @@ const ActivitiesPage: React.FC = () => {
         <Timeline position="right">
           {activities.map((activity, index) => (
             <TimelineItem key={activity.ID}>
-              <TimelineOppositeContent color="text.secondary" sx={{ flex: 0.2 }}>
+              <TimelineOppositeContent
+                sx={{
+                  color: "text.secondary",
+                  flex: 0.2
+                }}>
                 <Typography variant="body2">
                   {formatDate(activity.date)}
                 </Typography>
@@ -304,14 +326,21 @@ const ActivitiesPage: React.FC = () => {
                   }}
                 >
                   <Box>
-                    <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start"
+                      }}>
                       <Box sx={{ flex: 1, pr: 2 }}>
                         {activity.title && (
                           <Typography
                             variant="body2"
-                            fontWeight={600}
-                            sx={{ wordBreak: 'break-word', color: 'text.primary' }}
-                          >
+                            sx={{
+                              fontWeight: 600,
+                              wordBreak: 'break-word',
+                              color: 'text.primary'
+                            }}>
                             {activity.title}
                           </Typography>
                         )}
@@ -319,7 +348,13 @@ const ActivitiesPage: React.FC = () => {
                           {activity.description}
                         </Typography>
                         {activity.location && (
-                          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "text.secondary",
+                              mt: 1,
+                              display: 'block'
+                            }}>
                             📍 {activity.location}
                           </Typography>
                         )}
@@ -334,7 +369,13 @@ const ActivitiesPage: React.FC = () => {
                       </Box>
                     </Box>
                     {activity.contacts && activity.contacts.length > 0 && (
-                      <Box mt={1} display="flex" flexWrap="wrap" gap={0.5}>
+                      <Box
+                        sx={{
+                          mt: 1,
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: 0.5
+                        }}>
                         {activity.contacts.map((contact: Contact) => (
                           <Chip
                             key={contact.ID}
@@ -357,7 +398,12 @@ const ActivitiesPage: React.FC = () => {
       )}
 
       {totalPages > 1 && (
-        <Box display="flex" justifyContent="center" mt={3}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            mt: 3
+          }}>
           <Pagination
             color="primary"
             count={totalPages}

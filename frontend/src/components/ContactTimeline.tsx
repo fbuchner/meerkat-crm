@@ -40,7 +40,9 @@ export default function ContactTimeline({ timelineItems, onEditItem, onDeleteCom
 
   if (timelineItems.length === 0) {
     return (
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" sx={{
+        color: "text.secondary"
+      }}>
         {t('contactDetail.noActivity')}
       </Typography>
     );
@@ -54,7 +56,11 @@ export default function ContactTimeline({ timelineItems, onEditItem, onDeleteCom
 
         return (
           <TimelineItem key={`${item.type}-${item.data.ID}`}>
-            <TimelineOppositeContent color="text.secondary" sx={{ flex: 0.3 }}>
+            <TimelineOppositeContent
+              sx={{
+                color: "text.secondary",
+                flex: 0.3
+              }}>
               <Typography variant="caption">
                 {isValidDate ? formatDate(item.date) : (item.date || 'N/A')}
               </Typography>
@@ -91,13 +97,24 @@ export default function ContactTimeline({ timelineItems, onEditItem, onDeleteCom
                     : (item.data as ReminderCompletion).message}
                 </Typography>
                 {item.type === 'activity' && (item.data as Activity).location && (
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                      mt: 1,
+                      display: 'block'
+                    }}>
                     📍 {(item.data as Activity).location}
                   </Typography>
                 )}
                 {item.type === 'activity' && (item.data as Activity).contacts && (item.data as Activity).contacts!.length > 0 && (
                   <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                        mr: 0.5
+                      }}>
                       👥
                     </Typography>
                     {(item.data as Activity).contacts!.map((activityContact, idx) => (
@@ -120,7 +137,9 @@ export default function ContactTimeline({ timelineItems, onEditItem, onDeleteCom
                           {activityContact.lastname}
                         </Link>
                         {idx < (item.data as Activity).contacts!.length - 1 && (
-                          <Typography variant="caption" color="text.secondary">,&nbsp;</Typography>
+                          <Typography variant="caption" sx={{
+                            color: "text.secondary"
+                          }}>,&nbsp;</Typography>
                         )}
                       </Fragment>
                     ))}

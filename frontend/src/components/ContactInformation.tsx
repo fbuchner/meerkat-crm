@@ -155,7 +155,11 @@ export default function ContactInformation({
   }, [contact.birthday, contact.is_deceased, contact.deceased_date, t, calculateAge]);
 
   const renderValueList = (rows: ContactValue[] | undefined) => {
-    if (!rows || rows.length === 0) return <Typography variant="body2" color="text.disabled">—</Typography>;
+    if (!rows || rows.length === 0) return (
+      <Typography variant="body2" sx={{
+        color: "text.disabled"
+      }}>—</Typography>
+    );
     return (
       <Stack>
         {rows.map((r, i) => (
@@ -169,7 +173,11 @@ export default function ContactInformation({
   };
 
   const renderAddressList = (rows: ContactAddress[] | undefined) => {
-    if (!rows || rows.length === 0) return <Typography variant="body2" color="text.disabled">—</Typography>;
+    if (!rows || rows.length === 0) return (
+      <Typography variant="body2" sx={{
+        color: "text.disabled"
+      }}>—</Typography>
+    );
     return (
       <Stack spacing={0.5}>
         {rows.map((a, i) => (
@@ -334,7 +342,11 @@ export default function ContactInformation({
           cloneValue={(v) => ({ ...v })}
           renderDisplay={(v) => {
             if (!v.isDeceased) {
-              return <Typography variant="body2" color="text.disabled">—</Typography>;
+              return (
+                <Typography variant="body2" sx={{
+                  color: "text.disabled"
+                }}>—</Typography>
+              );
             }
             const age = v.deceasedDate && contact.birthday
               ? calculateAgeAtDate(contact.birthday, v.deceasedDate)
@@ -571,7 +583,9 @@ export default function ContactInformation({
             </Box>
           )}
           {nothingShown && (
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               {t('contactDetail.noFilledFields')}
             </Typography>
           )}

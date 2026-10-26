@@ -86,7 +86,9 @@ export default function ReminderList({
     return (
       <Box sx={{ p: 3, textAlign: 'center' }}>
         <NotificationsIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{
+          color: "text.secondary"
+        }}>
           {t('reminders.noReminders')}
         </Typography>
       </Box>

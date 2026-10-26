@@ -87,7 +87,9 @@ export default function DataSettingsPage() {
           <Divider sx={{ mb: 1.5 }} />
 
           <Stack spacing={1.5}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               {t('settings.monicaImport.description')}
             </Typography>
             <Button
@@ -119,7 +121,9 @@ export default function DataSettingsPage() {
           <Divider sx={{ mb: 1.5 }} />
 
           <Stack spacing={1.5}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               {t('settings.export.description')}
             </Typography>
             {exportError && <Alert severity="error" sx={{ py: 0 }}>{exportError}</Alert>}
@@ -148,7 +152,9 @@ export default function DataSettingsPage() {
           <Divider sx={{ mb: 1.5 }} />
 
           <Stack spacing={1.5}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               {t('settings.exportVcf.description')}
             </Typography>
             {exportVcfError && <Alert severity="error" sx={{ py: 0 }}>{exportVcfError}</Alert>}

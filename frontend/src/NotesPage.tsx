@@ -172,8 +172,19 @@ const NotesPage: React.FC = () => {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 2 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Box display="flex" alignItems="center" gap={1}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2
+        }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1
+          }}>
           <Typography variant="h5">{t('notes.title')}</Typography>
           <IconButton
             size="small"
@@ -200,7 +211,12 @@ const NotesPage: React.FC = () => {
       </Popover>
 
       <Paper sx={{ p: 1.5, mb: 2 }}>
-        <Box display="flex" gap={2} flexWrap="wrap">
+        <Box
+          sx={{
+            display: "flex",
+            gap: 2,
+            flexWrap: "wrap"
+          }}>
           <TextField
             size="small"
             label={t('notes.search')}
@@ -234,7 +250,9 @@ const NotesPage: React.FC = () => {
         <ListSkeleton count={8} />
       ) : notes.length === 0 ? (
         <Paper sx={{ p: 3, textAlign: 'center' }}>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant="body1" sx={{
+            color: "text.secondary"
+          }}>
             {hasFilters ? t('notes.noResults') : t('notes.noNotes')}
           </Typography>
         </Paper>
@@ -242,7 +260,11 @@ const NotesPage: React.FC = () => {
         <Timeline position="right">
           {notes.map((note, index) => (
             <TimelineItem key={note.ID}>
-              <TimelineOppositeContent color="text.secondary" sx={{ flex: 0.2 }}>
+              <TimelineOppositeContent
+                sx={{
+                  color: "text.secondary",
+                  flex: 0.2
+                }}>
                 <Typography variant="body2">
                   {formatDate(note.date)}
                 </Typography>
@@ -264,7 +286,12 @@ const NotesPage: React.FC = () => {
                   }}
                 >
                   <Box>
-                    <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start"
+                      }}>
                       <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', flex: 1 }}>
                         {note.content}
                       </Typography>
@@ -286,7 +313,12 @@ const NotesPage: React.FC = () => {
       )}
 
       {totalPages > 1 && (
-        <Box display="flex" justifyContent="center" mt={3}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            mt: 3
+          }}>
           <Pagination
             color="primary"
             count={totalPages}

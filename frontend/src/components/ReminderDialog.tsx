@@ -153,8 +153,10 @@ export default function ReminderDialog({
             required
             fullWidth
             placeholder={t('reminders.messagePlaceholder')}
-            inputProps={{ maxLength: 500 }}
             helperText={`${message.length}/500`}
+            slotProps={{
+              htmlInput: { maxLength: 500 }
+            }}
           />
 
           <TextField

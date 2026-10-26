@@ -112,7 +112,9 @@ export default function ForgotPasswordDialog({ open, onClose }: ForgotPasswordDi
       return (
         <Stack spacing={2}>
           <Alert severity="success">{message || t('passwordReset.success')}</Alert>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             {t('passwordReset.doneDescription')}
           </Typography>
         </Stack>
@@ -123,7 +125,9 @@ export default function ForgotPasswordDialog({ open, onClose }: ForgotPasswordDi
       return (
         <form onSubmit={handleConfirm}>
           <Stack spacing={2}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               {t('passwordReset.checkEmail', { email })}
             </Typography>
             {message && <Alert severity="info">{message}</Alert>}
@@ -162,7 +166,9 @@ export default function ForgotPasswordDialog({ open, onClose }: ForgotPasswordDi
     return (
       <form onSubmit={handleRequest}>
         <Stack spacing={2}>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             {t('passwordReset.description')}
           </Typography>
           {error && <Alert severity="error">{error}</Alert>}

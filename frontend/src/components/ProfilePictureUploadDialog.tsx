@@ -243,16 +243,22 @@ export default function ProfilePictureUploadDialog({
                 style={{ display: 'none' }}
               />
               <CloudUploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
-              <Typography variant="h6" color="text.secondary">
+              <Typography variant="h6" sx={{
+                color: "text.secondary"
+              }}>
                 {t('profilePicture.selectImage')}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 {t('profilePicture.dragOrClick')}
               </Typography>
             </Box>
 
             <Divider sx={{ my: 3 }}>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 {t('profilePicture.or')}
               </Typography>
             </Divider>
@@ -271,8 +277,10 @@ export default function ProfilePictureUploadDialog({
                     handleFetchFromUrl();
                   }
                 }}
-                InputProps={{
-                  startAdornment: <LinkIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                slotProps={{
+                  input: {
+                    startAdornment: <LinkIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                  }
                 }}
               />
               <Button

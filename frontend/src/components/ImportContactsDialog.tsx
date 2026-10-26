@@ -328,10 +328,17 @@ export default function ImportContactsDialog({
         <Typography variant="h6" gutterBottom>
           {t('contacts.import.upload.dragDrop', 'Drag and drop a CSV or VCF file here, or click to select')}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{
+          color: "text.secondary"
+        }}>
           {t('contacts.import.upload.supportedFormats', 'Supported formats: CSV (spreadsheet), VCF (vCard)')}
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mt: 0.5
+          }}>
           {t('contacts.import.upload.maxSize', 'Maximum file size: 10MB')}
         </Typography>
       </Box>
@@ -366,7 +373,12 @@ export default function ImportContactsDialog({
 
     return (
       <Box>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mb: 2
+          }}>
           {t(
             'contacts.import.mapping.description',
             "Match your CSV columns to contact fields. Columns marked 'Ignore' will not be imported."
@@ -397,12 +409,20 @@ export default function ImportContactsDialog({
                 return (
                   <TableRow key={index}>
                     <TableCell>
-                      <Typography variant="body2" fontWeight="medium">
+                      <Typography variant="body2" sx={{
+                        fontWeight: "medium"
+                      }}>
                         {mapping.csv_column}
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 150 }}>
+                      <Typography
+                        variant="body2"
+                        noWrap
+                        sx={{
+                          color: "text.secondary",
+                          maxWidth: 150
+                        }}>
                         {uploadResponse.sample_data[0]?.[index] || '-'}
                       </Typography>
                     </TableCell>
@@ -577,7 +597,9 @@ export default function ImportContactsDialog({
               count: importResult.updated,
             })}
           </Typography>
-          <Typography color="text.secondary">
+          <Typography sx={{
+            color: "text.secondary"
+          }}>
             {t('contacts.import.result.skipped', '{{count}} rows skipped', {
               count: importResult.skipped,
             })}

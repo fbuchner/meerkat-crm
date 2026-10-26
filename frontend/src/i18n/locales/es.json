@@ -699,6 +699,25 @@
       "disconnectTitle": "¿Desconectar el servidor CardDAV?",
       "disconnectConfirm": "Tus contactos se conservan en Meerkat; solo se eliminan la conexión y su estado de sincronización."
     },
+    "carddavCircleFilter": {
+      "title": "Filtro de sincronización del teléfono (servidor CardDAV integrado)",
+      "description": "Elige qué contactos muestra el servidor CardDAV integrado de Meerkat en tu teléfono y otros dispositivos. Los contactos fuera del filtro permanecen en Meerkat y se pueden seguir buscando aquí.",
+      "loading": "Cargando…",
+      "loadError": "No se pudo cargar el filtro de sincronización del teléfono.",
+      "saveError": "No se pudo guardar el filtro de sincronización del teléfono.",
+      "saveSuccess": "Filtro guardado. Tus dispositivos lo aplicarán en su próxima sincronización.",
+      "modeAll": "Sincronizar todos los contactos",
+      "modeInclude": "Sincronizar solo los contactos de estos círculos",
+      "modeExclude": "Sincronizar todos los contactos excepto los de estos círculos",
+      "circlesLabel": "Círculos",
+      "circlesRequired": "Selecciona al menos un círculo.",
+      "noCircles": "Aún no hay círculos",
+      "unusedCircles": "Ya no hay ningún contacto en estos círculos: {{circles}}",
+      "allCirclesUnused": "Ya no hay ningún contacto en ninguno de estos círculos, así que tus dispositivos no mostrarían ningún contacto.",
+      "includeNewContactsHint": "Los contactos que crees en un dispositivo se guardan en Meerkat, pero desaparecen del dispositivo en la siguiente sincronización a menos que los añadas a uno de estos círculos.",
+      "removalHint": "Los contactos que salen del filtro solo se eliminan de tus dispositivos. Eliminar un contacto sincronizado en un dispositivo también lo elimina en Meerkat.",
+      "save": "Guardar filtro"
+    },
     "about": {
       "title": "Acerca de Meerkat CRM",
       "description": "Meerkat CRM es una aplicación CRM personal de código abierto diseñada para ayudarte a gestionar tus contactos y relaciones.",

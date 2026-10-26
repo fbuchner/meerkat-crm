@@ -699,6 +699,25 @@
       "disconnectTitle": "CardDAV-Server trennen?",
       "disconnectConfirm": "Deine Kontakte bleiben in Meerkat erhalten; nur die Verbindung und ihr Synchronisationsstatus werden entfernt."
     },
+    "carddavCircleFilter": {
+      "title": "Telefon-Sync-Filter (integrierter CardDAV-Server)",
+      "description": "Lege fest, welche Kontakte der integrierte CardDAV-Server von Meerkat deinem Telefon und anderen Geräten zeigt. Kontakte außerhalb des Filters bleiben in Meerkat und sind hier weiterhin durchsuchbar.",
+      "loading": "Wird geladen…",
+      "loadError": "Der Telefon-Sync-Filter konnte nicht geladen werden.",
+      "saveError": "Der Telefon-Sync-Filter konnte nicht gespeichert werden.",
+      "saveSuccess": "Filter gespeichert. Deine Geräte übernehmen ihn bei der nächsten Synchronisierung.",
+      "modeAll": "Alle Kontakte synchronisieren",
+      "modeInclude": "Nur Kontakte in diesen Kreisen synchronisieren",
+      "modeExclude": "Alle Kontakte außer denen in diesen Kreisen synchronisieren",
+      "circlesLabel": "Kreise",
+      "circlesRequired": "Wähle mindestens einen Kreis aus.",
+      "noCircles": "Noch keine Kreise",
+      "unusedCircles": "Diesen Kreisen ist kein Kontakt mehr zugeordnet: {{circles}}",
+      "allCirclesUnused": "Keinem dieser Kreise ist noch ein Kontakt zugeordnet, deine Geräte würden also gar keine Kontakte anzeigen.",
+      "includeNewContactsHint": "Kontakte, die du auf einem Gerät anlegst, werden in Meerkat gespeichert, verschwinden aber bei der nächsten Synchronisierung vom Gerät, sofern du sie keinem dieser Kreise zuordnest.",
+      "removalHint": "Kontakte, die aus dem Filter fallen, werden nur von deinen Geräten entfernt. Wenn du einen synchronisierten Kontakt auf einem Gerät löschst, wird er weiterhin auch in Meerkat gelöscht.",
+      "save": "Filter speichern"
+    },
     "about": {
       "title": "Über Meerkat CRM",
       "description": "Meerkat CRM ist eine Open-Source-Anwendung zur persönlichen Kontaktverwaltung, die Ihnen hilft, Ihre Kontakte und Beziehungen zu pflegen.",

@@ -699,6 +699,25 @@
       "disconnectTitle": "Disconnect CardDAV server?",
       "disconnectConfirm": "Your contacts stay in Meerkat; only the connection and its sync state are removed."
     },
+    "carddavCircleFilter": {
+      "title": "Phone sync filter (built-in CardDAV server)",
+      "description": "Choose which contacts Meerkat's built-in CardDAV server shows your phone and other devices. Contacts outside the filter stay in Meerkat and remain searchable here.",
+      "loading": "Loading…",
+      "loadError": "Failed to load the phone sync filter.",
+      "saveError": "Failed to save the phone sync filter.",
+      "saveSuccess": "Filter saved. Your devices pick it up on their next sync.",
+      "modeAll": "Sync all contacts",
+      "modeInclude": "Only sync contacts in these circles",
+      "modeExclude": "Sync all contacts except those in these circles",
+      "circlesLabel": "Circles",
+      "circlesRequired": "Select at least one circle.",
+      "noCircles": "No circles yet",
+      "unusedCircles": "No contact is in these circles any more: {{circles}}",
+      "allCirclesUnused": "No contact is in any of these circles any more, so your devices would show no contacts at all.",
+      "includeNewContactsHint": "Contacts you create on a device are saved to Meerkat but disappear from the device on its next sync unless you add them to one of these circles.",
+      "removalHint": "Contacts that leave the filter are removed from your devices only. Deleting a synced contact on a device still deletes it in Meerkat.",
+      "save": "Save filter"
+    },
     "about": {
       "title": "About Meerkat CRM",
       "description": "Meerkat CRM is an open source personal CRM application designed to help you manage your contacts and relationships.",

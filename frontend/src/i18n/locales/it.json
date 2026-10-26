@@ -699,6 +699,25 @@
       "disconnectTitle": "Scollegare il server CardDAV?",
       "disconnectConfirm": "I tuoi contatti restano in Meerkat; vengono rimossi solo la connessione e il suo stato di sincronizzazione."
     },
+    "carddavCircleFilter": {
+      "title": "Filtro di sincronizzazione del telefono (server CardDAV integrato)",
+      "description": "Scegli quali contatti il server CardDAV integrato di Meerkat mostra al tuo telefono e agli altri dispositivi. I contatti esclusi dal filtro restano in Meerkat e sono sempre ricercabili qui.",
+      "loading": "Caricamento…",
+      "loadError": "Impossibile caricare il filtro di sincronizzazione del telefono.",
+      "saveError": "Impossibile salvare il filtro di sincronizzazione del telefono.",
+      "saveSuccess": "Filtro salvato. I tuoi dispositivi lo applicheranno alla prossima sincronizzazione.",
+      "modeAll": "Sincronizza tutti i contatti",
+      "modeInclude": "Sincronizza solo i contatti di queste cerchie",
+      "modeExclude": "Sincronizza tutti i contatti tranne quelli di queste cerchie",
+      "circlesLabel": "Cerchie",
+      "circlesRequired": "Seleziona almeno una cerchia.",
+      "noCircles": "Ancora nessuna cerchia",
+      "unusedCircles": "Nessun contatto appartiene più a queste cerchie: {{circles}}",
+      "allCirclesUnused": "Nessun contatto appartiene più a nessuna di queste cerchie, quindi i tuoi dispositivi non mostrerebbero alcun contatto.",
+      "includeNewContactsHint": "I contatti creati su un dispositivo vengono salvati in Meerkat, ma scompaiono dal dispositivo alla sincronizzazione successiva a meno che tu non li aggiunga a una di queste cerchie.",
+      "removalHint": "I contatti che escono dal filtro vengono rimossi solo dai tuoi dispositivi. Eliminare un contatto sincronizzato su un dispositivo lo elimina comunque anche in Meerkat.",
+      "save": "Salva filtro"
+    },
     "about": {
       "title": "Informazioni su Meerkat CRM",
       "description": "Meerkat CRM è un'applicazione CRM personale open source progettata per aiutarti a gestire i tuoi contatti e rapporti.",

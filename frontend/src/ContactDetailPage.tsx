@@ -60,6 +60,7 @@ import { useTimelineEditing } from './hooks/useTimelineEditing';
 import { useReminderManagement } from './hooks/useReminderManagement';
 import { useRelationships } from './hooks/useRelationships';
 import AddRelationshipDialog from './components/AddRelationshipDialog';
+import MergeContactsDialog from './components/MergeContactsDialog';
 import { useSnackbar } from './context/SnackbarContext';
 import { ApiError } from './api/client';
 import { handleFetchError } from './utils/errorHandler';
@@ -85,7 +86,7 @@ export default function ContactDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { showError } = useSnackbar();
+  const { showError, showSnackbar } = useSnackbar();
   const { formatBirthdayForInput, parseBirthdayInput, autoFormatBirthdayInput } = useDateFormat();
   const [contact, setContact] = useState<ContactWithRelations | null>(null);
   const [profilePic, setProfilePic] = useState<string>('');
@@ -119,6 +120,9 @@ export default function ContactDetailPage() {
 
   // Profile picture upload state
   const [profilePictureDialogOpen, setProfilePictureDialogOpen] = useState(false);
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
+  // Bumped to refetch everything after this contact absorbed another one
+  const [reloadKey, setReloadKey] = useState(0);
 
   // Custom field names
   const [customFieldNames, setCustomFieldNames] = useState<string[]>([]);
@@ -278,7 +282,7 @@ export default function ContactDetailPage() {
         URL.revokeObjectURL(currentBlobUrl);
       }
     };
-  }, [id, refreshReminders, refreshRelationships]);
+  }, [id, reloadKey, refreshReminders, refreshRelationships]);
 
   // Combine and sort notes, activities, and completions for timeline
   const timelineItems: Array<{ type: 'note' | 'activity' | 'completion'; data: Note | Activity | ReminderCompletion; date: string }> = [
@@ -606,6 +610,16 @@ export default function ContactDetailPage() {
     }
   };
 
+  const handleMerged = (merged: Contact) => {
+    setMergeDialogOpen(false);
+    showSnackbar(t('contacts.merge.success'), 'success');
+    if (String(merged.ID) === id) {
+      setReloadKey(key => key + 1);
+    } else {
+      navigate(`/contacts/${merged.ID}`);
+    }
+  };
+
   const handleExportVcard = async () => {
     if (!id) return;
 
@@ -718,6 +732,7 @@ export default function ContactDetailPage() {
         onArchiveContact={contact.archived ? undefined : handleArchiveContact}
         onUnarchiveContact={contact.archived ? handleUnarchiveContact : undefined}
         onExportVcard={handleExportVcard}
+        onMergeContact={() => setMergeDialogOpen(true)}
       />
 
       {/* General Information and Timeline - Two Column Layout */}
@@ -871,6 +886,15 @@ export default function ContactDetailPage() {
           values={editTimelineValues}
           onChange={setEditTimelineValues}
           allContacts={allContacts}
+        />
+      )}
+
+      {mergeDialogOpen && (
+        <MergeContactsDialog
+          open
+          onClose={() => setMergeDialogOpen(false)}
+          contactId={contact.ID}
+          onMerged={handleMerged}
         />
       )}
 

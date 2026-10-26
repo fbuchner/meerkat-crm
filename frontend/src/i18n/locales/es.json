@@ -239,6 +239,47 @@
       "region": "Estado / Región",
       "postal": "Código Postal",
       "country": "País"
+    },
+    "duplicates": {
+      "button": "Buscar duplicados",
+      "title": "Posibles duplicados",
+      "description": "Contactos que comparten nombre, dirección de correo o número de teléfono. Fusiónalos o márcalos como personas distintas.",
+      "none": "No se encontraron contactos duplicados.",
+      "dismiss": "No es un duplicado",
+      "reason": {
+        "name": "Mismo nombre",
+        "email": "Mismo correo",
+        "phone": "Mismo teléfono"
+      }
+    },
+    "merge": {
+      "button": "Fusionar",
+      "title": "Fusionar contactos",
+      "withAnother": "Fusionar con otro contacto",
+      "pickDescription": "Elige el contacto que se fusionará con este.",
+      "pickLabel": "Contacto a fusionar",
+      "keep": "Conservar",
+      "remove": "Fusionar y eliminar",
+      "swap": "Intercambiar el contacto que se conserva",
+      "conflictsTitle": "Ambos contactos tienen valores distintos aquí. Elige cuál conservar:",
+      "noConflicts": "No hay campos en conflicto: todos los datos se pueden combinar.",
+      "combinedInfo": "Se combinan las direcciones de correo, teléfonos, direcciones, sitios web, círculos y campos personalizados de ambos contactos.",
+      "movedInfo": "También se moverán {{items}}.",
+      "notesCount_one": "{{count}} nota",
+      "notesCount_other": "{{count}} notas",
+      "activitiesCount_one": "{{count}} actividad",
+      "activitiesCount_other": "{{count}} actividades",
+      "remindersCount_one": "{{count}} recordatorio",
+      "remindersCount_other": "{{count}} recordatorios",
+      "relationshipsCount_one": "{{count}} relación",
+      "relationshipsCount_other": "{{count}} relaciones",
+      "deleteWarning": "{{name}} se eliminará tras la fusión. Esta acción no se puede deshacer.",
+      "confirm": "Fusionar contactos",
+      "success": "Contactos fusionados",
+      "photo": "Foto de perfil",
+      "notDeceased": "No fallecido",
+      "active": "Activo",
+      "archivedRemovesReminders": "Archivado (se eliminan sus recordatorios)"
     }
   },
   "timeline": {

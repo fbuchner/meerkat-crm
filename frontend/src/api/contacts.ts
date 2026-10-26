@@ -316,3 +316,117 @@ export async function unarchiveContact(
 
   return response.json();
 }
+
+export type DuplicateReason = 'name' | 'email' | 'phone';
+
+export interface DuplicateContactSummary {
+  ID: number;
+  firstname: string;
+  lastname: string;
+  nickname: string;
+  email: string;
+  phone: string;
+  organization: string;
+  photo_thumbnail: string;
+  archived: boolean;
+}
+
+export interface DuplicatePair {
+  contacts: [DuplicateContactSummary, DuplicateContactSummary];
+  reasons: DuplicateReason[];
+}
+
+// A field both contacts fill with different values. `field` is the contact's
+// JSON field name, "photo", or "custom_fields.<name>".
+export interface MergeConflict {
+  field: string;
+  target_value: string;
+  source_value: string;
+}
+
+export interface MergePreview {
+  target: Contact;
+  source: Contact;
+  conflicts: MergeConflict[];
+  moved: {
+    notes: number;
+    activities: number;
+    reminders: number;
+    relationships: number;
+  };
+}
+
+export type MergeResolution = 'target' | 'source';
+
+// List pairs of contacts that probably describe the same person
+export async function getDuplicateContacts(): Promise<DuplicatePair[]> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/contacts/duplicates`,
+    { headers: getAuthHeaders() }
+  );
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  const result = await response.json();
+  return result.duplicates || [];
+}
+
+// Mark two contacts as not duplicates of each other
+export async function dismissDuplicate(
+  contactAId: number,
+  contactBId: number
+): Promise<void> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/contacts/duplicates/dismiss`,
+    {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ contact_a_id: contactAId, contact_b_id: contactBId }),
+    }
+  );
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+}
+
+// Preview merging the source contact into the target
+export async function getMergePreview(
+  targetId: string | number,
+  sourceId: string | number
+): Promise<MergePreview> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/contacts/${targetId}/merge-preview?source_id=${encodeURIComponent(sourceId)}`,
+    { headers: getAuthHeaders() }
+  );
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  return response.json();
+}
+
+// Merge the source contact into the target; the source is deleted
+export async function mergeContacts(
+  targetId: string | number,
+  sourceId: number,
+  resolutions: Record<string, MergeResolution>
+): Promise<Contact> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/contacts/${targetId}/merge`,
+    {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ source_id: sourceId, resolutions }),
+    }
+  );
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  return response.json();
+}

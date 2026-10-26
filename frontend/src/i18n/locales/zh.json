@@ -239,6 +239,47 @@
       "region": "省 / 地区",
       "postal": "邮政编码",
       "country": "国家"
+    },
+    "duplicates": {
+      "button": "查找重复项",
+      "title": "可能的重复联系人",
+      "description": "姓名、电子邮件地址或电话号码相同的联系人。您可以合并它们，或将其标记为不同的人。",
+      "none": "未发现重复的联系人。",
+      "dismiss": "不是重复项",
+      "reason": {
+        "name": "姓名相同",
+        "email": "电子邮件相同",
+        "phone": "电话相同"
+      }
+    },
+    "merge": {
+      "button": "合并",
+      "title": "合并联系人",
+      "withAnother": "与其他联系人合并",
+      "pickDescription": "选择要合并到此联系人中的联系人。",
+      "pickLabel": "要合并的联系人",
+      "keep": "保留",
+      "remove": "合并并删除",
+      "swap": "交换要保留的联系人",
+      "conflictsTitle": "两个联系人在以下字段中的值不同。请选择要保留的值：",
+      "noConflicts": "没有冲突的字段：所有信息都可以合并。",
+      "combinedInfo": "两个联系人的电子邮件地址、电话号码、地址、网站、圈子和自定义字段将被合并。",
+      "movedInfo": "还将移动{{items}}。",
+      "notesCount_one": "{{count}} 条笔记",
+      "notesCount_other": "{{count}} 条笔记",
+      "activitiesCount_one": "{{count}} 个活动",
+      "activitiesCount_other": "{{count}} 个活动",
+      "remindersCount_one": "{{count}} 个提醒",
+      "remindersCount_other": "{{count}} 个提醒",
+      "relationshipsCount_one": "{{count}} 个关系",
+      "relationshipsCount_other": "{{count}} 个关系",
+      "deleteWarning": "合并后将删除 {{name}}。此操作无法撤销。",
+      "confirm": "合并联系人",
+      "success": "联系人已合并",
+      "photo": "头像",
+      "notDeceased": "未故",
+      "active": "活跃",
+      "archivedRemovesReminders": "已归档（其提醒将被删除）"
     }
   },
   "timeline": {

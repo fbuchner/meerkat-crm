@@ -239,6 +239,47 @@
       "region": "Bundesland / Region",
       "postal": "Postleitzahl",
       "country": "Land"
+    },
+    "duplicates": {
+      "button": "Duplikate finden",
+      "title": "Mögliche Duplikate",
+      "description": "Kontakte mit gleichem Namen, gleicher E-Mail-Adresse oder Telefonnummer. Führe sie zusammen oder markiere sie als verschiedene Personen.",
+      "none": "Keine doppelten Kontakte gefunden.",
+      "dismiss": "Kein Duplikat",
+      "reason": {
+        "name": "Gleicher Name",
+        "email": "Gleiche E-Mail",
+        "phone": "Gleiche Telefonnummer"
+      }
+    },
+    "merge": {
+      "button": "Zusammenführen",
+      "title": "Kontakte zusammenführen",
+      "withAnother": "Mit anderem Kontakt zusammenführen",
+      "pickDescription": "Wähle den Kontakt, der in diesen übernommen werden soll.",
+      "pickLabel": "Zu übernehmender Kontakt",
+      "keep": "Behalten",
+      "remove": "Übernehmen und löschen",
+      "swap": "Tauschen, welcher Kontakt behalten wird",
+      "conflictsTitle": "Hier haben beide Kontakte unterschiedliche Werte. Wähle, welcher behalten wird:",
+      "noConflicts": "Keine widersprüchlichen Felder: Alle Angaben können kombiniert werden.",
+      "combinedInfo": "E-Mail-Adressen, Telefonnummern, Adressen, Websites, Kreise und benutzerdefinierte Felder beider Kontakte werden kombiniert.",
+      "movedInfo": "Außerdem werden {{items}} übernommen.",
+      "notesCount_one": "{{count}} Notiz",
+      "notesCount_other": "{{count}} Notizen",
+      "activitiesCount_one": "{{count}} Aktivität",
+      "activitiesCount_other": "{{count}} Aktivitäten",
+      "remindersCount_one": "{{count}} Erinnerung",
+      "remindersCount_other": "{{count}} Erinnerungen",
+      "relationshipsCount_one": "{{count}} Beziehung",
+      "relationshipsCount_other": "{{count}} Beziehungen",
+      "deleteWarning": "{{name}} wird nach dem Zusammenführen gelöscht. Dies kann nicht rückgängig gemacht werden.",
+      "confirm": "Kontakte zusammenführen",
+      "success": "Kontakte zusammengeführt",
+      "photo": "Profilbild",
+      "notDeceased": "Nicht verstorben",
+      "active": "Aktiv",
+      "archivedRemovesReminders": "Archiviert (Erinnerungen werden gelöscht)"
     }
   },
   "timeline": {

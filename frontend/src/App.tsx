@@ -1,5 +1,6 @@
 import { useState, useEffect, Suspense, useMemo, MouseEvent as ReactMouseEvent } from 'react';
 import ContactsPage from './ContactsPage';
+import DuplicatesPage from './DuplicatesPage';
 import ContactDetailPage from './ContactDetailPage';
 import ActivitiesPage from './ActivitiesPage';
 import NotesPage from './NotesPage';
@@ -517,6 +518,7 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
       >
         <Routes>
           <Route path="/contacts" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ContactsPage /></Suspense>} />
+          <Route path="/contacts/duplicates" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><DuplicatesPage /></Suspense>} />
           <Route path="/contacts/:id" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ContactDetailPage /></Suspense>} />
           <Route path="/notes" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><NotesPage /></Suspense>} />
           <Route path="/activities" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ActivitiesPage /></Suspense>} />

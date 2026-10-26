@@ -464,3 +464,49 @@ func TestEnabledContactFieldsNullVsEmpty(t *testing.T) {
 	patch(`{"fields":[]}`)
 	assert.Equal(t, "[]", rawField())
 }
+
+// TestContactFieldDisplayRoundTrip verifies the hide-empty preference defaults to
+// false, is exposed on /users/me, can be turned on and back off (false is GORM's
+// zero value), and that a body without the key is rejected.
+func TestContactFieldDisplayRoundTrip(t *testing.T) {
+	_, router := setupRouter()
+
+	router.PATCH("/display",
+		middleware.ValidateJSONMiddleware(&models.ContactFieldDisplayInput{}),
+		UpdateContactFieldDisplay)
+
+	router.GET("/me", GetCurrentUser)
+
+	patch := func(jsonBody string) int {
+		req, _ := http.NewRequest("PATCH", "/display", bytes.NewBufferString(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		return w.Code
+	}
+	// Read back through /users/me, which is how the frontend gets the setting.
+	fromMe := func() bool {
+		req, _ := http.NewRequest("GET", "/me", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+		var body map[string]any
+		json.Unmarshal(w.Body.Bytes(), &body)
+		v, ok := body["hide_empty_contact_fields"].(bool)
+		assert.True(t, ok, "hide_empty_contact_fields missing from /users/me")
+		return v
+	}
+
+	assert.False(t, fromMe())
+
+	assert.Equal(t, http.StatusOK, patch(`{"hide_empty_contact_fields":true}`))
+	assert.True(t, fromMe())
+
+	// A missing or misspelled key is rejected rather than silently turning it off.
+	assert.Equal(t, http.StatusBadRequest, patch(`{}`))
+	assert.Equal(t, http.StatusBadRequest, patch(`{"hide_empty":false}`))
+	assert.True(t, fromMe())
+
+	assert.Equal(t, http.StatusOK, patch(`{"hide_empty_contact_fields":false}`))
+	assert.False(t, fromMe())
+}

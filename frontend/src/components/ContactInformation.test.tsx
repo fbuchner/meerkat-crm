@@ -73,3 +73,100 @@ test('checking the Deceased checkbox and saving calls onUpdateContact with is_de
   const [[partial]] = onUpdateContact.mock.calls;
   expect(partial.is_deceased).toBe(true);
 });
+
+test('hideEmptyFields hides empty fields until "Show all fields" is clicked', () => {
+  renderWithI18n(
+    <ContactInformation
+      {...baseProps}
+      enabledFields={resolveEnabledFields(['birthday', 'organization', 'job_title'])}
+      hideEmptyFields
+      contact={{ ID: 1, firstname: 'Jane', organization: 'Acme' }}
+      onUpdateContact={vi.fn()}
+    />
+  );
+  expect(screen.getByText('Acme')).toBeInTheDocument();
+  expect(screen.queryByTestId('CakeIcon')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('BadgeIcon')).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: /show all fields/i }));
+  expect(screen.getByTestId('CakeIcon')).toBeInTheDocument();
+  expect(screen.getByTestId('BadgeIcon')).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: /hide empty fields/i }));
+  expect(screen.queryByTestId('CakeIcon')).not.toBeInTheDocument();
+});
+
+test('without hideEmptyFields every enabled field shows and there is no toggle', () => {
+  renderWithI18n(
+    <ContactInformation
+      {...baseProps}
+      enabledFields={resolveEnabledFields(['birthday', 'organization'])}
+      contact={{ ID: 1, firstname: 'Jane' }}
+      onUpdateContact={vi.fn()}
+    />
+  );
+  expect(screen.getByTestId('CakeIcon')).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /show all fields/i })).not.toBeInTheDocument();
+});
+
+test('a field being edited stays visible while collapsed', () => {
+  renderWithI18n(
+    <ContactInformation
+      {...baseProps}
+      enabledFields={resolveEnabledFields(['birthday'])}
+      hideEmptyFields
+      editingField="birthday"
+      contact={{ ID: 1, firstname: 'Jane' }}
+      onUpdateContact={vi.fn()}
+    />
+  );
+  expect(screen.getByTestId('CakeIcon')).toBeInTheDocument();
+});
+
+test('collapsing mid-edit keeps an open array-field editor and its draft', () => {
+  renderWithI18n(
+    <ContactInformation
+      {...baseProps}
+      enabledFields={resolveEnabledFields(['emails', 'organization'])}
+      hideEmptyFields
+      contact={{ ID: 1, firstname: 'Jane', organization: 'Acme' }}
+      onUpdateContact={vi.fn()}
+    />
+  );
+  fireEvent.click(screen.getByRole('button', { name: /show all fields/i }));
+  const emailRow = screen.getByTestId('EmailIcon').closest('.MuiBox-root')?.parentElement as HTMLElement;
+  fireEvent.click(within(emailRow).getByLabelText('Edit'));
+  expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: /hide empty fields/i }));
+  expect(screen.getByTestId('EmailIcon')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+});
+
+test('no empty-state message or toggle when the card has no fields to offer', () => {
+  renderWithI18n(
+    <ContactInformation
+      {...baseProps}
+      enabledFields={resolveEnabledFields([])}
+      hideEmptyFields
+      contact={{ ID: 1, firstname: 'Jane' }}
+      onUpdateContact={vi.fn()}
+    />
+  );
+  expect(screen.queryByText(/no details filled in yet/i)).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /show all fields/i })).not.toBeInTheDocument();
+});
+
+test('shows the empty-state message when every offered field is empty', () => {
+  renderWithI18n(
+    <ContactInformation
+      {...baseProps}
+      enabledFields={resolveEnabledFields(['birthday'])}
+      hideEmptyFields
+      contact={{ ID: 1, firstname: 'Jane' }}
+      onUpdateContact={vi.fn()}
+    />
+  );
+  expect(screen.getByText(/no details filled in yet/i)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /show all fields/i })).toBeInTheDocument();
+});

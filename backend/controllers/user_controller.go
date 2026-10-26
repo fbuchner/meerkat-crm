@@ -607,6 +607,42 @@ func GetEnabledContactFields(c *gin.Context) {
 	})
 }
 
+// UpdateContactFieldDisplay sets whether empty fields are hidden on the contact detail page
+func UpdateContactFieldDisplay(c *gin.Context) {
+	log := logger.FromContext(c)
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	input, err := middleware.GetValidated[models.ContactFieldDisplayInput](c)
+	if err != nil {
+		apperrors.AbortWithError(c, err)
+		return
+	}
+
+	db := c.MustGet("db").(*gorm.DB)
+
+	// Single-column write so we never rewrite the password hash / OIDC fields.
+	hideEmpty := *input.HideEmptyContactFields
+	result := db.Model(&models.User{}).Where("id = ?", userID).Update("hide_empty_contact_fields", hideEmpty)
+	if result.Error != nil {
+		log.Error().Err(result.Error).Uint("user_id", userID).Msg("Failed to update user contact field display")
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("update user").WithError(result.Error))
+		return
+	}
+	if result.RowsAffected == 0 {
+		apperrors.AbortWithError(c, apperrors.ErrNotFound("User"))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":                   "Contact field display updated successfully",
+		"hide_empty_contact_fields": hideEmpty,
+	})
+}
+
 func ChangePassword(context *gin.Context) {
 	// Check if demo mode is enabled - password changes are disabled in demo
 	if os.Getenv("DEMO_MODE") == "true" {

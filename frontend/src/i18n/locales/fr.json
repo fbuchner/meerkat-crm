@@ -299,7 +299,10 @@
     "archivedBadge": "Archivé",
     "archiveConfirmation": "Êtes-vous sûr de vouloir archiver ce contact ? Tous les rappels seront supprimés. Vous pourrez le désarchiver plus tard, mais les rappels ne seront pas restaurés.",
     "exportVcard": "Exporter en vCard",
-    "exportVcardError": "Échec de l'exportation du contact en vCard. Veuillez réessayer."
+    "exportVcardError": "Échec de l'exportation du contact en vCard. Veuillez réessayer.",
+    "showAllFields": "Afficher tous les champs",
+    "hideEmptyFields": "Masquer les champs vides",
+    "noFilledFields": "Aucune information renseignée pour l'instant."
   },
   "noteDialog": {
     "title": "Ajouter une note",
@@ -741,6 +744,8 @@
       "loading": "Chargement…",
       "loadError": "Impossible de charger les paramètres des champs de contact.",
       "saveError": "Impossible d'enregistrer les paramètres des champs de contact.",
+      "hideEmpty": "Afficher uniquement les champs remplis",
+      "hideEmptyDescription": "Sur un contact, les champs vides sont masqués jusqu'à ce que vous cliquiez sur « Afficher tous les champs ».",
       "groups": {
         "communication": "Communication",
         "name": "Nom",

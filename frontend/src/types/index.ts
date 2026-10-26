@@ -75,6 +75,8 @@ export interface User {
   custom_field_names?: string[];
   // null means the user has never configured it; apply DEFAULT_ENABLED_CONTACT_FIELDS.
   enabled_contact_fields?: string[] | null;
+  // When true, the contact detail page hides empty fields until the user expands them.
+  hide_empty_contact_fields?: boolean;
 }
 
 /**

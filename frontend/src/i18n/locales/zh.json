@@ -299,7 +299,10 @@
     "archivedBadge": "已归档",
     "archiveConfirmation": "确定要归档此联系人吗？所有提醒都将被删除。您之后可以取消归档，但提醒不会恢复。",
     "exportVcard": "导出 vCard",
-    "exportVcardError": "将联系人导出为 vCard 失败。请重试。"
+    "exportVcardError": "将联系人导出为 vCard 失败。请重试。",
+    "showAllFields": "显示所有字段",
+    "hideEmptyFields": "隐藏空字段",
+    "noFilledFields": "尚未填写任何信息。"
   },
   "noteDialog": {
     "title": "添加笔记",
@@ -741,6 +744,8 @@
       "loading": "加载中…",
       "loadError": "无法加载联系人字段设置。",
       "saveError": "无法保存联系人字段设置。",
+      "hideEmpty": "仅显示已填写的字段",
+      "hideEmptyDescription": "在联系人页面上，空字段会被隐藏，直到您点击“显示所有字段”。",
       "groups": {
         "communication": "通讯",
         "name": "姓名",

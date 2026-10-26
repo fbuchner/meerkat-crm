@@ -116,7 +116,71 @@ type MonicaImportResult struct {
 	// RelationshipsCollapsed counts reciprocal halves skipped because the
 	// other direction was imported instead.
 	RelationshipsCollapsed int `json:"relationships_collapsed"`
-	PhotosQueued         int `json:"photos_queued"`
-	PhotosSaved          int `json:"photos_saved"`
-	PhotosFailed         int `json:"photos_failed"`
+	PhotosQueued           int `json:"photos_queued"`
+	PhotosSaved            int `json:"photos_saved"`
+	PhotosFailed           int `json:"photos_failed"`
+	// Issues lists every Monica record that was skipped or failed, or was
+	// imported without part of its data, so the summary counts can be
+	// traced back to concrete records.
+	Issues []MonicaImportIssue `json:"issues"`
+}
+
+// Monica import issue statuses.
+const (
+	MonicaIssueSkipped = "skipped"
+	MonicaIssueFailed  = "failed"
+)
+
+// Monica import issue reasons; the frontend translates them.
+const (
+	// MonicaReasonNotSelected: the user chose "skip" for the contact.
+	MonicaReasonNotSelected = "not_selected"
+	// MonicaReasonInvalid: the contact failed validation (Detail lists why).
+	MonicaReasonInvalid = "invalid"
+	// MonicaReasonNoMatch: "update" was chosen but no existing contact matched.
+	MonicaReasonNoMatch = "no_match"
+	// MonicaReasonContactNotImported: the record belongs to a contact that
+	// was not imported.
+	MonicaReasonContactNotImported = "contact_not_imported"
+	// MonicaReasonAlreadyExists: an identical record is already in Meerkat
+	// (e.g. from an earlier import run).
+	MonicaReasonAlreadyExists = "already_exists"
+	// MonicaReasonIncomplete: the record lacks data Meerkat needs (a name,
+	// a usable date, content).
+	MonicaReasonIncomplete = "incomplete"
+	// MonicaReasonExpired: a one-time reminder whose date has passed.
+	MonicaReasonExpired = "expired"
+	// MonicaReasonUnsupportedFrequency: a reminder interval Meerkat lacks.
+	MonicaReasonUnsupportedFrequency = "unsupported_frequency"
+	// MonicaReasonApproximateBirthday: Monica only knows an age, not a date;
+	// the birthday of a relationship cannot hold that.
+	MonicaReasonApproximateBirthday = "approximate_birthday"
+	// MonicaReasonBirthdayOnRelationship: a partial person's birthday
+	// reminder, left out because the birthday is stored on the relationship,
+	// which Meerkat already announces.
+	MonicaReasonBirthdayOnRelationship = "birthday_on_relationship"
+	// MonicaReasonPhotoFailed: the contact's photo could not be downloaded or stored.
+	MonicaReasonPhotoFailed = "photo_failed"
+	// MonicaReasonError: the database rejected the record (the raw error is
+	// in Cause, which is logged but never sent).
+	MonicaReasonError = "error"
+)
+
+// MonicaImportIssue describes one Monica record that was not (fully) imported.
+type MonicaImportIssue struct {
+	Status  string `json:"status"`            // MonicaIssueSkipped or MonicaIssueFailed
+	Entity  string `json:"entity"`            // contact, relationship, activity, note, reminder, call, task, gift, debt, birthday
+	Contact string `json:"contact,omitempty"` // the Monica contact the record belongs to
+	Label   string `json:"label,omitempty"`   // what the record is: a title, name or excerpt
+	Reason  string `json:"reason"`            // one of the MonicaReason* codes
+	Detail  string `json:"detail,omitempty"`  // validation or database error text
+	// Count is how many records this row stands for when several were
+	// rolled up into it (records of a contact that was not imported); their
+	// individual labels are then dropped.
+	Count int `json:"count,omitempty"`
+	// Cause is the raw error behind a failure, for the server log only.
+	Cause string `json:"-"`
+	// MonicaContactID is the Monica contact a record belongs to, used to
+	// roll up records of a contact that was not imported; 0 when unknown.
+	MonicaContactID int `json:"-"`
 }

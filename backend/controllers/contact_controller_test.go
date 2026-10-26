@@ -133,7 +133,7 @@ func TestGetContactsSearchMultiValue(t *testing.T) {
 
 // TestGetContactsSearchLiteralWildcards verifies that LIKE wildcards in a search term
 // match literally in every searched column: names, the combined name, and the
-// emails/phones JSON arrays.
+// emails/phones JSON arrays, and relationship names.
 func TestGetContactsSearchLiteralWildcards(t *testing.T) {
 	db, router := setupRouter()
 
@@ -168,6 +168,11 @@ func TestGetContactsSearchLiteralWildcards(t *testing.T) {
 		Firstname: "Noext",
 		Phones:    []models.ContactPhone{{Type: "work", Value: "55500100"}},
 	})
+	for _, rel := range []struct{ parent, child string }{{"ParentA", "Kid_one"}, {"ParentB", "KidXone"}} {
+		parent := models.Contact{UserID: user.ID, Firstname: rel.parent}
+		db.Create(&parent)
+		db.Create(&models.Relationship{UserID: user.ID, ContactID: parent.ID, Name: rel.child, Type: "Child"})
+	}
 
 	search := func(term string) int {
 		req, _ := http.NewRequest("GET", "/contacts?search="+url.QueryEscape(term), nil)
@@ -183,6 +188,7 @@ func TestGetContactsSearchLiteralWildcards(t *testing.T) {
 	assert.Equal(t, 1, search("a_b"), "_ should match only a literal underscore")
 	assert.Equal(t, 1, search("Fifty% Percent"), "combined name should match % literally")
 	assert.Equal(t, 1, search("555_01"), "secondary phone should match _ literally")
+	assert.Equal(t, 1, search("Kid_one"), "relationship name should match _ literally")
 	assert.Equal(t, 0, search("%_"), "wildcard-only term should match nothing literal")
 	assert.Equal(t, 1, search(`k\s`), "backslash should match literally")
 }
@@ -412,6 +418,42 @@ func TestGetContactsWithSearchCriteria(t *testing.T) {
 
 	returnedContacts = responseBody["contacts"].([]any)
 	assert.Len(t, returnedContacts, 0)
+}
+
+func TestGetContactsSearchFindsRelationshipName(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+
+	router.GET("/contacts", GetContacts)
+
+	parent := models.Contact{UserID: user.ID, Firstname: "Dana", Lastname: "Parent"}
+	db.Create(&parent)
+	linked := models.Contact{UserID: user.ID, Firstname: "Linkedkid", Lastname: "Parent"}
+	db.Create(&linked)
+	db.Create(&models.Relationship{UserID: user.ID, ContactID: parent.ID, Name: "Emma Parent", Type: "Child"})
+	db.Create(&models.Relationship{UserID: user.ID, ContactID: parent.ID, Name: "Linkedkid Parent", Type: "Child", RelatedContactID: &linked.ID})
+
+	search := func(term string) []any {
+		req, _ := http.NewRequest("GET", "/contacts?search="+term, nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+		var body map[string]any
+		json.Unmarshal(w.Body.Bytes(), &body)
+		return body["contacts"].([]any)
+	}
+
+	// An unlinked child is found through the parent it belongs to.
+	found := search("Emma")
+	assert.Len(t, found, 1)
+	assert.Equal(t, "Dana", found[0].(map[string]any)["firstname"])
+
+	// A child with a contact of its own is found as that contact only.
+	found = search("Linkedkid")
+	assert.Len(t, found, 1)
+	assert.Equal(t, "Linkedkid", found[0].(map[string]any)["firstname"])
 }
 
 func TestCreateContact(t *testing.T) {

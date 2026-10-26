@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"database/sql"
 	"errors"
 	apperrors "meerkat/errors"
 	"meerkat/logger"
@@ -78,15 +79,18 @@ func CreateContact(c *gin.Context) {
 }
 
 // filters a contacts query by a free-text term
-func applyContactSearch(query *gorm.DB, searchTerm string) *gorm.DB {
+func applyContactSearch(query *gorm.DB, userID uint, searchTerm string) *gorm.DB {
 	const jsonValue = "json_extract(json_each.value, '$.value')"
 	return query.Where(
 		likeAny("firstname", "lastname", "nickname",
 			"(firstname || ' ' || lastname)", "(nickname || ' ' || lastname)",
 			"email", "phone")+
 			" OR (json_valid(emails) AND EXISTS (SELECT 1 FROM json_each(contacts.emails) WHERE "+likeAny(jsonValue)+"))"+
-			" OR (json_valid(phones) AND EXISTS (SELECT 1 FROM json_each(contacts.phones) WHERE "+likeAny(jsonValue)+"))",
-		searchArg(searchTerm),
+			" OR (json_valid(phones) AND EXISTS (SELECT 1 FROM json_each(contacts.phones) WHERE "+likeAny(jsonValue)+"))"+
+			// People without a contact of their own (e.g. a child stored only as
+			// a relationship) are found through the contact they belong to.
+			" OR EXISTS (SELECT 1 FROM relationships WHERE relationships.contact_id = contacts.id AND relationships.user_id = @user_id AND relationships.deleted_at IS NULL AND relationships.related_contact_id IS NULL AND "+likeAny("relationships.name")+")",
+		searchArg(searchTerm), sql.Named("user_id", userID),
 	)
 }
 
@@ -173,7 +177,7 @@ func GetContacts(c *gin.Context) {
 
 	// Apply search filter using parameterization
 	if searchTerm := c.Query("search"); searchTerm != "" {
-		query = applyContactSearch(query, searchTerm)
+		query = applyContactSearch(query, userID, searchTerm)
 	}
 
 	if circle := c.Query("circle"); circle != "" {
@@ -216,7 +220,7 @@ func GetContacts(c *gin.Context) {
 
 	// Apply the same search filters to the count query
 	if searchTerm := c.Query("search"); searchTerm != "" {
-		countQuery = applyContactSearch(countQuery, searchTerm)
+		countQuery = applyContactSearch(countQuery, userID, searchTerm)
 	}
 
 	if circle := c.Query("circle"); circle != "" {

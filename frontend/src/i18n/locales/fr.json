@@ -536,7 +536,46 @@
         "relationships": "{{count}} relations importées",
         "relationshipsCollapsed": "{{count}} doublons réciproques ignorés (affichés comme relations entrantes)",
         "photos": "{{count}} photos importées",
-        "photosFailed": "{{count}} photos n'ont pas pu être téléchargées"
+        "photosFailed": "{{count}} photos n'ont pas pu être téléchargées",
+        "issues": {
+          "title": "Éléments ignorés ou en échec ({{count}})",
+          "hint": "Chaque enregistrement Monica non importé, ou importé sans une partie de ses données, regroupé par motif.",
+          "columns": {
+            "type": "Type",
+            "contact": "Contact",
+            "item": "Élément",
+            "details": "Détails"
+          },
+          "failed": "échec",
+          "entities": {
+            "contact": "Contact",
+            "relationship": "Relation",
+            "activity": "Activité",
+            "note": "Note",
+            "reminder": "Rappel",
+            "call": "Appel",
+            "task": "Tâche",
+            "gift": "Cadeau",
+            "debt": "Dette",
+            "birthday": "Anniversaire",
+            "photo": "Photo"
+          },
+          "reasons": {
+            "not_selected": "Réglé sur « ignorer » lors de la vérification",
+            "invalid": "Données de contact invalides",
+            "no_match": "Réglé sur « mettre à jour », mais aucun contact correspondant trouvé",
+            "contact_not_imported": "Appartient à un contact non importé",
+            "already_exists": "Déjà dans Meerkat (p. ex. lors d’un import précédent)",
+            "incomplete": "Données nécessaires manquantes (nom, date ou contenu)",
+            "expired": "Rappel ponctuel dont la date est passée",
+            "unsupported_frequency": "Intervalle de répétition non pris en charge par Meerkat",
+            "approximate_birthday": "Monica ne connaît qu’un âge approximatif, pas de date de naissance",
+            "error": "Impossible d’enregistrer",
+            "birthday_on_relationship": "Anniversaire conservé sur la relation, que Meerkat annonce déjà",
+            "photo_failed": "La photo n’a pas pu être téléchargée"
+          },
+          "rolledUp": "{{count}} éléments"
+        }
       },
       "errors": {
         "fetchFailed": "Échec de la récupération des données depuis Monica"

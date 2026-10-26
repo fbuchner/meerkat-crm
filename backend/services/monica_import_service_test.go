@@ -430,9 +430,9 @@ func TestBirthdayMonthDayByMonicaID(t *testing.T) {
 
 	none := monica.Contact{ID: 4}
 
-	got := birthdayMonthDayByMonicaID(&monica.Snapshot{
+	got := birthdayMonthDayByMonicaID(monicaPeople(&monica.Snapshot{
 		Contacts: []monica.Contact{withBirthday, unknownYear, approximate, none},
-	})
+	}))
 
 	assert.Equal(t, map[int]string{1: "12-10", 2: "03-05"}, got)
 }

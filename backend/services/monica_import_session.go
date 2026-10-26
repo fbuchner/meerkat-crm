@@ -5,11 +5,13 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"meerkat/carddav"
 	"meerkat/config"
@@ -298,7 +300,9 @@ func (m *MonicaImportManager) runFetch(ctx context.Context, db *gorm.DB, s *moni
 	// Partial contacts are name-only stubs Monica creates behind
 	// relationships; they become relationship names, not contact rows.
 	for _, mc := range allContacts {
-		if !mc.IsPartial {
+		if mc.IsPartial {
+			snapshot.PartialContacts = append(snapshot.PartialContacts, mc)
+		} else {
 			snapshot.Contacts = append(snapshot.Contacts, mc)
 		}
 	}
@@ -415,11 +419,27 @@ func (m *MonicaImportManager) buildPreview(db *gorm.DB, s *monicaImportSession, 
 			related[note.Contact.ID] = counts
 		}
 	}
+	// A reminder of someone who is not a contact of their own (a child's
+	// birthday) is imported onto the contact they belong to; see
+	// importReminders.
+	people := monicaPeople(snapshot)
+	partialOwners := monicaPartialOwners(snapshot, people)
+	birthdays := birthdayMonthDayByMonicaID(people)
+	now := time.Now()
 	for _, reminder := range snapshot.Reminders {
 		if reminder.Contact != nil {
-			counts := related[reminder.Contact.ID]
+			ownerID := reminder.Contact.ID
+			if owners := partialOwners[ownerID]; len(owners) > 0 {
+				// Birthday reminders of partial people are left out in
+				// favor of the relationship birthday.
+				if mapped, _, skip := mapMonicaReminder(reminder, now, birthdays[ownerID]); skip == "" && !*mapped.ReoccurFromCompletion {
+					continue
+				}
+				ownerID = owners[0]
+			}
+			counts := related[ownerID]
 			counts.Reminders++
-			related[reminder.Contact.ID] = counts
+			related[ownerID] = counts
 		}
 	}
 	// Counted the way the import will actually create them, so the review
@@ -508,6 +528,11 @@ func (m *MonicaImportManager) Status(userID uint, sessionID string) (*models.Mon
 	}
 	if s.result != nil {
 		resultCopy := *s.result
+		// The issue list can run to thousands of rows; send it once, with
+		// the final result, instead of on every progress poll.
+		if s.phase != models.MonicaPhaseDone {
+			resultCopy.Issues = nil
+		}
 		status.Result = &resultCopy
 	}
 	return status, nil
@@ -550,10 +575,11 @@ func (m *MonicaImportManager) Preview(userID uint, sessionID string) (*models.Mo
 
 // avatarTask defers a contact photo download until after the import commits.
 type avatarTask struct {
-	contactID uint // Meerkat contact
-	monicaID  int  // Monica contact, needed to reach the photos endpoint
-	avatarURL string
-	source    string // avatarSourcePhoto or avatarSourceGravatar
+	contactID   uint // Meerkat contact
+	contactName string
+	monicaID    int // Monica contact, needed to reach the photos endpoint
+	avatarURL   string
+	source      string // avatarSourcePhoto or avatarSourceGravatar
 }
 
 // Confirm executes the import in one transaction: first the contacts pass
@@ -584,7 +610,7 @@ func (m *MonicaImportManager) Confirm(db *gorm.DB, userID uint, req models.Monic
 	}
 
 	actionMap := buildActionMap(req.Actions)
-	result := models.MonicaImportResult{ImportResult: models.ImportResult{Errors: []string{}}}
+	result := models.MonicaImportResult{ImportResult: models.ImportResult{Errors: []string{}}, Issues: []models.MonicaImportIssue{}}
 	idMap := make(map[int]uint) // Monica contact ID → Meerkat contact ID
 	var avatarTasks []avatarTask
 
@@ -598,35 +624,44 @@ func (m *MonicaImportManager) Confirm(db *gorm.DB, userID uint, req models.Monic
 				action = "skip"
 			}
 			result.TotalProcessed++
+			contactName := strings.TrimSpace(contactData.Contact.Firstname + " " + contactData.Contact.Lastname)
+			contactIssue := func(status, reason string, cause error) {
+				addMonicaFailure(&result, status, "contact", contactName, "", reason, cause)
+			}
 
 			switch action {
 			case "skip":
 				result.Skipped++
+				if len(preview.ValidationErrors) > 0 {
+					addMonicaIssue(&result, models.MonicaIssueSkipped, "contact", contactName, "", models.MonicaReasonInvalid, strings.Join(preview.ValidationErrors, "; "))
+				} else {
+					contactIssue(models.MonicaIssueSkipped, models.MonicaReasonNotSelected, nil)
+				}
 
 			case "add":
 				contact := contactData.Contact
 				contact.UserID = userID
 				if err := tx.Create(&contact).Error; err != nil {
-					result.Errors = append(result.Errors, fmt.Sprintf("Row %d: Failed to create contact: %v", preview.RowIndex+1, err))
+					contactIssue(models.MonicaIssueFailed, models.MonicaReasonError, err)
 					result.Skipped++
 					continue
 				}
 				result.Created++
 				idMap[contactData.MonicaID] = contact.ID
 				if contactData.AvatarURL != "" {
-					avatarTasks = append(avatarTasks, avatarTask{contactID: contact.ID, monicaID: contactData.MonicaID,
+					avatarTasks = append(avatarTasks, avatarTask{contactID: contact.ID, contactName: contactName, monicaID: contactData.MonicaID,
 						avatarURL: contactData.AvatarURL, source: contactData.AvatarSource})
 				}
 
 			case "update":
 				if preview.DuplicateMatch == nil {
-					result.Errors = append(result.Errors, fmt.Sprintf("Row %d: Cannot update - no existing contact found", preview.RowIndex+1))
+					contactIssue(models.MonicaIssueFailed, models.MonicaReasonNoMatch, nil)
 					result.Skipped++
 					continue
 				}
 				var existing models.Contact
 				if err := tx.Where("user_id = ?", userID).First(&existing, preview.DuplicateMatch.ExistingContactID).Error; err != nil {
-					result.Errors = append(result.Errors, fmt.Sprintf("Row %d: Failed to fetch existing contact: %v", preview.RowIndex+1, err))
+					contactIssue(models.MonicaIssueFailed, models.MonicaReasonNoMatch, err)
 					result.Skipped++
 					continue
 				}
@@ -646,14 +681,14 @@ func (m *MonicaImportManager) Confirm(db *gorm.DB, userID uint, req models.Monic
 					}
 				}
 				if err := tx.Save(&existing).Error; err != nil {
-					result.Errors = append(result.Errors, fmt.Sprintf("Row %d: Failed to update contact: %v", preview.RowIndex+1, err))
+					contactIssue(models.MonicaIssueFailed, models.MonicaReasonError, err)
 					result.Skipped++
 					continue
 				}
 				result.Updated++
 				idMap[contactData.MonicaID] = existing.ID
 				if existing.Photo == "" && contactData.AvatarURL != "" {
-					avatarTasks = append(avatarTasks, avatarTask{contactID: existing.ID, monicaID: contactData.MonicaID,
+					avatarTasks = append(avatarTasks, avatarTask{contactID: existing.ID, contactName: contactName, monicaID: contactData.MonicaID,
 						avatarURL: contactData.AvatarURL, source: contactData.AvatarSource})
 				}
 			}
@@ -678,6 +713,7 @@ func (m *MonicaImportManager) Confirm(db *gorm.DB, userID uint, req models.Monic
 			return err
 		}
 		m.importExtraNotes(tx, userID, user.Language, snapshot, idMap, noteKeys, &result)
+		result.Issues = rollUpMonicaIssues(result.Issues)
 
 		// Make the custom fields created by the import visible in the UI.
 		// This is cosmetic: a failure here must not roll back thousands of
@@ -709,6 +745,14 @@ func (m *MonicaImportManager) Confirm(db *gorm.DB, userID uint, req models.Monic
 	}
 	s.mu.Unlock()
 
+	failed := 0
+	for _, issue := range result.Issues {
+		if issue.Status == models.MonicaIssueFailed {
+			failed++
+			log.Warn().Str("session_id", req.SessionID).Str("entity", issue.Entity).Str("reason", issue.Reason).
+				Str("error", issue.Cause).Msg("Monica record not imported")
+		}
+	}
 	log.Info().
 		Str("session_id", req.SessionID).
 		Int("created", result.Created).
@@ -720,6 +764,8 @@ func (m *MonicaImportManager) Confirm(db *gorm.DB, userID uint, req models.Monic
 		Int("relationships", result.RelationshipsCreated).
 		Int("photos_queued", result.PhotosQueued).
 		Int("errors", len(result.Errors)).
+		Int("issues", len(result.Issues)).
+		Int("failed", failed).
 		Msg("Monica import completed")
 
 	if len(avatarTasks) > 0 {
@@ -747,7 +793,10 @@ func (m *MonicaImportManager) processAvatars(db *gorm.DB, s *monicaImportSession
 		} else {
 			photoData, mediaType, err = s.client.FetchAvatar(ctx, task.avatarURL)
 		}
+		// Only fetch errors are shown: storage errors can carry server paths.
+		failure := ""
 		if err != nil {
+			failure = userSafeMonicaError(err)
 			log.Warn().Err(err).Uint("contact_id", task.contactID).Str("source", task.source).Msg("Failed to fetch Monica avatar")
 		} else {
 			photoPath, thumbnailData, saveErr := carddav.SaveContactPhoto(photoData, mediaType, cfg.ProfilePhotoDir)
@@ -769,6 +818,7 @@ func (m *MonicaImportManager) processAvatars(db *gorm.DB, s *monicaImportSession
 				s.result.PhotosSaved++
 			} else {
 				s.result.PhotosFailed++
+				addMonicaIssue(s.result, models.MonicaIssueFailed, "photo", task.contactName, "", models.MonicaReasonPhotoFailed, failure)
 			}
 		}
 		s.phaseDone = i + 1
@@ -868,10 +918,10 @@ func (m *MonicaImportManager) importRelationships(tx *gorm.DB, userID uint, snap
 		return err
 	}
 
-	contactByMonicaID := make(map[int]*monica.Contact, len(snapshot.Contacts))
-	for i := range snapshot.Contacts {
-		contactByMonicaID[snapshot.Contacts[i].ID] = &snapshot.Contacts[i]
-	}
+	// Includes partial contacts and people only known from the relationship
+	// itself: a child that is not a contact of its own still has a gender
+	// and birthday in Monica, which belong on the relationship row.
+	people := monicaPeople(snapshot)
 
 	var edges reciprocalEdgeIndex
 	if collapseReciprocal {
@@ -879,10 +929,8 @@ func (m *MonicaImportManager) importRelationships(tx *gorm.DB, userID uint, snap
 	}
 
 	for monicaID, rels := range snapshot.Relationships {
+		ownerName := monicaPersonName(people[monicaID])
 		contactID, imported := idMap[monicaID]
-		if !imported {
-			continue
-		}
 		for _, rel := range rels {
 			// Monica should only return edges where the fetched contact is
 			// the subject; guard against linking a contact to itself.
@@ -891,10 +939,16 @@ func (m *MonicaImportManager) importRelationships(tx *gorm.DB, userID uint, snap
 			}
 			var related *monica.Contact
 			if rel.OfContact != nil {
-				related = contactByMonicaID[rel.OfContact.ID]
+				related = people[rel.OfContact.ID]
 			}
 			relationship, otherMonicaID, ok := MapMonicaRelationship(rel, related)
 			if !ok {
+				addMonicaIssue(result, models.MonicaIssueSkipped, "relationship", ownerName, strings.TrimSpace(rel.RelationshipType.Name), models.MonicaReasonIncomplete, "")
+				continue
+			}
+			label := relationship.Name + " (" + relationship.Type + ")"
+			if !imported {
+				addNotImportedIssue(result, monicaID, "relationship", ownerName, label)
 				continue
 			}
 			// Only collapse when the other contact is imported too: without
@@ -907,6 +961,7 @@ func (m *MonicaImportManager) importRelationships(tx *gorm.DB, userID uint, snap
 				}
 			}
 			if !seen.addIfNew(relationshipKey(contactID, relationship.Name, relationship.Type)) {
+				addMonicaIssue(result, models.MonicaIssueSkipped, "relationship", ownerName, label, models.MonicaReasonAlreadyExists, "")
 				continue
 			}
 
@@ -916,10 +971,15 @@ func (m *MonicaImportManager) importRelationships(tx *gorm.DB, userID uint, snap
 				relationship.RelatedContactID = &relatedID
 			}
 			if err := tx.Create(&relationship).Error; err != nil {
-				result.Errors = append(result.Errors, fmt.Sprintf("Relationship %q of contact %d: %v", relationship.Type, contactID, err))
+				addMonicaFailure(result, models.MonicaIssueFailed, "relationship", ownerName, label, models.MonicaReasonError, err)
 				continue
 			}
 			result.RelationshipsCreated++
+			// A linked contact carries its own birthday; only an unlinked
+			// person loses an age-only birthday here.
+			if relationship.RelatedContactID == nil && related != nil && related.Information.Dates.Birthdate.IsAgeBased {
+				addMonicaIssue(result, models.MonicaIssueSkipped, "birthday", ownerName, relationship.Name, models.MonicaReasonApproximateBirthday, "")
+			}
 		}
 	}
 	return nil
@@ -995,8 +1055,16 @@ func (m *MonicaImportManager) importActivities(tx *gorm.DB, userID uint, lang st
 	}
 
 	for _, ma := range snapshot.Activities {
+		attendeeNames := make([]string, 0, len(ma.Attendees.Contacts))
+		for _, attendee := range ma.Attendees.Contacts {
+			if name := monicaRefName(&attendee); name != "" {
+				attendeeNames = append(attendeeNames, name)
+			}
+		}
+		attendees := strings.Join(attendeeNames, ", ")
 		activity, attendeeMonicaIDs, ok := MapMonicaActivity(ma, lang)
 		if !ok {
+			addMonicaIssue(result, models.MonicaIssueSkipped, "activity", attendees, monicaExcerpt(ma.Summary), models.MonicaReasonIncomplete, "")
 			continue
 		}
 		var contactIDs []uint
@@ -1006,22 +1074,25 @@ func (m *MonicaImportManager) importActivities(tx *gorm.DB, userID uint, lang st
 			}
 		}
 		if len(contactIDs) == 0 {
+			// Several attendees, so no single Monica ID: rolled up by name.
+			addNotImportedIssue(result, 0, "activity", attendees, activity.Title)
 			continue
 		}
 
 		if !seen.addIfNew(activityKey(activity.Title, activity.Date, activity.Description, contactIDs)) {
+			addMonicaIssue(result, models.MonicaIssueSkipped, "activity", attendees, activity.Title, models.MonicaReasonAlreadyExists, "")
 			continue
 		}
 
 		activity.UserID = userID
 		if err := tx.Create(&activity).Error; err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("Activity %q: %v", activity.Title, err))
+			addMonicaFailure(result, models.MonicaIssueFailed, "activity", attendees, activity.Title, models.MonicaReasonError, err)
 			continue
 		}
 		var contacts []models.Contact
 		if err := tx.Where("user_id = ? AND id IN ?", userID, contactIDs).Find(&contacts).Error; err == nil && len(contacts) > 0 {
 			if err := tx.Model(&activity).Association("Contacts").Append(&contacts); err != nil {
-				result.Errors = append(result.Errors, fmt.Sprintf("Activity %q: failed to link contacts: %v", activity.Title, err))
+				addMonicaFailure(result, models.MonicaIssueFailed, "activity", attendees, activity.Title, models.MonicaReasonError, fmt.Errorf("failed to link contacts: %w", err))
 			}
 		}
 		result.ActivitiesCreated++
@@ -1053,14 +1124,15 @@ func loadNoteKeys(tx *gorm.DB, userID uint) (importKeySet, error) {
 	return keys, nil
 }
 
-func (m *MonicaImportManager) createImportedNote(tx *gorm.DB, userID uint, note models.Note, contactID uint, seen importKeySet, result *models.MonicaImportResult) {
+func (m *MonicaImportManager) createImportedNote(tx *gorm.DB, userID uint, entity, contactName string, note models.Note, contactID uint, seen importKeySet, result *models.MonicaImportResult) {
 	if !seen.addIfNew(noteKey(contactID, note.Content, note.Date)) {
+		addMonicaIssue(result, models.MonicaIssueSkipped, entity, contactName, monicaExcerpt(note.Content), models.MonicaReasonAlreadyExists, "")
 		return
 	}
 	note.UserID = userID
 	note.ContactID = &contactID
 	if err := tx.Create(&note).Error; err != nil {
-		result.Errors = append(result.Errors, fmt.Sprintf("Note for contact %d: %v", contactID, err))
+		addMonicaFailure(result, models.MonicaIssueFailed, entity, contactName, monicaExcerpt(note.Content), models.MonicaReasonError, err)
 		return
 	}
 	result.NotesCreated++
@@ -1068,14 +1140,27 @@ func (m *MonicaImportManager) createImportedNote(tx *gorm.DB, userID uint, note 
 
 func (m *MonicaImportManager) importNotes(tx *gorm.DB, userID uint, snapshot *monica.Snapshot, idMap map[int]uint, seen importKeySet, result *models.MonicaImportResult) {
 	for _, mn := range snapshot.Notes {
-		note, monicaContactID, ok := MapMonicaNote(mn)
-		if !ok {
-			continue
-		}
-		if contactID, imported := idMap[monicaContactID]; imported {
-			m.createImportedNote(tx, userID, note, contactID, seen, result)
-		}
+		m.importNoteLike(tx, userID, "note", mn.Contact, monicaExcerpt(mn.Body), idMap, seen, result, func() (models.Note, int, bool) {
+			return MapMonicaNote(mn)
+		})
 	}
+}
+
+// importNoteLike creates one note (or call/task/gift/debt converted into a
+// note), recording why it was left out when it is.
+func (m *MonicaImportManager) importNoteLike(tx *gorm.DB, userID uint, entity string, ref *monica.ContactRef, label string, idMap map[int]uint, seen importKeySet, result *models.MonicaImportResult, mapFn func() (models.Note, int, bool)) {
+	contactName := monicaRefName(ref)
+	note, monicaContactID, ok := mapFn()
+	if !ok {
+		addMonicaIssue(result, models.MonicaIssueSkipped, entity, contactName, label, models.MonicaReasonIncomplete, "")
+		return
+	}
+	contactID, imported := idMap[monicaContactID]
+	if !imported {
+		addNotImportedIssue(result, monicaContactID, entity, contactName, label)
+		return
+	}
+	m.createImportedNote(tx, userID, entity, contactName, note, contactID, seen, result)
 }
 
 func reminderKey(contactID uint, message string, remindAt time.Time) string {
@@ -1107,28 +1192,61 @@ func (m *MonicaImportManager) importReminders(tx *gorm.DB, userID uint, snapshot
 	if err != nil {
 		return err
 	}
-	birthdays := birthdayMonthDayByMonicaID(snapshot)
+	people := monicaPeople(snapshot)
+	birthdays := birthdayMonthDayByMonicaID(people)
+	partialOwners := monicaPartialOwners(snapshot, people)
 	now := time.Now()
 	for _, mr := range snapshot.Reminders {
-		birthdayMonthDay := ""
+		birthdayMonthDay, personName := "", monicaRefName(mr.Contact)
 		if mr.Contact != nil {
 			birthdayMonthDay = birthdays[mr.Contact.ID]
+			if name := monicaPersonName(people[mr.Contact.ID]); name != "" {
+				personName = name
+			}
 		}
-		reminder, monicaContactID, ok := MapMonicaReminder(mr, now, birthdayMonthDay)
-		if !ok {
+		label := monicaExcerpt(mr.Title)
+		reminder, monicaContactID, skipReason := mapMonicaReminder(mr, now, birthdayMonthDay)
+		if skipReason != "" {
+			addMonicaIssue(result, models.MonicaIssueSkipped, "reminder", personName, label, skipReason, "")
 			continue
 		}
 		contactID, imported := idMap[monicaContactID]
+		movedToOwner := false
 		if !imported {
+			// A reminder of someone who is not a contact of their own (a
+			// child, typically) goes to the contact they belong to.
+			for _, ownerID := range partialOwners[monicaContactID] {
+				if ownerContactID, ownerImported := idMap[ownerID]; ownerImported {
+					contactID, imported, movedToOwner = ownerContactID, true, true
+					break
+				}
+			}
+		}
+		// MapMonicaReminder pins exactly the birthday reminders to the
+		// calendar. A partial person's birthday is imported onto the
+		// relationship, which Meerkat already announces; a reminder on top
+		// would announce it twice. A child with only an approximate age has
+		// no birthday to match, so its reminder is not recognized as one and
+		// still moves to the parent — the only place it can survive.
+		if movedToOwner && !*reminder.ReoccurFromCompletion {
+			addMonicaIssue(result, models.MonicaIssueSkipped, "reminder", personName, label, models.MonicaReasonBirthdayOnRelationship, "")
+			continue
+		}
+		if movedToOwner {
+			reminder.Message = monicaMessageAbout(reminder.Message, people[monicaContactID])
+		}
+		if !imported {
+			addNotImportedIssue(result, monicaContactID, "reminder", personName, label)
 			continue
 		}
 		if !seen.addIfNew(reminderKey(contactID, reminder.Message, reminder.RemindAt)) {
+			addMonicaIssue(result, models.MonicaIssueSkipped, "reminder", personName, label, models.MonicaReasonAlreadyExists, "")
 			continue
 		}
 		reminder.UserID = userID
 		reminder.ContactID = &contactID
 		if err := tx.Create(&reminder).Error; err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("Reminder for contact %d: %v", contactID, err))
+			addMonicaFailure(result, models.MonicaIssueFailed, "reminder", personName, label, models.MonicaReasonError, err)
 			continue
 		}
 		result.RemindersCreated++
@@ -1136,32 +1254,131 @@ func (m *MonicaImportManager) importReminders(tx *gorm.DB, userID uint, snapshot
 	return nil
 }
 
+// monicaMessageAbout makes a reminder moved onto another contact name the
+// person it is about, unless its text already does (Monica's generated
+// birthday reminders do).
+func monicaMessageAbout(message string, person *monica.Contact) string {
+	name := monicaPersonName(person)
+	if name == "" {
+		return message
+	}
+	if first := strings.TrimSpace(person.FirstName); first != "" && containsWords(message, first) {
+		return message
+	}
+	return truncateRunes(name+": "+message, 500)
+}
+
+// containsWords reports whether every word of phrase appears as a whole word
+// in text, ignoring case — so "Al" does not match "Call".
+func containsWords(text, phrase string) bool {
+	split := func(s string) []string {
+		return strings.FieldsFunc(strings.ToLower(s), func(r rune) bool {
+			return !unicode.IsLetter(r) && !unicode.IsNumber(r)
+		})
+	}
+	words := split(text)
+	for _, want := range split(phrase) {
+		if !slices.Contains(words, want) {
+			return false
+		}
+	}
+	return true
+}
+
 // importExtraNotes converts calls, tasks, gifts and debts into dated notes.
 func (m *MonicaImportManager) importExtraNotes(tx *gorm.DB, userID uint, lang string, snapshot *monica.Snapshot, idMap map[int]uint, seen importKeySet, result *models.MonicaImportResult) {
-	create := func(note models.Note, monicaContactID int, ok bool) {
-		if !ok {
-			return
-		}
-		if contactID, imported := idMap[monicaContactID]; imported {
-			m.createImportedNote(tx, userID, note, contactID, seen, result)
-		}
-	}
 	for _, call := range snapshot.Calls {
-		note, contactID, ok := MapMonicaCall(call, lang)
-		create(note, contactID, ok)
+		m.importNoteLike(tx, userID, "call", call.Contact, monicaExcerpt(call.Content), idMap, seen, result, func() (models.Note, int, bool) {
+			return MapMonicaCall(call, lang)
+		})
 	}
 	for _, task := range snapshot.Tasks {
-		note, contactID, ok := MapMonicaTask(task, lang)
-		create(note, contactID, ok)
+		m.importNoteLike(tx, userID, "task", task.Contact, monicaExcerpt(task.Title), idMap, seen, result, func() (models.Note, int, bool) {
+			return MapMonicaTask(task, lang)
+		})
 	}
 	for _, gift := range snapshot.Gifts {
-		note, contactID, ok := MapMonicaGift(gift, lang)
-		create(note, contactID, ok)
+		m.importNoteLike(tx, userID, "gift", gift.Contact, monicaExcerpt(gift.Name), idMap, seen, result, func() (models.Note, int, bool) {
+			return MapMonicaGift(gift, lang)
+		})
 	}
 	for _, debt := range snapshot.Debts {
-		note, contactID, ok := MapMonicaDebt(debt, lang)
-		create(note, contactID, ok)
+		label := strings.TrimSpace(debt.AmountWithCurrency)
+		if label == "" {
+			label = monicaExcerpt(debt.Reason)
+		}
+		m.importNoteLike(tx, userID, "debt", debt.Contact, label, idMap, seen, result, func() (models.Note, int, bool) {
+			return MapMonicaDebt(debt, lang)
+		})
 	}
+}
+
+// addMonicaIssue records one record that did not make it into Meerkat (or
+// made it without part of its data) for the import report.
+func addMonicaIssue(result *models.MonicaImportResult, status, entity, contactName, label, reason, detail string) {
+	result.Issues = append(result.Issues, models.MonicaImportIssue{
+		Status:  status,
+		Entity:  entity,
+		Contact: contactName,
+		Label:   label,
+		Reason:  reason,
+		Detail:  detail,
+	})
+}
+
+// addMonicaFailure records a record the database (or a lookup) rejected. The
+// raw error stays server-side — it is logged, never sent — since driver
+// errors can carry SQL and schema details; the reason code says enough.
+func addMonicaFailure(result *models.MonicaImportResult, status, entity, contactName, label, reason string, cause error) {
+	addMonicaIssue(result, status, entity, contactName, label, reason, "")
+	if cause != nil {
+		result.Issues[len(result.Issues)-1].Cause = cause.Error()
+	}
+}
+
+// addNotImportedIssue records a record skipped because its contact was not
+// imported. monicaID identifies that contact for the roll-up (0 when there
+// is no single one), so two contacts sharing a name stay apart.
+func addNotImportedIssue(result *models.MonicaImportResult, monicaID int, entity, contactName, label string) {
+	addMonicaIssue(result, models.MonicaIssueSkipped, entity, contactName, label, models.MonicaReasonContactNotImported, "")
+	result.Issues[len(result.Issues)-1].MonicaContactID = monicaID
+}
+
+// rollUpMonicaIssues folds the records of a contact that was not imported
+// into one row per contact and record type: the contact's own row already
+// says why, and listing each of its notes one by one buries the rest.
+func rollUpMonicaIssues(issues []models.MonicaImportIssue) []models.MonicaImportIssue {
+	type groupKey struct {
+		entity, contact string
+		monicaID        int
+	}
+	index := map[groupKey]int{}
+	out := make([]models.MonicaImportIssue, 0, len(issues))
+	for _, issue := range issues {
+		if issue.Reason != models.MonicaReasonContactNotImported {
+			out = append(out, issue)
+			continue
+		}
+		key := groupKey{issue.Entity, issue.Contact, issue.MonicaContactID}
+		if i, seen := index[key]; seen {
+			out[i].Count++
+			out[i].Label = ""
+			continue
+		}
+		issue.Count = 1
+		index[key] = len(out)
+		out = append(out, issue)
+	}
+	return out
+}
+
+// monicaExcerpt shortens free text to a single line fit for the report.
+func monicaExcerpt(text string) string {
+	text = strings.Join(strings.Fields(text), " ")
+	if len([]rune(text)) > 80 {
+		return truncateRunes(text, 79) + "…"
+	}
+	return text
 }
 
 // mergeMonicaCustomFieldNames adds custom field names used by imported

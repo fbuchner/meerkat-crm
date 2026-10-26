@@ -82,6 +82,19 @@ export interface MonicaImportResult extends ImportResult {
   photos_queued: number;
   photos_saved: number;
   photos_failed: number;
+  issues: MonicaImportIssue[];
+}
+
+// One Monica record that was skipped or failed, or imported without part of
+// its data. reason is a code translated under settings.monicaImport.result.issues.reasons.
+export interface MonicaImportIssue {
+  status: 'skipped' | 'failed';
+  entity: string;
+  contact?: string;
+  label?: string;
+  reason: string;
+  detail?: string;
+  count?: number; // set when several records are rolled up into this row
 }
 
 // Connect makes nine serialized requests to Monica at ~1/second, and a slow

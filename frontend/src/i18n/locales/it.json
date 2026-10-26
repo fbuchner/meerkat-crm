@@ -536,7 +536,46 @@
         "relationships": "{{count}} relazioni importate",
         "relationshipsCollapsed": "{{count}} duplicati reciproci saltati (mostrati come relazioni in entrata)",
         "photos": "{{count}} foto importate",
-        "photosFailed": "{{count}} foto non sono state scaricate"
+        "photosFailed": "{{count}} foto non sono state scaricate",
+        "issues": {
+          "title": "Elementi saltati o non riusciti ({{count}})",
+          "hint": "Ogni record di Monica non importato, o importato senza parte dei suoi dati, raggruppato per motivo.",
+          "columns": {
+            "type": "Tipo",
+            "contact": "Contatto",
+            "item": "Elemento",
+            "details": "Dettagli"
+          },
+          "failed": "non riuscito",
+          "entities": {
+            "contact": "Contatto",
+            "relationship": "Relazione",
+            "activity": "Attività",
+            "note": "Nota",
+            "reminder": "Promemoria",
+            "call": "Chiamata",
+            "task": "Attività da fare",
+            "gift": "Regalo",
+            "debt": "Debito",
+            "birthday": "Compleanno",
+            "photo": "Foto"
+          },
+          "reasons": {
+            "not_selected": "Impostato su «salta» nella revisione",
+            "invalid": "Dati del contatto non validi",
+            "no_match": "Impostato su «aggiorna», ma nessun contatto corrispondente trovato",
+            "contact_not_imported": "Appartiene a un contatto non importato",
+            "already_exists": "Già presente in Meerkat (ad es. da un’importazione precedente)",
+            "incomplete": "Mancano dati necessari a Meerkat (nome, data o contenuto)",
+            "expired": "Promemoria singolo con data passata",
+            "unsupported_frequency": "Intervallo di ripetizione non supportato da Meerkat",
+            "approximate_birthday": "Monica conosce solo un’età approssimativa, non una data di nascita",
+            "error": "Impossibile salvare",
+            "birthday_on_relationship": "Compleanno salvato sulla relazione, che Meerkat annuncia già",
+            "photo_failed": "Impossibile scaricare la foto"
+          },
+          "rolledUp": "{{count}} elementi"
+        }
       },
       "errors": {
         "fetchFailed": "Recupero dei dati da Monica non riuscito"

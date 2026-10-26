@@ -536,7 +536,46 @@
         "relationships": "{{count}} relaciones importadas",
         "relationshipsCollapsed": "{{count}} duplicados recíprocos omitidos (se muestran como relaciones entrantes)",
         "photos": "{{count}} fotos importadas",
-        "photosFailed": "{{count}} fotos no se pudieron descargar"
+        "photosFailed": "{{count}} fotos no se pudieron descargar",
+        "issues": {
+          "title": "Elementos omitidos o fallidos ({{count}})",
+          "hint": "Cada registro de Monica que no se importó, o se importó sin parte de sus datos, agrupado por motivo.",
+          "columns": {
+            "type": "Tipo",
+            "contact": "Contacto",
+            "item": "Elemento",
+            "details": "Detalles"
+          },
+          "failed": "fallido",
+          "entities": {
+            "contact": "Contacto",
+            "relationship": "Relación",
+            "activity": "Actividad",
+            "note": "Nota",
+            "reminder": "Recordatorio",
+            "call": "Llamada",
+            "task": "Tarea",
+            "gift": "Regalo",
+            "debt": "Deuda",
+            "birthday": "Cumpleaños",
+            "photo": "Foto"
+          },
+          "reasons": {
+            "not_selected": "Marcado como «omitir» en la revisión",
+            "invalid": "Datos de contacto no válidos",
+            "no_match": "Marcado como «actualizar», pero no se encontró un contacto coincidente",
+            "contact_not_imported": "Pertenece a un contacto que no se importó",
+            "already_exists": "Ya existe en Meerkat (p. ej. de una importación anterior)",
+            "incomplete": "Faltan datos que Meerkat necesita (nombre, fecha o contenido)",
+            "expired": "Recordatorio único cuya fecha ya pasó",
+            "unsupported_frequency": "Intervalo de repetición no compatible con Meerkat",
+            "approximate_birthday": "Monica solo conoce una edad aproximada, no una fecha de nacimiento",
+            "error": "No se pudo guardar",
+            "birthday_on_relationship": "Cumpleaños guardado en la relación, que Meerkat ya anuncia",
+            "photo_failed": "No se pudo descargar la foto"
+          },
+          "rolledUp": "{{count}} elementos"
+        }
       },
       "errors": {
         "fetchFailed": "Error al obtener los datos de Monica"

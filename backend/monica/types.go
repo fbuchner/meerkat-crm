@@ -55,11 +55,38 @@ type ContactField struct {
 }
 
 // ContactRef is the minimal contact reference embedded in related entities.
+// The optional fields are only filled where Monica embeds its "short contact"
+// resource (relationships, reminders); they are the only place the details of
+// a partial contact — e.g. a child that is not a contact of its own — show up.
 type ContactRef struct {
 	ID           int    `json:"id"`
 	FirstName    string `json:"first_name"`
 	LastName     string `json:"last_name"`
 	CompleteName string `json:"complete_name"`
+	GenderType   string `json:"gender_type"`
+	IsPartial    bool   `json:"is_partial"`
+	Information  *struct {
+		Birthdate *SpecialDate `json:"birthdate"`
+		Dates     *struct {
+			Birthdate *SpecialDate `json:"birthdate"`
+		} `json:"dates"`
+	} `json:"information"`
+}
+
+// Birthdate returns the embedded birthdate, accepting both the short-contact
+// shape (information.birthdate) and the full-contact one
+// (information.dates.birthdate).
+func (r ContactRef) Birthdate() SpecialDate {
+	if r.Information == nil {
+		return SpecialDate{}
+	}
+	if r.Information.Birthdate != nil {
+		return *r.Information.Birthdate
+	}
+	if r.Information.Dates != nil && r.Information.Dates.Birthdate != nil {
+		return *r.Information.Dates.Birthdate
+	}
+	return SpecialDate{}
 }
 
 // Contact is a Monica contact as returned by GET /contacts?with=contactfields.
@@ -224,4 +251,8 @@ type Snapshot struct {
 	Gifts         []Gift
 	Debts         []Debt
 	Relationships map[int][]Relationship
+	// PartialContacts are the name-only people Monica keeps behind
+	// relationships (typically children). They are not imported as contacts;
+	// their details enrich the relationship rows that point at them.
+	PartialContacts []Contact
 }

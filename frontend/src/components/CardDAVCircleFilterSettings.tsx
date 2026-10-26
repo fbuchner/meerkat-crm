@@ -31,23 +31,32 @@ export default function CardDAVCircleFilterSettings() {
   const [circles, setCircles] = useState<string[]>([]);
   const [availableCircles, setAvailableCircles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  // Without the stored filter the form would show a default that saving would
+  // write over the real setting, so it stays hidden until the filter loads.
+  const [filterLoaded, setFilterLoaded] = useState(false);
+  const [circlesLoaded, setCirclesLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
     const load = async () => {
-      try {
-        setLoading(true);
-        const [filter, allCircles] = await Promise.all([getCardDAVCircleFilter(), getCircles()]);
-        setMode(filter.mode);
-        setCircles(filter.circles);
-        setAvailableCircles(allCircles);
-      } catch (err) {
+      setLoading(true);
+      const [filterResult, circlesResult] = await Promise.allSettled([getCardDAVCircleFilter(), getCircles()]);
+      if (filterResult.status === 'fulfilled') {
+        setMode(filterResult.value.mode);
+        setCircles(filterResult.value.circles);
+        setFilterLoaded(true);
+      } else {
+        const err = filterResult.reason;
         setError(err instanceof Error ? err.message : t('settings.carddavCircleFilter.loadError'));
-      } finally {
-        setLoading(false);
       }
+      // Without the circle list the stored circles still show and can be removed.
+      if (circlesResult.status === 'fulfilled') {
+        setAvailableCircles(circlesResult.value);
+        setCirclesLoaded(true);
+      }
+      setLoading(false);
     };
     load();
   }, [t]);
@@ -69,6 +78,12 @@ export default function CardDAVCircleFilterSettings() {
   };
 
   const needsCircles = mode !== 'all' && circles.length === 0;
+  const isInUse = (circle: string) =>
+    availableCircles.some((c) => c.toLowerCase() === circle.toLowerCase());
+  // Circles no contact belongs to any more. An include filter made only of
+  // these would empty every device's address book.
+  const unusedCircles = circlesLoaded ? circles.filter((c) => !isInUse(c)) : [];
+  const options = [...availableCircles, ...circles.filter((c) => !isInUse(c))];
 
   return (
     <Card sx={{ mb: 2 }}>
@@ -93,7 +108,7 @@ export default function CardDAVCircleFilterSettings() {
             <Typography variant="body2" color="text.secondary">
               {t('settings.carddavCircleFilter.loading')}
             </Typography>
-          ) : (
+          ) : !filterLoaded ? null : (
             <>
               <RadioGroup
                 value={mode}
@@ -111,7 +126,7 @@ export default function CardDAVCircleFilterSettings() {
                 <Autocomplete
                   multiple
                   size="small"
-                  options={availableCircles}
+                  options={options}
                   value={circles}
                   onChange={(_, value) => {
                     setCircles(value);
@@ -120,7 +135,15 @@ export default function CardDAVCircleFilterSettings() {
                   renderTags={(value, getTagProps) =>
                     value.map((option, index) => {
                       const { key, ...tagProps } = getTagProps({ index });
-                      return <Chip key={key} label={option} size="small" {...tagProps} />;
+                      return (
+                        <Chip
+                          key={key}
+                          label={option}
+                          size="small"
+                          color={unusedCircles.includes(option) ? 'warning' : 'default'}
+                          {...tagProps}
+                        />
+                      );
                     })
                   }
                   renderInput={(params) => (
@@ -135,6 +158,13 @@ export default function CardDAVCircleFilterSettings() {
                 />
               )}
 
+              {mode !== 'all' && unusedCircles.length > 0 && (
+                <Alert severity="warning" sx={{ py: 0 }}>
+                  {mode === 'include' && unusedCircles.length === circles.length
+                    ? t('settings.carddavCircleFilter.allCirclesUnused')
+                    : t('settings.carddavCircleFilter.unusedCircles', { circles: unusedCircles.join(', ') })}
+                </Alert>
+              )}
               {mode === 'include' && (
                 <Alert severity="info" sx={{ py: 0 }}>
                   {t('settings.carddavCircleFilter.includeNewContactsHint')}

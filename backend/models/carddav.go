@@ -2,6 +2,7 @@ package models
 
 import (
 	"slices"
+	"strings"
 	"time"
 )
 
@@ -27,12 +28,15 @@ const (
 // CardDAVCircleFilterMatches reports whether a contact in contactCircles is
 // visible to CardDAV clients under the given filter. "include" shows contacts in
 // at least one of filterCircles, "exclude" hides them, any other mode shows all.
+// Circle names compare case-insensitively, as they do in validateUniqueCircles.
 func CardDAVCircleFilterMatches(mode string, filterCircles, contactCircles []string) bool {
 	if mode != CardDAVCircleModeInclude && mode != CardDAVCircleModeExclude {
 		return true
 	}
 	inFilter := slices.ContainsFunc(contactCircles, func(c string) bool {
-		return slices.Contains(filterCircles, c)
+		return slices.ContainsFunc(filterCircles, func(f string) bool {
+			return strings.EqualFold(strings.TrimSpace(c), f)
+		})
 	})
 	return inFilter == (mode == CardDAVCircleModeInclude)
 }

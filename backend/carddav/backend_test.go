@@ -5,10 +5,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sort"
+	"strings"
 	"testing"
 
 	"meerkat/models"
 
+	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
@@ -71,6 +73,7 @@ func TestCircleFilterListing(t *testing.T) {
 		{"unset mode shows all", "", nil, []string{"fam", "none", "work"}},
 		{"include", models.CardDAVCircleModeInclude, []string{"Family"}, []string{"fam"}},
 		{"exclude", models.CardDAVCircleModeExclude, []string{"Work"}, []string{"fam", "none"}},
+		{"case-insensitive", models.CardDAVCircleModeInclude, []string{"family"}, []string{"fam"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -89,13 +92,9 @@ func TestCircleFilterListing(t *testing.T) {
 }
 
 func TestCircleFilterHidesFilteredContact(t *testing.T) {
-	_, ctx, db := setupCircleFilterBackend(t, models.CardDAVCircleModeInclude, []string{"Family"})
-	h := NewHandler(db, t.TempDir())
+	_, _, db := setupCircleFilterBackend(t, models.CardDAVCircleModeInclude, []string{"Family"})
 	serve := func(method, uid string) int {
-		req := httptest.NewRequest(method, "/carddav/addressbooks/tester/contacts/"+uid+".vcf", nil).WithContext(ctx)
-		w := httptest.NewRecorder()
-		h.handler.ServeHTTP(w, req)
-		return w.Code
+		return serveCardDAV(t, db, method, "/carddav/addressbooks/tester/contacts/"+uid+".vcf", "").Code
 	}
 
 	if code := serve(http.MethodGet, "work"); code != http.StatusNotFound {
@@ -118,4 +117,93 @@ func TestCircleFilterHidesFilteredContact(t *testing.T) {
 	if code := serve(http.MethodDelete, "fam"); code != http.StatusNoContent {
 		t.Fatalf("DELETE visible contact: got %d, want 204", code)
 	}
+}
+
+func TestCircleFilterRejectsPutToHiddenContact(t *testing.T) {
+	_, _, db := setupCircleFilterBackend(t, models.CardDAVCircleModeInclude, []string{"Family"})
+	card := func(uid, name string) string {
+		return "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:" + uid + "\r\nFN:" + name + "\r\nN:;" + name + ";;;\r\nEND:VCARD\r\n"
+	}
+	firstname := func(uid string) string {
+		var c models.Contact
+		db.Where("vcard_uid = ?", uid).First(&c)
+		return c.Firstname
+	}
+
+	// A stale device copy of a filtered-out contact must not overwrite it.
+	w := serveCardDAV(t, db, http.MethodPut, "/carddav/addressbooks/tester/contacts/work.vcf", card("work", "Stale"))
+	if w.Code != http.StatusPreconditionFailed {
+		t.Fatalf("PUT hidden contact: got %d, want 412", w.Code)
+	}
+	if got := firstname("work"); got != "Colleague" {
+		t.Fatalf("hidden contact was overwritten: firstname %q", got)
+	}
+
+	// Visible contacts and new contacts are still written.
+	if w := serveCardDAV(t, db, http.MethodPut, "/carddav/addressbooks/tester/contacts/fam.vcf", card("fam", "Edited")); w.Code >= 300 {
+		t.Fatalf("PUT visible contact: got %d", w.Code)
+	}
+	if got := firstname("fam"); got != "Edited" {
+		t.Fatalf("visible contact not updated: firstname %q", got)
+	}
+	if w := serveCardDAV(t, db, http.MethodPut, "/carddav/addressbooks/tester/contacts/new.vcf", card("new", "Newbie")); w.Code >= 300 {
+		t.Fatalf("PUT new contact: got %d", w.Code)
+	}
+	if got := firstname("new"); got != "Newbie" {
+		t.Fatalf("new contact not created: firstname %q", got)
+	}
+}
+
+func TestCircleFilterMultiget(t *testing.T) {
+	_, _, db := setupCircleFilterBackend(t, models.CardDAVCircleModeInclude, []string{"Family"})
+	body := `<?xml version="1.0" encoding="utf-8"?>
+<C:addressbook-multiget xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:carddav">
+  <D:prop><D:getetag/><C:address-data/></D:prop>
+  <D:href>/carddav/addressbooks/tester/contacts/fam.vcf</D:href>
+  <D:href>/carddav/addressbooks/tester/contacts/work.vcf</D:href>
+</C:addressbook-multiget>`
+
+	w := serveCardDAV(t, db, "REPORT", "/carddav/addressbooks/tester/contacts/", body)
+	if w.Code != http.StatusMultiStatus {
+		t.Fatalf("multiget: got %d, want 207", w.Code)
+	}
+	resp := w.Body.String()
+	if !strings.Contains(resp, "FN:Fam") {
+		t.Fatalf("multiget omitted the visible contact:\n%s", resp)
+	}
+	if strings.Contains(resp, "FN:Colleague") || !strings.Contains(resp, "404") {
+		t.Fatalf("multiget should 404 the filtered contact:\n%s", resp)
+	}
+}
+
+// serveCardDAV sends one request through the Gin handler, as the router does
+// after authentication, so the per-request filter loading is covered too.
+func serveCardDAV(t *testing.T, db *gorm.DB, method, path, body string) *httptest.ResponseRecorder {
+	t.Helper()
+	var user models.User
+	if err := db.First(&user).Error; err != nil {
+		t.Fatalf("load user: %v", err)
+	}
+
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		c.Set("userID", user.ID)
+		c.Set("username", user.Username)
+	})
+	handler := NewHandler(db, t.TempDir()).GinHandler()
+	router.Any("/carddav/*path", handler)
+	router.Handle("REPORT", "/carddav/*path", handler)
+
+	req := httptest.NewRequest(method, path, strings.NewReader(body))
+	if body != "" {
+		if method == http.MethodPut {
+			req.Header.Set("Content-Type", "text/vcard")
+		} else {
+			req.Header.Set("Content-Type", "application/xml")
+		}
+	}
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	return w
 }

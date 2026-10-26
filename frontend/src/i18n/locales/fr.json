@@ -668,6 +668,8 @@
       "circlesLabel": "Cercles",
       "circlesRequired": "Sélectionnez au moins un cercle.",
       "noCircles": "Aucun cercle pour l'instant",
+      "unusedCircles": "Plus aucun contact n'appartient à ces cercles : {{circles}}",
+      "allCirclesUnused": "Plus aucun contact n'appartient à ces cercles, vos appareils n'afficheraient donc aucun contact.",
       "includeNewContactsHint": "Les contacts créés sur un appareil sont enregistrés dans Meerkat, mais disparaissent de l'appareil à la synchronisation suivante, sauf si vous les ajoutez à l'un de ces cercles.",
       "removalHint": "Les contacts qui sortent du filtre sont supprimés uniquement de vos appareils. Supprimer un contact synchronisé sur un appareil le supprime toujours aussi dans Meerkat.",
       "save": "Enregistrer le filtre"

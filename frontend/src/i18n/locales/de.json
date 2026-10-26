@@ -668,6 +668,8 @@
       "circlesLabel": "Kreise",
       "circlesRequired": "Wähle mindestens einen Kreis aus.",
       "noCircles": "Noch keine Kreise",
+      "unusedCircles": "Diesen Kreisen ist kein Kontakt mehr zugeordnet: {{circles}}",
+      "allCirclesUnused": "Keinem dieser Kreise ist noch ein Kontakt zugeordnet, deine Geräte würden also gar keine Kontakte anzeigen.",
       "includeNewContactsHint": "Kontakte, die du auf einem Gerät anlegst, werden in Meerkat gespeichert, verschwinden aber bei der nächsten Synchronisierung vom Gerät, sofern du sie keinem dieser Kreise zuordnest.",
       "removalHint": "Kontakte, die aus dem Filter fallen, werden nur von deinen Geräten entfernt. Wenn du einen synchronisierten Kontakt auf einem Gerät löschst, wird er weiterhin auch in Meerkat gelöscht.",
       "save": "Filter speichern"

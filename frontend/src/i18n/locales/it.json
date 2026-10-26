@@ -668,6 +668,8 @@
       "circlesLabel": "Cerchie",
       "circlesRequired": "Seleziona almeno una cerchia.",
       "noCircles": "Ancora nessuna cerchia",
+      "unusedCircles": "Nessun contatto appartiene più a queste cerchie: {{circles}}",
+      "allCirclesUnused": "Nessun contatto appartiene più a nessuna di queste cerchie, quindi i tuoi dispositivi non mostrerebbero alcun contatto.",
       "includeNewContactsHint": "I contatti creati su un dispositivo vengono salvati in Meerkat, ma scompaiono dal dispositivo alla sincronizzazione successiva a meno che tu non li aggiunga a una di queste cerchie.",
       "removalHint": "I contatti che escono dal filtro vengono rimossi solo dai tuoi dispositivi. Eliminare un contatto sincronizzato su un dispositivo lo elimina comunque anche in Meerkat.",
       "save": "Salva filtro"

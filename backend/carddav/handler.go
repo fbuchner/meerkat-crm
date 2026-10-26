@@ -1,6 +1,7 @@
 package carddav
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -43,6 +44,12 @@ func (h *Handler) GinHandler() gin.HandlerFunc {
 
 		// Set in request context for the backend
 		ctx := ContextWithUser(c.Request.Context(), userID.(uint), username.(string), h.db, h.photoDir)
+		filter, err := loadCircleFilter(h.db, userID.(uint))
+		if err != nil {
+			http.Error(c.Writer, "failed to load CardDAV settings", http.StatusInternalServerError)
+			return
+		}
+		ctx = context.WithValue(ctx, circleFilterKey, filter)
 		c.Request = c.Request.WithContext(ctx)
 
 		// Handle principals endpoint specially for proper discovery

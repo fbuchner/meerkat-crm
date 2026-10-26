@@ -55,6 +55,39 @@ test('a filter mode cannot be saved without circles', async () => {
   expect(screen.getByRole('button', { name: /save filter/i })).toBeDisabled();
 });
 
+test('a failed filter load hides the form so the default cannot be saved over the real filter', async () => {
+  vi.mocked(getCardDAVCircleFilter).mockRejectedValue(new Error('network down'));
+  renderSettings();
+
+  expect(await screen.findByText('network down')).toBeInTheDocument();
+  expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /save filter/i })).not.toBeInTheDocument();
+});
+
+test('a failed circle list load still shows the stored filter', async () => {
+  vi.mocked(getCardDAVCircleFilter).mockResolvedValue({ mode: 'include', circles: ['Family'] });
+  vi.mocked(getCircles).mockRejectedValue(new Error('network down'));
+  renderSettings();
+
+  expect(await screen.findByText('Family')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /save filter/i })).toBeEnabled();
+  expect(screen.queryByText(/no contact is in/i)).not.toBeInTheDocument();
+});
+
+test('warns when every included circle has no contacts left', async () => {
+  vi.mocked(getCardDAVCircleFilter).mockResolvedValue({ mode: 'include', circles: ['Old friends'] });
+  renderSettings();
+
+  expect(await screen.findByText(/devices would show no contacts at all/i)).toBeInTheDocument();
+});
+
+test('names unused circles and matches circle names case-insensitively', async () => {
+  vi.mocked(getCardDAVCircleFilter).mockResolvedValue({ mode: 'exclude', circles: ['work', 'Old friends'] });
+  renderSettings();
+
+  expect(await screen.findByText('No contact is in these circles any more: Old friends')).toBeInTheDocument();
+});
+
 test('switching back to all drops the circles', async () => {
   vi.mocked(getCardDAVCircleFilter).mockResolvedValue({ mode: 'exclude', circles: ['Work'] });
   renderSettings();

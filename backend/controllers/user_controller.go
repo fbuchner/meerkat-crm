@@ -653,10 +653,11 @@ func UpdateCardDAVCircleFilter(c *gin.Context) {
 		return
 	}
 
+	// Circles match case-insensitively, so "Family" and "family" are one entry.
 	circles := []string{}
 	for _, circle := range input.Circles {
 		circle = strings.TrimSpace(circle)
-		if circle != "" && !slices.Contains(circles, circle) {
+		if circle != "" && !slices.ContainsFunc(circles, func(c string) bool { return strings.EqualFold(c, circle) }) {
 			circles = append(circles, circle)
 		}
 	}
@@ -671,9 +672,14 @@ func UpdateCardDAVCircleFilter(c *gin.Context) {
 
 	user := models.User{CardDAVCircleMode: input.Mode, CardDAVCircles: circles}
 	user.ID = userID
-	if err := db.Model(&user).Select("CardDAVCircleMode", "CardDAVCircles").Updates(&user).Error; err != nil {
-		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to update user CardDAV circle filter")
-		apperrors.AbortWithError(c, apperrors.ErrDatabase("update user").WithError(err))
+	result := db.Model(&user).Select("CardDAVCircleMode", "CardDAVCircles").Updates(&user)
+	if result.Error != nil {
+		log.Error().Err(result.Error).Uint("user_id", userID).Msg("Failed to update user CardDAV circle filter")
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("update user").WithError(result.Error))
+		return
+	}
+	if result.RowsAffected == 0 {
+		apperrors.AbortWithError(c, apperrors.ErrUnauthorized("Authentication required"))
 		return
 	}
 

@@ -24,6 +24,8 @@ const (
 	usernameKey contextKey = "username"
 	dbKey       contextKey = "db"
 	photoDir    contextKey = "photoDir"
+	// circleFilterKey holds the *circleFilter loaded once per request
+	circleFilterKey contextKey = "circleFilter"
 )
 
 // Backend implements the carddav.Backend interface
@@ -174,11 +176,11 @@ func (b *Backend) GetAddressObject(ctx context.Context, urlPath string, req *car
 		return nil, fmt.Errorf("contact not found")
 	}
 
-	visible, err := b.isVisible(ctx, userID, &contact)
+	filter, err := b.getCircleFilter(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	if !visible {
+	if !filter.matches(&contact) {
 		return nil, webdav.NewHTTPError(http.StatusNotFound, fmt.Errorf("contact not found"))
 	}
 
@@ -205,7 +207,7 @@ func (b *Backend) ListAddressObjects(ctx context.Context, urlPath string, req *c
 
 	objects := make([]carddav.AddressObject, 0, len(contacts))
 	for _, contact := range contacts {
-		if !models.CardDAVCircleFilterMatches(filter.CardDAVCircleMode, filter.CardDAVCircles, contact.Circles) {
+		if !filter.matches(&contact) {
 			continue
 		}
 		objects = append(objects, *b.contactToAddressObject(ctx, &contact))
@@ -253,6 +255,19 @@ func (b *Backend) PutAddressObject(ctx context.Context, urlPath string, card vca
 		}
 	} else {
 		isNew = true
+	}
+
+	// A device may still hold a stale copy of a contact that has since left the
+	// circle filter. Writing it back would overwrite newer data in Meerkat, so
+	// reject it as a conflict; the client re-fetches, gets 404 and drops it.
+	if !isNew {
+		filter, err := b.getCircleFilter(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		if !filter.matches(&contact) {
+			return nil, webdav.NewHTTPError(http.StatusPreconditionFailed, fmt.Errorf("contact is not synced to this device"))
+		}
 	}
 
 	// Check ETag for conflict detection on updates (If-Match header)
@@ -354,11 +369,11 @@ func (b *Backend) DeleteAddressObject(ctx context.Context, urlPath string) error
 
 	// A device may still hold a contact that has since left the circle filter.
 	// Deleting it there must not delete a contact the device can no longer see.
-	visible, err := b.isVisible(ctx, userID, &contact)
+	filter, err := b.getCircleFilter(ctx, userID)
 	if err != nil {
 		return err
 	}
-	if !visible {
+	if !filter.matches(&contact) {
 		return webdav.NewHTTPError(http.StatusNotFound, fmt.Errorf("contact not found"))
 	}
 
@@ -366,22 +381,32 @@ func (b *Backend) DeleteAddressObject(ctx context.Context, urlPath string) error
 	return db.Delete(&contact).Error
 }
 
-// getCircleFilter loads the user's CardDAV circle filter settings
-func (b *Backend) getCircleFilter(ctx context.Context, userID uint) (*models.User, error) {
-	var user models.User
-	if err := b.getDB(ctx).Select("id", "carddav_circle_mode", "carddav_circles").First(&user, userID).Error; err != nil {
-		return nil, err
-	}
-	return &user, nil
+// circleFilter is the user's choice of which contacts CardDAV clients see
+type circleFilter struct {
+	mode    string
+	circles []string
 }
 
-// isVisible reports whether the user's circle filter lets CardDAV clients see contact
-func (b *Backend) isVisible(ctx context.Context, userID uint, contact *models.Contact) (bool, error) {
-	filter, err := b.getCircleFilter(ctx, userID)
-	if err != nil {
-		return false, err
+func (f *circleFilter) matches(contact *models.Contact) bool {
+	return models.CardDAVCircleFilterMatches(f.mode, f.circles, contact.Circles)
+}
+
+// loadCircleFilter reads the user's CardDAV circle filter settings
+func loadCircleFilter(db *gorm.DB, userID uint) (*circleFilter, error) {
+	var user models.User
+	if err := db.Select("id", "carddav_circle_mode", "carddav_circles").First(&user, userID).Error; err != nil {
+		return nil, err
 	}
-	return models.CardDAVCircleFilterMatches(filter.CardDAVCircleMode, filter.CardDAVCircles, contact.Circles), nil
+	return &circleFilter{mode: user.CardDAVCircleMode, circles: user.CardDAVCircles}, nil
+}
+
+// getCircleFilter returns the filter the handler loaded for this request, so a
+// multiget does not re-read it per contact, or loads it when called without one.
+func (b *Backend) getCircleFilter(ctx context.Context, userID uint) (*circleFilter, error) {
+	if filter, ok := ctx.Value(circleFilterKey).(*circleFilter); ok {
+		return filter, nil
+	}
+	return loadCircleFilter(b.getDB(ctx), userID)
 }
 
 // contactToAddressObject converts a Contact to a CardDAV AddressObject

@@ -668,6 +668,8 @@
       "circlesLabel": "Circles",
       "circlesRequired": "Select at least one circle.",
       "noCircles": "No circles yet",
+      "unusedCircles": "No contact is in these circles any more: {{circles}}",
+      "allCirclesUnused": "No contact is in any of these circles any more, so your devices would show no contacts at all.",
       "includeNewContactsHint": "Contacts you create on a device are saved to Meerkat but disappear from the device on its next sync unless you add them to one of these circles.",
       "removalHint": "Contacts that leave the filter are removed from your devices only. Deleting a synced contact on a device still deletes it in Meerkat.",
       "save": "Save filter"

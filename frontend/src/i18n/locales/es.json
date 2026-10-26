@@ -668,6 +668,8 @@
       "circlesLabel": "Círculos",
       "circlesRequired": "Selecciona al menos un círculo.",
       "noCircles": "Aún no hay círculos",
+      "unusedCircles": "Ya no hay ningún contacto en estos círculos: {{circles}}",
+      "allCirclesUnused": "Ya no hay ningún contacto en ninguno de estos círculos, así que tus dispositivos no mostrarían ningún contacto.",
       "includeNewContactsHint": "Los contactos que crees en un dispositivo se guardan en Meerkat, pero desaparecen del dispositivo en la siguiente sincronización a menos que los añadas a uno de estos círculos.",
       "removalHint": "Los contactos que salen del filtro solo se eliminan de tus dispositivos. Eliminar un contacto sincronizado en un dispositivo también lo elimina en Meerkat.",
       "save": "Guardar filtro"

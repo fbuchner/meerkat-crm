@@ -426,9 +426,12 @@ func TestCardDAVCircleFilter(t *testing.T) {
 	// Never configured -> everything syncs.
 	assert.JSONEq(t, `{"mode":"all","circles":[]}`, get())
 
-	// Circles are trimmed and deduplicated.
-	assert.Equal(t, http.StatusOK, patch(`{"mode":"include","circles":["Family"," Family ","Friends",""]}`))
+	// Circles are trimmed and deduplicated case-insensitively.
+	assert.Equal(t, http.StatusOK, patch(`{"mode":"include","circles":["Family"," family ","Friends",""]}`))
 	assert.JSONEq(t, `{"mode":"include","circles":["Family","Friends"]}`, get())
+
+	// Saving the same filter again still succeeds.
+	assert.Equal(t, http.StatusOK, patch(`{"mode":"include","circles":["Family","Friends"]}`))
 
 	// A filter mode without circles and an unknown mode are rejected, leaving the setting alone.
 	assert.Equal(t, http.StatusBadRequest, patch(`{"mode":"exclude","circles":[]}`))

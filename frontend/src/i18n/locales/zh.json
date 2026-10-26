@@ -761,6 +761,9 @@
         "activity.created": "活动已创建",
         "activity.updated": "活动已更新",
         "activity.deleted": "活动已删除",
+        "employment_history.created": "工作经历已创建",
+        "employment_history.updated": "工作经历已更新",
+        "employment_history.deleted": "工作经历已删除",
         "reminder.triggered": "提醒已触发",
         "birthday.occurred": "生日"
       },
@@ -840,6 +843,25 @@
     },
     "filterByContact": "以联系人为中心",
     "showCircles": "圈子"
+  },
+  "employmentHistory": {
+    "title": "工作经历",
+    "addEntry": "添加工作",
+    "editEntry": "编辑工作",
+    "noEntries": "暂无工作经历",
+    "current": "当前",
+    "endJob": "结束此工作",
+    "endMessage": "将此工作标记为已结束（结束日期设为今天）？",
+    "deleteMessage": "删除此工作经历？",
+    "organizationRequired": "组织为必填项",
+    "dateFormatError": "日期必须为 YYYY、YYYY-MM 或 YYYY-MM-DD",
+    "startDate": "开始日期",
+    "endDate": "结束日期",
+    "dateFormatHelp": "YYYY、YYYY-MM 或 YYYY-MM-DD",
+    "endDateHelp": "如果这是当前工作，请留空",
+    "notes": "备注",
+    "unknownDate": "未知",
+    "present": "至今"
   },
   "relationships": {
     "title": "关系",

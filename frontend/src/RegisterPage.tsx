@@ -72,7 +72,9 @@ export default function RegisterPage() {
   return (
     <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h5" mb={2}>{t('register.title')}</Typography>
+        <Typography variant="h5" sx={{
+          mb: 2
+        }}>{t('register.title')}</Typography>
         <form onSubmit={handleSubmit}>
           <Stack spacing={2}>
             <TextField

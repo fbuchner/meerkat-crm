@@ -236,7 +236,9 @@ export default function WebhooksSettings() {
           <Divider sx={{ mb: 1.5 }} />
 
           <Stack spacing={1.5}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               {t('settings.webhooks.description')}
             </Typography>
 
@@ -244,11 +246,18 @@ export default function WebhooksSettings() {
             {success && <Alert severity="success" sx={{ py: 0 }} onClose={() => setSuccess('')}>{success}</Alert>}
 
             {loading ? (
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 {t('settings.webhooks.loading')}
               </Typography>
             ) : webhooks.length === 0 ? (
-              <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "text.secondary",
+                  fontStyle: 'italic'
+                }}>
                 {t('settings.webhooks.noWebhooks')}
               </Typography>
             ) : (
@@ -286,8 +295,6 @@ export default function WebhooksSettings() {
                       }
                     >
                       <ListItemText
-                        primaryTypographyProps={{ component: 'div' }}
-                        secondaryTypographyProps={{ component: 'div' }}
                         primary={
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Typography variant="body2" sx={{ fontWeight: 500 }}>{wh.name}</Typography>
@@ -301,15 +308,25 @@ export default function WebhooksSettings() {
                         }
                         secondary={
                           <Box>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: "text.secondary",
+                                display: 'block'
+                              }}>
                               {wh.url.length > 60 ? wh.url.slice(0, 57) + '...' : wh.url}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography variant="caption" sx={{
+                              color: "text.secondary"
+                            }}>
                               {wh.events.length} {t('settings.webhooks.eventsCount')}
                             </Typography>
                           </Box>
                         }
-                      />
+                        slotProps={{
+                          primary: { component: 'div' },
+                          secondary: { component: 'div' }
+                        }} />
                     </ListItem>
 
                     <Box sx={{ pl: 2, pb: 1 }}>
@@ -324,9 +341,13 @@ export default function WebhooksSettings() {
                       <Collapse in={expandedDeliveries[wh.id]}>
                         <Box sx={{ mt: 0.5 }}>
                           {loadingDeliveries[wh.id] ? (
-                            <Typography variant="caption" color="text.secondary">{t('settings.webhooks.loadingDeliveries')}</Typography>
+                            <Typography variant="caption" sx={{
+                              color: "text.secondary"
+                            }}>{t('settings.webhooks.loadingDeliveries')}</Typography>
                           ) : (deliveries[wh.id] || []).length === 0 ? (
-                            <Typography variant="caption" color="text.secondary">{t('settings.webhooks.noDeliveries')}</Typography>
+                            <Typography variant="caption" sx={{
+                              color: "text.secondary"
+                            }}>{t('settings.webhooks.noDeliveries')}</Typography>
                           ) : (
                             (deliveries[wh.id] || []).slice(0, 5).map(d => (
                               <Box key={d.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
@@ -336,12 +357,21 @@ export default function WebhooksSettings() {
                                   color={d.status_code && d.status_code < 300 ? 'success' : 'error'}
                                   sx={{ height: 18, fontSize: '0.7rem', minWidth: 36 }}
                                 />
-                                <Typography variant="caption" color="text.secondary">{d.event_type}</Typography>
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography variant="caption" sx={{
+                                  color: "text.secondary"
+                                }}>{d.event_type}</Typography>
+                                <Typography variant="caption" sx={{
+                                  color: "text.secondary"
+                                }}>
                                   {new Date(d.created_at).toLocaleString()}
                                 </Typography>
                                 {d.error && (
-                                  <Typography variant="caption" color="error.main" sx={{ ml: 0.5 }}>
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      color: "error.main",
+                                      ml: 0.5
+                                    }}>
                                     {d.error}
                                   </Typography>
                                 )}
@@ -392,10 +422,10 @@ export default function WebhooksSettings() {
               renderInput={params => (
                 <TextField {...params} label={t('settings.webhooks.events')} size="small" required />
               )}
-              renderTags={(value, getTagProps) =>
+              renderValue={(value, getItemProps) =>
                 value.map((option, index) => (
                   <Chip
-                    {...getTagProps({ index })}
+                    {...getItemProps({ index })}
                     key={option}
                     label={getEventLabel(option)}
                     size="small"
@@ -436,14 +466,17 @@ export default function WebhooksSettings() {
           <Alert severity="warning" sx={{ mb: 2 }}>
             {t('apiTokens.createdDialog.warning')}
           </Alert>
-          <Stack direction="row" alignItems="center" spacing={1}>
+          <Stack direction="row" spacing={1} sx={{
+            alignItems: "center"
+          }}>
             <TextField
               value={createdWebhook?.secret || ''}
-              InputProps={{ readOnly: true }}
               fullWidth
               size="small"
-              inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.85rem' } }}
-            />
+              slotProps={{
+                input: { readOnly: true },
+                htmlInput: { style: { fontFamily: 'monospace', fontSize: '0.85rem' } }
+              }} />
             <Tooltip title={secretCopied ? t('apiTokens.createdDialog.copied') : t('apiTokens.createdDialog.copy')}>
               <IconButton
                 onClick={() => {

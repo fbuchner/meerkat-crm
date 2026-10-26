@@ -53,7 +53,9 @@ export default function MultiValueField({
       </Typography>
       <Stack spacing={1}>
         {value.map((row, index) => (
-          <Stack key={rowKeys.keyAt(index)} direction="row" spacing={1} alignItems="center">
+          <Stack key={rowKeys.keyAt(index)} direction="row" spacing={1} sx={{
+            alignItems: "center"
+          }}>
             {freeTextType ? (
               <TextField
                 label={t('contacts.fieldType')}

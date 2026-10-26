@@ -400,37 +400,40 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
                     opacity: 1,
                   },
                 }}
-                InputProps={{
-                  ...params.InputProps,
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <IconButton
-                        size="small"
-                        onClick={handleSearchSubmit}
-                        sx={{ color: 'rgba(255, 255, 255, 0.7)', p: 0.5 }}
-                      >
-                        <SearchIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                  endAdornment: searchQuery ? (
-                    <InputAdornment position="end">
-                      <IconButton
-                        size="small"
-                        onClick={() => {
-                          setSearchQuery('');
-                          setSearchResults([]);
-                          // Clear search filter if on contacts page
-                          if (location.pathname.startsWith('/contacts')) {
-                            navigate('/contacts');
-                          }
-                        }}
-                        sx={{ color: 'rgba(255, 255, 255, 0.7)', p: 0.5 }}
-                      >
-                        <ClearIcon fontSize="small" />
-                      </IconButton>
-                    </InputAdornment>
-                  ) : null,
+                slotProps={{
+                  ...params.slotProps,
+                  input: {
+                    ...params.slotProps.input,
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <IconButton
+                          size="small"
+                          onClick={handleSearchSubmit}
+                          sx={{ color: 'rgba(255, 255, 255, 0.7)', p: 0.5 }}
+                        >
+                          <SearchIcon />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                    endAdornment: searchQuery ? (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSearchQuery('');
+                            setSearchResults([]);
+                            // Clear search filter if on contacts page
+                            if (location.pathname.startsWith('/contacts')) {
+                              navigate('/contacts');
+                            }
+                          }}
+                          sx={{ color: 'rgba(255, 255, 255, 0.7)', p: 0.5 }}
+                        >
+                          <ClearIcon fontSize="small" />
+                        </IconButton>
+                      </InputAdornment>
+                    ) : null,
+                  }
                 }}
               />
             )}
@@ -441,7 +444,9 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
                     {option.firstname} {option.lastname}
                   </Typography>
                   {option.email && (
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" sx={{
+                      color: "text.secondary"
+                    }}>
                       {option.email}
                     </Typography>
                   )}
@@ -517,18 +522,73 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
         }}
       >
         <Routes>
-          <Route path="/contacts" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ContactsPage /></Suspense>} />
-          <Route path="/contacts/duplicates" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><DuplicatesPage /></Suspense>} />
-          <Route path="/contacts/:id" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ContactDetailPage /></Suspense>} />
-          <Route path="/notes" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><NotesPage /></Suspense>} />
-          <Route path="/activities" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ActivitiesPage /></Suspense>} />
-          <Route path="/settings" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><SettingsPage /></Suspense>} />
-          <Route path="/settings/data" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><DataSettingsPage /></Suspense>} />
-          <Route path="/network" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><NetworkPage /></Suspense>} />
-          <Route path="/users" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><UsersPage /></Suspense>} />
-          <Route path="/api-tokens" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><ApiTokensPage /></Suspense>} />
+          <Route path="/contacts" element={<Suspense fallback={<Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              mt: 4
+            }}><CircularProgress /></Box>}><ContactsPage /></Suspense>} />
+          <Route path="/contacts/duplicates" element={<Suspense fallback={<Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              mt: 4
+            }}><CircularProgress /></Box>}><DuplicatesPage /></Suspense>} />
+          <Route path="/contacts/:id" element={<Suspense fallback={<Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              mt: 4
+            }}><CircularProgress /></Box>}><ContactDetailPage /></Suspense>} />
+          <Route path="/notes" element={<Suspense fallback={<Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              mt: 4
+            }}><CircularProgress /></Box>}><NotesPage /></Suspense>} />
+          <Route path="/activities" element={<Suspense fallback={<Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              mt: 4
+            }}><CircularProgress /></Box>}><ActivitiesPage /></Suspense>} />
+          <Route path="/settings" element={<Suspense fallback={<Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              mt: 4
+            }}><CircularProgress /></Box>}><SettingsPage /></Suspense>} />
+          <Route path="/settings/data" element={<Suspense fallback={<Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              mt: 4
+            }}><CircularProgress /></Box>}><DataSettingsPage /></Suspense>} />
+          <Route path="/network" element={<Suspense fallback={<Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              mt: 4
+            }}><CircularProgress /></Box>}><NetworkPage /></Suspense>} />
+          <Route path="/users" element={<Suspense fallback={<Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              mt: 4
+            }}><CircularProgress /></Box>}><UsersPage /></Suspense>} />
+          <Route path="/api-tokens" element={<Suspense fallback={<Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              mt: 4
+            }}><CircularProgress /></Box>}><ApiTokensPage /></Suspense>} />
           <Route path="/reminders" element={<div>{t('pages.reminders')}</div>} />
-          <Route path="/" element={<Suspense fallback={<Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}><DashboardPage /></Suspense>} />
+          <Route path="/" element={<Suspense fallback={<Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              mt: 4
+            }}><CircularProgress /></Box>}><DashboardPage /></Suspense>} />
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="/register" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />

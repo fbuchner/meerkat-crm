@@ -78,7 +78,9 @@ export default function LoginPage({ setToken }: LoginPageProps) {
             sx={{ width: 150, height: 'auto' }}
           />
         </Box>
-        <Typography variant="h5" mb={2}>{t('login.title')}</Typography>
+        <Typography variant="h5" sx={{
+          mb: 2
+        }}>{t('login.title')}</Typography>
         <form onSubmit={handleSubmit}>
           <Stack spacing={2}>
             <TextField

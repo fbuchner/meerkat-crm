@@ -133,7 +133,13 @@ export default function ContactsPage() {
       <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
         {t('contacts.title')}
       </Typography>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} mb={2} alignItems="center">
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={1.5}
+        sx={{
+          mb: 2,
+          alignItems: "center"
+        }}>
         <FormControl sx={{ minWidth: 180 }} size="small">
           <InputLabel id="circle-select-label">{t('contacts.filterByCircle')}</InputLabel>
           <Select
@@ -267,7 +273,14 @@ export default function ContactsPage() {
                       />
                     )}
                   </Box>
-                  <Stack direction="row" spacing={0.5} mt={0.5} flexWrap="wrap" gap={0.5}>
+                  <Stack
+                    direction="row"
+                    spacing={0.5}
+                    sx={{
+                      mt: 0.5,
+                      flexWrap: "wrap",
+                      gap: 0.5
+                    }}>
                     {contact.circles && contact.circles.filter((circle, idx, arr) => arr.indexOf(circle) === idx).map((circle: string) => (
                       <Chip
                         key={`${contact.ID}-${circle}`}

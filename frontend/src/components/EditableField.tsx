@@ -54,7 +54,9 @@ export default function EditableField({
       <Box sx={{ display: 'flex', alignItems: multiline ? 'flex-start' : 'center' }}>
         {icon}
         <Box sx={{ flex: 1 }}>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>
             {label}
           </Typography>
           {isEditing ? (

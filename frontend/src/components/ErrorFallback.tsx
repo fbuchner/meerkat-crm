@@ -7,7 +7,7 @@ import {
   AlertTitle,
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutlined';
 
 /**
  * Props for ErrorFallback component
@@ -70,12 +70,17 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
           mb: 2,
         }}
       />
-      
+
       <Typography variant={titleVariant} gutterBottom>
         {title}
       </Typography>
-      
-      <Typography variant={bodyVariant} color="text.secondary" paragraph>
+
+      <Typography
+        variant={bodyVariant}
+        sx={{
+          color: "text.secondary",
+          marginBottom: "16px"
+        }}>
         {message}
       </Typography>
 

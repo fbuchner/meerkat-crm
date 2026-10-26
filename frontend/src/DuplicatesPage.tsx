@@ -27,17 +27,28 @@ function ContactSummary({ contact }: { contact: DuplicateContactSummary }) {
   const { t } = useTranslation();
   const details = [contact.email, contact.phone, contact.organization].filter(Boolean);
   return (
-    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
+    <Stack
+      direction="row"
+      spacing={1.5}
+      sx={{
+        alignItems: "center",
+        flex: 1,
+        minWidth: 0
+      }}>
       <Avatar src={contact.photo_thumbnail}>{contact.firstname?.[0]}</Avatar>
       <Box sx={{ minWidth: 0 }}>
-        <Stack direction="row" spacing={1} alignItems="center">
+        <Stack direction="row" spacing={1} sx={{
+          alignItems: "center"
+        }}>
           <Link component={RouterLink} to={`/contacts/${contact.ID}`} underline="hover" noWrap>
             {contactDisplayName(contact)}
           </Link>
           {contact.archived && <Chip size="small" label={t('contacts.archived')} />}
         </Stack>
         {details.map((detail) => (
-          <Typography key={detail} variant="body2" color="text.secondary" noWrap>
+          <Typography key={detail} variant="body2" noWrap sx={{
+            color: "text.secondary"
+          }}>
             {detail}
           </Typography>
         ))}
@@ -76,14 +87,24 @@ export default function DuplicatesPage() {
       <Typography variant="h5" gutterBottom>
         {t('contacts.duplicates.title')}
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          mb: 2
+        }}>
         {t('contacts.duplicates.description')}
       </Typography>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {loading && pairs.length === 0 ? (
-        <Box display="flex" justifyContent="center" mt={4}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            mt: 4
+          }}>
           <CircularProgress />
         </Box>
       ) : pairs.length === 0 && !error ? (

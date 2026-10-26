@@ -97,7 +97,9 @@ export default function CardDAVCircleFilterSettings() {
         <Divider sx={{ mb: 1.5 }} />
 
         <Stack spacing={1.5}>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             {t('settings.carddavCircleFilter.description')}
           </Typography>
 
@@ -105,7 +107,9 @@ export default function CardDAVCircleFilterSettings() {
           {success && <Alert severity="success" sx={{ py: 0 }}>{success}</Alert>}
 
           {loading ? (
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               {t('settings.carddavCircleFilter.loading')}
             </Typography>
           ) : !filterLoaded ? null : (
@@ -132,9 +136,9 @@ export default function CardDAVCircleFilterSettings() {
                     setCircles(value);
                     setSuccess('');
                   }}
-                  renderTags={(value, getTagProps) =>
+                  renderValue={(value, getItemProps) =>
                     value.map((option, index) => {
-                      const { key, ...tagProps } = getTagProps({ index });
+                      const { key, ...tagProps } = getItemProps({ index });
                       return (
                         <Chip
                           key={key}
@@ -171,7 +175,9 @@ export default function CardDAVCircleFilterSettings() {
                 </Alert>
               )}
               {mode !== 'all' && (
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   {t('settings.carddavCircleFilter.removalHint')}
                 </Typography>
               )}

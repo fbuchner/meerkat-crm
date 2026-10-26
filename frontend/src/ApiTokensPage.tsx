@@ -167,7 +167,9 @@ export default function ApiTokensPage() {
                   {tokens.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} align="center">
-                        <Typography color="text.secondary">{t('apiTokens.noTokens')}</Typography>
+                        <Typography sx={{
+                          color: "text.secondary"
+                        }}>{t('apiTokens.noTokens')}</Typography>
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -218,7 +220,9 @@ export default function ApiTokensPage() {
             onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); }}
             fullWidth
             margin="normal"
-            inputProps={{ maxLength: 100 }}
+            slotProps={{
+              htmlInput: { maxLength: 100 }
+            }}
           />
         </DialogContent>
         <DialogActions>
@@ -238,14 +242,17 @@ export default function ApiTokensPage() {
           <Alert severity="warning" sx={{ mb: 2 }}>
             {t('apiTokens.createdDialog.warning')}
           </Alert>
-          <Stack direction="row" alignItems="center" spacing={1}>
+          <Stack direction="row" spacing={1} sx={{
+            alignItems: "center"
+          }}>
             <TextField
               value={createdToken?.token || ''}
-              InputProps={{ readOnly: true }}
               fullWidth
               size="small"
-              inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.85rem' } }}
-            />
+              slotProps={{
+                input: { readOnly: true },
+                htmlInput: { style: { fontFamily: 'monospace', fontSize: '0.85rem' } }
+              }} />
             <Tooltip title={copied ? t('apiTokens.createdDialog.copied') : t('apiTokens.createdDialog.copy')}>
               <IconButton onClick={handleCopy} color={copied ? 'success' : 'default'}>
                 <ContentCopyIcon />

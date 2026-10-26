@@ -232,7 +232,9 @@ export default function CalendarSyncSettings() {
           <Divider sx={{ mb: 1.5 }} />
 
           <Stack spacing={1.5}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               {t('settings.calendarSync.description')}
             </Typography>
             {error && <Alert severity="error" sx={{ py: 0 }} onClose={() => setError('')}>{error}</Alert>}
@@ -243,7 +245,12 @@ export default function CalendarSyncSettings() {
                 <CircularProgress size={24} />
               </Box>
             ) : calendars.length === 0 ? (
-              <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "text.secondary",
+                  fontStyle: 'italic'
+                }}>
                 {t('settings.calendarSync.empty')}
               </Typography>
             ) : (
@@ -280,7 +287,9 @@ export default function CalendarSyncSettings() {
                   >
                     <ListItemText
                       primary={
-                        <Stack direction="row" spacing={1} alignItems="center">
+                        <Stack direction="row" spacing={1} sx={{
+                          alignItems: "center"
+                        }}>
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
                             {cal.name}
                           </Typography>
@@ -295,7 +304,9 @@ export default function CalendarSyncSettings() {
                         </Stack>
                       }
                       secondary={
-                        <Typography variant="caption" color="text.secondary" component="span">
+                        <Typography variant="caption" component="span" sx={{
+                          color: "text.secondary"
+                        }}>
                           {cal.url} — {formatLastSync(cal)}
                         </Typography>
                       }
@@ -373,16 +384,20 @@ export default function CalendarSyncSettings() {
                 type="number"
                 value={form.past_days}
                 onChange={e => setForm(prev => ({ ...prev, past_days: e.target.value }))}
-                inputProps={{ min: 0, max: 3650 }}
                 size="small"
+                slotProps={{
+                  htmlInput: { min: 0, max: 3650 }
+                }}
               />
               <TextField
                 label={t('settings.calendarSync.futureDays')}
                 type="number"
                 value={form.future_days}
                 onChange={e => setForm(prev => ({ ...prev, future_days: e.target.value }))}
-                inputProps={{ min: 0, max: 3650 }}
                 size="small"
+                slotProps={{
+                  htmlInput: { min: 0, max: 3650 }
+                }}
               />
             </Box>
             <FormControlLabel

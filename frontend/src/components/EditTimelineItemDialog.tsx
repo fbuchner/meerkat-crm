@@ -135,11 +135,11 @@ export default function EditTimelineItemDialog({
                   placeholder={t('activityDialog.selectContacts')}
                 />
               )}
-              renderTags={(value, getTagProps) =>
+              renderValue={(value, getItemProps) =>
                 value.map((contact, index) => (
                   <Chip
                     label={`${contact.firstname}${contact.nickname ? ` "${contact.nickname}"` : ''} ${contact.lastname}`}
-                    {...getTagProps({ index })}
+                    {...getItemProps({ index })}
                     size="small"
                     key={contact.ID}
                   />

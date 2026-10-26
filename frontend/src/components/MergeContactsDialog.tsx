@@ -214,7 +214,9 @@ export default function MergeContactsDialog({
       <Typography variant="overline" color={role === 'keep' ? 'primary' : 'text.secondary'}>
         {role === 'keep' ? t('contacts.merge.keep') : t('contacts.merge.remove')}
       </Typography>
-      <Stack direction="row" spacing={1.5} alignItems="center">
+      <Stack direction="row" spacing={1.5} sx={{
+        alignItems: "center"
+      }}>
         <Avatar src={contact.photo_thumbnail}>{contact.firstname?.[0]}</Avatar>
         <Typography variant="subtitle1" noWrap>
           {contactDisplayName(contact)}
@@ -244,7 +246,12 @@ export default function MergeContactsDialog({
 
         {sourceId === null && (
           <Box sx={{ pt: 1 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+                mb: 2
+              }}>
               {t('contacts.merge.pickDescription')}
             </Typography>
             <Autocomplete
@@ -265,14 +272,21 @@ export default function MergeContactsDialog({
         )}
 
         {sourceId !== null && loading && (
-          <Box display="flex" justifyContent="center" py={4}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              py: 4
+            }}>
             <CircularProgress />
           </Box>
         )}
 
         {sourceId !== null && !loading && preview && (
           <Stack spacing={2} sx={{ pt: 1 }}>
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack direction="row" spacing={1} sx={{
+              alignItems: "center"
+            }}>
               {renderContactCard(preview.target, 'keep')}
               <Tooltip title={t('contacts.merge.swap')}>
                 <span>
@@ -292,7 +306,9 @@ export default function MergeContactsDialog({
                 <Stack spacing={1.5}>
                   {preview.conflicts.map((conflict) => (
                     <Box key={conflict.field}>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>
                         {fieldLabel(conflict.field)}
                       </Typography>
                       <RadioGroup
@@ -318,17 +334,23 @@ export default function MergeContactsDialog({
                 </Stack>
               </Box>
             ) : (
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 {t('contacts.merge.noConflicts')}
               </Typography>
             )}
 
             <Box>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 {t('contacts.merge.combinedInfo')}
               </Typography>
               {movedSummary && (
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   {t('contacts.merge.movedInfo', { items: movedSummary })}
                 </Typography>
               )}

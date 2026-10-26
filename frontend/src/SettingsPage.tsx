@@ -122,10 +122,14 @@ export default function SettingsPage() {
               style={{ height: 100, flexShrink: 0 }}
             />
             <Stack spacing={1}>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 {t('settings.about.description')}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 {t('settings.about.contribute')}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
@@ -173,7 +177,13 @@ export default function SettingsPage() {
             </Select>
           </FormControl>
           
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              mt: 1,
+              display: 'block'
+            }}>
             {t('settings.language.description')}
           </Typography>
         </CardContent>
@@ -205,7 +215,13 @@ export default function SettingsPage() {
             </Select>
           </FormControl>
 
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              mt: 1,
+              display: 'block'
+            }}>
             {t('settings.dateFormat.description')}
           </Typography>
         </CardContent>
@@ -237,7 +253,13 @@ export default function SettingsPage() {
             </Select>
           </FormControl>
 
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              mt: 1,
+              display: 'block'
+            }}>
             {t('settings.theme.description')}
           </Typography>
         </CardContent>
@@ -255,7 +277,9 @@ export default function SettingsPage() {
 
           <form onSubmit={handlePasswordChange}>
             <Stack spacing={1.5}>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 {t('settings.password.description')}
               </Typography>
               {passwordError && <Alert severity="error" sx={{ py: 0 }}>{passwordError}</Alert>}

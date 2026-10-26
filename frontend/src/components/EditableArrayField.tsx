@@ -58,7 +58,9 @@ export default function EditableArrayField<T>({
   if (editing) {
     return (
       <Box>
-        <Stack direction="row" spacing={1} alignItems="flex-start">
+        <Stack direction="row" spacing={1} sx={{
+          alignItems: "flex-start"
+        }}>
           <Box sx={{ pt: 0.5 }}>{icon}</Box>
           <Box sx={{ flexGrow: 1 }}>
             {renderEditor(draft, setDraft)}
@@ -86,7 +88,9 @@ export default function EditableArrayField<T>({
     >
       {icon}
       <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" sx={{
+          color: "text.secondary"
+        }}>
           {label}
         </Typography>
         <Box sx={{ wordBreak: 'break-word' }}>{renderDisplay(value)}</Box>

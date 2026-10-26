@@ -63,7 +63,13 @@ export default function RelationshipList({
 
   if (hasNoRelationships) {
     return (
-      <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          py: 2,
+          textAlign: 'center'
+        }}>
         {t('relationships.noRelationships')}
       </Typography>
     );
@@ -107,7 +113,9 @@ export default function RelationshipList({
                     {displayName}
                   </Typography>
                 )}
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   {formatRelationshipType(relationship.type)}
                   {displayGender && ` · ${formatGender(displayGender)}`}
                   {displayBirthday && ` · ${t('relationships.birthday')}: ${formatBirthday(displayBirthday)}`}
@@ -148,7 +156,12 @@ export default function RelationshipList({
       {incomingRelationships.length > 0 && (
         <>
           {relationships.length > 0 && <Divider sx={{ my: 2 }} />}
-          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+          <Typography
+            variant="subtitle2"
+            sx={{
+              color: "text.secondary",
+              mb: 1
+            }}>
             {t('relationships.incomingRelationships')}
           </Typography>
           {incomingRelationships.map((incoming) => {
@@ -162,7 +175,9 @@ export default function RelationshipList({
                 sx={{ p: 2, bgcolor: 'action.hover' }}
               >
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{
+                    color: "text.secondary"
+                  }}>
                     {formatRelationshipType(incoming.type)} {t('relationships.ofContact')}
                   </Typography>
                   <Link

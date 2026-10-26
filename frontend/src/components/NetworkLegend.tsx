@@ -84,7 +84,9 @@ export default function NetworkLegend({ showCircles, showActivities, showRelatio
               }}
             />
           )}
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>
             {item.label}
           </Typography>
         </Box>

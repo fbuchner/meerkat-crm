@@ -306,7 +306,9 @@ export default function AddRelationshipDialog({
           </FormControl>
 
           {entryMode === 'new' && (
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               {t('relationships.createNewContactHelp')}
             </Typography>
           )}
@@ -331,14 +333,17 @@ export default function AddRelationshipDialog({
                   label={t('relationships.selectContact')}
                   placeholder={t('relationships.searchContacts')}
                   required
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <>
-                        {contactsLoading ? <CircularProgress color="inherit" size={20} /> : null}
-                        {params.InputProps.endAdornment}
-                      </>
-                    ),
+                  slotProps={{
+                    ...params.slotProps,
+                    input: {
+                      ...params.slotProps.input,
+                      endAdornment: (
+                        <>
+                          {contactsLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                          {params.slotProps.input.endAdornment}
+                        </>
+                      ),
+                    }
                   }}
                 />
               )}

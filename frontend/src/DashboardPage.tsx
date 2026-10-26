@@ -210,7 +210,9 @@ function DashboardPage() {
         <Box>
           <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
             <CakeIcon color="primary" fontSize="small" />
-            <Typography variant="subtitle1" fontWeight={500}>
+            <Typography variant="subtitle1" sx={{
+              fontWeight: 500
+            }}>
               {t('dashboard.upcomingBirthdays')}
             </Typography>
             <IconButton
@@ -234,7 +236,9 @@ function DashboardPage() {
           {birthdays.length === 0 ? (
             <Card>
               <CardContent sx={{ py: 2 }}>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   {t('dashboard.noBirthdays')}
                 </Typography>
               </CardContent>
@@ -245,55 +249,64 @@ function DashboardPage() {
                 const today = isBirthdayToday(birthday.birthday);
 
                 return (
-                <Card
-                  key={`${birthday.type}-${birthday.contact_id}-${index}`}
-                  component={Link}
-                  to={`/contacts/${birthday.contact_id}`}
-                  sx={{
-                    textDecoration: 'none',
-                    border: '1px solid',
-                    borderColor: today ? 'success.main' : 'divider',
-                    '&:hover': {
-                      boxShadow: 2,
-                      transform: 'translateY(-1px)',
-                      transition: 'all 0.2s'
-                    }
-                  }}
-                >
-                  <CardContent sx={{ py: 1.5 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Avatar
-                        src={birthday.type === 'contact' ? birthday.photo_thumbnail : undefined}
-                        sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}
-                      >
-                        {birthday.name.charAt(0)}
-                      </Avatar>
-                      <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="body2" fontWeight={500}>
-                          {birthday.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {formatBirthday(birthday.birthday)}
-                        </Typography>
-                      </Box>
-                      {birthday.type === 'relationship' && birthday.relationship_type && (
-                        <Box sx={{ textAlign: 'right' }}>
-                          <Chip
-                            label={birthday.relationship_type}
-                            size="small"
-                            variant="outlined"
-                            sx={{ height: 20, fontSize: '0.7rem' }}
-                          />
-                          {birthday.associated_contact_name && (
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              {t('relationships.ofContact')} {birthday.associated_contact_name}
-                            </Typography>
-                          )}
+                  <Card
+                    key={`${birthday.type}-${birthday.contact_id}-${index}`}
+                    component={Link}
+                    to={`/contacts/${birthday.contact_id}`}
+                    sx={{
+                      textDecoration: 'none',
+                      border: '1px solid',
+                      borderColor: today ? 'success.main' : 'divider',
+                      '&:hover': {
+                        boxShadow: 2,
+                        transform: 'translateY(-1px)',
+                        transition: 'all 0.2s'
+                      }
+                    }}
+                  >
+                    <CardContent sx={{ py: 1.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Avatar
+                          src={birthday.type === 'contact' ? birthday.photo_thumbnail : undefined}
+                          sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}
+                        >
+                          {birthday.name.charAt(0)}
+                        </Avatar>
+                        <Box sx={{ flexGrow: 1 }}>
+                          <Typography variant="body2" sx={{
+                            fontWeight: 500
+                          }}>
+                            {birthday.name}
+                          </Typography>
+                          <Typography variant="caption" sx={{
+                            color: "text.secondary"
+                          }}>
+                            {formatBirthday(birthday.birthday)}
+                          </Typography>
                         </Box>
-                      )}
-                    </Box>
-                  </CardContent>
-                </Card>
+                        {birthday.type === 'relationship' && birthday.relationship_type && (
+                          <Box sx={{ textAlign: 'right' }}>
+                            <Chip
+                              label={birthday.relationship_type}
+                              size="small"
+                              variant="outlined"
+                              sx={{ height: 20, fontSize: '0.7rem' }}
+                            />
+                            {birthday.associated_contact_name && (
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: "text.secondary",
+                                  display: "block"
+                                }}>
+                                {t('relationships.ofContact')} {birthday.associated_contact_name}
+                              </Typography>
+                            )}
+                          </Box>
+                        )}
+                      </Box>
+                    </CardContent>
+                  </Card>
                 );
               })}
             </Stack>
@@ -304,7 +317,9 @@ function DashboardPage() {
         <Box>
           <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
             <NotificationsIcon color="primary" fontSize="small" />
-            <Typography variant="subtitle1" fontWeight={500}>
+            <Typography variant="subtitle1" sx={{
+              fontWeight: 500
+            }}>
               {t('dashboard.upcomingReminders')}
             </Typography>
             <IconButton
@@ -328,7 +343,9 @@ function DashboardPage() {
           {upcomingReminders.length === 0 ? (
             <Card>
               <CardContent sx={{ py: 2 }}>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   {t('dashboard.noReminders')}
                 </Typography>
               </CardContent>
@@ -361,7 +378,9 @@ function DashboardPage() {
                             {reminder.message}
                           </Typography>
                           {contact && (
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography variant="caption" sx={{
+                              color: "text.secondary"
+                            }}>
                               {getContactName(contact)}
                             </Typography>
                           )}
@@ -445,7 +464,9 @@ function DashboardPage() {
         <Box>
           <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
             <ShuffleIcon color="primary" fontSize="small" />
-            <Typography variant="subtitle1" fontWeight={500}>
+            <Typography variant="subtitle1" sx={{
+              fontWeight: 500
+            }}>
               {t('dashboard.randomContacts')}
             </Typography>
             <IconButton
@@ -469,7 +490,9 @@ function DashboardPage() {
           {randomContacts.length === 0 ? (
             <Card>
               <CardContent sx={{ py: 2 }}>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   {t('dashboard.noContacts')}
                 </Typography>
               </CardContent>
@@ -499,7 +522,9 @@ function DashboardPage() {
                         {contact.firstname.charAt(0)}
                       </Avatar>
                       <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="body2" fontWeight={500}>
+                        <Typography variant="body2" sx={{
+                          fontWeight: 500
+                        }}>
                           {getContactName(contact)}
                         </Typography>
                         {contact.circles && contact.circles.length > 0 && (

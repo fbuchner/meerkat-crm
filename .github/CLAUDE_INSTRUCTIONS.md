@@ -36,8 +36,8 @@ with any of them outstanding — say explicitly which one is failing instead.
 
 1. **Backend touched** → `go vet ./...` and `go test ./...` pass.
 2. **Frontend touched** → `yarn tsc --noEmit` and `CI=true yarn test` pass.
-3. **Any new user-facing string** → present in *all five* locales:
-   `en.json`, `de.json`, `fr.json`, `es.json`, `it.json`. English-only is incomplete.
+3. **Any new user-facing string** → present in *all six* locales:
+   `en.json`, `de.json`, `fr.json`, `es.json`, `it.json`, `zh.json`. English-only is incomplete.
 4. **Any date shown to a user** → formatted through `DateFormatProvider`, which
    honors the user's date-format preference. Never `toLocaleDateString` or a
    hand-rolled format.
@@ -63,7 +63,7 @@ migration → `models/contact.go` → `models/dtos.go` → `middleware/validatio
 (if it needs a validator) → `contact_controller.go` (allowlist + create + update) →
 `services/monica_import_service.go` (if Monica maps it) →
 `frontend/src/contactFields.ts` → `ContactDetailPage.tsx` allowlist →
-`components/ContactInformation.tsx` → five locale files → tests both sides.
+`components/ContactInformation.tsx` → six locale files → tests both sides.
 
 **Migrations** are numbered sequentially (`000026_*.up.sql` / `.down.sql`) and
 embedded in the binary. Always write the matching `.down.sql`.

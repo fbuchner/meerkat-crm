@@ -397,6 +397,30 @@ func TestChangePassword_Succeeds(t *testing.T) {
 	assert.Nil(t, updated.PasswordResetRequestedAt)
 }
 
+func TestUpdateLanguage_Chinese(t *testing.T) {
+	db, router := setupRouter()
+
+	user := models.User{Username: "polyglot", Email: "polyglot@example.com", Password: "x"}
+	db.Create(&user)
+
+	router.PATCH("/users/language", func(c *gin.Context) {
+		c.Set("username", "polyglot")
+		UpdateLanguage(c)
+	})
+
+	body, _ := json.Marshal(map[string]string{"language": "zh"})
+	req, _ := http.NewRequest("PATCH", "/users/language", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var updated models.User
+	db.Where("username = ?", "polyglot").First(&updated)
+	assert.Equal(t, "zh", updated.Language)
+}
+
 // TestEnabledContactFieldsNullVsEmpty verifies the GET/PATCH endpoints preserve the
 // distinction between "never configured" (null -> client applies defaults) and
 // "configured empty" ([] -> no extended fields), and that the scoped column write

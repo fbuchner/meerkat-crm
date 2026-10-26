@@ -366,7 +366,7 @@ func ConfirmPasswordReset(context *gin.Context) {
 // ChangePassword lets authenticated users rotate their password.
 // UpdateLanguageInput represents the request body for updating user language
 type UpdateLanguageInput struct {
-	Language string `json:"language" validate:"required,oneof=en de it es fr"`
+	Language string `json:"language" validate:"required,oneof=en de it es fr zh"`
 }
 
 // UpdateDateFormatInput represents the request body for updating user date format

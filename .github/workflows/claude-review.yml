@@ -103,7 +103,7 @@ jobs:
               and `CONTACT_FIELDS` in frontend/src/ContactDetailPage.tsx. Missing the
               frontend one is silent data loss that unit tests do not catch.
             - Every new user-facing string must exist in all six locale files
-              (en, de, fr, es, it) under frontend/src/i18n/locales/.
+              (en, de, fr, es, it, zh) under frontend/src/i18n/locales/.
             - Every date shown to a user must go through DateFormatProvider, never
               `toLocaleDateString` or a hand-rolled format.
             - A new migration must ship a matching `.down.sql`.

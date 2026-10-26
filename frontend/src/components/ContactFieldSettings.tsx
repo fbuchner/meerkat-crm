@@ -12,7 +12,7 @@ import {
   Switch,
 } from '@mui/material';
 import ViewListIcon from '@mui/icons-material/ViewList';
-import { getEnabledContactFields, updateEnabledContactFields, updateContactFieldDisplay } from '../api/users';
+import { updateEnabledContactFields, updateContactFieldDisplay } from '../api/users';
 import { getCurrentUser } from '../api/admin';
 import {
   CONTACT_FIELDS,
@@ -33,7 +33,9 @@ export default function ContactFieldSettings() {
     const load = async () => {
       try {
         setLoading(true);
-        const [stored, user] = await Promise.all([getEnabledContactFields(), getCurrentUser()]);
+        // /users/me carries both preferences; null enabled fields means "never configured".
+        const user = await getCurrentUser();
+        const stored = user.enabled_contact_fields ?? null;
         const keys = stored == null ? DEFAULT_ENABLED_CONTACT_FIELDS : (stored as ContactFieldKey[]);
         setEnabled(new Set(keys));
         setHideEmpty(user.hide_empty_contact_fields ?? false);

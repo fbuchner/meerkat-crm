@@ -728,6 +728,7 @@ export default function ContactDetailPage() {
       }}>
         {/* General Information */}
         <ContactInformation
+          key={contact.ID}
           contact={contact}
           editingField={editingField}
           editValue={editValue}

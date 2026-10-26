@@ -624,25 +624,22 @@ func UpdateContactFieldDisplay(c *gin.Context) {
 
 	db := c.MustGet("db").(*gorm.DB)
 
-	var user models.User
-	if err := db.First(&user, userID).Error; err != nil {
-		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to lookup user for contact field display update")
-		apperrors.AbortWithError(c, apperrors.ErrDatabase("query user").WithError(err))
+	// Single-column write so we never rewrite the password hash / OIDC fields.
+	hideEmpty := *input.HideEmptyContactFields
+	result := db.Model(&models.User{}).Where("id = ?", userID).Update("hide_empty_contact_fields", hideEmpty)
+	if result.Error != nil {
+		log.Error().Err(result.Error).Uint("user_id", userID).Msg("Failed to update user contact field display")
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("update user").WithError(result.Error))
 		return
 	}
-
-	user.HideEmptyContactFields = input.HideEmptyContactFields
-	// Scope the write to just this column so we never rewrite the password hash / OIDC fields.
-	// Select is also what lets GORM persist the false zero value.
-	if err := db.Model(&user).Select("HideEmptyContactFields").Updates(&user).Error; err != nil {
-		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to update user contact field display")
-		apperrors.AbortWithError(c, apperrors.ErrDatabase("update user").WithError(err))
+	if result.RowsAffected == 0 {
+		apperrors.AbortWithError(c, apperrors.ErrNotFound("User"))
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":                   "Contact field display updated successfully",
-		"hide_empty_contact_fields": user.HideEmptyContactFields,
+		"hide_empty_contact_fields": hideEmpty,
 	})
 }
 

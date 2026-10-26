@@ -153,7 +153,8 @@ type EnabledContactFieldsInput struct {
 
 // represents the DTO for choosing whether empty contact fields are hidden on the contact detail page
 type ContactFieldDisplayInput struct {
-	HideEmptyContactFields bool `json:"hide_empty_contact_fields"`
+	// Pointer + required so a missing key is rejected instead of silently decoding to false
+	HideEmptyContactFields *bool `json:"hide_empty_contact_fields" validate:"required"`
 }
 
 // UserRegistrationInput represents the DTO for user registration

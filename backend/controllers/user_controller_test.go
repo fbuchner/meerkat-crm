@@ -442,35 +442,47 @@ func TestEnabledContactFieldsNullVsEmpty(t *testing.T) {
 }
 
 // TestContactFieldDisplayRoundTrip verifies the hide-empty preference defaults to
-// false, can be turned on, and can be turned back off (false is GORM's zero value,
-// so the scoped Select is what makes that write stick).
+// false, is exposed on /users/me, can be turned on and back off (false is GORM's
+// zero value), and that a body without the key is rejected.
 func TestContactFieldDisplayRoundTrip(t *testing.T) {
-	db, router := setupRouter()
-	var user models.User
-	db.First(&user)
+	_, router := setupRouter()
 
 	router.PATCH("/display",
 		middleware.ValidateJSONMiddleware(&models.ContactFieldDisplayInput{}),
 		UpdateContactFieldDisplay)
 
-	patch := func(jsonBody string) {
+	router.GET("/me", GetCurrentUser)
+
+	patch := func(jsonBody string) int {
 		req, _ := http.NewRequest("PATCH", "/display", bytes.NewBufferString(jsonBody))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
+		return w.Code
+	}
+	// Read back through /users/me, which is how the frontend gets the setting.
+	fromMe := func() bool {
+		req, _ := http.NewRequest("GET", "/me", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
 		assert.Equal(t, http.StatusOK, w.Code)
+		var body map[string]any
+		json.Unmarshal(w.Body.Bytes(), &body)
+		v, ok := body["hide_empty_contact_fields"].(bool)
+		assert.True(t, ok, "hide_empty_contact_fields missing from /users/me")
+		return v
 	}
-	stored := func() bool {
-		var u models.User
-		db.First(&u, user.ID)
-		return u.HideEmptyContactFields
-	}
 
-	assert.False(t, stored())
+	assert.False(t, fromMe())
 
-	patch(`{"hide_empty_contact_fields":true}`)
-	assert.True(t, stored())
+	assert.Equal(t, http.StatusOK, patch(`{"hide_empty_contact_fields":true}`))
+	assert.True(t, fromMe())
 
-	patch(`{"hide_empty_contact_fields":false}`)
-	assert.False(t, stored())
+	// A missing or misspelled key is rejected rather than silently turning it off.
+	assert.Equal(t, http.StatusBadRequest, patch(`{}`))
+	assert.Equal(t, http.StatusBadRequest, patch(`{"hide_empty":false}`))
+	assert.True(t, fromMe())
+
+	assert.Equal(t, http.StatusOK, patch(`{"hide_empty_contact_fields":false}`))
+	assert.False(t, fromMe())
 }

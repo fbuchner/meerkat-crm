@@ -102,7 +102,7 @@ jobs:
               `contactSelectableFields` in backend/controllers/contact_controller.go
               and `CONTACT_FIELDS` in frontend/src/ContactDetailPage.tsx. Missing the
               frontend one is silent data loss that unit tests do not catch.
-            - Every new user-facing string must exist in all five locale files
+            - Every new user-facing string must exist in all six locale files
               (en, de, fr, es, it) under frontend/src/i18n/locales/.
             - Every date shown to a user must go through DateFormatProvider, never
               `toLocaleDateString` or a hand-rolled format.

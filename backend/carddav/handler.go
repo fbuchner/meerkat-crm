@@ -1,8 +1,10 @@
 package carddav
 
 import (
+	"context"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/emersion/go-webdav"
 	"github.com/emersion/go-webdav/carddav"
@@ -34,6 +36,14 @@ func NewHandler(db *gorm.DB, photoDir string) *Handler {
 	}
 }
 
+// lazyCircleFilter caches the user's circle filter for one request. It loads on
+// first use, so discovery requests that never touch contacts skip the query.
+type lazyCircleFilter struct {
+	once   sync.Once
+	filter *circleFilter
+	err    error
+}
+
 // GinHandler returns a Gin handler function that wraps the CardDAV handler
 func (h *Handler) GinHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -43,6 +53,7 @@ func (h *Handler) GinHandler() gin.HandlerFunc {
 
 		// Set in request context for the backend
 		ctx := ContextWithUser(c.Request.Context(), userID.(uint), username.(string), h.db, h.photoDir)
+		ctx = context.WithValue(ctx, circleFilterKey, &lazyCircleFilter{})
 		c.Request = c.Request.WithContext(ctx)
 
 		// Handle principals endpoint specially for proper discovery

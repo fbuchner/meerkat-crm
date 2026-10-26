@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	apperrors "meerkat/errors"
 	"meerkat/config"
+	apperrors "meerkat/errors"
 	"meerkat/logger"
 	"meerkat/middleware"
 	"meerkat/models"

@@ -65,7 +65,6 @@ interface ContactInformationProps {
 const iconSx = { mr: 1, color: 'text.secondary', fontSize: '1.2rem' };
 const cloneValues = <T extends object>(v: T[]): T[] => v.map((x) => ({ ...x }));
 
-
 export default function ContactInformation({
   contact,
   editingField,

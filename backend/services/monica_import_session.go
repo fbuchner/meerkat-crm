@@ -948,7 +948,7 @@ func (m *MonicaImportManager) importRelationships(tx *gorm.DB, userID uint, snap
 			}
 			label := relationship.Name + " (" + relationship.Type + ")"
 			if !imported {
-				addMonicaIssue(result, models.MonicaIssueSkipped, "relationship", ownerName, label, models.MonicaReasonContactNotImported, "")
+				addNotImportedIssue(result, monicaID, "relationship", ownerName, label)
 				continue
 			}
 			// Only collapse when the other contact is imported too: without
@@ -1074,7 +1074,8 @@ func (m *MonicaImportManager) importActivities(tx *gorm.DB, userID uint, lang st
 			}
 		}
 		if len(contactIDs) == 0 {
-			addMonicaIssue(result, models.MonicaIssueSkipped, "activity", attendees, activity.Title, models.MonicaReasonContactNotImported, "")
+			// Several attendees, so no single Monica ID: rolled up by name.
+			addNotImportedIssue(result, 0, "activity", attendees, activity.Title)
 			continue
 		}
 
@@ -1156,7 +1157,7 @@ func (m *MonicaImportManager) importNoteLike(tx *gorm.DB, userID uint, entity st
 	}
 	contactID, imported := idMap[monicaContactID]
 	if !imported {
-		addMonicaIssue(result, models.MonicaIssueSkipped, entity, contactName, label, models.MonicaReasonContactNotImported, "")
+		addNotImportedIssue(result, monicaContactID, entity, contactName, label)
 		return
 	}
 	m.createImportedNote(tx, userID, entity, contactName, note, contactID, seen, result)
@@ -1235,7 +1236,7 @@ func (m *MonicaImportManager) importReminders(tx *gorm.DB, userID uint, snapshot
 			reminder.Message = monicaMessageAbout(reminder.Message, people[monicaContactID])
 		}
 		if !imported {
-			addMonicaIssue(result, models.MonicaIssueSkipped, "reminder", personName, label, models.MonicaReasonContactNotImported, "")
+			addNotImportedIssue(result, monicaContactID, "reminder", personName, label)
 			continue
 		}
 		if !seen.addIfNew(reminderKey(contactID, reminder.Message, reminder.RemindAt)) {
@@ -1335,11 +1336,22 @@ func addMonicaFailure(result *models.MonicaImportResult, status, entity, contact
 	}
 }
 
+// addNotImportedIssue records a record skipped because its contact was not
+// imported. monicaID identifies that contact for the roll-up (0 when there
+// is no single one), so two contacts sharing a name stay apart.
+func addNotImportedIssue(result *models.MonicaImportResult, monicaID int, entity, contactName, label string) {
+	addMonicaIssue(result, models.MonicaIssueSkipped, entity, contactName, label, models.MonicaReasonContactNotImported, "")
+	result.Issues[len(result.Issues)-1].MonicaContactID = monicaID
+}
+
 // rollUpMonicaIssues folds the records of a contact that was not imported
 // into one row per contact and record type: the contact's own row already
 // says why, and listing each of its notes one by one buries the rest.
 func rollUpMonicaIssues(issues []models.MonicaImportIssue) []models.MonicaImportIssue {
-	type groupKey struct{ entity, contact string }
+	type groupKey struct {
+		entity, contact string
+		monicaID        int
+	}
 	index := map[groupKey]int{}
 	out := make([]models.MonicaImportIssue, 0, len(issues))
 	for _, issue := range issues {
@@ -1347,7 +1359,7 @@ func rollUpMonicaIssues(issues []models.MonicaImportIssue) []models.MonicaImport
 			out = append(out, issue)
 			continue
 		}
-		key := groupKey{issue.Entity, issue.Contact}
+		key := groupKey{issue.Entity, issue.Contact, issue.MonicaContactID}
 		if i, seen := index[key]; seen {
 			out[i].Count++
 			out[i].Label = ""

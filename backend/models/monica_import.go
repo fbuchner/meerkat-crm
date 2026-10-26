@@ -180,4 +180,7 @@ type MonicaImportIssue struct {
 	Count int `json:"count,omitempty"`
 	// Cause is the raw error behind a failure, for the server log only.
 	Cause string `json:"-"`
+	// MonicaContactID is the Monica contact a record belongs to, used to
+	// roll up records of a contact that was not imported; 0 when unknown.
+	MonicaContactID int `json:"-"`
 }

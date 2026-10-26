@@ -585,6 +585,20 @@ func TestRollUpMonicaIssues(t *testing.T) {
 	}, got)
 }
 
+// Two Monica contacts can share a name; their rows must not merge.
+func TestRollUpMonicaIssuesKeepsSameNamedContactsApart(t *testing.T) {
+	result := &models.MonicaImportResult{}
+	addNotImportedIssue(result, 1, "note", "John Smith", "a")
+	addNotImportedIssue(result, 2, "note", "John Smith", "b")
+	addNotImportedIssue(result, 1, "note", "John Smith", "c")
+
+	got := rollUpMonicaIssues(result.Issues)
+	require.Len(t, got, 2)
+	assert.Equal(t, 2, got[0].Count)
+	assert.Equal(t, 1, got[1].Count)
+	assert.Equal(t, "b", got[1].Label)
+}
+
 // Every record left out shows up in the report with the reason why.
 func TestImportNotesReportsSkippedRecords(t *testing.T) {
 	db := newMonicaImportDB(t)
@@ -608,7 +622,7 @@ func TestImportNotesReportsSkippedRecords(t *testing.T) {
 	assert.Equal(t, 1, result.NotesCreated)
 	assert.Equal(t, []models.MonicaImportIssue{
 		{Status: models.MonicaIssueSkipped, Entity: "note", Contact: "Alice A", Label: "kept", Reason: models.MonicaReasonAlreadyExists},
-		{Status: models.MonicaIssueSkipped, Entity: "note", Contact: "Bob B", Label: "orphan", Reason: models.MonicaReasonContactNotImported},
+		{Status: models.MonicaIssueSkipped, Entity: "note", Contact: "Bob B", Label: "orphan", Reason: models.MonicaReasonContactNotImported, MonicaContactID: 99},
 		{Status: models.MonicaIssueSkipped, Entity: "note", Contact: "Alice A", Label: "", Reason: models.MonicaReasonIncomplete},
 	}, result.Issues)
 }

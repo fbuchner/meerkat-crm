@@ -51,7 +51,6 @@ When a reminder is due, you can complete or skip it. The difference is that sele
 Relationships let you map connections between contacts. You can select a suggested relationship or enter your own title. 
 Relationships can either link to an existing contact or you can enter details manually without creating a dedicated contact. Relationships are shown both on the outgoing contact ("Sister: Eva") as well as on the incoming contact detail page ("Sister of Jon").
 
-
 ## Employment History
 
 Each contact has an **Employment History** tab on its detail page listing past and current jobs. An entry holds an organization (required), and optionally a department, job title, role, start date, end date and notes. Dates can be partial: `YYYY`, `YYYY-MM` or `YYYY-MM-DD`. The end date must not be before the start date.

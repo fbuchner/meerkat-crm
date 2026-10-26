@@ -239,6 +239,44 @@
       "region": "Regione",
       "postal": "CAP",
       "country": "Paese"
+    },
+    "duplicates": {
+      "button": "Trova duplicati",
+      "title": "Possibili duplicati",
+      "description": "Contatti che condividono nome, indirizzo email o numero di telefono. Uniscili oppure segnalali come persone diverse.",
+      "none": "Nessun contatto duplicato trovato.",
+      "dismiss": "Non è un duplicato",
+      "reason": {
+        "name": "Stesso nome",
+        "email": "Stessa email",
+        "phone": "Stesso telefono"
+      }
+    },
+    "merge": {
+      "button": "Unisci",
+      "title": "Unisci contatti",
+      "withAnother": "Unisci con un altro contatto",
+      "pickDescription": "Scegli il contatto da unire a questo.",
+      "pickLabel": "Contatto da unire",
+      "keep": "Mantieni",
+      "remove": "Unisci ed elimina",
+      "swap": "Scambia il contatto da mantenere",
+      "conflictsTitle": "I due contatti hanno valori diversi qui. Scegli quale mantenere:",
+      "noConflicts": "Nessun campo in conflitto: tutti i dati possono essere combinati.",
+      "combinedInfo": "Indirizzi email, numeri di telefono, indirizzi, siti web, cerchie e campi personalizzati di entrambi i contatti vengono combinati.",
+      "movedInfo": "Sposta anche {{items}}.",
+      "notesCount_one": "{{count}} nota",
+      "notesCount_other": "{{count}} note",
+      "activitiesCount_one": "{{count}} attività",
+      "activitiesCount_other": "{{count}} attività",
+      "remindersCount_one": "{{count}} promemoria",
+      "remindersCount_other": "{{count}} promemoria",
+      "relationshipsCount_one": "{{count}} relazione",
+      "relationshipsCount_other": "{{count}} relazioni",
+      "deleteWarning": "{{name}} verrà eliminato dopo l’unione. L’operazione non può essere annullata.",
+      "confirm": "Unisci contatti",
+      "success": "Contatti uniti",
+      "photo": "Foto del profilo"
     }
   },
   "timeline": {

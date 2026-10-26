@@ -239,6 +239,44 @@
       "region": "State / Region",
       "postal": "Postal Code",
       "country": "Country"
+    },
+    "duplicates": {
+      "button": "Find duplicates",
+      "title": "Possible duplicates",
+      "description": "Contacts that share a name, an email address or a phone number. Merge them, or mark them as different people.",
+      "none": "No duplicate contacts found.",
+      "dismiss": "Not a duplicate",
+      "reason": {
+        "name": "Same name",
+        "email": "Same email",
+        "phone": "Same phone"
+      }
+    },
+    "merge": {
+      "button": "Merge",
+      "title": "Merge contacts",
+      "withAnother": "Merge with another contact",
+      "pickDescription": "Choose the contact to merge into this one.",
+      "pickLabel": "Contact to merge",
+      "keep": "Keep",
+      "remove": "Merge and delete",
+      "swap": "Swap which contact is kept",
+      "conflictsTitle": "Both contacts have different values here. Choose which to keep:",
+      "noConflicts": "No conflicting fields: all details can be combined.",
+      "combinedInfo": "Email addresses, phone numbers, addresses, websites, circles and custom fields from both contacts are combined.",
+      "movedInfo": "Also moves {{items}}.",
+      "notesCount_one": "{{count}} note",
+      "notesCount_other": "{{count}} notes",
+      "activitiesCount_one": "{{count}} activity",
+      "activitiesCount_other": "{{count}} activities",
+      "remindersCount_one": "{{count}} reminder",
+      "remindersCount_other": "{{count}} reminders",
+      "relationshipsCount_one": "{{count}} relationship",
+      "relationshipsCount_other": "{{count}} relationships",
+      "deleteWarning": "{{name}} will be deleted after the merge. This cannot be undone.",
+      "confirm": "Merge contacts",
+      "success": "Contacts merged",
+      "photo": "Profile photo"
     }
   },
   "timeline": {

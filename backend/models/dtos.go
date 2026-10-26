@@ -188,6 +188,20 @@ type RelationshipInput struct {
 }
 
 // ContactResponse represents the DTO returned from GET /contacts with photo thumbnail
+// ContactMergeInput is the DTO for merging a source contact into the contact in
+// the URL. Resolutions picks the winner ("target" or "source") per conflicting
+// field, keyed like MergeConflict.Field; an unresolved conflict keeps the target's value.
+type ContactMergeInput struct {
+	SourceID    uint              `json:"source_id" validate:"required,gt=0"`
+	Resolutions map[string]string `json:"resolutions" validate:"omitempty,dive,oneof=target source"`
+}
+
+// DuplicateDismissInput is the DTO for marking two contacts as not duplicates.
+type DuplicateDismissInput struct {
+	ContactAID uint `json:"contact_a_id" validate:"required,gt=0"`
+	ContactBID uint `json:"contact_b_id" validate:"required,gt=0,nefield=ContactAID"`
+}
+
 type ContactResponse struct {
 	Contact
 	PhotoThumbnail string `json:"photo_thumbnail"`

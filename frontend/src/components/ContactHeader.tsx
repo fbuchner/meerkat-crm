@@ -9,6 +9,7 @@ import AutoModeIcon from '@mui/icons-material/AutoMode';
 import ArchiveIcon from '@mui/icons-material/Archive';
 import UnarchiveIcon from '@mui/icons-material/Unarchive';
 import ContactMailIcon from '@mui/icons-material/ContactMail';
+import CallMergeIcon from '@mui/icons-material/CallMerge';
 import { useTranslation } from 'react-i18next';
 import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
 
@@ -56,6 +57,7 @@ interface ContactHeaderProps {
   onArchiveContact?: () => void;
   onUnarchiveContact?: () => void;
   onExportVcard?: () => void;
+  onMergeContact?: () => void;
 }
 
 export default function ContactHeader({
@@ -80,7 +82,8 @@ export default function ContactHeader({
   onStayInTouch,
   onArchiveContact,
   onUnarchiveContact,
-  onExportVcard
+  onExportVcard,
+  onMergeContact
 }: ContactHeaderProps) {
   const { t } = useTranslation();
   const enabled = enabledFields ?? resolveEnabledFields(null);
@@ -269,6 +272,13 @@ export default function ContactHeader({
                       <Tooltip title={t('contactDetail.exportVcard')}>
                         <IconButton size="small" onClick={() => onExportVcard()}>
                           <ContactMailIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    {onMergeContact && (
+                      <Tooltip title={t('contacts.merge.withAnother')}>
+                        <IconButton size="small" onClick={() => onMergeContact()} aria-label={t('contacts.merge.withAnother')}>
+                          <CallMergeIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
                     )}

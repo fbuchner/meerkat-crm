@@ -11,7 +11,7 @@ type User struct {
 	Username                 string     `gorm:"unique" validate:"required,min=1,max=50,no_at_sign"`
 	Password                 string     `validate:"required,min=8,strong_password"`
 	Email                    string     `gorm:"unique" validate:"required,email"`
-	Language                 string     `gorm:"default:'en'" json:"language" validate:"omitempty,oneof=en de it es fr"`
+	Language                 string     `gorm:"default:'en'" json:"language" validate:"omitempty,oneof=en de it es fr zh"`
 	DateFormat               string     `gorm:"default:'eu'" json:"date_format" validate:"omitempty,oneof=eu us iso"`
 	IsAdmin                  bool       `gorm:"default:false" json:"is_admin"`
 	PasswordResetTokenHash   *string    `gorm:"column:password_reset_token_hash"`
@@ -19,6 +19,7 @@ type User struct {
 	PasswordResetRequestedAt *time.Time `gorm:"column:password_reset_requested_at"`
 	CustomFieldNames         []string   `gorm:"type:text;serializer:json" json:"custom_field_names"`
 	EnabledContactFields     []string   `gorm:"type:text;serializer:json" json:"enabled_contact_fields"`
+	HideEmptyContactFields   bool       `gorm:"default:false" json:"hide_empty_contact_fields"`
 	OIDCSubject              *string    `gorm:"column:oidc_subject"`
 	OIDCProvider             *string    `gorm:"column:oidc_provider"`
 }

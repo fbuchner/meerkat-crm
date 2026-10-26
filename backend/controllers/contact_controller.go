@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"database/sql"
 	"errors"
 	apperrors "meerkat/errors"
 	"meerkat/logger"
@@ -79,17 +80,17 @@ func CreateContact(c *gin.Context) {
 
 // filters a contacts query by a free-text term
 func applyContactSearch(query *gorm.DB, userID uint, searchTerm string) *gorm.DB {
-	like := "%" + searchTerm + "%"
+	const jsonValue = "json_extract(json_each.value, '$.value')"
 	return query.Where(
-		"firstname LIKE ? OR lastname LIKE ? OR nickname LIKE ? "+
-			"OR (firstname || ' ' || lastname) LIKE ? OR (nickname || ' ' || lastname) LIKE ? "+
-			"OR email LIKE ? OR phone LIKE ? "+
-			"OR (json_valid(emails) AND EXISTS (SELECT 1 FROM json_each(contacts.emails) WHERE json_extract(json_each.value, '$.value') LIKE ?)) "+
-			"OR (json_valid(phones) AND EXISTS (SELECT 1 FROM json_each(contacts.phones) WHERE json_extract(json_each.value, '$.value') LIKE ?)) "+
+		likeAny("firstname", "lastname", "nickname",
+			"(firstname || ' ' || lastname)", "(nickname || ' ' || lastname)",
+			"email", "phone")+
+			" OR (json_valid(emails) AND EXISTS (SELECT 1 FROM json_each(contacts.emails) WHERE "+likeAny(jsonValue)+"))"+
+			" OR (json_valid(phones) AND EXISTS (SELECT 1 FROM json_each(contacts.phones) WHERE "+likeAny(jsonValue)+"))"+
 			// People without a contact of their own (e.g. a child stored only as
 			// a relationship) are found through the contact they belong to.
-			"OR EXISTS (SELECT 1 FROM relationships WHERE relationships.contact_id = contacts.id AND relationships.user_id = ? AND relationships.deleted_at IS NULL AND relationships.related_contact_id IS NULL AND relationships.name LIKE ?)",
-		like, like, like, like, like, like, like, like, like, userID, like,
+			" OR EXISTS (SELECT 1 FROM relationships WHERE relationships.contact_id = contacts.id AND relationships.user_id = @user_id AND relationships.deleted_at IS NULL AND relationships.related_contact_id IS NULL AND "+likeAny("relationships.name")+")",
+		searchArg(searchTerm), sql.Named("user_id", userID),
 	)
 }
 

@@ -366,7 +366,7 @@ func ConfirmPasswordReset(context *gin.Context) {
 // ChangePassword lets authenticated users rotate their password.
 // UpdateLanguageInput represents the request body for updating user language
 type UpdateLanguageInput struct {
-	Language string `json:"language" validate:"required,oneof=en de it es fr"`
+	Language string `json:"language" validate:"required,oneof=en de it es fr zh"`
 }
 
 // UpdateDateFormatInput represents the request body for updating user date format
@@ -604,6 +604,42 @@ func GetEnabledContactFields(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"enabled_contact_fields": user.EnabledContactFields,
+	})
+}
+
+// UpdateContactFieldDisplay sets whether empty fields are hidden on the contact detail page
+func UpdateContactFieldDisplay(c *gin.Context) {
+	log := logger.FromContext(c)
+
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	input, err := middleware.GetValidated[models.ContactFieldDisplayInput](c)
+	if err != nil {
+		apperrors.AbortWithError(c, err)
+		return
+	}
+
+	db := c.MustGet("db").(*gorm.DB)
+
+	// Single-column write so we never rewrite the password hash / OIDC fields.
+	hideEmpty := *input.HideEmptyContactFields
+	result := db.Model(&models.User{}).Where("id = ?", userID).Update("hide_empty_contact_fields", hideEmpty)
+	if result.Error != nil {
+		log.Error().Err(result.Error).Uint("user_id", userID).Msg("Failed to update user contact field display")
+		apperrors.AbortWithError(c, apperrors.ErrDatabase("update user").WithError(result.Error))
+		return
+	}
+	if result.RowsAffected == 0 {
+		apperrors.AbortWithError(c, apperrors.ErrNotFound("User"))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":                   "Contact field display updated successfully",
+		"hide_empty_contact_fields": hideEmpty,
 	})
 }
 

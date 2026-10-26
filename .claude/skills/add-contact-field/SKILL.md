@@ -1,6 +1,6 @@
 ---
 name: add-contact-field
-description: Add, rename or remove a stored property of a contact end to end — migration, GORM model, input DTO, validator, controller allowlist and assignments, Monica import mapping, frontend field registry, detail-page allowlist, form rendering, all five locale files, and tests on both sides. Use for any request that changes what a contact stores, such as "add a pronouns field", "expand the gender options", "add a second anniversary date", or "contacts need a preferred-language field".
+description: Add, rename or remove a stored property of a contact end to end — migration, GORM model, input DTO, validator, controller allowlist and assignments, Monica import mapping, frontend field registry, detail-page allowlist, form rendering, all six locale files, and tests on both sides. Use for any request that changes what a contact stores, such as "add a pronouns field", "expand the gender options", "add a second anniversary date", or "contacts need a preferred-language field".
 ---
 
 # Adding a contact field
@@ -68,7 +68,7 @@ git show 000024_add_contact_deceased    # or: grep -rn "deceased" backend fronte
     `DateFormatProvider`, never `toLocaleDateString` or a hand-rolled format. Types live in
     `frontend/src/types/`.
 
-11. **All five locales** — `en.json`, `de.json`, `fr.json`, `es.json`, `it.json` under
+11. **All six locales** — `en.json`, `de.json`, `fr.json`, `es.json`, `it.json`, `zh.json` under
     `frontend/src/i18n/locales/`. English alone is an incomplete change; the `PostToolUse`
     hook reports any locale whose keys drift from `en.json`.
 

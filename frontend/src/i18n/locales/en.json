@@ -337,7 +337,10 @@
     "archivedBadge": "Archived",
     "archiveConfirmation": "Are you sure you want to archive this contact? All reminders will be deleted. You can unarchive later, but reminders won't be restored.",
     "exportVcard": "Export vCard",
-    "exportVcardError": "Failed to export contact as vCard. Please try again."
+    "exportVcardError": "Failed to export contact as vCard. Please try again.",
+    "showAllFields": "Show all fields",
+    "hideEmptyFields": "Hide empty fields",
+    "noFilledFields": "No details filled in yet."
   },
   "noteDialog": {
     "title": "Add Note",
@@ -779,6 +782,8 @@
       "loading": "Loading…",
       "loadError": "Unable to load contact field settings.",
       "saveError": "Unable to save contact field settings.",
+      "hideEmpty": "Only show filled-in fields",
+      "hideEmptyDescription": "On a contact, empty fields are hidden until you click \"Show all fields\".",
       "groups": {
         "communication": "Communication",
         "name": "Name",

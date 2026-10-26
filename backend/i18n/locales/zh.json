@@ -1,0 +1,40 @@
+{
+  "email": {
+    "footer": "Meerkat CRM - 个人联系人管理",
+    "reminder": {
+      "subject": "您的每日提醒",
+      "remindersTitle": "今日提醒",
+      "birthdaysTitle": "即将到来的生日",
+      "today": "今天！",
+      "tomorrow": "明天",
+      "inDays": "{{days}} 天后",
+      "unknownContact": "未知",
+      "contactLabel": "联系人"
+    },
+    "passwordReset": {
+      "subject": "重置您的 Meerkat CRM 密码",
+      "intro": "我们收到了重置您 Meerkat CRM 密码的请求。",
+      "instruction": "请在 60 分钟内使用此令牌完成重置：",
+      "ignore": "如果您没有请求重置密码，请忽略此邮件。"
+    }
+  },
+  "calendar": {
+    "untitledEvent": "无标题日历事件"
+  },
+  "monicaImport": {
+    "untitledActivity": "活动",
+    "gift": {
+      "idea": "构想",
+      "offered": "已送出",
+      "received": "已收到"
+    },
+    "note": {
+      "call": "{{date}} 的通话（从 Monica 导入）：\n{{content}}",
+      "task": "未完成任务（从 Monica 导入）：{{title}}",
+      "taskCompleted": "已完成任务（从 Monica 导入）：{{title}}",
+      "gift": "礼物（{{status}}，从 Monica 导入）：{{name}}",
+      "debtYouOwe": "债务（从 Monica 导入）：我欠 {{amount}}",
+      "debtTheyOwe": "债务（从 Monica 导入）：欠我 {{amount}}"
+    }
+  }
+}

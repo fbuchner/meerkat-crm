@@ -67,3 +67,14 @@ export async function updateEnabledContactFields(fields: string[]): Promise<stri
   const data = await handleResponse(response, 'Unable to update enabled contact fields.');
   return data?.enabled_contact_fields || fields;
 }
+
+export async function updateContactFieldDisplay(hideEmpty: boolean): Promise<boolean> {
+  const response = await apiFetch(`${API_BASE_URL}/users/contact-field-display`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ hide_empty_contact_fields: hideEmpty }),
+  });
+
+  const data = await handleResponse(response, 'Unable to update contact field display.');
+  return data?.hide_empty_contact_fields ?? hideEmpty;
+}

@@ -299,7 +299,10 @@
     "archivedBadge": "Archiviert",
     "archiveConfirmation": "Möchten Sie diesen Kontakt wirklich archivieren? Alle Erinnerungen werden gelöscht. Sie können den Kontakt später wiederherstellen, aber die Erinnerungen werden nicht wiederhergestellt.",
     "exportVcard": "vCard exportieren",
-    "exportVcardError": "Kontakt konnte nicht als vCard exportiert werden. Bitte versuchen Sie es erneut."
+    "exportVcardError": "Kontakt konnte nicht als vCard exportiert werden. Bitte versuchen Sie es erneut.",
+    "showAllFields": "Alle Felder anzeigen",
+    "hideEmptyFields": "Leere Felder ausblenden",
+    "noFilledFields": "Noch keine Angaben ausgefüllt."
   },
   "noteDialog": {
     "title": "Notiz hinzufügen",
@@ -741,6 +744,8 @@
       "loading": "Wird geladen…",
       "loadError": "Kontaktfeld-Einstellungen konnten nicht geladen werden.",
       "saveError": "Kontaktfeld-Einstellungen konnten nicht gespeichert werden.",
+      "hideEmpty": "Nur ausgefüllte Felder anzeigen",
+      "hideEmptyDescription": "Bei einem Kontakt werden leere Felder ausgeblendet, bis Sie auf „Alle Felder anzeigen“ klicken.",
       "groups": {
         "communication": "Kommunikation",
         "name": "Name",

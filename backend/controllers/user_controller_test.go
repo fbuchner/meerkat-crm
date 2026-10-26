@@ -440,3 +440,37 @@ func TestEnabledContactFieldsNullVsEmpty(t *testing.T) {
 	patch(`{"fields":[]}`)
 	assert.Equal(t, "[]", rawField())
 }
+
+// TestContactFieldDisplayRoundTrip verifies the hide-empty preference defaults to
+// false, can be turned on, and can be turned back off (false is GORM's zero value,
+// so the scoped Select is what makes that write stick).
+func TestContactFieldDisplayRoundTrip(t *testing.T) {
+	db, router := setupRouter()
+	var user models.User
+	db.First(&user)
+
+	router.PATCH("/display",
+		middleware.ValidateJSONMiddleware(&models.ContactFieldDisplayInput{}),
+		UpdateContactFieldDisplay)
+
+	patch := func(jsonBody string) {
+		req, _ := http.NewRequest("PATCH", "/display", bytes.NewBufferString(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+	}
+	stored := func() bool {
+		var u models.User
+		db.First(&u, user.ID)
+		return u.HideEmptyContactFields
+	}
+
+	assert.False(t, stored())
+
+	patch(`{"hide_empty_contact_fields":true}`)
+	assert.True(t, stored())
+
+	patch(`{"hide_empty_contact_fields":false}`)
+	assert.False(t, stored())
+}

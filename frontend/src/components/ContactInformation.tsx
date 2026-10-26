@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, Divider, Stack, Box, Tabs, Tab, Button, Typography, FormControlLabel, Switch } from '@mui/material';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
@@ -15,6 +15,8 @@ import ClearAllIcon from '@mui/icons-material/ClearAll';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import PeopleIcon from '@mui/icons-material/People';
 import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { Checkbox } from '@mui/material';
 import HeartBrokenIcon from '@mui/icons-material/HeartBroken';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -45,6 +47,8 @@ interface ContactInformationProps {
   onEditValueChange: (value: string) => void;
   onUpdateContact: (partial: Partial<Contact>) => Promise<void>;
   enabledFields?: Set<ContactFieldKey>;
+  // When true, empty fields stay hidden until the user expands them
+  hideEmptyFields?: boolean;
   // Relationship props
   relationships?: Relationship[];
   incomingRelationships?: IncomingRelationship[];
@@ -61,6 +65,13 @@ interface ContactInformationProps {
 const iconSx = { mr: 1, color: 'text.secondary', fontSize: '1.2rem' };
 const cloneValues = <T extends object>(v: T[]): T[] => v.map((x) => ({ ...x }));
 
+// The registry fields this card renders; name parts and gender live in ContactHeader.
+const INFO_FIELD_KEYS: ContactFieldKey[] = [
+  'emails', 'phones', 'addresses', 'urls', 'impps', 'birthday', 'anniversary', 'is_deceased',
+  'organization', 'department', 'job_title', 'role', 'work_information', 'food_preference',
+  'how_we_met', 'contact_information',
+];
+
 export default function ContactInformation({
   contact,
   editingField,
@@ -72,6 +83,7 @@ export default function ContactInformation({
   onEditValueChange,
   onUpdateContact,
   enabledFields,
+  hideEmptyFields = false,
   relationships = [],
   incomingRelationships = [],
   onAddRelationship,
@@ -86,6 +98,40 @@ export default function ContactInformation({
   const [activeTab, setActiveTab] = useState(0);
   const enabled = enabledFields ?? resolveEnabledFields(null);
   const isOn = (key: ContactFieldKey) => enabled.has(key);
+
+  // Expanded state is per contact: navigating to another contact collapses again.
+  const [showAllFields, setShowAllFields] = useState(false);
+  useEffect(() => setShowAllFields(false), [contact.ID]);
+  const collapsed = hideEmptyFields && !showAllFields;
+
+  const isFilled = (key: ContactFieldKey): boolean => {
+    switch (key) {
+      case 'emails':
+      case 'phones':
+      case 'addresses':
+      case 'urls':
+      case 'impps':
+        return (contact[key]?.length ?? 0) > 0;
+      case 'is_deceased':
+        return !!contact.is_deceased;
+      default: {
+        const value = contact[key];
+        return typeof value === 'string' && value.trim() !== '';
+      }
+    }
+  };
+  const isCustomFilled = (name: string) => (contact.custom_fields?.[name] ?? '').trim() !== '';
+
+  // A field being edited stays visible even if it is (or becomes) empty.
+  const show = (key: ContactFieldKey) => isOn(key) && (!collapsed || isFilled(key) || editingField === key);
+  const showCustom = (name: string) =>
+    !collapsed || isCustomFilled(name) || editingField === `custom_field_${name}`;
+
+  const shownKeys = INFO_FIELD_KEYS.filter(isOn);
+  const hasEmptyFields =
+    shownKeys.some((key) => !isFilled(key)) || customFieldNames.some((name) => !isCustomFilled(name));
+  const nothingShown =
+    collapsed && !shownKeys.some(show) && !customFieldNames.some(showCustom);
 
   const hasBirthdayReminder = useMemo(
     () => !!(contact.birthday && findBirthdayReminder(reminders, contact.birthday)),
@@ -141,8 +187,25 @@ export default function ContactInformation({
       {/* General Information Tab */}
       {activeTab === 0 && (
         <CardContent sx={{ py: 2 }}>
+          {hideEmptyFields && (showAllFields || hasEmptyFields) && (
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
+              <Button
+                startIcon={showAllFields ? <VisibilityOffIcon /> : <EditIcon />}
+                onClick={() => setShowAllFields(!showAllFields)}
+                variant="outlined"
+                size="small"
+              >
+                {showAllFields ? t('contactDetail.hideEmptyFields') : t('contactDetail.showAllFields')}
+              </Button>
+            </Box>
+          )}
+          {nothingShown && (
+            <Typography variant="body2" color="text.secondary">
+              {t('contactDetail.noFilledFields')}
+            </Typography>
+          )}
           <Stack spacing={2}>
-            {isOn('emails') && (
+            {show('emails') && (
               <EditableArrayField<ContactValue[]>
                 icon={<EmailIcon sx={iconSx} />}
                 label={t('contactDetail.email')}
@@ -159,7 +222,7 @@ export default function ContactInformation({
               />
             )}
 
-            {isOn('phones') && (
+            {show('phones') && (
               <EditableArrayField<ContactValue[]>
                 icon={<PhoneIcon sx={iconSx} />}
                 label={t('contactDetail.phone')}
@@ -176,7 +239,7 @@ export default function ContactInformation({
               />
             )}
 
-            {isOn('addresses') && (
+            {show('addresses') && (
               <EditableArrayField<ContactAddress[]>
                 icon={<HomeIcon sx={iconSx} />}
                 label={t('contactDetail.address')}
@@ -195,7 +258,7 @@ export default function ContactInformation({
               />
             )}
 
-            {isOn('urls') && (
+            {show('urls') && (
               <EditableArrayField<ContactValue[]>
                 icon={<LanguageIcon sx={iconSx} />}
                 label={t('contacts.urls')}
@@ -209,7 +272,7 @@ export default function ContactInformation({
               />
             )}
 
-            {isOn('impps') && (
+            {show('impps') && (
               <EditableArrayField<ContactValue[]>
                 icon={<ChatIcon sx={iconSx} />}
                 label={t('contacts.impps')}
@@ -223,7 +286,7 @@ export default function ContactInformation({
               />
             )}
 
-            {isOn('birthday') && (
+            {show('birthday') && (
               <>
                 <EditableField
                   icon={<CakeIcon sx={iconSx} />}
@@ -256,7 +319,7 @@ export default function ContactInformation({
               </>
             )}
 
-            {isOn('anniversary') && (
+            {show('anniversary') && (
               <EditableField
                 icon={<CelebrationIcon sx={iconSx} />}
                 label={t('contacts.anniversary')}
@@ -274,7 +337,7 @@ export default function ContactInformation({
               />
             )}
 
-            {isOn('is_deceased') && (
+            {show('is_deceased') && (
               <EditableArrayField<{ isDeceased: boolean; deceasedDate: string }>
                 icon={<HeartBrokenIcon sx={iconSx} />}
                 label={t('contactDetail.deceased')}
@@ -342,7 +405,7 @@ export default function ContactInformation({
               />
             )}
 
-            {isOn('organization') && (
+            {show('organization') && (
               <EditableField
                 icon={<BusinessIcon sx={iconSx} />}
                 label={t('contacts.organization')}
@@ -358,7 +421,7 @@ export default function ContactInformation({
               />
             )}
 
-            {isOn('department') && (
+            {show('department') && (
               <EditableField
                 icon={<BusinessIcon sx={iconSx} />}
                 label={t('contacts.department')}
@@ -374,7 +437,7 @@ export default function ContactInformation({
               />
             )}
 
-            {isOn('job_title') && (
+            {show('job_title') && (
               <EditableField
                 icon={<BadgeIcon sx={iconSx} />}
                 label={t('contacts.jobTitle')}
@@ -390,7 +453,7 @@ export default function ContactInformation({
               />
             )}
 
-            {isOn('role') && (
+            {show('role') && (
               <EditableField
                 icon={<BadgeIcon sx={iconSx} />}
                 label={t('contacts.role')}
@@ -406,7 +469,7 @@ export default function ContactInformation({
               />
             )}
 
-            {isOn('work_information') && (
+            {show('work_information') && (
               <EditableField
                 icon={<WorkIcon sx={{ ...iconSx, mt: 0.5 }} />}
                 label={t('contactDetail.workInfo')}
@@ -423,7 +486,7 @@ export default function ContactInformation({
               />
             )}
 
-            {isOn('food_preference') && (
+            {show('food_preference') && (
               <EditableField
                 icon={<RestaurantIcon sx={{ ...iconSx, mt: 0.5 }} />}
                 label={t('contactDetail.foodPreferences')}
@@ -440,7 +503,7 @@ export default function ContactInformation({
               />
             )}
 
-            {isOn('how_we_met') && (
+            {show('how_we_met') && (
               <EditableField
                 icon={<PeopleIcon sx={{ ...iconSx, mt: 0.5 }} />}
                 label={t('contactDetail.howWeMet')}
@@ -457,7 +520,7 @@ export default function ContactInformation({
               />
             )}
 
-            {isOn('contact_information') && (
+            {show('contact_information') && (
               <EditableField
                 icon={<NotesIcon sx={{ ...iconSx, mt: 0.5 }} />}
                 label={t('contactDetail.additionalInfo')}
@@ -475,7 +538,7 @@ export default function ContactInformation({
             )}
 
             {/* Custom Fields */}
-            {customFieldNames.map((fieldName) => (
+            {customFieldNames.filter(showCustom).map((fieldName) => (
               <EditableField
                 key={`custom_field_${fieldName}`}
                 icon={<ClearAllIcon sx={{ ...iconSx, mt: 0.5 }} />}

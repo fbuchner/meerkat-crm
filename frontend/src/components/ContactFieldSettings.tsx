@@ -12,7 +12,8 @@ import {
   Switch,
 } from '@mui/material';
 import ViewListIcon from '@mui/icons-material/ViewList';
-import { getEnabledContactFields, updateEnabledContactFields } from '../api/users';
+import { getEnabledContactFields, updateEnabledContactFields, updateContactFieldDisplay } from '../api/users';
+import { getCurrentUser } from '../api/admin';
 import {
   CONTACT_FIELDS,
   CONTACT_FIELD_GROUPS,
@@ -23,6 +24,7 @@ import {
 export default function ContactFieldSettings() {
   const { t } = useTranslation();
   const [enabled, setEnabled] = useState<Set<ContactFieldKey>>(new Set(DEFAULT_ENABLED_CONTACT_FIELDS));
+  const [hideEmpty, setHideEmpty] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -31,9 +33,10 @@ export default function ContactFieldSettings() {
     const load = async () => {
       try {
         setLoading(true);
-        const stored = await getEnabledContactFields();
+        const [stored, user] = await Promise.all([getEnabledContactFields(), getCurrentUser()]);
         const keys = stored == null ? DEFAULT_ENABLED_CONTACT_FIELDS : (stored as ContactFieldKey[]);
         setEnabled(new Set(keys));
+        setHideEmpty(user.hide_empty_contact_fields ?? false);
       } catch (err) {
         setError(err instanceof Error ? err.message : t('settings.contactFields.loadError'));
       } finally {
@@ -56,6 +59,21 @@ export default function ContactFieldSettings() {
       setError('');
       await updateEnabledContactFields(Array.from(next));
     } catch (err) {
+      setError(err instanceof Error ? err.message : t('settings.contactFields.saveError'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleHideEmptyToggle = async () => {
+    const next = !hideEmpty;
+    setHideEmpty(next);
+    try {
+      setSaving(true);
+      setError('');
+      await updateContactFieldDisplay(next);
+    } catch (err) {
+      setHideEmpty(!next);
       setError(err instanceof Error ? err.message : t('settings.contactFields.saveError'));
     } finally {
       setSaving(false);
@@ -85,33 +103,51 @@ export default function ContactFieldSettings() {
               {t('settings.contactFields.loading')}
             </Typography>
           ) : (
-            CONTACT_FIELD_GROUPS.map((group) => {
-              const fields = CONTACT_FIELDS.filter((f) => f.group === group);
-              if (fields.length === 0) return null;
-              return (
-                <Box key={group}>
-                  <Typography variant="overline" color="text.secondary">
-                    {t(`settings.contactFields.groups.${group}`)}
-                  </Typography>
-                  <Stack>
-                    {fields.map((f) => (
-                      <FormControlLabel
-                        key={f.key}
-                        control={
-                          <Switch
-                            size="small"
-                            checked={enabled.has(f.key)}
-                            disabled={saving}
-                            onChange={() => handleToggle(f.key)}
-                          />
-                        }
-                        label={t(f.labelKey)}
-                      />
-                    ))}
-                  </Stack>
-                </Box>
-              );
-            })
+            <>
+              <Box>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      size="small"
+                      checked={hideEmpty}
+                      disabled={saving}
+                      onChange={handleHideEmptyToggle}
+                    />
+                  }
+                  label={t('settings.contactFields.hideEmpty')}
+                />
+                <Typography variant="body2" color="text.secondary">
+                  {t('settings.contactFields.hideEmptyDescription')}
+                </Typography>
+              </Box>
+              {CONTACT_FIELD_GROUPS.map((group) => {
+                const fields = CONTACT_FIELDS.filter((f) => f.group === group);
+                if (fields.length === 0) return null;
+                return (
+                  <Box key={group}>
+                    <Typography variant="overline" color="text.secondary">
+                      {t(`settings.contactFields.groups.${group}`)}
+                    </Typography>
+                    <Stack>
+                      {fields.map((f) => (
+                        <FormControlLabel
+                          key={f.key}
+                          control={
+                            <Switch
+                              size="small"
+                              checked={enabled.has(f.key)}
+                              disabled={saving}
+                              onChange={() => handleToggle(f.key)}
+                            />
+                          }
+                          label={t(f.labelKey)}
+                        />
+                      ))}
+                    </Stack>
+                  </Box>
+                );
+              })}
+            </>
           )}
         </Stack>
       </CardContent>

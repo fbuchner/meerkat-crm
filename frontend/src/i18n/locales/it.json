@@ -276,7 +276,10 @@
       "deleteWarning": "{{name}} verrà eliminato dopo l’unione. L’operazione non può essere annullata.",
       "confirm": "Unisci contatti",
       "success": "Contatti uniti",
-      "photo": "Foto del profilo"
+      "photo": "Foto del profilo",
+      "notDeceased": "Non deceduto",
+      "active": "Attivo",
+      "archivedRemovesReminders": "Archiviato (i suoi promemoria vengono eliminati)"
     }
   },
   "timeline": {

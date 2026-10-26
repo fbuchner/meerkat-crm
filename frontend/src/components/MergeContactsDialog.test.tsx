@@ -84,3 +84,20 @@ test('swapping keeps the other contact instead', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Merge contacts' }));
   await waitFor(() => expect(onMerged).toHaveBeenCalledWith(expect.objectContaining({ ID: 2 }), 1));
 });
+
+test('labels deceased and archived conflicts instead of showing true/false', async () => {
+  api.getMergePreview.mockResolvedValueOnce({
+    ...preview(1, 2),
+    conflicts: [
+      { field: 'is_deceased', target_value: 'false', source_value: 'true' },
+      { field: 'archived', target_value: 'true', source_value: 'false' },
+    ],
+  });
+  renderDialog();
+
+  expect(await screen.findByText('Not deceased')).toBeInTheDocument();
+  expect(screen.getAllByText('Deceased').length).toBeGreaterThan(0);
+  expect(screen.getByText('Archived (its reminders are deleted)')).toBeInTheDocument();
+  expect(screen.getByText('Active')).toBeInTheDocument();
+  expect(screen.queryByText('true')).not.toBeInTheDocument();
+});

@@ -276,7 +276,10 @@
       "deleteWarning": "{{name}} will be deleted after the merge. This cannot be undone.",
       "confirm": "Merge contacts",
       "success": "Contacts merged",
-      "photo": "Profile photo"
+      "photo": "Profile photo",
+      "notDeceased": "Not deceased",
+      "active": "Active",
+      "archivedRemovesReminders": "Archived (its reminders are deleted)"
     }
   },
   "timeline": {

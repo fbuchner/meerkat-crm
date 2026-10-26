@@ -1,14 +1,17 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
 	"maps"
+	"meerkat/carddav"
 	"meerkat/models"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/emersion/go-vcard"
 	"gorm.io/gorm"
 )
 
@@ -29,6 +32,8 @@ const (
 
 	MergeResolutionSource = "source"
 	mergeFieldPhoto       = "photo"
+	mergeFieldDeceased    = "is_deceased"
+	mergeFieldArchived    = "archived"
 	mergeCustomPrefix     = "custom_fields."
 )
 
@@ -66,7 +71,8 @@ var mergeScalarFields = []struct {
 // Pairs with more shared signals come first.
 func FindDuplicateContacts(db *gorm.DB, userID uint) ([]models.DuplicatePair, error) {
 	var contacts []models.Contact
-	if err := db.Select("id", "firstname", "lastname", "nickname", "email", "phone", "emails", "phones", "organization", "photo_thumbnail", "archived").
+	// Thumbnails are base64 data URLs; they are loaded below for paired contacts only.
+	if err := db.Select("id", "firstname", "lastname", "nickname", "email", "phone", "emails", "phones", "organization", "archived").
 		Where("user_id = ?", userID).Order("id").Find(&contacts).Error; err != nil {
 		return nil, err
 	}
@@ -134,6 +140,9 @@ func FindDuplicateContacts(db *gorm.DB, userID uint) ([]models.DuplicatePair, er
 			Reasons:  reasons,
 		})
 	}
+	if err := fillDuplicateThumbnails(db, userID, pairs); err != nil {
+		return nil, err
+	}
 	sort.Slice(pairs, func(i, j int) bool {
 		if len(pairs[i].Reasons) != len(pairs[j].Reasons) {
 			return len(pairs[i].Reasons) > len(pairs[j].Reasons)
@@ -144,6 +153,31 @@ func FindDuplicateContacts(db *gorm.DB, userID uint) ([]models.DuplicatePair, er
 		return pairs[i].Contacts[1].ID < pairs[j].Contacts[1].ID
 	})
 	return pairs, nil
+}
+
+func fillDuplicateThumbnails(db *gorm.DB, userID uint, pairs []models.DuplicatePair) error {
+	ids := map[uint]bool{}
+	for _, p := range pairs {
+		ids[p.Contacts[0].ID], ids[p.Contacts[1].ID] = true, true
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	var rows []models.Contact
+	if err := db.Select("id", "photo_thumbnail").Where("user_id = ? AND id IN ? AND photo_thumbnail <> ''", userID, slices.Collect(maps.Keys(ids))).
+		Find(&rows).Error; err != nil {
+		return err
+	}
+	thumbnails := make(map[uint]string, len(rows))
+	for _, r := range rows {
+		thumbnails[r.ID] = r.PhotoThumbnail
+	}
+	for i := range pairs {
+		for j := range pairs[i].Contacts {
+			pairs[i].Contacts[j].PhotoThumbnail = thumbnails[pairs[i].Contacts[j].ID]
+		}
+	}
+	return nil
 }
 
 // DismissDuplicatePair records that two contacts are not the same person.
@@ -204,8 +238,14 @@ func MergeConflicts(target, source *models.Contact) []models.MergeConflict {
 			conflicts = append(conflicts, models.MergeConflict{Field: f.key, TargetValue: tv, SourceValue: sv})
 		}
 	}
-	if hasPhoto(target) && hasPhoto(source) && target.Photo != source.Photo {
+	if hasPhoto(target) && hasPhoto(source) && (target.Photo != source.Photo || target.PhotoThumbnail != source.PhotoThumbnail) {
 		conflicts = append(conflicts, models.MergeConflict{Field: mergeFieldPhoto, TargetValue: target.Photo, SourceValue: source.Photo})
+	}
+	if target.IsDeceased != source.IsDeceased {
+		conflicts = append(conflicts, boolConflict(mergeFieldDeceased, target.IsDeceased, source.IsDeceased))
+	}
+	if target.Archived != source.Archived {
+		conflicts = append(conflicts, boolConflict(mergeFieldArchived, target.Archived, source.Archived))
 	}
 	for _, key := range slices.Sorted(maps.Keys(source.CustomFields)) {
 		tv, sv := strings.TrimSpace(target.CustomFields[key]), strings.TrimSpace(source.CustomFields[key])
@@ -214,6 +254,10 @@ func MergeConflicts(target, source *models.Contact) []models.MergeConflict {
 		}
 	}
 	return conflicts
+}
+
+func boolConflict(field string, target, source bool) models.MergeConflict {
+	return models.MergeConflict{Field: field, TargetValue: strconv.FormatBool(target), SourceValue: strconv.FormatBool(source)}
 }
 
 // MergeResult is the outcome of MergeContacts. DiscardedPhoto carries the
@@ -246,6 +290,13 @@ func MergeContacts(db *gorm.DB, userID, targetID, sourceID uint, resolutions map
 		}
 		if err := moveContactData(tx, userID, targetID, sourceID); err != nil {
 			return err
+		}
+		// An archived contact has no reminders (see ArchiveContact), including
+		// the ones just moved over from the source.
+		if target.Archived {
+			if err := tx.Where("contact_id = ? AND user_id = ?", targetID, userID).Delete(&models.Reminder{}).Error; err != nil {
+				return err
+			}
 		}
 		if err := tx.Where("user_id = ? AND (contact_a_id = ? OR contact_b_id = ?)", userID, sourceID, sourceID).
 			Delete(&models.ContactDuplicateDismissal{}).Error; err != nil {
@@ -314,9 +365,17 @@ func applyMergedFields(target, source *models.Contact, resolutions map[string]st
 	})
 	target.Circles = unionBy(target.Circles, source.Circles, func(c string) string { return c })
 
-	target.IsDeceased = target.IsDeceased || source.IsDeceased
-	// Archiving deletes reminders, so keep the result active if either side is.
-	target.Archived = target.Archived && source.Archived
+	if pickSource(mergeFieldDeceased) {
+		target.IsDeceased = source.IsDeceased
+	}
+	if !target.IsDeceased {
+		target.DeceasedDate = ""
+	}
+	if pickSource(mergeFieldArchived) {
+		target.Archived = source.Archived
+	}
+
+	target.VCardExtra = mergeVCardExtra(target.VCardExtra, source.VCardExtra)
 
 	var discarded models.Contact
 	switch {
@@ -335,6 +394,36 @@ func applyMergedFields(target, source *models.Contact, resolutions map[string]st
 		discarded.PhotoThumbnail = ""
 	}
 	return discarded
+}
+
+// mergeVCardExtra combines the unmapped vCard properties of both contacts, so
+// properties only the source carried are still written out on CardDAV. If
+// either side is not valid JSON the target's value is kept as is.
+func mergeVCardExtra(target, source string) string {
+	if source == "" {
+		return target
+	}
+	if target == "" {
+		return source
+	}
+	var t, s carddav.VCardExtra
+	if json.Unmarshal([]byte(target), &t) != nil || json.Unmarshal([]byte(source), &s) != nil {
+		return target
+	}
+	if t.Properties == nil {
+		t.Properties = map[string][]vcard.Field{}
+	}
+	for name, fields := range s.Properties {
+		t.Properties[name] = unionBy(t.Properties[name], fields, func(f vcard.Field) string {
+			b, _ := json.Marshal(f)
+			return string(b)
+		})
+	}
+	merged, err := json.Marshal(t)
+	if err != nil {
+		return target
+	}
+	return string(merged)
 }
 
 // moveContactData re-points everything attached to source at target.
@@ -362,23 +451,30 @@ func moveContactData(tx *gorm.DB, userID, targetID, sourceID uint) error {
 	return moveRelationships(tx, userID, targetID, sourceID)
 }
 
+// mergedRelationshipKey identifies a relationship once both of its ends are
+// expressed in merged terms. RelatedID is 0 for a person without a contact of
+// their own, who is then told apart by name.
+type mergedRelationshipKey struct {
+	contactID uint
+	relType   string
+	relatedID uint
+	name      string
+}
+
 // moveRelationships re-points the source's relationships at the target. A
 // relationship between the two contacts would become a self-relationship and
-// is dropped, as is one the target already has (same type, same person).
+// is dropped, as is a source relationship the target already has (same type,
+// same person); the copy that stays picks up any birthday or gender only the
+// dropped one had. Relationships not involving the source are never touched.
 func moveRelationships(tx *gorm.DB, userID, targetID, sourceID uint) error {
 	var rels []models.Relationship
 	if err := tx.Where("user_id = ? AND (contact_id IN ? OR related_contact_id IN ?)", userID,
-		[]uint{targetID, sourceID}, []uint{targetID, sourceID}).Find(&rels).Error; err != nil {
+		[]uint{targetID, sourceID}, []uint{targetID, sourceID}).Order("id").Find(&rels).Error; err != nil {
 		return err
 	}
 
-	// Identity of a relationship once both ends are expressed in merged terms.
-	key := func(r models.Relationship, contactID uint, relatedID *uint) string {
-		other := "name:" + strings.ToLower(strings.TrimSpace(r.Name))
-		if relatedID != nil {
-			other = "id:" + uintString(*relatedID)
-		}
-		return uintString(contactID) + "|" + strings.ToLower(strings.TrimSpace(r.Type)) + "|" + other
+	involvesSource := func(r models.Relationship) bool {
+		return r.ContactID == sourceID || (r.RelatedContactID != nil && *r.RelatedContactID == sourceID)
 	}
 	remap := func(id uint) uint {
 		if id == sourceID {
@@ -386,43 +482,68 @@ func moveRelationships(tx *gorm.DB, userID, targetID, sourceID uint) error {
 		}
 		return id
 	}
-
-	seen := map[string]bool{}
-	var drop []uint
-	// Existing target relationships claim their identity first so that the
-	// source's copies are the ones dropped.
-	sort.SliceStable(rels, func(i, j int) bool {
-		return rels[i].ContactID != sourceID && rels[j].ContactID == sourceID
-	})
-	for _, r := range rels {
-		contactID := remap(r.ContactID)
-		var relatedID *uint
+	keyOf := func(r models.Relationship) mergedRelationshipKey {
+		k := mergedRelationshipKey{contactID: remap(r.ContactID), relType: strings.ToLower(strings.TrimSpace(r.Type))}
 		if r.RelatedContactID != nil {
-			id := remap(*r.RelatedContactID)
-			relatedID = &id
+			k.relatedID = remap(*r.RelatedContactID)
+		} else {
+			k.name = strings.ToLower(strings.TrimSpace(r.Name))
 		}
-		if relatedID != nil && *relatedID == contactID {
-			drop = append(drop, r.ID)
-			continue
-		}
-		k := key(r, contactID, relatedID)
-		if seen[k] {
-			drop = append(drop, r.ID)
-			continue
-		}
-		seen[k] = true
+		return k
+	}
 
-		updates := map[string]any{}
-		if contactID != r.ContactID {
-			updates["contact_id"] = contactID
+	// Relationships untouched by the merge claim their identity first, so a
+	// duplicate is always resolved by dropping the source's copy.
+	sort.SliceStable(rels, func(i, j int) bool {
+		return !involvesSource(rels[i]) && involvesSource(rels[j])
+	})
+
+	kept := map[mergedRelationshipKey]*models.Relationship{}
+	updates := map[uint]map[string]any{}
+	setUpdate := func(id uint, column string, value any) {
+		if updates[id] == nil {
+			updates[id] = map[string]any{}
 		}
-		if relatedID != nil && *relatedID != *r.RelatedContactID {
-			updates["related_contact_id"] = *relatedID
-		}
-		if len(updates) > 0 {
-			if err := tx.Model(&models.Relationship{}).Where("id = ?", r.ID).Updates(updates).Error; err != nil {
-				return err
+		updates[id][column] = value
+	}
+	var drop []uint
+	for i := range rels {
+		r := &rels[i]
+		k := keyOf(*r)
+		if !involvesSource(*r) {
+			if _, exists := kept[k]; !exists {
+				kept[k] = r
 			}
+			continue
+		}
+		if k.relatedID == k.contactID {
+			drop = append(drop, r.ID)
+			continue
+		}
+		if existing := kept[k]; existing != nil {
+			if strings.TrimSpace(existing.Birthday) == "" && strings.TrimSpace(r.Birthday) != "" {
+				existing.Birthday = r.Birthday
+				setUpdate(existing.ID, "birthday", r.Birthday)
+			}
+			if existing.Gender == "" && r.Gender != "" {
+				existing.Gender = r.Gender
+				setUpdate(existing.ID, "gender", r.Gender)
+			}
+			drop = append(drop, r.ID)
+			continue
+		}
+		kept[k] = r
+		if k.contactID != r.ContactID {
+			setUpdate(r.ID, "contact_id", k.contactID)
+		}
+		if r.RelatedContactID != nil && k.relatedID != *r.RelatedContactID {
+			setUpdate(r.ID, "related_contact_id", k.relatedID)
+		}
+	}
+
+	for _, id := range slices.Sorted(maps.Keys(updates)) {
+		if err := tx.Model(&models.Relationship{}).Where("id = ?", id).Updates(updates[id]).Error; err != nil {
+			return err
 		}
 	}
 	if len(drop) > 0 {
@@ -519,8 +640,4 @@ func orderedPair(a, b uint) [2]uint {
 		a, b = b, a
 	}
 	return [2]uint{a, b}
-}
-
-func uintString(v uint) string {
-	return strconv.FormatUint(uint64(v), 10)
 }

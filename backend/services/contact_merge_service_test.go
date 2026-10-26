@@ -1,10 +1,13 @@
 package services
 
 import (
+	"encoding/json"
+	"meerkat/carddav"
 	"meerkat/models"
 	"testing"
 	"time"
 
+	"github.com/emersion/go-vcard"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
@@ -32,7 +35,7 @@ func pairIDs(p models.DuplicatePair) [2]uint {
 func TestFindDuplicateContacts(t *testing.T) {
 	db, userID := setupMergeDB(t)
 
-	anna1 := createContact(t, db, models.Contact{UserID: userID, Firstname: "Anna", Lastname: "Schmidt",
+	anna1 := createContact(t, db, models.Contact{UserID: userID, Firstname: "Anna", Lastname: "Schmidt", PhotoThumbnail: "data:anna",
 		Emails: []models.ContactEmail{{Value: "anna@example.com"}}, Phones: []models.ContactPhone{{Value: "+49 171 1234567"}}})
 	anna2 := createContact(t, db, models.Contact{UserID: userID, Firstname: " anna ", Lastname: "SCHMIDT",
 		Emails: []models.ContactEmail{{Value: "Anna@Example.com"}}, Phones: []models.ContactPhone{{Value: "0171 1234567"}}})
@@ -52,6 +55,8 @@ func TestFindDuplicateContacts(t *testing.T) {
 
 	assert.Equal(t, [2]uint{anna1.ID, anna2.ID}, pairIDs(pairs[0]))
 	assert.ElementsMatch(t, []string{DuplicateReasonName, DuplicateReasonEmail, DuplicateReasonPhone}, pairs[0].Reasons)
+	assert.Equal(t, "data:anna", pairs[0].Contacts[0].PhotoThumbnail)
+	assert.Empty(t, pairs[0].Contacts[1].PhotoThumbnail)
 	assert.Equal(t, [2]uint{byEmail.ID, byEmail2.ID}, pairIDs(pairs[1]))
 	assert.Equal(t, []string{DuplicateReasonEmail}, pairs[1].Reasons)
 
@@ -125,7 +130,9 @@ func TestMergeContacts(t *testing.T) {
 	rels := []models.Relationship{
 		{UserID: userID, Name: "Anna", Type: "Spouse", ContactID: target.ID, RelatedContactID: &source.ID}, // between the two: dropped
 		{UserID: userID, Name: "Max", Type: "Child", ContactID: target.ID},                                 // target's own
-		{UserID: userID, Name: "max", Type: "child", ContactID: source.ID},                                 // same child: dropped
+		{UserID: userID, Name: "max", Type: "child", ContactID: source.ID, Birthday: "2015-04-01"},         // same child: dropped, birthday kept
+		{UserID: userID, Name: "Tom", Type: "Child", ContactID: target.ID},                                 // target's own...
+		{UserID: userID, Name: "Tom", Type: "Child", ContactID: target.ID},                                 // ...pre-existing duplicate: left alone
 		{UserID: userID, Name: "Lena", Type: "Child", ContactID: source.ID},                                // moved
 		{UserID: userID, Name: "Anna", Type: "Friend", ContactID: friend.ID, RelatedContactID: &source.ID}, // incoming: re-pointed
 	}
@@ -180,29 +187,87 @@ func TestMergeContacts(t *testing.T) {
 
 	var remaining []models.Relationship
 	require.NoError(t, db.Order("id").Find(&remaining).Error)
-	require.Len(t, remaining, 3)
+	require.Len(t, remaining, 5)
 	assert.Equal(t, "Max", remaining[0].Name)
 	assert.Equal(t, target.ID, remaining[0].ContactID)
-	assert.Equal(t, "Lena", remaining[1].Name)
-	assert.Equal(t, target.ID, remaining[1].ContactID)
-	assert.Equal(t, friend.ID, remaining[2].ContactID)
-	require.NotNil(t, remaining[2].RelatedContactID)
-	assert.Equal(t, target.ID, *remaining[2].RelatedContactID)
+	assert.Equal(t, "2015-04-01", remaining[0].Birthday, "the dropped duplicate's birthday is kept")
+	assert.Equal(t, "Tom", remaining[1].Name)
+	assert.Equal(t, "Tom", remaining[2].Name)
+	assert.Equal(t, "Lena", remaining[3].Name)
+	assert.Equal(t, target.ID, remaining[3].ContactID)
+	assert.Equal(t, friend.ID, remaining[4].ContactID)
+	require.NotNil(t, remaining[4].RelatedContactID)
+	assert.Equal(t, target.ID, *remaining[4].RelatedContactID)
 }
 
-func TestMergeContactsKeepsActiveAndDeceased(t *testing.T) {
+func TestMergeContactsDeceasedAndArchivedFollowResolutions(t *testing.T) {
 	db, userID := setupMergeDB(t)
-	target := createContact(t, db, models.Contact{UserID: userID, Firstname: "Old", Archived: true})
-	source := createContact(t, db, models.Contact{UserID: userID, Firstname: "Old", IsDeceased: true, DeceasedDate: "2020-05-01",
-		Photo: "only-source.jpg"})
+	newPair := func() (models.Contact, models.Contact) {
+		target := createContact(t, db, models.Contact{UserID: userID, Firstname: "Old", Archived: true})
+		source := createContact(t, db, models.Contact{UserID: userID, Firstname: "Old", IsDeceased: true, DeceasedDate: "2020-05-01",
+			Photo: "only-source.jpg"})
+		reminder := models.Reminder{UserID: userID, Message: "visit", RemindAt: time.Now(), Recurrence: "once", ContactID: &source.ID}
+		require.NoError(t, db.Create(&reminder).Error)
+		return target, source
+	}
 
+	target, source := newPair()
+	assert.ElementsMatch(t, []models.MergeConflict{
+		{Field: "is_deceased", TargetValue: "false", SourceValue: "true"},
+		{Field: "archived", TargetValue: "true", SourceValue: "false"},
+	}, MergeConflicts(&target, &source))
+
+	// Unresolved: the target's state wins, so the result stays archived (and,
+	// like any archived contact, loses its reminders) and is not deceased.
 	result, err := MergeContacts(db, userID, target.ID, source.ID, nil)
+	require.NoError(t, err)
+	assert.True(t, result.Contact.Archived)
+	assert.False(t, result.Contact.IsDeceased)
+	assert.Empty(t, result.Contact.DeceasedDate, "a death date without the deceased flag is dropped")
+	assert.Equal(t, "only-source.jpg", result.Contact.Photo)
+	assert.Equal(t, models.Contact{}, result.DiscardedPhoto)
+	var reminders int64
+	db.Model(&models.Reminder{}).Where("contact_id = ?", target.ID).Count(&reminders)
+	assert.Zero(t, reminders)
+
+	target, source = newPair()
+	result, err = MergeContacts(db, userID, target.ID, source.ID, map[string]string{"is_deceased": "source", "archived": "source"})
 	require.NoError(t, err)
 	assert.False(t, result.Contact.Archived)
 	assert.True(t, result.Contact.IsDeceased)
 	assert.Equal(t, "2020-05-01", result.Contact.DeceasedDate)
-	assert.Equal(t, "only-source.jpg", result.Contact.Photo)
-	assert.Equal(t, models.Contact{}, result.DiscardedPhoto)
+	db.Model(&models.Reminder{}).Where("contact_id = ?", target.ID).Count(&reminders)
+	assert.EqualValues(t, 1, reminders)
+}
+
+func TestMergeConflictsThumbnailOnlyPhotos(t *testing.T) {
+	target := &models.Contact{Firstname: "A", PhotoThumbnail: "data:a"}
+	source := &models.Contact{Firstname: "A", PhotoThumbnail: "data:b"}
+	conflicts := MergeConflicts(target, source)
+	require.Len(t, conflicts, 1)
+	assert.Equal(t, "photo", conflicts[0].Field)
+}
+
+func TestMergeVCardExtra(t *testing.T) {
+	target := `{"properties":{"X-SOCIAL":[{"Value":"@anna"}]}}`
+	source := `{"properties":{"X-SOCIAL":[{"Value":"@anna"},{"Value":"@annie"}],"X-PET":[{"Value":"Cat"}]}}`
+
+	var merged carddav.VCardExtra
+	require.NoError(t, json.Unmarshal([]byte(mergeVCardExtra(target, source)), &merged))
+	assert.Equal(t, []string{"@anna", "@annie"}, fieldValues(merged.Properties["X-SOCIAL"]))
+	assert.Equal(t, []string{"Cat"}, fieldValues(merged.Properties["X-PET"]))
+
+	assert.Equal(t, source, mergeVCardExtra("", source))
+	assert.Equal(t, target, mergeVCardExtra(target, ""))
+	assert.Equal(t, "not json", mergeVCardExtra("not json", source), "an unreadable target is left untouched")
+}
+
+func fieldValues(fields []vcard.Field) []string {
+	values := make([]string, len(fields))
+	for i, f := range fields {
+		values[i] = f.Value
+	}
+	return values
 }
 
 func TestMergeContactsRejectsInvalidPairs(t *testing.T) {

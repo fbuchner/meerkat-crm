@@ -276,7 +276,10 @@
       "deleteWarning": "{{name}} se eliminará tras la fusión. Esta acción no se puede deshacer.",
       "confirm": "Fusionar contactos",
       "success": "Contactos fusionados",
-      "photo": "Foto de perfil"
+      "photo": "Foto de perfil",
+      "notDeceased": "No fallecido",
+      "active": "Activo",
+      "archivedRemovesReminders": "Archivado (se eliminan sus recordatorios)"
     }
   },
   "timeline": {

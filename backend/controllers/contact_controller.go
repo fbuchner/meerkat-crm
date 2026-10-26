@@ -463,6 +463,11 @@ func DeleteContact(c *gin.Context) {
 			return err
 		}
 
+		// "Not a duplicate" decisions involving this contact are moot now
+		if err := tx.Where("user_id = ? AND (contact_a_id = ? OR contact_b_id = ?)", userID, contact.ID, contact.ID).Delete(&models.ContactDuplicateDismissal{}).Error; err != nil {
+			return err
+		}
+
 		// Finally, delete the contact
 		if err := tx.Delete(&contact).Error; err != nil {
 			return err

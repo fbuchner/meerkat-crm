@@ -276,7 +276,10 @@
       "deleteWarning": "{{name}} wird nach dem Zusammenführen gelöscht. Dies kann nicht rückgängig gemacht werden.",
       "confirm": "Kontakte zusammenführen",
       "success": "Kontakte zusammengeführt",
-      "photo": "Profilbild"
+      "photo": "Profilbild",
+      "notDeceased": "Nicht verstorben",
+      "active": "Aktiv",
+      "archivedRemovesReminders": "Archiviert (Erinnerungen werden gelöscht)"
     }
   },
   "timeline": {

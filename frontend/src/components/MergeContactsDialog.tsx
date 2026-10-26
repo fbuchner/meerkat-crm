@@ -53,7 +53,15 @@ const EXTRA_FIELD_LABELS: Record<string, string> = {
   firstname: 'contacts.firstname',
   lastname: 'contacts.lastname',
   deceased_date: 'contactDetail.deceasedDate',
+  is_deceased: 'contacts.deceased',
+  archived: 'contacts.archived',
   photo: 'contacts.merge.photo',
+};
+
+// Labels for the "true"/"false" values of the boolean conflict fields
+const BOOLEAN_FIELD_VALUES: Record<string, { true: string; false: string }> = {
+  is_deceased: { true: 'contacts.deceased', false: 'contacts.merge.notDeceased' },
+  archived: { true: 'contacts.merge.archivedRemovesReminders', false: 'contacts.merge.active' },
 };
 
 export function contactDisplayName(contact: { firstname?: string; lastname?: string }): string {
@@ -168,7 +176,10 @@ export default function MergeContactsDialog({
     }
     const value = side === 'target' ? conflict.target_value : conflict.source_value;
     let display = value;
-    if (DATE_FIELDS.has(conflict.field)) {
+    const booleanLabels = BOOLEAN_FIELD_VALUES[conflict.field];
+    if (booleanLabels) {
+      display = t(value === 'true' ? booleanLabels.true : booleanLabels.false);
+    } else if (DATE_FIELDS.has(conflict.field)) {
       display = formatBirthday(value);
     } else if (conflict.field === 'gender') {
       display = t(`contacts.${value}`, value);

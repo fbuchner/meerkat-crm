@@ -239,6 +239,47 @@
       "region": "État / Région",
       "postal": "Code postal",
       "country": "Pays"
+    },
+    "duplicates": {
+      "button": "Trouver les doublons",
+      "title": "Doublons possibles",
+      "description": "Contacts qui partagent un nom, une adresse e-mail ou un numéro de téléphone. Fusionnez-les ou indiquez qu’il s’agit de personnes différentes.",
+      "none": "Aucun contact en double trouvé.",
+      "dismiss": "Pas un doublon",
+      "reason": {
+        "name": "Même nom",
+        "email": "Même e-mail",
+        "phone": "Même téléphone"
+      }
+    },
+    "merge": {
+      "button": "Fusionner",
+      "title": "Fusionner des contacts",
+      "withAnother": "Fusionner avec un autre contact",
+      "pickDescription": "Choisissez le contact à fusionner dans celui-ci.",
+      "pickLabel": "Contact à fusionner",
+      "keep": "Conserver",
+      "remove": "Fusionner et supprimer",
+      "swap": "Inverser le contact conservé",
+      "conflictsTitle": "Les deux contacts ont des valeurs différentes ici. Choisissez celle à conserver :",
+      "noConflicts": "Aucun champ en conflit : toutes les informations peuvent être combinées.",
+      "combinedInfo": "Les adresses e-mail, numéros de téléphone, adresses, sites web, cercles et champs personnalisés des deux contacts sont combinés.",
+      "movedInfo": "Déplace aussi {{items}}.",
+      "notesCount_one": "{{count}} note",
+      "notesCount_other": "{{count}} notes",
+      "activitiesCount_one": "{{count}} activité",
+      "activitiesCount_other": "{{count}} activités",
+      "remindersCount_one": "{{count}} rappel",
+      "remindersCount_other": "{{count}} rappels",
+      "relationshipsCount_one": "{{count}} relation",
+      "relationshipsCount_other": "{{count}} relations",
+      "deleteWarning": "{{name}} sera supprimé après la fusion. Cette action est irréversible.",
+      "confirm": "Fusionner les contacts",
+      "success": "Contacts fusionnés",
+      "photo": "Photo de profil",
+      "notDeceased": "Non décédé",
+      "active": "Actif",
+      "archivedRemovesReminders": "Archivé (ses rappels sont supprimés)"
     }
   },
   "timeline": {

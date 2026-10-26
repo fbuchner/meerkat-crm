@@ -25,6 +25,7 @@ import {
 } from '@mui/material';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
+import CallMergeIcon from '@mui/icons-material/CallMerge';
 import { ContactListSkeleton } from './components/LoadingSkeletons';
 
 export default function ContactsPage() {
@@ -179,6 +180,14 @@ export default function ContactsPage() {
           label={t('contacts.showArchived')}
           sx={{ ml: 0.5, whiteSpace: 'nowrap' }}
         />
+        <Button
+          variant="outlined"
+          startIcon={<CallMergeIcon />}
+          onClick={() => navigate('/contacts/duplicates')}
+          sx={{ whiteSpace: 'nowrap' }}
+        >
+          {t('contacts.duplicates.button')}
+        </Button>
         <Button
           variant="outlined"
           startIcon={<FileUploadIcon />}

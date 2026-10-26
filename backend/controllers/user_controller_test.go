@@ -3,6 +3,7 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -456,6 +457,16 @@ func TestCardDAVCircleFilter(t *testing.T) {
 	// A filter mode without circles and an unknown mode are rejected, leaving the setting alone.
 	assert.Equal(t, http.StatusBadRequest, patch(`{"mode":"exclude","circles":[]}`))
 	assert.Equal(t, http.StatusBadRequest, patch(`{"mode":"only","circles":["Family"]}`))
+	// The circle list is capped at 200 entries; distinct names so only the cap can reject it.
+	manyCircles := make([]string, 201)
+	for i := range manyCircles {
+		manyCircles[i] = fmt.Sprintf("Circle %d", i)
+	}
+	tooMany, _ := json.Marshal(models.CardDAVCircleFilterInput{Mode: "include", Circles: manyCircles})
+	assert.Equal(t, http.StatusBadRequest, patch(string(tooMany)))
+	justEnough, _ := json.Marshal(models.CardDAVCircleFilterInput{Mode: "include", Circles: manyCircles[:200]})
+	assert.Equal(t, http.StatusOK, patch(string(justEnough)))
+	assert.Equal(t, http.StatusOK, patch(`{"mode":"include","circles":["Family","Friends"]}`))
 	assert.JSONEq(t, `{"mode":"include","circles":["Family","Friends"]}`, get())
 
 	// "all" ignores circles, so any sent along are dropped.

@@ -155,7 +155,7 @@ type EnabledContactFieldsInput struct {
 // server to, or hiding from it, a set of circles
 type CardDAVCircleFilterInput struct {
 	Mode    string   `json:"mode" validate:"required,oneof=all include exclude"`
-	Circles []string `json:"circles" validate:"dive,max=100"`
+	Circles []string `json:"circles" validate:"max=200,dive,max=100"`
 }
 
 // represents the DTO for choosing whether empty contact fields are hidden on the contact detail page

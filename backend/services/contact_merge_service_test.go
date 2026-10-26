@@ -70,11 +70,13 @@ func TestFindDuplicateContacts(t *testing.T) {
 	assert.ErrorIs(t, DismissDuplicatePair(db, other.ID, anna1.ID, anna2.ID), gorm.ErrRecordNotFound)
 }
 
-func TestFindDuplicateContactsPrunesStaleDismissals(t *testing.T) {
+func TestDismissDuplicatePairPrunesStaleDismissals(t *testing.T) {
 	db, userID := setupMergeDB(t)
 	a := createContact(t, db, models.Contact{UserID: userID, Firstname: "Sam"})
 	b := createContact(t, db, models.Contact{UserID: userID, Firstname: "Sam"})
 	c := createContact(t, db, models.Contact{UserID: userID, Firstname: "Sam"})
+	d := createContact(t, db, models.Contact{UserID: userID, Firstname: "Kim"})
+	e := createContact(t, db, models.Contact{UserID: userID, Firstname: "Kim"})
 	require.NoError(t, DismissDuplicatePair(db, userID, a.ID, b.ID))
 	require.NoError(t, DismissDuplicatePair(db, userID, a.ID, c.ID))
 
@@ -83,12 +85,14 @@ func TestFindDuplicateContactsPrunesStaleDismissals(t *testing.T) {
 
 	pairs, err := FindDuplicateContacts(db, userID)
 	require.NoError(t, err)
-	assert.Empty(t, pairs, "a/c stays dismissed")
+	require.Len(t, pairs, 1, "only d/e is suggested; a/c stays dismissed")
 
+	require.NoError(t, DismissDuplicatePair(db, userID, d.ID, e.ID))
 	var remaining []models.ContactDuplicateDismissal
-	require.NoError(t, db.Find(&remaining).Error)
-	require.Len(t, remaining, 1)
+	require.NoError(t, db.Order("id").Find(&remaining).Error)
+	require.Len(t, remaining, 2, "the dismissal of the deleted contact is pruned")
 	assert.Equal(t, [2]uint{a.ID, c.ID}, [2]uint{remaining[0].ContactAID, remaining[0].ContactBID})
+	assert.Equal(t, [2]uint{d.ID, e.ID}, [2]uint{remaining[1].ContactAID, remaining[1].ContactBID})
 }
 
 func TestFindDuplicateContactsSkipsOversizedBuckets(t *testing.T) {

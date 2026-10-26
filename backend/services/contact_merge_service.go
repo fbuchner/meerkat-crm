@@ -77,15 +77,6 @@ func FindDuplicateContacts(db *gorm.DB, userID uint) ([]models.DuplicatePair, er
 		return nil, err
 	}
 
-	// Contacts are soft-deleted on every path (DeleteContact, merges, CardDAV,
-	// sync), so no foreign key can cascade to the dismissals; prune the ones
-	// whose contacts are gone here instead.
-	live := db.Model(&models.Contact{}).Select("id").Where("user_id = ?", userID)
-	if err := db.Where("user_id = ? AND (contact_a_id NOT IN (?) OR contact_b_id NOT IN (?))", userID, live, live).
-		Delete(&models.ContactDuplicateDismissal{}).Error; err != nil {
-		return nil, err
-	}
-
 	var dismissals []models.ContactDuplicateDismissal
 	if err := db.Where("user_id = ?", userID).Find(&dismissals).Error; err != nil {
 		return nil, err
@@ -189,8 +180,9 @@ func fillDuplicateThumbnails(db *gorm.DB, userID uint, pairs []models.DuplicateP
 	return nil
 }
 
-// DismissDuplicatePair records that two contacts are not the same person.
-// Dismissing an already-dismissed pair is a no-op.
+// DismissDuplicatePair records that two contacts are not the same person, and
+// drops dismissals of contacts that no longer exist. Dismissing an
+// already-dismissed pair is a no-op.
 func DismissDuplicatePair(db *gorm.DB, userID, contactAID, contactBID uint) error {
 	var count int64
 	if err := db.Model(&models.Contact{}).Where("user_id = ? AND id IN ?", userID, []uint{contactAID, contactBID}).Count(&count).Error; err != nil {
@@ -201,7 +193,16 @@ func DismissDuplicatePair(db *gorm.DB, userID, contactAID, contactBID uint) erro
 	}
 	pair := orderedPair(contactAID, contactBID)
 	dismissal := models.ContactDuplicateDismissal{UserID: userID, ContactAID: pair[0], ContactBID: pair[1]}
-	return db.Where(dismissal).FirstOrCreate(&dismissal).Error
+	if err := db.Where(dismissal).FirstOrCreate(&dismissal).Error; err != nil {
+		return err
+	}
+
+	// Contacts are soft-deleted on every path (DeleteContact, merges, CardDAV,
+	// sync), so no foreign key can cascade to the dismissals. Prune the ones
+	// whose contacts are gone on this write, keeping the duplicates GET read-only.
+	live := db.Model(&models.Contact{}).Select("id").Where("user_id = ?", userID)
+	return db.Where("user_id = ? AND (contact_a_id NOT IN (?) OR contact_b_id NOT IN (?))", userID, live, live).
+		Delete(&models.ContactDuplicateDismissal{}).Error
 }
 
 // PreviewContactMerge loads both contacts and reports the fields that conflict

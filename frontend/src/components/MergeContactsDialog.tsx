@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -120,40 +120,49 @@ export default function MergeContactsDialog({
     };
   }, [open, sourceId, debouncedSearch, contactId]);
 
-  const loadPreview = useCallback(async (target: number, source: number) => {
+  useEffect(() => {
+    if (!open || sourceId === null) return;
+    // A swap starts a new request; a slower response for the old direction
+    // must not land after it, or the merge would run the wrong way round.
+    let cancelled = false;
     setLoading(true);
     setError('');
-    try {
-      const result = await getMergePreview(target, source);
-      setPreview(result);
-      setResolutions(Object.fromEntries(result.conflicts.map((c) => [c.field, 'target' as MergeResolution])));
-    } catch (err) {
-      setPreview(null);
-      setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (open && sourceId !== null) {
-      loadPreview(targetId, sourceId);
-    }
-  }, [open, targetId, sourceId, loadPreview]);
+    getMergePreview(targetId, sourceId)
+      .then((result) => {
+        if (cancelled) return;
+        setPreview(result);
+        setResolutions(Object.fromEntries(result.conflicts.map((c) => [c.field, 'target' as MergeResolution])));
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setPreview(null);
+        setError(getErrorMessage(err));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, targetId, sourceId]);
 
   const handleSwap = () => {
     if (sourceId === null) return;
+    setPreview(null);
     setTargetId(sourceId);
     setSourceId(targetId);
   };
 
   const handleMerge = async () => {
-    if (!preview || sourceId === null) return;
+    if (!preview) return;
+    // Merge exactly what the preview on screen shows
+    const keepId = preview.target.ID;
+    const removeId = preview.source.ID;
     setMerging(true);
     setError('');
     try {
-      const merged = await mergeContacts(targetId, sourceId, resolutions);
-      onMerged(merged, sourceId);
+      const merged = await mergeContacts(keepId, removeId, resolutions);
+      onMerged(merged, removeId);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

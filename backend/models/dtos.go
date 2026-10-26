@@ -193,7 +193,6 @@ type RelationshipInput struct {
 	RelatedContactID *uint  `json:"related_contact_id"`
 }
 
-// ContactResponse represents the DTO returned from GET /contacts with photo thumbnail
 // ContactMergeInput is the DTO for merging a source contact into the contact in
 // the URL. Resolutions picks the winner ("target" or "source") per conflicting
 // field, keyed like MergeConflict.Field; an unresolved conflict keeps the target's value.
@@ -208,6 +207,7 @@ type DuplicateDismissInput struct {
 	ContactBID uint `json:"contact_b_id" validate:"required,gt=0,nefield=ContactAID"`
 }
 
+// ContactResponse represents the DTO returned from GET /contacts with photo thumbnail
 type ContactResponse struct {
 	Contact
 	PhotoThumbnail string `json:"photo_thumbnail"`

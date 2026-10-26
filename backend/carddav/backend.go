@@ -24,7 +24,7 @@ const (
 	usernameKey contextKey = "username"
 	dbKey       contextKey = "db"
 	photoDir    contextKey = "photoDir"
-	// circleFilterKey holds the *circleFilter loaded once per request
+	// circleFilterKey holds the request's *lazyCircleFilter
 	circleFilterKey contextKey = "circleFilter"
 )
 
@@ -400,11 +400,15 @@ func loadCircleFilter(db *gorm.DB, userID uint) (*circleFilter, error) {
 	return &circleFilter{mode: user.CardDAVCircleMode, circles: user.CardDAVCircles}, nil
 }
 
-// getCircleFilter returns the filter the handler loaded for this request, so a
-// multiget does not re-read it per contact, or loads it when called without one.
+// getCircleFilter returns the filter cached for this request, loading it on first
+// use so a multiget does not re-read it per contact. Without a request cache (as
+// when the backend is called directly) it loads the filter each time.
 func (b *Backend) getCircleFilter(ctx context.Context, userID uint) (*circleFilter, error) {
-	if filter, ok := ctx.Value(circleFilterKey).(*circleFilter); ok {
-		return filter, nil
+	if lazy, ok := ctx.Value(circleFilterKey).(*lazyCircleFilter); ok {
+		lazy.once.Do(func() {
+			lazy.filter, lazy.err = loadCircleFilter(b.getDB(ctx), userID)
+		})
+		return lazy.filter, lazy.err
 	}
 	return loadCircleFilter(b.getDB(ctx), userID)
 }

@@ -152,6 +152,15 @@ func TestCircleFilterRejectsPutToHiddenContact(t *testing.T) {
 	if got := firstname("new"); got != "Newbie" {
 		t.Fatalf("new contact not created: firstname %q", got)
 	}
+
+	// By design a device-created contact gets no circle, so under an include
+	// filter it drops off the device's next listing while staying in Meerkat.
+	b, ctx := NewBackend(db, t.TempDir()), ContextWithUser(context.Background(), 1, "tester", db, t.TempDir())
+	for _, uid := range listedUIDs(t, b, ctx) {
+		if uid == "new" {
+			t.Fatalf("device-created contact without a filter circle is still listed")
+		}
+	}
 }
 
 func TestCircleFilterMultiget(t *testing.T) {

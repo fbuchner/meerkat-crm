@@ -421,10 +421,6 @@ func TestUpdateLanguage_Chinese(t *testing.T) {
 	assert.Equal(t, "zh", updated.Language)
 }
 
-// TestEnabledContactFieldsNullVsEmpty verifies the GET/PATCH endpoints preserve the
-// distinction between "never configured" (null -> client applies defaults) and
-// "configured empty" ([] -> no extended fields), and that the scoped column write
-// round-trips concrete values.
 func TestCardDAVCircleFilter(t *testing.T) {
 	_, router := setupRouter()
 	router.GET("/filter", GetCardDAVCircleFilter)
@@ -466,6 +462,10 @@ func TestCardDAVCircleFilter(t *testing.T) {
 	assert.JSONEq(t, `{"mode":"all","circles":[]}`, get())
 }
 
+// TestEnabledContactFieldsNullVsEmpty verifies the GET/PATCH endpoints preserve the
+// distinction between "never configured" (null -> client applies defaults) and
+// "configured empty" ([] -> no extended fields), and that the scoped column write
+// round-trips concrete values.
 func TestEnabledContactFieldsNullVsEmpty(t *testing.T) {
 	db, router := setupRouter()
 	var user models.User

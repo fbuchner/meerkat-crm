@@ -35,7 +35,7 @@ func CardDAVCircleFilterMatches(mode string, filterCircles, contactCircles []str
 	}
 	inFilter := slices.ContainsFunc(contactCircles, func(c string) bool {
 		return slices.ContainsFunc(filterCircles, func(f string) bool {
-			return strings.EqualFold(strings.TrimSpace(c), f)
+			return strings.EqualFold(strings.TrimSpace(c), strings.TrimSpace(f))
 		})
 	})
 	return inFilter == (mode == CardDAVCircleModeInclude)

@@ -132,13 +132,13 @@ func GetActivities(c *gin.Context) {
 	}
 
 	if search != "" {
-		like := "%" + search + "%"
-		searchClause := db.Where("LOWER(activities.title) LIKE ?", like).
-			Or("LOWER(activities.description) LIKE ?", like).
-			Or("LOWER(activities.location) LIKE ?", like).
-			Or("LOWER(COALESCE(contacts.firstname, '')) LIKE ?", like).
-			Or("LOWER(COALESCE(contacts.lastname, '')) LIKE ?", like).
-			Or("LOWER(COALESCE(contacts.nickname, '')) LIKE ?", like)
+		like := likeContains(search)
+		searchClause := db.Where("LOWER(activities.title) LIKE ?"+likeEscape, like).
+			Or("LOWER(activities.description) LIKE ?"+likeEscape, like).
+			Or("LOWER(activities.location) LIKE ?"+likeEscape, like).
+			Or("LOWER(COALESCE(contacts.firstname, '')) LIKE ?"+likeEscape, like).
+			Or("LOWER(COALESCE(contacts.lastname, '')) LIKE ?"+likeEscape, like).
+			Or("LOWER(COALESCE(contacts.nickname, '')) LIKE ?"+likeEscape, like)
 
 		baseQuery = baseQuery.
 			Select("DISTINCT activities.*").

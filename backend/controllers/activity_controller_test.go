@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"meerkat/models"
 	"net/http"
+	"net/url"
 	"net/http/httptest"
 	"strconv"
 
@@ -236,6 +237,28 @@ func TestGetActivitiesSearchByContact(t *testing.T) {
 		t.Fatalf("expected activities array in response")
 	}
 	assert.Len(t, activitiesRaw, 1)
+	assert.EqualValues(t, 1, responseBody["total"])
+}
+
+func TestGetActivitiesSearchLiteralWildcards(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+
+	router.GET("/activities", GetActivities)
+
+	db.Create(&models.Activity{UserID: user.ID, Title: "file_share sync", Date: time.Now()})
+	db.Create(&models.Activity{UserID: user.ID, Title: "fileXshare sync", Date: time.Now()})
+
+	req, _ := http.NewRequest("GET", "/activities?search="+url.QueryEscape("file_share"), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var responseBody map[string]any
+	json.Unmarshal(w.Body.Bytes(), &responseBody)
 	assert.EqualValues(t, 1, responseBody["total"])
 }
 

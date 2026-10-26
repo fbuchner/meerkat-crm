@@ -6,6 +6,7 @@ import (
 	"meerkat/middleware"
 	"meerkat/models"
 	"net/http"
+	"net/url"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -128,6 +129,46 @@ func TestGetContactsSearchMultiValue(t *testing.T) {
 	assert.Equal(t, 1, search("5551112"), "phone array value should be searchable")
 	assert.Equal(t, 1, search("Hopper"), "name should still be searchable")
 	assert.Equal(t, 0, search("nomatch"), "unrelated term should match nothing")
+}
+
+// TestGetContactsSearchLiteralWildcards verifies that LIKE wildcards in a search term
+// match literally, in both the name columns and the emails JSON array.
+func TestGetContactsSearchLiteralWildcards(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+
+	router.GET("/contacts", GetContacts)
+
+	db.Create(&models.Contact{UserID: user.ID, Firstname: "Fifty%", Lastname: "Percent"})
+	db.Create(&models.Contact{UserID: user.ID, Firstname: "Fifty5", Lastname: "Five"})
+	db.Create(&models.Contact{
+		UserID:    user.ID,
+		Firstname: "Under",
+		Emails:    []models.ContactEmail{{Type: "home", Value: "a_b@example.com"}},
+	})
+	db.Create(&models.Contact{
+		UserID:    user.ID,
+		Firstname: "Other",
+		Emails:    []models.ContactEmail{{Type: "home", Value: "axb@example.com"}},
+	})
+	db.Create(&models.Contact{UserID: user.ID, Firstname: `Back\slash`})
+
+	search := func(term string) int {
+		req, _ := http.NewRequest("GET", "/contacts?search="+url.QueryEscape(term), nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+		var body map[string]any
+		json.Unmarshal(w.Body.Bytes(), &body)
+		return int(body["total"].(float64))
+	}
+
+	assert.Equal(t, 1, search("Fifty%"), "% should match only a literal percent sign")
+	assert.Equal(t, 1, search("a_b"), "_ should match only a literal underscore")
+	assert.Equal(t, 0, search("%_"), "wildcard-only term should match nothing literal")
+	assert.Equal(t, 1, search(`k\s`), "backslash should match literally")
 }
 
 func TestGetContact(t *testing.T) {

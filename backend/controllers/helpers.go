@@ -4,6 +4,7 @@ import (
 	apperrors "meerkat/errors"
 	"meerkat/config"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,6 +14,17 @@ const (
 	defaultLimit = 25
 	maxLimit     = 100
 )
+
+// likeEscape is the ESCAPE clause that must follow every LIKE matched against likeContains.
+const likeEscape = ` ESCAPE '\'`
+
+var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+
+// likeContains builds a "contains" LIKE pattern from a user search term, escaping
+// the LIKE wildcards so that "50%" or "a_b" match literally.
+func likeContains(term string) string {
+	return "%" + likeEscaper.Replace(term) + "%"
+}
 
 // PaginationParams represents sanitized pagination query values.
 type PaginationParams struct {

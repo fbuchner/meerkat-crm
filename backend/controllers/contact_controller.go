@@ -79,13 +79,13 @@ func CreateContact(c *gin.Context) {
 
 // filters a contacts query by a free-text term
 func applyContactSearch(query *gorm.DB, searchTerm string) *gorm.DB {
-	like := "%" + searchTerm + "%"
+	like := likeContains(searchTerm)
 	return query.Where(
-		"firstname LIKE ? OR lastname LIKE ? OR nickname LIKE ? "+
-			"OR (firstname || ' ' || lastname) LIKE ? OR (nickname || ' ' || lastname) LIKE ? "+
-			"OR email LIKE ? OR phone LIKE ? "+
-			"OR (json_valid(emails) AND EXISTS (SELECT 1 FROM json_each(contacts.emails) WHERE json_extract(json_each.value, '$.value') LIKE ?)) "+
-			"OR (json_valid(phones) AND EXISTS (SELECT 1 FROM json_each(contacts.phones) WHERE json_extract(json_each.value, '$.value') LIKE ?))",
+		"firstname LIKE ?"+likeEscape+" OR lastname LIKE ?"+likeEscape+" OR nickname LIKE ?"+likeEscape+" "+
+			"OR (firstname || ' ' || lastname) LIKE ?"+likeEscape+" OR (nickname || ' ' || lastname) LIKE ?"+likeEscape+" "+
+			"OR email LIKE ?"+likeEscape+" OR phone LIKE ?"+likeEscape+" "+
+			"OR (json_valid(emails) AND EXISTS (SELECT 1 FROM json_each(contacts.emails) WHERE json_extract(json_each.value, '$.value') LIKE ?"+likeEscape+")) "+
+			"OR (json_valid(phones) AND EXISTS (SELECT 1 FROM json_each(contacts.phones) WHERE json_extract(json_each.value, '$.value') LIKE ?"+likeEscape+"))",
 		like, like, like, like, like, like, like, like, like,
 	)
 }

@@ -145,8 +145,11 @@ func refreshCookie(c *gin.Context, cfg *config.Config, claims jwt.MapClaims) {
 	if time.Until(time.Unix(int64(exp), 0)) > lifetime/2 {
 		return
 	}
-	userID, _ := c.Get("userID")
-	id, _ := userID.(uint)
+	// Must run after the user_id claim has been validated and stored in the context.
+	id, ok := c.MustGet("userID").(uint)
+	if !ok {
+		return
+	}
 	username, _ := claims["username"].(string)
 	user := models.User{Username: username}
 	user.ID = id

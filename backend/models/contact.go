@@ -200,10 +200,17 @@ func (c *Contact) syncCurrentEmploymentHistory(tx *gorm.DB) error {
 		// deliberate writes and always create the entry.
 		var last EmploymentHistory
 		if c.RevertStaleEmployment {
-			err := tx.Where("user_id = ? AND contact_id = ? AND end_date != ''", c.UserID, c.ID).
-				Order("end_date DESC").Limit(1).Find(&last).Error
-			if err != nil {
+			var closed []EmploymentHistory
+			if err := tx.Where("user_id = ? AND contact_id = ? AND end_date != ''", c.UserID, c.ID).
+				Find(&closed).Error; err != nil {
 				return err
+			}
+			// Compare parsed dates: end dates may be partial, so string order is wrong.
+			var lastEnd time.Time
+			for _, e := range closed {
+				if end, ok := PartialDateEnd(e.EndDate); ok && (last.ID == 0 || end.After(lastEnd)) {
+					last, lastEnd = e, end
+				}
 			}
 		}
 		if last.ID != 0 && last.Organization == c.Organization && last.Department == c.Department &&

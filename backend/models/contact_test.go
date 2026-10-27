@@ -132,3 +132,25 @@ func TestContactSaveWithoutRevertFlagReopensEndedJob(t *testing.T) {
 		t.Errorf("expected one open entry, got %d", open)
 	}
 }
+
+func TestContactSaveRevertsAgainstLatestEndedEntryAcrossPrecisions(t *testing.T) {
+	db := setupTestDB(t)
+
+	contact := Contact{UserID: 1, Firstname: "Jane"}
+	db.Create(&contact)
+	// "2020" ends 2020-12-31, later than "2020-05", though it sorts before it as a string.
+	db.Create(&EmploymentHistory{UserID: 1, ContactID: contact.ID, Organization: "Old", EndDate: "2020-05"})
+	db.Create(&EmploymentHistory{UserID: 1, ContactID: contact.ID, Organization: "Acme", EndDate: "2020"})
+
+	contact.Organization = "Acme"
+	contact.RevertStaleEmployment = true
+	if err := db.Save(&contact).Error; err != nil {
+		t.Fatalf("save failed: %v", err)
+	}
+
+	var got Contact
+	db.First(&got, contact.ID)
+	if got.Organization != "" {
+		t.Errorf("expected scalars reverted, got %q", got.Organization)
+	}
+}

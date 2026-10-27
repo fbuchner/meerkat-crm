@@ -17,7 +17,7 @@ type EmploymentHistory struct {
 	UserID       uint    `gorm:"not null;index" json:"-"`
 	ContactID    uint    `gorm:"not null;index" json:"contact_id" validate:"required"`
 	Contact      Contact `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"-"`
-	Organization string  `gorm:"type:text" json:"organization" validate:"required,min=1,max=200"`
+	Organization string  `gorm:"type:text" json:"organization" validate:"max=200"`
 	Department   string  `gorm:"type:text" json:"department" validate:"max=200"`
 	JobTitle     string  `gorm:"type:text" json:"job_title" validate:"max=200"`
 	Role         string  `gorm:"type:text" json:"role" validate:"max=200"`

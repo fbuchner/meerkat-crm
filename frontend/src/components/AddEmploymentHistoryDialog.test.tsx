@@ -23,10 +23,10 @@ function renderDialog(props: Partial<React.ComponentProps<typeof AddEmploymentHi
 const type = (label: string, value: string) =>
   fireEvent.change(screen.getByLabelText(new RegExp(label)), { target: { value } });
 
-test('requires organization', () => {
+test('requires at least one job detail', () => {
   const p = renderDialog();
   fireEvent.click(screen.getByText('Save'));
-  expect(screen.getByText('Organization is required')).toBeInTheDocument();
+  expect(screen.getByText('Enter an organization, job title, department or role')).toBeInTheDocument();
   expect(p.onSave).not.toHaveBeenCalled();
 });
 

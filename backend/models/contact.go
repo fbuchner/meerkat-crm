@@ -187,6 +187,10 @@ func (c *Contact) syncCurrentEmploymentHistory(tx *gorm.DB) error {
 	// There is no way to express "this contact now has no employer" purely
 	// through the Contact scalars — that must go through the EmploymentHistory
 	// CRUD API directly (ending or deleting the entry).
+	// The blank scalars are still written, so until the next history change
+	// recomputes them the contact can show no employer while an open entry exists.
+	// Re-deriving them here would cost a query on every save of a contact without
+	// a job, so this divergence is accepted.
 	if c.Organization == "" && c.Department == "" && c.JobTitle == "" && c.Role == "" {
 		return nil
 	}

@@ -855,7 +855,7 @@
     "endJob": "Diese Stelle beenden",
     "endMessage": "Diese Stelle als beendet markieren (Enddatum wird auf heute gesetzt)?",
     "deleteMessage": "Diesen Eintrag im Berufsverlauf löschen?",
-    "organizationRequired": "Organisation ist erforderlich",
+    "detailsRequired": "Organisation, Position, Abteilung oder Rolle angeben",
     "dateFormatError": "Daten müssen JJJJ, JJJJ-MM oder JJJJ-MM-TT sein",
     "startDate": "Startdatum",
     "endDate": "Enddatum",

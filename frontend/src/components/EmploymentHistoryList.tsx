@@ -56,6 +56,9 @@ export default function EmploymentHistoryList({
     <Stack spacing={1.5}>
       {entries.map((entry) => {
         const isCurrent = !entry.end_date;
+        // Entries backfilled from a bare job title have no organization.
+        const details = [entry.job_title, entry.department, entry.role].filter(Boolean);
+        const title = entry.organization || details.shift();
         const dateRange = [formatDate(entry.start_date || '') || t('employmentHistory.unknownDate'), isCurrent ? t('employmentHistory.present') : formatDate(entry.end_date || '')]
           .join(' – ');
 
@@ -72,14 +75,14 @@ export default function EmploymentHistoryList({
               <Box sx={{ flex: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                    {entry.organization}
+                    {title}
                   </Typography>
                   {isCurrent && (
                     <Chip label={t('employmentHistory.current')} size="small" color="primary" variant="outlined" />
                   )}
                 </Box>
                 <Typography variant="body2" color="text.secondary">
-                  {[entry.job_title, entry.department, entry.role].filter(Boolean).join(' · ')}
+                  {details.join(' · ')}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   {dateRange}

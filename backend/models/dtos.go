@@ -102,7 +102,7 @@ type NoteInput struct {
 
 // EmploymentHistoryInput represents the DTO for creating/updating employment history entries
 type EmploymentHistoryInput struct {
-	Organization string `json:"organization" validate:"required,min=1,max=200"`
+	Organization string `json:"organization" validate:"max=200"`
 	Department   string `json:"department" validate:"max=200"`
 	JobTitle     string `json:"job_title" validate:"max=200"`
 	Role         string `json:"role" validate:"max=200"`

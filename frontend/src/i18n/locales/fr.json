@@ -855,7 +855,7 @@
     "endJob": "Terminer ce poste",
     "endMessage": "Marquer ce poste comme terminé (la date de fin sera définie à aujourd'hui) ?",
     "deleteMessage": "Supprimer cette entrée du parcours professionnel ?",
-    "organizationRequired": "L'organisation est obligatoire",
+    "detailsRequired": "Indiquez une organisation, un poste, un service ou un rôle",
     "dateFormatError": "Les dates doivent être au format AAAA, AAAA-MM ou AAAA-MM-JJ",
     "startDate": "Date de début",
     "endDate": "Date de fin",

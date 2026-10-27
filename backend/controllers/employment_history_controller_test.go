@@ -152,3 +152,8 @@ func TestValidateEmploymentHistoryDates_RejectsFutureEndDate(t *testing.T) {
 	assert.NotNil(t, validateEmploymentHistoryDates("", future))
 	assert.Nil(t, validateEmploymentHistoryDates("", "2020-01"))
 }
+
+func TestValidateEmploymentHistoryContent(t *testing.T) {
+	assert.NotNil(t, validateEmploymentHistoryContent(&models.EmploymentHistoryInput{Notes: "x", Organization: " "}))
+	assert.Nil(t, validateEmploymentHistoryContent(&models.EmploymentHistoryInput{JobTitle: "Engineer"}))
+}

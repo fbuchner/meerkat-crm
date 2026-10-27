@@ -855,7 +855,7 @@
     "endJob": "结束此工作",
     "endMessage": "将此工作标记为已结束（结束日期设为今天）？",
     "deleteMessage": "删除此工作经历？",
-    "organizationRequired": "组织为必填项",
+    "detailsRequired": "请填写组织、职位、部门或角色之一",
     "dateFormatError": "日期必须为 YYYY、YYYY-MM 或 YYYY-MM-DD",
     "startDate": "开始日期",
     "endDate": "结束日期",

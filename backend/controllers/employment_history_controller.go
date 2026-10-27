@@ -7,6 +7,7 @@ import (
 	"meerkat/models"
 	"meerkat/services"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -51,6 +52,15 @@ func GetEmploymentHistory(c *gin.Context) {
 	services.SortEmploymentHistory(entries)
 
 	c.JSON(http.StatusOK, gin.H{"employment_history": entries})
+}
+
+// validateEmploymentHistoryContent requires at least one of organization,
+// department, job title or role: an entry with none of them carries no job.
+func validateEmploymentHistoryContent(in *models.EmploymentHistoryInput) *apperrors.AppError {
+	if strings.TrimSpace(in.Organization+in.Department+in.JobTitle+in.Role) == "" {
+		return apperrors.ErrInvalidInput("organization", "At least one of organization, department, job title or role is required")
+	}
+	return nil
 }
 
 // validateEmploymentHistoryDates rejects an entry whose EndDate is in the future or
@@ -101,6 +111,11 @@ func CreateEmploymentHistory(c *gin.Context) {
 
 	input, err := middleware.GetValidated[models.EmploymentHistoryInput](c)
 	if err != nil {
+		apperrors.AbortWithError(c, err)
+		return
+	}
+
+	if err := validateEmploymentHistoryContent(input); err != nil {
 		apperrors.AbortWithError(c, err)
 		return
 	}
@@ -165,6 +180,11 @@ func UpdateEmploymentHistory(c *gin.Context) {
 
 	input, err := middleware.GetValidated[models.EmploymentHistoryInput](c)
 	if err != nil {
+		apperrors.AbortWithError(c, err)
+		return
+	}
+
+	if err := validateEmploymentHistoryContent(input); err != nil {
 		apperrors.AbortWithError(c, err)
 		return
 	}

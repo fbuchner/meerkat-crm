@@ -15,12 +15,14 @@ CREATE TABLE IF NOT EXISTS employment_histories (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE
 );
-CREATE INDEX idx_employment_histories_contact_id ON employment_histories(contact_id);
-CREATE INDEX idx_employment_histories_user_id ON employment_histories(user_id);
+CREATE INDEX IF NOT EXISTS idx_employment_histories_contact_id ON employment_histories(contact_id);
+CREATE INDEX IF NOT EXISTS idx_employment_histories_user_id ON employment_histories(user_id);
 
 -- Backfill: give every contact that already has organizational data one
 -- open-ended (current) history entry, so nothing is lost when the
 -- Organization/Department/JobTitle/Role fields on contacts become read-only.
+-- Contacts with only a job title or department get an entry without an
+-- organization on purpose: at least one of the four fields is enough.
 INSERT INTO employment_histories (created_at, updated_at, user_id, contact_id, organization, department, job_title, role, start_date, end_date, notes)
 SELECT CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, user_id, id, organization, department, job_title, role, '', '', ''
 FROM contacts

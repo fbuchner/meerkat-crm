@@ -855,7 +855,7 @@
     "endJob": "Finalizar este empleo",
     "endMessage": "¿Marcar este empleo como finalizado (la fecha de fin se establece en hoy)?",
     "deleteMessage": "¿Eliminar esta entrada del historial laboral?",
-    "organizationRequired": "La organización es obligatoria",
+    "detailsRequired": "Indica una organización, cargo, departamento o rol",
     "dateFormatError": "Las fechas deben ser AAAA, AAAA-MM o AAAA-MM-DD",
     "startDate": "Fecha de inicio",
     "endDate": "Fecha de fin",

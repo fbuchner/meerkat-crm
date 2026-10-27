@@ -855,7 +855,7 @@
     "endJob": "Termina questo lavoro",
     "endMessage": "Segnare questo lavoro come terminato (la data di fine sarà impostata a oggi)?",
     "deleteMessage": "Eliminare questa voce dello storico lavorativo?",
-    "organizationRequired": "L'organizzazione è obbligatoria",
+    "detailsRequired": "Indica un'organizzazione, una posizione, un reparto o un ruolo",
     "dateFormatError": "Le date devono essere AAAA, AAAA-MM o AAAA-MM-GG",
     "startDate": "Data di inizio",
     "endDate": "Data di fine",

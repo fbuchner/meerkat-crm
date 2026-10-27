@@ -66,8 +66,8 @@ export default function AddEmploymentHistoryDialog({
   const validDate = (v: string) => v === '' || PARTIAL_DATE_RE.test(v);
 
   const handleSave = async () => {
-    if (!organization.trim()) {
-      setError(t('employmentHistory.organizationRequired'));
+    if (![organization, jobTitle, department, role].some((v) => v.trim())) {
+      setError(t('employmentHistory.detailsRequired'));
       return;
     }
     if (!validDate(startDate) || !validDate(endDate)) {
@@ -108,9 +108,8 @@ export default function AddEmploymentHistoryDialog({
             value={organization}
             onChange={(e) => { setOrganization(e.target.value); setError(''); }}
             fullWidth
-            required
             autoFocus
-            error={!!error && !organization.trim()}
+            error={!!error && ![organization, jobTitle, department, role].some((v) => v.trim())}
           />
           <TextField
             label={t('contacts.jobTitle')}

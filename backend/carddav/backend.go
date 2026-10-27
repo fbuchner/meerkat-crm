@@ -335,6 +335,7 @@ func (b *Backend) PutAddressObject(ctx context.Context, urlPath string, card vca
 	}
 
 	// Save contact
+	updatedContact.RevertStaleEmployment = true
 	if err := db.Save(updatedContact).Error; err != nil {
 		return nil, err
 	}

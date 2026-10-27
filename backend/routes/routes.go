@@ -106,6 +106,13 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			protected.PUT("/contacts/:id/relationships/:rid", middleware.ValidateJSONMiddleware(&models.RelationshipInput{}), controllers.UpdateRelationship)
 			protected.DELETE("/contacts/:id/relationships/:rid", controllers.DeleteRelationship)
 
+			// Employment history routes
+			protected.GET("/contacts/:id/employment-history", controllers.GetEmploymentHistory)
+			protected.POST("/contacts/:id/employment-history", middleware.ValidateJSONMiddleware(&models.EmploymentHistoryInput{}), controllers.CreateEmploymentHistory)
+			protected.PUT("/contacts/:id/employment-history/:eid", middleware.ValidateJSONMiddleware(&models.EmploymentHistoryInput{}), controllers.UpdateEmploymentHistory)
+			protected.DELETE("/contacts/:id/employment-history/:eid", controllers.DeleteEmploymentHistory)
+			protected.POST("/contacts/:id/employment-history/:eid/end", controllers.EndEmploymentHistory)
+
 			// Profile picture routes
 			protected.POST("/contacts/:id/profile_picture", func(c *gin.Context) {
 				controllers.AddPhotoToContact(c, cfg)

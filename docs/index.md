@@ -13,6 +13,7 @@ The name derives from the Meerkat as a social animal. Use this software as your 
 
 - **Contact Management** - Organize contacts with custom fields, photos, and circle-based grouping
 - **Relationship Tracking** - Map connections between contacts
+- **Employment History** - Keep track of current and past jobs of your contacts
 - **Activities & Notes** - Log meetings, calls, and personal notes
 - **Reminders** - Set recurring reminders with optional email notifications
 - **Privacy-Focused** - Self-hosted, your data stays with you

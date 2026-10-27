@@ -322,6 +322,11 @@ func DeleteUser(c *gin.Context) {
 			return err
 		}
 
+		// Delete employment history
+		if err := tx.Where("user_id = ?", userID).Delete(&models.EmploymentHistory{}).Error; err != nil {
+			return err
+		}
+
 		// Delete relationships
 		if err := tx.Where("user_id = ?", userID).Delete(&models.Relationship{}).Error; err != nil {
 			return err

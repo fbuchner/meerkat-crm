@@ -42,10 +42,11 @@ type MergeConflict struct {
 
 // MergeMovedCounts is how much of the source contact's data a merge moves over.
 type MergeMovedCounts struct {
-	Notes         int64 `json:"notes"`
-	Activities    int64 `json:"activities"`
-	Reminders     int64 `json:"reminders"`
-	Relationships int64 `json:"relationships"`
+	Notes               int64 `json:"notes"`
+	Activities          int64 `json:"activities"`
+	Reminders           int64 `json:"reminders"`
+	Relationships       int64 `json:"relationships"`
+	EmploymentHistories int64 `json:"employment_histories"`
 }
 
 // MergePreview describes what merging Source into Target would do.

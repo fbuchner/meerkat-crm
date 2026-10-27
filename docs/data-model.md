@@ -50,3 +50,15 @@ When a reminder is due, you can complete or skip it. The difference is that sele
 
 Relationships let you map connections between contacts. You can select a suggested relationship or enter your own title. 
 Relationships can either link to an existing contact or you can enter details manually without creating a dedicated contact. Relationships are shown both on the outgoing contact ("Sister: Eva") as well as on the incoming contact detail page ("Sister of Jon").
+
+## Employment History
+
+Each contact has an **Employment History** tab on its detail page listing past and current jobs. An entry holds an organization, department, job title and role (at least one of them is required), and optionally a start date, end date and notes. Dates can be partial: `YYYY`, `YYYY-MM` or `YYYY-MM-DD`. The end date must not be before the start date or in the future.
+
+An entry without an end date is *current*. Entries are listed most recent first, with current entries on top. Use **End** on a current entry to set its end date to today.
+
+The organization, department, job title and role shown under *General information* (and used in vCard export and CardDAV) are read-only there: they are always taken from the current entry with the latest start date. If no entry is current they are empty. Add, edit, end or delete entries in the Employment History tab to change them.
+
+Contacts saved with organization, department, job title or role values (CSV/Monica import, CardDAV sync) update the current entry to match, or create one if none exists. If no entry is current and a **CardDAV** sync pushes values matching the most recently ended entry (for example a phone that hasn't synced yet pushing the old job), no entry is created and the values are cleared, so an ended job is not brought back. Imports are deliberate writes and always create the entry, so importing the same organization again reopens it (for example, rehired at the same company). Clearing these values this way (a CardDAV push or import with no organization or job title) does not end or delete the entry, and the contact keeps the blank values until the next change to its employment history recomputes them from the current entry. To clear a job, end or delete the entry in the Employment History tab instead.
+
+Merging contacts moves the source's employment history to the target and recomputes the four fields from the combined history; they are not offered as merge conflicts, because they are derived rather than chosen. If both contacts had a current job, the target ends up with two current entries; both stay listed as current and the earliest-created one fills the four fields. Deleting a contact deletes its employment history.

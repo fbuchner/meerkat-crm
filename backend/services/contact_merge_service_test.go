@@ -165,14 +165,13 @@ func TestMergeContacts(t *testing.T) {
 
 	preview, err := PreviewContactMerge(db, userID, target.ID, source.ID)
 	require.NoError(t, err)
-	assert.Equal(t, models.MergeMovedCounts{Notes: 1, Activities: 2, Reminders: 1, Relationships: 2}, preview.Moved)
-	assert.Len(t, preview.Conflicts, 4) // lastname, job_title, photo, custom Shoe size
+	assert.Equal(t, models.MergeMovedCounts{Notes: 1, Activities: 2, Reminders: 1, Relationships: 2, EmploymentHistories: 1}, preview.Moved)
+	assert.Len(t, preview.Conflicts, 3) // lastname, photo, custom Shoe size
 
 	result, err := MergeContacts(db, userID, target.ID, source.ID, map[string]string{
 		"lastname":                "source",
 		"photo":                   "source",
 		"custom_fields.Shoe size": "target",
-		// job_title left unresolved: target wins
 	})
 	require.NoError(t, err)
 
@@ -181,6 +180,7 @@ func TestMergeContacts(t *testing.T) {
 	assert.Equal(t, "Schmidt-Weber", merged.Lastname)
 	assert.Equal(t, "Annie", merged.Nickname, "a field only the source fills is kept")
 	assert.Equal(t, "Engineer", merged.JobTitle)
+	assert.Equal(t, "Engineer", result.Contact.JobTitle, "the response reflects the recomputed fields")
 	assert.Equal(t, "1990-01-02", merged.Birthday)
 	assert.Equal(t, "source.jpg", merged.Photo)
 	assert.Equal(t, "data:source", merged.PhotoThumbnail)
@@ -199,6 +199,8 @@ func TestMergeContacts(t *testing.T) {
 
 	// Related data now belongs to the target.
 	var count int64
+	db.Model(&models.EmploymentHistory{}).Where("contact_id = ?", target.ID).Count(&count)
+	assert.EqualValues(t, 2, count)
 	db.Model(&models.Note{}).Where("contact_id = ?", target.ID).Count(&count)
 	assert.EqualValues(t, 1, count)
 	db.Model(&models.Reminder{}).Where("contact_id = ?", target.ID).Count(&count)
@@ -309,4 +311,14 @@ func TestMergeContactsRejectsInvalidPairs(t *testing.T) {
 	_, err = MergeContacts(db, userID, a.ID, foreign.ID, nil)
 	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
 	assert.NoError(t, db.First(&models.Contact{}, foreign.ID).Error, "another user's contact is untouched")
+}
+
+func TestMergeContactsResultReflectsMovedEmployment(t *testing.T) {
+	db, userID := setupMergeDB(t)
+	target := createContact(t, db, models.Contact{UserID: userID, Firstname: "Anna"})
+	source := createContact(t, db, models.Contact{UserID: userID, Firstname: "Anna", Organization: "Acme"})
+
+	result, err := MergeContacts(db, userID, target.ID, source.ID, nil)
+	require.NoError(t, err)
+	assert.Equal(t, "Acme", result.Contact.Organization)
 }

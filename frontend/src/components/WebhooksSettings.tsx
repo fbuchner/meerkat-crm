@@ -58,6 +58,9 @@ const SUPPORTED_EVENTS = [
   'activity.deleted',
   'reminder.triggered',
   'birthday.occurred',
+  'employment_history.created',
+  'employment_history.updated',
+  'employment_history.deleted',
 ];
 
 interface WebhookFormState {

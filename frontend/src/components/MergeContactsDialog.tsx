@@ -230,6 +230,7 @@ export default function MergeContactsDialog({
         preview.moved.notes > 0 && t('contacts.merge.notesCount', { count: preview.moved.notes }),
         preview.moved.activities > 0 && t('contacts.merge.activitiesCount', { count: preview.moved.activities }),
         preview.moved.reminders > 0 && t('contacts.merge.remindersCount', { count: preview.moved.reminders }),
+        preview.moved.employment_histories > 0 && t('contacts.merge.employmentHistoriesCount', { count: preview.moved.employment_histories }),
         preview.moved.relationships > 0 && t('contacts.merge.relationshipsCount', { count: preview.moved.relationships }),
       ].filter(Boolean).join(', ')
     : '';

@@ -32,7 +32,7 @@ func setupCalendarSyncTestDB(t *testing.T) *gorm.DB {
 
 	require.NoError(t, db.AutoMigrate(
 		&models.User{}, &models.Contact{}, &models.Activity{}, &models.JobExecution{},
-		&models.CalendarSubscription{}, &models.CalendarEventLink{},
+		&models.CalendarSubscription{}, &models.CalendarEventLink{}, &models.EmploymentHistory{},
 	))
 	return db
 }

@@ -13,9 +13,11 @@ import (
 	"gorm.io/gorm"
 )
 
+// The id is bound with "id = ?" rather than passed to First directly, since
+// GORM treats a non-numeric string there as a raw SQL fragment.
 func findOwnedContact(db *gorm.DB, userID uint, contactID string) (models.Contact, *apperrors.AppError) {
 	var contact models.Contact
-	if err := db.Where("user_id = ?", userID).First(&contact, contactID).Error; err != nil {
+	if err := db.Where("user_id = ?", userID).First(&contact, "id = ?", contactID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return contact, apperrors.ErrNotFound("Contact").WithDetails("id", contactID)
 		}
@@ -137,7 +139,7 @@ func CreateEmploymentHistory(c *gin.Context) {
 
 func findOwnedEntry(db *gorm.DB, userID uint, contactID, entryID string) (models.EmploymentHistory, *apperrors.AppError) {
 	var entry models.EmploymentHistory
-	if err := db.Where("user_id = ? AND contact_id = ?", userID, contactID).First(&entry, entryID).Error; err != nil {
+	if err := db.Where("user_id = ? AND contact_id = ?", userID, contactID).First(&entry, "id = ?", entryID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entry, apperrors.ErrNotFound("Employment history entry").WithDetails("id", entryID)
 		}

@@ -316,6 +316,10 @@ func MergeContacts(db *gorm.DB, userID, targetID, sourceID uint, resolutions map
 		if err := tx.Delete(source).Error; err != nil {
 			return err
 		}
+		// Reload: the recompute saved its own copy of the four derived fields.
+		if err := tx.First(target, targetID).Error; err != nil {
+			return err
+		}
 		result.Contact = *target
 		return nil
 	})

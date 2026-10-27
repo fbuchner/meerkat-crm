@@ -176,6 +176,10 @@ func (c *Contact) AfterSave(tx *gorm.DB) error {
 // through its own CRUD endpoints is the other half of the sync: those
 // recompute the scalars and save the Contact (services.RecomputeContactEmploymentScalars),
 // which lands back here as a no-op because the values already match.
+//
+// Cost: one extra SELECT per saved contact with a non-empty scalar, including
+// bulk imports and CardDAV syncs. Accepted at current scale; batch it if import
+// volume grows.
 func (c *Contact) syncCurrentEmploymentHistory(tx *gorm.DB) error {
 	// This is not just a "nothing to sync" shortcut: a Contact save that blanks
 	// all four scalars (e.g. clearing Organization via the API or an import)

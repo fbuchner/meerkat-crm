@@ -224,14 +224,15 @@ func validateDeceasedDate(fl validator.FieldLevel) bool {
 }
 
 // validatePartialDate validates date format YYYY, YYYY-MM, or YYYY-MM-DD
+var partialDateRe = regexp.MustCompile(`^\d{4}(-\d{2}(-\d{2})?)?$`)
+
 func validatePartialDate(fl validator.FieldLevel) bool {
 	v := fl.Field().String()
 	if v == "" {
 		return true // Allow empty (use 'required' tag if needed)
 	}
 
-	match, _ := regexp.MatchString(`^\d{4}(-\d{2}(-\d{2})?)?$`, v)
-	if !match {
+	if !partialDateRe.MatchString(v) {
 		return false
 	}
 

@@ -271,6 +271,8 @@
       "activitiesCount_other": "{{count}} attività",
       "remindersCount_one": "{{count}} promemoria",
       "remindersCount_other": "{{count}} promemoria",
+      "employmentHistoriesCount_one": "{{count}} impiego",
+      "employmentHistoriesCount_other": "{{count}} impieghi",
       "relationshipsCount_one": "{{count}} relazione",
       "relationshipsCount_other": "{{count}} relazioni",
       "deleteWarning": "{{name}} verrà eliminato dopo l’unione. L’operazione non può essere annullata.",

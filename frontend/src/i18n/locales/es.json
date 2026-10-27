@@ -271,6 +271,8 @@
       "activitiesCount_other": "{{count}} actividades",
       "remindersCount_one": "{{count}} recordatorio",
       "remindersCount_other": "{{count}} recordatorios",
+      "employmentHistoriesCount_one": "{{count}} empleo",
+      "employmentHistoriesCount_other": "{{count}} empleos",
       "relationshipsCount_one": "{{count}} relación",
       "relationshipsCount_other": "{{count}} relaciones",
       "deleteWarning": "{{name}} se eliminará tras la fusión. Esta acción no se puede deshacer.",

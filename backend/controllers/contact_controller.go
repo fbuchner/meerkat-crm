@@ -408,10 +408,8 @@ func UpdateContact(c *gin.Context) {
 	contact.Prefix = contactInput.Prefix
 	contact.MiddleName = contactInput.MiddleName
 	contact.Suffix = contactInput.Suffix
-	contact.Organization = contactInput.Organization
-	contact.Department = contactInput.Department
-	contact.JobTitle = contactInput.JobTitle
-	contact.Role = contactInput.Role
+	// Organization, Department, JobTitle and Role are derived from the current
+	// employment history entry and deliberately not updatable here.
 	contact.Anniversary = contactInput.Anniversary
 	contact.IsDeceased = contactInput.IsDeceased
 	contact.DeceasedDate = contactInput.DeceasedDate

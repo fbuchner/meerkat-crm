@@ -107,9 +107,9 @@ type Contact struct {
 	Archived bool `gorm:"default:false" json:"archived"`
 
 	// RevertStaleEmployment is set by CardDAV so a client re-pushing the job the
-	// user just ended doesn't resurrect it. Not persisted. API and import saves
-	// leave it unset on purpose: they are deliberate writes (e.g. rehired at the
-	// same company) and reopen the job.
+	// user just ended doesn't resurrect it. Not persisted. Imports leave
+	// it unset on purpose: they are deliberate writes (e.g. rehired at the same
+	// company) and reopen the job.
 	RevertStaleEmployment bool `gorm:"-" json:"-"`
 }
 

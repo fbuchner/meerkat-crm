@@ -43,6 +43,8 @@ var ErrMergeSameContact = errors.New("cannot merge a contact into itself")
 
 // mergeScalarFields are the single-valued text fields a merge reconciles,
 // keyed by their JSON name (which is also the conflict/resolution key).
+// Organization, department, job title and role are not merged: they are derived
+// from the employment history, which moves to the target as a whole.
 var mergeScalarFields = []struct {
 	key string
 	get func(*models.Contact) *string
@@ -57,10 +59,6 @@ var mergeScalarFields = []struct {
 	{"birthday", func(c *models.Contact) *string { return &c.Birthday }},
 	{"anniversary", func(c *models.Contact) *string { return &c.Anniversary }},
 	{"deceased_date", func(c *models.Contact) *string { return &c.DeceasedDate }},
-	{"organization", func(c *models.Contact) *string { return &c.Organization }},
-	{"department", func(c *models.Contact) *string { return &c.Department }},
-	{"job_title", func(c *models.Contact) *string { return &c.JobTitle }},
-	{"role", func(c *models.Contact) *string { return &c.Role }},
 	{"work_information", func(c *models.Contact) *string { return &c.WorkInformation }},
 	{"how_we_met", func(c *models.Contact) *string { return &c.HowWeMet }},
 	{"food_preference", func(c *models.Contact) *string { return &c.FoodPreference }},
@@ -230,6 +228,7 @@ func PreviewContactMerge(db *gorm.DB, userID, targetID, sourceID uint) (*models.
 	}{
 		{&preview.Moved.Notes, db.Model(&models.Note{}).Where("contact_id = ? AND user_id = ?", sourceID, userID)},
 		{&preview.Moved.Reminders, db.Model(&models.Reminder{}).Where("contact_id = ? AND user_id = ?", sourceID, userID)},
+		{&preview.Moved.EmploymentHistories, db.Model(&models.EmploymentHistory{}).Where("contact_id = ? AND user_id = ?", sourceID, userID)},
 		{&preview.Moved.Relationships, db.Model(&models.Relationship{}).Where("contact_id = ? AND user_id = ?", sourceID, userID)},
 		{&preview.Moved.Activities, db.Table("activity_contacts").Where("contact_id = ? AND activity_id IN (SELECT id FROM activities WHERE user_id = ? AND deleted_at IS NULL)", sourceID, userID)},
 	}
@@ -285,7 +284,7 @@ type MergeResult struct {
 // MergeContacts folds the source contact into the target and deletes the
 // source, in one transaction. Fields only one side fills are kept; conflicting
 // fields take the side named in resolutions (default: target); list fields are
-// combined without duplicates. Notes, reminders, activities and relationships
+// combined without duplicates. Notes, reminders, employment history, activities and relationships
 // move to the target.
 func MergeContacts(db *gorm.DB, userID, targetID, sourceID uint, resolutions map[string]string) (*MergeResult, error) {
 	if targetID == sourceID {
@@ -302,6 +301,9 @@ func MergeContacts(db *gorm.DB, userID, targetID, sourceID uint, resolutions map
 			return err
 		}
 		if err := moveContactData(tx, userID, targetID, sourceID); err != nil {
+			return err
+		}
+		if err := RecomputeContactEmploymentScalars(tx, userID, targetID); err != nil {
 			return err
 		}
 		// An archived contact has no reminders (see ArchiveContact), including
@@ -437,7 +439,7 @@ func mergeVCardExtra(target, source string) string {
 
 // moveContactData re-points everything attached to source at target.
 func moveContactData(tx *gorm.DB, userID, targetID, sourceID uint) error {
-	for _, model := range []any{&models.Note{}, &models.Reminder{}, &models.ReminderCompletion{}} {
+	for _, model := range []any{&models.Note{}, &models.Reminder{}, &models.ReminderCompletion{}, &models.EmploymentHistory{}} {
 		if err := tx.Model(model).Where("contact_id = ? AND user_id = ?", sourceID, userID).
 			Update("contact_id", targetID).Error; err != nil {
 			return err

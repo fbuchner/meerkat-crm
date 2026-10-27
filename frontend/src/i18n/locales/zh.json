@@ -271,6 +271,8 @@
       "activitiesCount_other": "{{count}} 个活动",
       "remindersCount_one": "{{count}} 个提醒",
       "remindersCount_other": "{{count}} 个提醒",
+      "employmentHistoriesCount_one": "{{count}} 个工作经历",
+      "employmentHistoriesCount_other": "{{count}} 个工作经历",
       "relationshipsCount_one": "{{count}} 个关系",
       "relationshipsCount_other": "{{count}} 个关系",
       "deleteWarning": "合并后将删除 {{name}}。此操作无法撤销。",

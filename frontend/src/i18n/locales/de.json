@@ -271,6 +271,8 @@
       "activitiesCount_other": "{{count}} Aktivitäten",
       "remindersCount_one": "{{count}} Erinnerung",
       "remindersCount_other": "{{count}} Erinnerungen",
+      "employmentHistoriesCount_one": "{{count}} Stelle",
+      "employmentHistoriesCount_other": "{{count}} Stellen",
       "relationshipsCount_one": "{{count}} Beziehung",
       "relationshipsCount_other": "{{count}} Beziehungen",
       "deleteWarning": "{{name}} wird nach dem Zusammenführen gelöscht. Dies kann nicht rückgängig gemacht werden.",

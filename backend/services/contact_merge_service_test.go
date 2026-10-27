@@ -165,14 +165,13 @@ func TestMergeContacts(t *testing.T) {
 
 	preview, err := PreviewContactMerge(db, userID, target.ID, source.ID)
 	require.NoError(t, err)
-	assert.Equal(t, models.MergeMovedCounts{Notes: 1, Activities: 2, Reminders: 1, Relationships: 2}, preview.Moved)
-	assert.Len(t, preview.Conflicts, 4) // lastname, job_title, photo, custom Shoe size
+	assert.Equal(t, models.MergeMovedCounts{Notes: 1, Activities: 2, Reminders: 1, Relationships: 2, EmploymentHistories: 1}, preview.Moved)
+	assert.Len(t, preview.Conflicts, 3) // lastname, photo, custom Shoe size
 
 	result, err := MergeContacts(db, userID, target.ID, source.ID, map[string]string{
 		"lastname":                "source",
 		"photo":                   "source",
 		"custom_fields.Shoe size": "target",
-		// job_title left unresolved: target wins
 	})
 	require.NoError(t, err)
 
@@ -199,6 +198,8 @@ func TestMergeContacts(t *testing.T) {
 
 	// Related data now belongs to the target.
 	var count int64
+	db.Model(&models.EmploymentHistory{}).Where("contact_id = ?", target.ID).Count(&count)
+	assert.EqualValues(t, 2, count)
 	db.Model(&models.Note{}).Where("contact_id = ?", target.ID).Count(&count)
 	assert.EqualValues(t, 1, count)
 	db.Model(&models.Reminder{}).Where("contact_id = ?", target.ID).Count(&count)

@@ -886,3 +886,31 @@ func TestUpdateContact_RejectsDeceasedDateBeforeBirthday(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
+
+func TestUpdateContact_IgnoresDerivedEmploymentFields(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+
+	router.PUT("/contacts/:id", withValidated(func() any { return &models.ContactInput{} }), UpdateContact)
+
+	contact := models.Contact{UserID: user.ID, Firstname: "Erin", Organization: "Acme"}
+	require.NoError(t, db.Create(&contact).Error)
+
+	// Neither a blanking nor a differing PUT may touch the derived fields.
+	for _, body := range []string{`{"firstname":"Erin"}`, `{"firstname":"Erin","organization":"Other"}`} {
+		req, _ := http.NewRequest("PUT", "/contacts/"+strconv.Itoa(int(contact.ID)), bytes.NewBufferString(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		require.Equal(t, http.StatusOK, w.Code)
+
+		var got models.Contact
+		require.NoError(t, db.First(&got, contact.ID).Error)
+		assert.Equal(t, "Acme", got.Organization)
+	}
+	var entry models.EmploymentHistory
+	require.NoError(t, db.Where("contact_id = ?", contact.ID).First(&entry).Error)
+	assert.Equal(t, "Acme", entry.Organization)
+}

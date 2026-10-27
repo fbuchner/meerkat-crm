@@ -72,6 +72,9 @@ func validateEmploymentHistoryDates(startDate, endDate string) *apperrors.AppErr
 	}
 
 	if end.Before(start) {
+		if start.After(time.Now().UTC()) {
+			return apperrors.ErrInvalidInput("end_date", "Start date is in the future; an entry that has not started cannot be ended")
+		}
 		return apperrors.ErrInvalidInput("end_date", "End date must not be before start date")
 	}
 

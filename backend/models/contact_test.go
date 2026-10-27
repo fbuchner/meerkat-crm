@@ -111,3 +111,24 @@ func TestContactSaveDoesNotResurrectEndedJob(t *testing.T) {
 		t.Errorf("expected scalars reverted, got %q", got.Organization)
 	}
 }
+
+// Only CardDAV opts into RevertStaleEmployment: an API PUT is a deliberate write
+// (e.g. rehired at the same company), so it reopens the ended job.
+func TestContactSaveWithoutRevertFlagReopensEndedJob(t *testing.T) {
+	db := setupTestDB(t)
+
+	contact := Contact{UserID: 1, Firstname: "Jane"}
+	db.Create(&contact)
+	db.Create(&EmploymentHistory{UserID: 1, ContactID: contact.ID, Organization: "Acme", EndDate: "2023-01-01"})
+
+	contact.Organization = "Acme"
+	if err := db.Save(&contact).Error; err != nil {
+		t.Fatalf("save failed: %v", err)
+	}
+
+	var open int64
+	db.Model(&EmploymentHistory{}).Where("contact_id = ? AND end_date = ''", contact.ID).Count(&open)
+	if open != 1 {
+		t.Errorf("expected one open entry, got %d", open)
+	}
+}

@@ -148,8 +148,10 @@ export function formatDateWithFormat(dateString: string, format: DateFormat): st
   // Partial dates (YYYY, YYYY-MM) keep their precision instead of becoming day 01.
   const partial = /^(\d{4})-(\d{2})$/.exec(dateString);
   if (partial) {
-    const [, y, m] = partial;
-    return format === 'eu' ? `${m}.${y}` : format === 'iso' ? dateString : `${m}/${y}`;
+    return dateFnsFormatFor(format)
+      .replace(/d+[./-]?|[./-]?d+/, '')
+      .replace('MM', partial[2])
+      .replace('yyyy', partial[1]);
   }
   if (/^\d{4}$/.test(dateString)) return dateString;
 

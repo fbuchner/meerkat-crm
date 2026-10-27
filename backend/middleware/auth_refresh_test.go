@@ -55,7 +55,7 @@ func TestAuthCookieSlidingRefresh(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "u", claims["username"])
 	assert.EqualValues(t, 7, claims["user_id"])
-	assert.EqualValues(t, time.Now().Add(-time.Hour).Unix(), claims["auth_time"])
+	assert.InDelta(t, time.Now().Add(-time.Hour).Unix(), claims["auth_time"], 2)
 
 	// near the session cap: new expiry is clamped to auth_time+30h
 	w = call(tokenAt(2*time.Hour, 25*time.Hour), true)
@@ -80,5 +80,4 @@ func TestAuthCookieSlidingRefresh(t *testing.T) {
 	w = call(tokenWithExp(2*time.Hour), false)
 	assert.Equal(t, 200, w.Code)
 	assert.Empty(t, w.Header().Get("Set-Cookie"))
-
 }

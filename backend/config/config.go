@@ -70,7 +70,8 @@ func LoadConfig() *Config {
 		jwtExpiryHours = defaultJWTExpiry
 	}
 
-	defaultJWTMaxSession := 720
+	// Never default below JWT_EXPIRY_HOURS, or deployments with a long expiry fail validation on upgrade.
+	defaultJWTMaxSession := max(720, jwtExpiryHours)
 	jwtMaxSessionHours, err := strconv.Atoi(getEnv("JWT_MAX_SESSION_HOURS", strconv.Itoa(defaultJWTMaxSession)))
 	if err != nil {
 		log.Println("WARN: Invalid JWT max session set. Please provide an integer value.")

@@ -43,7 +43,7 @@ test.describe('Employment history', () => {
     }
   });
 
-  test('rejects an empty organization and a malformed date', async ({ page }) => {
+  test('rejects an empty entry and a malformed date', async ({ page }) => {
     const contact = await createTestContact(page.request);
 
     try {
@@ -52,7 +52,7 @@ test.describe('Employment history', () => {
       await page.getByRole('button', { name: /add job/i }).click();
       const dialog = page.getByRole('dialog');
       await dialog.getByRole('button', { name: /^save$/i }).click();
-      await expect(dialog.getByText(/organization is required/i)).toBeVisible();
+      await expect(dialog.getByText(/enter an organization, job title, department or role/i)).toBeVisible();
 
       await dialog.getByRole('textbox', { name: /organization/i }).fill('Acme');
       await dialog.getByRole('textbox', { name: /start date/i }).fill('01/2020');

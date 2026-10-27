@@ -93,12 +93,12 @@ test('failed save rethrows, keeps dialog open and skips contact refresh', async 
   expect(onContactChanged).not.toHaveBeenCalled();
 });
 
-test('failed delete and end rethrow', async () => {
+test('failed delete and end are swallowed after notifying', async () => {
   mocked.deleteEmploymentHistory.mockRejectedValue(new Error('d'));
   mocked.endEmploymentHistory.mockRejectedValue(new Error('e'));
   const { result } = renderHook(() => useEmploymentHistory('1'));
   await act(async () => {
-    await expect(result.current.handleDeleteEntry(5)).rejects.toThrow('d');
-    await expect(result.current.handleEndEntry(5)).rejects.toThrow('e');
+    await expect(result.current.handleDeleteEntry(5)).resolves.toBeUndefined();
+    await expect(result.current.handleEndEntry(5)).resolves.toBeUndefined();
   });
 });

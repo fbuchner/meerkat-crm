@@ -30,3 +30,12 @@ func TestPartialDateStart(t *testing.T) {
 		}
 	}
 }
+
+func TestPartialDateEnd(t *testing.T) {
+	for in, want := range map[string]string{"2020": "2020-12-31", "2020-02": "2020-02-29", "2020-05-03": "2020-05-03"} {
+		got, ok := PartialDateEnd(in)
+		if !ok || got.Format("2006-01-02") != want {
+			t.Errorf("PartialDateEnd(%q) = %v, want %s", in, got, want)
+		}
+	}
+}

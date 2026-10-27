@@ -60,7 +60,7 @@ func validateEmploymentHistoryDates(startDate, endDate string) *apperrors.AppErr
 	}
 
 	start, startOk := models.PartialDateStart(startDate)
-	end, endOk := models.PartialDateStart(endDate)
+	end, endOk := models.PartialDateEnd(endDate)
 	if !startOk || !endOk {
 		return nil
 	}
@@ -240,6 +240,10 @@ func EndEmploymentHistory(c *gin.Context) {
 	}
 
 	entry.EndDate = time.Now().UTC().Format("2006-01-02")
+	if err := validateEmploymentHistoryDates(entry.StartDate, entry.EndDate); err != nil {
+		apperrors.AbortWithError(c, err)
+		return
+	}
 
 	err := db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Save(&entry).Error; err != nil {

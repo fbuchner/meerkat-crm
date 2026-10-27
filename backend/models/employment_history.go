@@ -38,3 +38,21 @@ func PartialDateStart(s string) (t time.Time, ok bool) {
 	}
 	return time.Time{}, false
 }
+
+// PartialDateEnd is like PartialDateStart but returns the last day of the
+// period, so a year-only end date covers the whole year.
+func PartialDateEnd(s string) (t time.Time, ok bool) {
+	for _, p := range []struct {
+		layout string
+		add    func(time.Time) time.Time
+	}{
+		{"2006-01-02", func(t time.Time) time.Time { return t }},
+		{"2006-01", func(t time.Time) time.Time { return t.AddDate(0, 1, -1) }},
+		{"2006", func(t time.Time) time.Time { return t.AddDate(1, 0, -1) }},
+	} {
+		if parsed, err := time.Parse(p.layout, s); err == nil {
+			return p.add(parsed), true
+		}
+	}
+	return time.Time{}, false
+}

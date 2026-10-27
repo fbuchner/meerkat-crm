@@ -64,7 +64,6 @@ export function useEmploymentHistory(
       await onContactChanged?.();
     } catch (err) {
       handleError(err, { operation: 'deleting employment history entry' }, notifier);
-      throw err;
     }
   };
 
@@ -76,7 +75,6 @@ export function useEmploymentHistory(
       await onContactChanged?.();
     } catch (err) {
       handleError(err, { operation: 'ending employment history entry' }, notifier);
-      throw err;
     }
   };
 

@@ -4,8 +4,7 @@ import { DialogTitle, DialogContent, DialogActions, TextField, Button, Box } fro
 import AppDialog from './AppDialog';
 import { useTranslation } from 'react-i18next';
 import { EmploymentHistoryEntry, EmploymentHistoryFormData } from '../api/employmentHistory';
-import { handleError, getErrorMessage } from '../utils/errorHandler';
-import { useSnackbar } from '../context/SnackbarContext';
+import { getErrorMessage } from '../utils/errorHandler';
 
 interface AddEmploymentHistoryDialogProps {
   open: boolean;
@@ -23,7 +22,6 @@ export default function AddEmploymentHistoryDialog({
   entry,
 }: AddEmploymentHistoryDialogProps) {
   const { t } = useTranslation();
-  const { showError } = useSnackbar();
   const [organization, setOrganization] = useState('');
   const [department, setDepartment] = useState('');
   const [jobTitle, setJobTitle] = useState('');
@@ -90,7 +88,6 @@ export default function AddEmploymentHistoryDialog({
       });
       handleClose();
     } catch (err) {
-      handleError(err, { operation: 'saving employment history entry' }, { showError });
       setError(getErrorMessage(err));
     } finally {
       setSaving(false);

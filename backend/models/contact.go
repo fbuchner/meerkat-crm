@@ -182,7 +182,7 @@ func (c *Contact) syncCurrentEmploymentHistory(tx *gorm.DB) error {
 	}
 
 	var openEntries []EmploymentHistory
-	if err := tx.Where("contact_id = ? AND end_date = ''", c.ID).Find(&openEntries).Error; err != nil {
+	if err := tx.Where("user_id = ? AND contact_id = ? AND end_date = ''", c.UserID, c.ID).Find(&openEntries).Error; err != nil {
 		return err
 	}
 

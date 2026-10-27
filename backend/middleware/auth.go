@@ -136,7 +136,9 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 // so active users stay logged in (sliding session).
 func refreshCookie(c *gin.Context, cfg *config.Config, claims jwt.MapClaims) {
 	exp, ok := claims["exp"].(float64)
-	if !ok {
+	authTime, hasAuthTime := claims["auth_time"].(float64)
+	// Tokens without auth_time (issued before the cap existed) just run out; the cap is off when unset.
+	if !ok || !hasAuthTime || cfg.JWTMaxSessionHours <= 0 {
 		return
 	}
 	lifetime := time.Duration(cfg.JWTExpiryHours) * time.Hour
@@ -148,25 +150,40 @@ func refreshCookie(c *gin.Context, cfg *config.Config, claims jwt.MapClaims) {
 	username, _ := claims["username"].(string)
 	user := models.User{Username: username}
 	user.ID = id
-	tokenString, err := GenerateToken(user, cfg)
+	tokenString, newExp, err := signToken(user, cfg, time.Unix(int64(authTime), 0))
 	if err != nil {
 		logger.Logger.Warn().Err(err).Uint("user_id", id).Msg("Failed to refresh auth token")
 		return
 	}
+	// At the session cap the new expiry stops growing; keep the current cookie instead of re-issuing it.
+	if newExp.Unix() <= int64(exp) {
+		return
+	}
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie("auth_token", tokenString, cfg.JWTExpiryHours*3600, "/", cfg.CookieDomain, cfg.CookieSecure, true)
+	c.SetCookie("auth_token", tokenString, int(time.Until(newExp).Seconds()), "/", cfg.CookieDomain, cfg.CookieSecure, true)
 }
 
 // GenerateToken signs a JWT for the user. Lives here (not in services) so the auth middleware can refresh tokens without an import cycle.
 func GenerateToken(user models.User, cfg *config.Config) (string, error) {
-	JWTSecretKey := cfg.JWTSecretKey
-	if JWTSecretKey == "" {
-		return "", errors.New("JWT secret key is empty")
+	tokenString, _, err := signToken(user, cfg, time.Now())
+	return tokenString, err
+}
+
+// signToken signs a JWT whose expiry is capped at authTime (the original login) + JWT_MAX_SESSION_HOURS,
+// so refreshes cannot extend a session forever. authTime is carried through refreshes as the auth_time claim.
+func signToken(user models.User, cfg *config.Config, authTime time.Time) (string, time.Time, error) {
+	if cfg.JWTSecretKey == "" {
+		return "", time.Time{}, errors.New("JWT secret key is empty")
+	}
+	if cfg.JWTExpiryHours <= 0 {
+		return "", time.Time{}, errors.New("JWT expiry hours is invalid")
 	}
 
-	JWTExpiryHours := cfg.JWTExpiryHours
-	if JWTExpiryHours <= 0 {
-		return "", errors.New("JWT expiry hours is invalid")
+	exp := time.Now().Add(time.Hour * time.Duration(cfg.JWTExpiryHours))
+	if cfg.JWTMaxSessionHours > 0 {
+		if limit := authTime.Add(time.Hour * time.Duration(cfg.JWTMaxSessionHours)); limit.Before(exp) {
+			exp = limit
+		}
 	}
 
 	// Note: is_admin is intentionally NOT included in the JWT (AdminMiddleware handles this)
@@ -174,14 +191,13 @@ func GenerateToken(user models.User, cfg *config.Config) (string, error) {
 		"authorized": true,
 		"username":   user.Username,
 		"user_id":    user.ID,
-		"exp":        time.Now().Add(time.Hour * time.Duration(JWTExpiryHours)).Unix(),
+		"auth_time":  authTime.Unix(),
+		"exp":        exp.Unix(),
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(JWTSecretKey))
+	tokenString, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(cfg.JWTSecretKey))
 	if err != nil {
-		return "", err
+		return "", time.Time{}, err
 	}
-
-	return tokenString, nil
+	return tokenString, exp, nil
 }

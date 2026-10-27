@@ -38,6 +38,7 @@ After adjusting the environment variables as needed you can run:
 | `DATA_PATH` | Host directory where the database file should be stored |
 | `PHOTOS_PATH` | Host directory where the contact photos should be stored |
 | `JWT_EXPIRY_HOURS` | Session lifetime in hours. The session is renewed while you use the app (once less than half of it is left), so you only need to sign in again after this many hours of inactivity. Default is 96 hours (4 days) |
+| `JWT_MAX_SESSION_HOURS` | Absolute session limit in hours, counted from sign-in. Sliding renewal never extends a session beyond it, so you must sign in again after this long even if you use the app daily. Must be at least `JWT_EXPIRY_HOURS`. Default is 720 hours (30 days) |
 | `OIDC_PROVIDER_URL` | Issuer URL of your OIDC provider (i.e. endpoint URI for your provider). Required to enable SSO |
 | `OIDC_CLIENT_ID` | OAuth2 client ID registered with your OIDC provider |
 | `OIDC_CLIENT_SECRET` | OAuth2 client secret registered with your OIDC provider |

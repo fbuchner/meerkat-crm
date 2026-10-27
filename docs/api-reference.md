@@ -20,7 +20,7 @@ Admin endpoints (`/admin/*`) additionally require the user to have the admin fla
 
 Login sets an httpOnly JWT cookie. Subsequent requests must include it (i.e. send with `credentials: 'include'`). The cookie name and domain are configured via `COOKIE_DOMAIN` and `COOKIE_SECURE`.
 
-Sessions are sliding: when a request authenticated by the cookie arrives with less than half of `JWT_EXPIRY_HOURS` left, the response carries a fresh `auth_token` cookie. Bearer tokens (JWT or API) are never refreshed.
+Sessions are sliding: when a request authenticated by the cookie arrives with less than half of `JWT_EXPIRY_HOURS` left, the response carries a fresh `auth_token` cookie. The renewal stops at `JWT_MAX_SESSION_HOURS` after login. Bearer tokens (JWT or API) are never refreshed.
 
 Alternatively, API tokens can be used in the `Authorization` header:
 

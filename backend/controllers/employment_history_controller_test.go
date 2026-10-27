@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -144,4 +145,10 @@ func TestEndEmploymentHistory_RejectsAlreadyClosedEntry(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.NotEqual(t, http.StatusOK, w.Code)
+}
+
+func TestValidateEmploymentHistoryDates_RejectsFutureEndDate(t *testing.T) {
+	future := strconv.Itoa(time.Now().Year() + 1)
+	assert.NotNil(t, validateEmploymentHistoryDates("", future))
+	assert.Nil(t, validateEmploymentHistoryDates("", "2020-01"))
 }

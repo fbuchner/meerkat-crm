@@ -31,8 +31,6 @@ export default function EmploymentHistoryList({
   const { t } = useTranslation();
   const { formatDate } = useDateFormat();
 
-  // Dates may be partial (YYYY, YYYY-MM); only full dates go through the user's format.
-  const showDate = (d: string) => (/^\d{4}-\d{2}-\d{2}$/.test(d) ? formatDate(d) : d);
 
   const handleDeleteClick = (entryId: number) => {
     if (window.confirm(t('employmentHistory.deleteMessage'))) {
@@ -58,7 +56,7 @@ export default function EmploymentHistoryList({
     <Stack spacing={1.5}>
       {entries.map((entry) => {
         const isCurrent = !entry.end_date;
-        const dateRange = [showDate(entry.start_date || '') || t('employmentHistory.unknownDate'), isCurrent ? t('employmentHistory.present') : showDate(entry.end_date || '')]
+        const dateRange = [formatDate(entry.start_date || '') || t('employmentHistory.unknownDate'), isCurrent ? t('employmentHistory.present') : formatDate(entry.end_date || '')]
           .join(' – ');
 
         return (

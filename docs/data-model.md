@@ -53,12 +53,12 @@ Relationships can either link to an existing contact or you can enter details ma
 
 ## Employment History
 
-Each contact has an **Employment History** tab on its detail page listing past and current jobs. An entry holds an organization (required), and optionally a department, job title, role, start date, end date and notes. Dates can be partial: `YYYY`, `YYYY-MM` or `YYYY-MM-DD`. The end date must not be before the start date.
+Each contact has an **Employment History** tab on its detail page listing past and current jobs. An entry holds an organization (required), and optionally a department, job title, role, start date, end date and notes. Dates can be partial: `YYYY`, `YYYY-MM` or `YYYY-MM-DD`. The end date must not be before the start date or in the future.
 
 An entry without an end date is *current*. Entries are listed most recent first, with current entries on top. Use **End** on a current entry to set its end date to today.
 
 The organization, department, job title and role shown under *General information* (and used in vCard export and CardDAV) are read-only there: they are always taken from the current entry with the latest start date. If no entry is current they are empty. Add, edit, end or delete entries in the Employment History tab to change them.
 
-Contacts saved with organization, department, job title or role values (CSV/Monica import, CardDAV sync, API update) update the current entry to match, or create one if none exists. Clearing these values this way does not end or delete the entry; end or delete it in the Employment History tab instead.
+Contacts saved with organization, department, job title or role values (CSV/Monica import, CardDAV sync, API update) update the current entry to match, or create one if none exists. If no entry is current and the incoming values match the most recently ended entry (for example a phone that hasn't synced yet pushing the old job), no entry is created and the values are cleared, so an ended job is not brought back. Clearing these values this way does not end or delete the entry; end or delete it in the Employment History tab instead.
 
 Deleting a contact deletes its employment history.

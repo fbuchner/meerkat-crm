@@ -186,8 +186,24 @@ func (c *Contact) syncCurrentEmploymentHistory(tx *gorm.DB) error {
 		return err
 	}
 
-	current := mostRecentOpenEntry(openEntries)
+	current := MostRecentOpenEntry(openEntries)
 	if current == nil {
+		// A stale sync (phone/import) re-pushing the job the user just ended
+		// must not resurrect it: if it equals the latest closed entry, revert
+		// the scalars instead of creating a new open entry.
+		var last EmploymentHistory
+		err := tx.Where("user_id = ? AND contact_id = ? AND end_date != ''", c.UserID, c.ID).
+			Order("end_date DESC").Limit(1).Find(&last).Error
+		if err != nil {
+			return err
+		}
+		if last.ID != 0 && last.Organization == c.Organization && last.Department == c.Department &&
+			last.JobTitle == c.JobTitle && last.Role == c.Role {
+			c.Organization, c.Department, c.JobTitle, c.Role = "", "", "", ""
+			return tx.Model(c).UpdateColumns(map[string]interface{}{
+				"organization": "", "department": "", "job_title": "", "role": "",
+			}).Error
+		}
 		return tx.Create(&EmploymentHistory{
 			UserID:       c.UserID,
 			ContactID:    c.ID,
@@ -211,11 +227,11 @@ func (c *Contact) syncCurrentEmploymentHistory(tx *gorm.DB) error {
 	}).Error
 }
 
-// mostRecentOpenEntry picks the open entry whose StartDate is latest. An
+// MostRecentOpenEntry picks the open entry whose StartDate is latest. An
 // entry with no parseable StartDate loses to any entry that has one; if none
 // have a parseable StartDate, the first entry is returned as a deterministic
 // fallback.
-func mostRecentOpenEntry(entries []EmploymentHistory) *EmploymentHistory {
+func MostRecentOpenEntry(entries []EmploymentHistory) *EmploymentHistory {
 	var best *EmploymentHistory
 	var bestTime time.Time
 	for i := range entries {

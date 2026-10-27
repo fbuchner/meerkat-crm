@@ -45,9 +45,9 @@ test('open-ended entry shows Current chip, Present, and End button', () => {
   expect(screen.getByLabelText('End this job')).toBeInTheDocument();
 });
 
-test('full dates use the date format, partial dates are shown as typed', () => {
+test('partial dates keep their precision in the user date format', () => {
   renderList([entry({ start_date: '2018', end_date: '2020-06' })]);
-  expect(screen.getByText('2018 – 2020-06')).toBeInTheDocument();
+  expect(screen.getByText('2018 – 06.2020')).toBeInTheDocument();
   expect(screen.queryByText('Current')).not.toBeInTheDocument();
   expect(screen.queryByLabelText('End this job')).not.toBeInTheDocument();
 });

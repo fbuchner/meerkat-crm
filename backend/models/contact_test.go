@@ -85,3 +85,28 @@ func TestContactSavePicksMostRecentStartDateAmongOpenEntries(t *testing.T) {
 		t.Errorf("expected the 2015 entry untouched, got %q", older.Organization)
 	}
 }
+
+func TestContactSaveDoesNotResurrectEndedJob(t *testing.T) {
+	db := setupTestDB(t)
+
+	contact := Contact{UserID: 1, Firstname: "Jane"}
+	db.Create(&contact)
+	db.Create(&EmploymentHistory{UserID: 1, ContactID: contact.ID, Organization: "Acme", EndDate: "2023-01-01"})
+
+	// Stale sync pushes the old job back.
+	contact.Organization = "Acme"
+	if err := db.Save(&contact).Error; err != nil {
+		t.Fatalf("save failed: %v", err)
+	}
+
+	var open int64
+	db.Model(&EmploymentHistory{}).Where("contact_id = ? AND end_date = ''", contact.ID).Count(&open)
+	if open != 0 {
+		t.Errorf("expected no open entry, got %d", open)
+	}
+	var got Contact
+	db.First(&got, contact.ID)
+	if got.Organization != "" {
+		t.Errorf("expected scalars reverted, got %q", got.Organization)
+	}
+}

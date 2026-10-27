@@ -51,11 +51,17 @@ func GetEmploymentHistory(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"employment_history": entries})
 }
 
-// validateEmploymentHistoryDates rejects an entry whose EndDate is before its
-// StartDate. Either field may be empty (an open-ended or undated entry), in
+// validateEmploymentHistoryDates rejects an entry whose EndDate is in the future or
+// before its StartDate. Either field may be empty (an open-ended or undated entry), in
 // which case there is nothing to compare.
 func validateEmploymentHistoryDates(startDate, endDate string) *apperrors.AppError {
-	if startDate == "" || endDate == "" {
+	if endDate == "" {
+		return nil
+	}
+	if end, ok := models.PartialDateStart(endDate); ok && end.After(time.Now().UTC()) {
+		return apperrors.ErrInvalidInput("end_date", "End date must not be in the future")
+	}
+	if startDate == "" {
 		return nil
 	}
 

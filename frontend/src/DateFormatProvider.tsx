@@ -144,7 +144,15 @@ export function dateFnsFormatFor(format: DateFormat): string {
 
 export function formatDateWithFormat(dateString: string, format: DateFormat): string {
   if (!dateString) return '';
-  
+
+  // Partial dates (YYYY, YYYY-MM) keep their precision instead of becoming day 01.
+  const partial = /^(\d{4})-(\d{2})$/.exec(dateString);
+  if (partial) {
+    const [, y, m] = partial;
+    return format === 'eu' ? `${m}.${y}` : format === 'iso' ? dateString : `${m}/${y}`;
+  }
+  if (/^\d{4}$/.test(dateString)) return dateString;
+
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return dateString;
   

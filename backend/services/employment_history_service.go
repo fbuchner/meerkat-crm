@@ -25,9 +25,7 @@ func RecomputeContactEmploymentScalars(db *gorm.DB, userID, contactID uint) erro
 		return err
 	}
 
-	SortEmploymentHistory(openEntries)
-	if len(openEntries) > 0 {
-		current := openEntries[0]
+	if current := models.MostRecentOpenEntry(openEntries); current != nil {
 		contact.Organization = current.Organization
 		contact.Department = current.Department
 		contact.JobTitle = current.JobTitle
@@ -39,7 +37,9 @@ func RecomputeContactEmploymentScalars(db *gorm.DB, userID, contactID uint) erro
 		contact.Role = ""
 	}
 
-	return db.Save(&contact).Error
+	// Select limits the write to the four scalars so concurrent edits to other
+	// columns aren't clobbered; Contact hooks (etag, history sync) still run.
+	return db.Select("organization", "department", "job_title", "role").Save(&contact).Error
 }
 
 // SortEmploymentHistory orders entries most-recent-first: open-ended entries

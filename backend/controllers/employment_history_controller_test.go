@@ -100,7 +100,7 @@ func TestEndEmploymentHistory_ClosesOpenEntryAndRecomputesContact(t *testing.T) 
 
 	// NOTE: Contact.Firstname is set without Organization here (deliberately)
 	// so Contact.AfterSave doesn't auto-create its own open EmploymentHistory
-	// entry alongside the one we create explicitly below — see Task 3's
+	// entry alongside the one we create explicitly below — see
 	// syncCurrentEmploymentHistory. We then set Organization via a second
 	// Save, which lands on the entry we just created (no duplicate) because
 	// it already matches.

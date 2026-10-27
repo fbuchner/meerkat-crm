@@ -423,7 +423,7 @@ export default function ContactInformation({
           field="organization"
           value={contact.organization || ''}
           isEditing={false}
-readOnly
+          readOnly
           editValue={editValue}
           validationError={validationError}
           onEditStart={onEditStart}
@@ -440,7 +440,7 @@ readOnly
           field="department"
           value={contact.department || ''}
           isEditing={false}
-readOnly
+          readOnly
           editValue={editValue}
           validationError={validationError}
           onEditStart={onEditStart}
@@ -457,7 +457,7 @@ readOnly
           field="job_title"
           value={contact.job_title || ''}
           isEditing={false}
-readOnly
+          readOnly
           editValue={editValue}
           validationError={validationError}
           onEditStart={onEditStart}
@@ -474,7 +474,7 @@ readOnly
           field="role"
           value={contact.role || ''}
           isEditing={false}
-readOnly
+          readOnly
           editValue={editValue}
           validationError={validationError}
           onEditStart={onEditStart}

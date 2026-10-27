@@ -192,7 +192,7 @@ func (c *Contact) syncCurrentEmploymentHistory(tx *gorm.DB) error {
 	}
 
 	var openEntries []EmploymentHistory
-	if err := tx.Where("user_id = ? AND contact_id = ? AND end_date = ''", c.UserID, c.ID).Find(&openEntries).Error; err != nil {
+	if err := tx.Where("user_id = ? AND contact_id = ? AND end_date = ''", c.UserID, c.ID).Order("id").Find(&openEntries).Error; err != nil {
 		return err
 	}
 
@@ -250,7 +250,8 @@ func (c *Contact) syncCurrentEmploymentHistory(tx *gorm.DB) error {
 // MostRecentOpenEntry picks the open entry whose StartDate is latest. An
 // entry with no parseable StartDate loses to any entry that has one; if none
 // have a parseable StartDate, the first entry is returned as a deterministic
-// fallback.
+// fallback. Ties go to the first entry, so callers
+// load entries ordered by id (the oldest wins, e.g. the target after a merge).
 func MostRecentOpenEntry(entries []EmploymentHistory) *EmploymentHistory {
 	var best *EmploymentHistory
 	var bestTime time.Time

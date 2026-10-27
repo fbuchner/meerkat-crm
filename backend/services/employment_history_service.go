@@ -16,7 +16,7 @@ import (
 func RecomputeContactEmploymentScalars(db *gorm.DB, userID, contactID uint) error {
 	var openEntries []models.EmploymentHistory
 	if err := db.Where("user_id = ? AND contact_id = ? AND end_date = ''", userID, contactID).
-		Find(&openEntries).Error; err != nil {
+		Order("id").Find(&openEntries).Error; err != nil {
 		return err
 	}
 

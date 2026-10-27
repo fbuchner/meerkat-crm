@@ -172,7 +172,7 @@ func (c *Contact) AfterSave(tx *gorm.DB) error {
 // syncCurrentEmploymentHistory keeps the "current" (open-ended) EmploymentHistory
 // entry in step with the denormalized Organization/Department/JobTitle/Role
 // scalars whenever a Contact is saved directly (CSV/Monica import, CardDAV
-// sync, or a plain API PUT that round-trips unchanged values). Editing history
+// sync; PUT /contacts/:id ignores these fields). Editing history
 // through its own CRUD endpoints is the other half of the sync: those
 // recompute the scalars and save the Contact (services.RecomputeContactEmploymentScalars),
 // which lands back here as a no-op because the values already match.

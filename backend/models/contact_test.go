@@ -112,7 +112,7 @@ func TestContactSaveDoesNotResurrectEndedJob(t *testing.T) {
 	}
 }
 
-// Only CardDAV opts into RevertStaleEmployment: an API PUT is a deliberate write
+// Only CardDAV opts into RevertStaleEmployment: an import is a deliberate write
 // (e.g. rehired at the same company), so it reopens the ended job.
 func TestContactSaveWithoutRevertFlagReopensEndedJob(t *testing.T) {
 	db := setupTestDB(t)

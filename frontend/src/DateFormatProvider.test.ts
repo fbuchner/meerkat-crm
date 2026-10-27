@@ -16,6 +16,13 @@ describe('formatDateWithFormat', () => {
     expect(formatDateWithFormat('2026-06-11', 'iso')).toBe('2026-06-11');
   });
 
+  test('keeps partial dates at their precision in every format', () => {
+    expect(formatDateWithFormat('2026-06', 'eu')).toBe('06.2026');
+    expect(formatDateWithFormat('2026-06', 'us')).toBe('06/2026');
+    expect(formatDateWithFormat('2026-06', 'iso')).toBe('2026-06');
+    expect(formatDateWithFormat('2026', 'eu')).toBe('2026');
+  });
+
   test('returns empty string for empty input', () => {
     expect(formatDateWithFormat('', 'eu')).toBe('');
   });

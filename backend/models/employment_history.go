@@ -10,7 +10,7 @@ import (
 // EmploymentHistory is a single job entry in a contact's employment timeline.
 // An entry with an empty EndDate is considered "current" (still ongoing).
 // When a contact is saved directly with scalar Organization/Department/JobTitle/Role
-// values (CSV/Monica import, CardDAV sync, or a plain API PUT), Contact.AfterSave
+// values (CSV/Monica import, CardDAV sync), Contact.AfterSave
 // patches the winning open entry to match — see contact.go.
 type EmploymentHistory struct {
 	gorm.Model

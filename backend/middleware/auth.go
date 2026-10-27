@@ -137,8 +137,8 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 func refreshCookie(c *gin.Context, cfg *config.Config, claims jwt.MapClaims) {
 	exp, ok := claims["exp"].(float64)
 	authTime, hasAuthTime := claims["auth_time"].(float64)
-	// Tokens without auth_time (issued before the cap existed) just run out; the cap is off when unset.
-	if !ok || !hasAuthTime || cfg.JWTMaxSessionHours <= 0 {
+	// Tokens without auth_time (issued before the cap existed) just run out.
+	if !ok || !hasAuthTime {
 		return
 	}
 	lifetime := time.Duration(cfg.JWTExpiryHours) * time.Hour
@@ -180,10 +180,8 @@ func signToken(user models.User, cfg *config.Config, authTime time.Time) (string
 	}
 
 	exp := time.Now().Add(time.Hour * time.Duration(cfg.JWTExpiryHours))
-	if cfg.JWTMaxSessionHours > 0 {
-		if limit := authTime.Add(time.Hour * time.Duration(cfg.JWTMaxSessionHours)); limit.Before(exp) {
-			exp = limit
-		}
+	if limit := authTime.Add(time.Hour * time.Duration(cfg.JWTMaxSessionHours)); limit.Before(exp) {
+		exp = limit
 	}
 
 	// Note: is_admin is intentionally NOT included in the JWT (AdminMiddleware handles this)

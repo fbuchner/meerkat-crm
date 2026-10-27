@@ -105,6 +105,10 @@ type Contact struct {
 	CustomFields map[string]string `gorm:"type:text;serializer:json" json:"custom_fields"`
 
 	Archived bool `gorm:"default:false" json:"archived"`
+
+	// RevertStaleEmployment is set by CardDAV so a client re-pushing the job the
+	// user just ended doesn't resurrect it. Not persisted.
+	RevertStaleEmployment bool `gorm:"-" json:"-"`
 }
 
 // renders a structured address as a single human-readable line, used to keep the legacy Address scalar in sync for search/list views.
@@ -188,14 +192,17 @@ func (c *Contact) syncCurrentEmploymentHistory(tx *gorm.DB) error {
 
 	current := MostRecentOpenEntry(openEntries)
 	if current == nil {
-		// A stale sync (phone/import) re-pushing the job the user just ended
-		// must not resurrect it: if it equals the latest closed entry, revert
-		// the scalars instead of creating a new open entry.
+		// A stale CardDAV client re-pushing the job the user just ended must not
+		// resurrect it: if it equals the latest closed entry, revert the scalars
+		// instead of creating a new open entry. Other paths (API, import) are
+		// deliberate writes and always create the entry.
 		var last EmploymentHistory
-		err := tx.Where("user_id = ? AND contact_id = ? AND end_date != ''", c.UserID, c.ID).
-			Order("end_date DESC").Limit(1).Find(&last).Error
-		if err != nil {
-			return err
+		if c.RevertStaleEmployment {
+			err := tx.Where("user_id = ? AND contact_id = ? AND end_date != ''", c.UserID, c.ID).
+				Order("end_date DESC").Limit(1).Find(&last).Error
+			if err != nil {
+				return err
+			}
 		}
 		if last.ID != 0 && last.Organization == c.Organization && last.Department == c.Department &&
 			last.JobTitle == c.JobTitle && last.Role == c.Role {

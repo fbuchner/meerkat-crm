@@ -93,8 +93,9 @@ func TestContactSaveDoesNotResurrectEndedJob(t *testing.T) {
 	db.Create(&contact)
 	db.Create(&EmploymentHistory{UserID: 1, ContactID: contact.ID, Organization: "Acme", EndDate: "2023-01-01"})
 
-	// Stale sync pushes the old job back.
+	// Stale CardDAV sync pushes the old job back.
 	contact.Organization = "Acme"
+	contact.RevertStaleEmployment = true
 	if err := db.Save(&contact).Error; err != nil {
 		t.Fatalf("save failed: %v", err)
 	}

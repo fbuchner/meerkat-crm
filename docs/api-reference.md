@@ -141,6 +141,8 @@ Every request and response carries an `X-Request-ID` header created by the middl
 
 Every change recomputes the contact's `organization`, `department`, `job_title` and `role` from the current entry with the latest `start_date`. Entries can be embedded in `GET /contacts` with `includes=employment_history`, and are included in `GET /contacts/:id` as `employment_histories` (not when the `fields` filter is used). Webhook events: `employment_history.created`, `employment_history.updated`, `employment_history.deleted`.
 
+Saving a contact with non-empty `organization`/`department`/`job_title`/`role` (API, import or CardDAV) creates or updates the current entry, but blanking all four does nothing (end or delete the entry instead). CardDAV additionally treats values identical to the most recently ended entry, with no current entry, as a stale client re-push: the scalars are reset to empty and no entry is created.
+
 ### Notes
 
 | Method | Path | Description |

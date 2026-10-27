@@ -133,7 +133,7 @@ export default function AddEmploymentHistoryDialog({
           <Box sx={{ display: 'flex', gap: 2 }}>
             <TextField
               label={t('employmentHistory.startDate')}
-              placeholder="YYYY, YYYY-MM, YYYY-MM-DD"
+              placeholder={t('employmentHistory.dateFormatHelp')}
               helperText={t('employmentHistory.dateFormatHelp')}
               value={startDate}
               onChange={(e) => { setStartDate(e.target.value); setError(''); }}
@@ -141,7 +141,7 @@ export default function AddEmploymentHistoryDialog({
             />
             <TextField
               label={t('employmentHistory.endDate')}
-              placeholder="YYYY, YYYY-MM, YYYY-MM-DD"
+              placeholder={t('employmentHistory.dateFormatHelp')}
               helperText={t('employmentHistory.endDateHelp')}
               value={endDate}
               onChange={(e) => { setEndDate(e.target.value); setError(''); }}

@@ -145,6 +145,10 @@ func refreshCookie(c *gin.Context, cfg *config.Config, claims jwt.MapClaims) {
 	if time.Until(time.Unix(int64(exp), 0)) > lifetime/2 {
 		return
 	}
+	// At the session cap there is nothing left to extend, so spare the query and signing below.
+	if time.Unix(int64(authTime), 0).Add(time.Duration(cfg.JWTMaxSessionHours)*time.Hour).Unix() <= int64(exp) {
+		return
+	}
 	// Must run after the user_id claim has been validated and stored in the context.
 	id, ok := c.MustGet("userID").(uint)
 	if !ok {
@@ -166,10 +170,6 @@ func refreshCookie(c *gin.Context, cfg *config.Config, claims jwt.MapClaims) {
 	tokenString, newExp, err := signToken(user, cfg, time.Unix(int64(authTime), 0))
 	if err != nil {
 		logger.Logger.Warn().Err(err).Uint("user_id", id).Msg("Failed to refresh auth token")
-		return
-	}
-	// At the session cap the new expiry stops growing; keep the current cookie instead of re-issuing it.
-	if newExp.Unix() <= int64(exp) {
 		return
 	}
 	c.SetSameSite(http.SameSiteLaxMode)

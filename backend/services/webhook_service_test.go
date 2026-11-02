@@ -42,7 +42,10 @@ func TestDeliverWebhook_GuardBlocksLoopbackAtDialTime(t *testing.T) {
 }
 
 func TestGuardedDeliveryClient_RefusesLoopback(t *testing.T) {
-	_, err := guardedDeliveryClient.Get("http://127.0.0.1:1/")
+	resp, err := guardedDeliveryClient.Get("http://127.0.0.1:1/")
+	if resp != nil {
+		_ = resp.Body.Close()
+	}
 	assert.ErrorIs(t, err, errWebhookPrivateAddress)
 }
 
@@ -62,6 +65,9 @@ func TestDeliverWebhook_HidesTransportErrorDetail(t *testing.T) {
 }
 
 func TestGuardedDeliveryClient_RefusesCarrierGradeNAT(t *testing.T) {
-	_, err := guardedDeliveryClient.Get("http://100.100.100.200/")
+	resp, err := guardedDeliveryClient.Get("http://100.100.100.200/")
+	if resp != nil {
+		_ = resp.Body.Close()
+	}
 	assert.ErrorIs(t, err, errWebhookPrivateAddress)
 }

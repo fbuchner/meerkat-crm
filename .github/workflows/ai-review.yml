@@ -1,0 +1,86 @@
+name: AI Review
+
+# Reviews pull requests with a non-Anthropic model through OpenRouter, because most
+# code here is written with Claude and a reviewer from the same vendor shares its
+# blind spots. The script, prompt and model list live in .github/ai-review/, and
+# .github/claude-github-action-setup.md describes the setup.
+#
+# WHY pull_request_target:
+# `pull_request` gives a fork no access to repository secrets, so the review could
+# never authenticate on the PRs that most need reviewing. This event runs in the
+# context of the base repository instead, where the secret is available.
+#
+# WHY THAT IS SAFE HERE: pull_request_target is only safe if the pull request's
+# code never reaches this privileged job at all. Three rules keep that true, and
+# all three must hold if this file is edited:
+#   1. The PR head is never checked out. The checkout pins the BASE commit, so the
+#      script, prompt and config that run are the ones already merged, and a PR
+#      cannot edit its own reviewer. Checking out the PR head here is CWE-829 and
+#      CodeQL flags it as actions/untrusted-checkout/high. The script reads the
+#      PR's files through the GitHub API, as data.
+#   2. No build, install, test or lint step. review.py uses only the standard
+#      library. The unit-test and lint workflows cover the PR's code under
+#      `pull_request`, where fork code runs without secrets.
+#   3. No `${{ }}` of PR-controlled values in `run:`. review.py reads the event
+#      from GITHUB_EVENT_PATH, so a crafted title or branch name is never a shell
+#      command.
+# persist-credentials: false keeps a git credential out of the workspace.
+#
+# The verdict is the `ai-review` commit status, not this job's result. A red job
+# means the reviewer itself broke; a failed status means the review found something.
+# Drafts are skipped, and so is any other label than the trigger label.
+#
+# The key has a daily spending limit. A PR that hits it is postponed rather than
+# failed: its status stays pending, and the scheduled run reviews it after the reset.
+# The schedule has no PR in its context, so the checkout falls back to the default
+# branch and the rules above still hold.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
+  schedule:
+    # Just after the 00:00 UTC budget reset.
+    - cron: '17 0 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  review:
+    name: Review pull request
+    if: >-
+      github.event_name != 'pull_request_target' ||
+      (github.event.pull_request.draft == false &&
+      (github.event.action != 'labeled' || github.event.label.name == 'ai-review'))
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+    # On the job, not the workflow: at workflow level, adding any other label would
+    # start a run that cancels a review in progress, even though its job is skipped.
+    concurrency:
+      group: ai-review-${{ github.event.pull_request.number || 'catch-up' }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    # review.py stops itself first: per model call, and across a whole catch-up run.
+    timeout-minutes: ${{ github.event_name == 'pull_request_target' && 20 || 60 }}
+
+    steps:
+      # Deliberately the BASE commit, not the PR head: this job holds a secret, so
+      # no fork-authored file may land in its workspace. See rule 1 above.
+      - name: Checkout base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout: |
+            .github/ai-review
+            .github/CLAUDE_INSTRUCTIONS.md
+          sparse-checkout-cone-mode: false
+
+      - name: Run review
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: python3 .github/ai-review/review.py

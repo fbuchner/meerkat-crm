@@ -25,6 +25,9 @@ import (
 // passwordResetCooldown limits how often one account can be sent a reset email.
 const passwordResetCooldown = time.Minute
 
+// passwordResetSlots limits concurrent background reset work, each of which may wait on the mail provider.
+var passwordResetSlots = make(chan struct{}, 10)
+
 func RegisterUser(cfg *config.Config) gin.HandlerFunc {
 	return func(context *gin.Context) {
 		if cfg.RegistrationDisabled {
@@ -256,7 +259,15 @@ func RequestPasswordReset(context *gin.Context, cfg *config.Config) {
 
 	// Everything after this point runs in the background: known and unknown addresses must get
 	// the same response in the same time, including when the lookup or the mail provider fails.
-	go processPasswordResetRequest(db, cfg, log, email)
+	select {
+	case passwordResetSlots <- struct{}{}:
+		go func() {
+			defer func() { <-passwordResetSlots }()
+			processPasswordResetRequest(db, cfg, log, email)
+		}()
+	default:
+		log.Warn().Msg("Password reset request dropped: too many in progress")
+	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "If an account exists, password reset instructions were sent"})
 }

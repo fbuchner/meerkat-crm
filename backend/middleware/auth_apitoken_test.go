@@ -265,7 +265,7 @@ func TestAuthMiddleware_APITokenOfDeletedUserRejected(t *testing.T) {
 	db.Create(&models.ApiToken{UserID: user.ID, Name: "orphan", TokenHash: hash})
 	db.Delete(&user)
 
-	req, _ := http.NewRequest("GET", "/test", nil)
+	req, _ := http.NewRequest("GET", "/protected", nil)
 	req.Header.Set("Authorization", "Bearer "+raw)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)

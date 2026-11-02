@@ -60,3 +60,8 @@ func TestDeliverWebhook_HidesTransportErrorDetail(t *testing.T) {
 	}
 	assert.NotNil(t, d.NextRetryAt)
 }
+
+func TestGuardedDeliveryClient_RefusesCarrierGradeNAT(t *testing.T) {
+	_, err := guardedDeliveryClient.Get("http://100.100.100.200/")
+	assert.ErrorIs(t, err, errWebhookPrivateAddress)
+}

@@ -638,12 +638,15 @@ func TestLoginUser_PasswordlessAccountIsRejected(t *testing.T) {
 
 func TestDeleteUser_RemovesAPITokens(t *testing.T) {
 	db, _ := setupRouter()
-	db.AutoMigrate(&models.ApiToken{})
+	db.AutoMigrate(&models.ApiToken{}, &models.Webhook{}, &models.WebhookDelivery{}, &models.CalendarEventLink{},
+		&models.CalendarSubscription{}, &models.CardDAVContactLink{}, &models.CardDAVConnection{}, &models.CardDAVSync{},
+		&models.ContactDuplicateDismissal{})
 	admin := models.User{Username: "tokenadmin", Email: "tokenadmin@example.com", Password: "x", IsAdmin: true}
 	target := models.User{Username: "tokentarget", Email: "tokentarget@example.com", Password: "x"}
 	db.Create(&admin)
 	db.Create(&target)
 	db.Create(&models.ApiToken{UserID: target.ID, Name: "cli", TokenHash: "deleted-user-token"})
+	db.Create(&models.CalendarSubscription{UserID: target.ID, Name: "cal", URL: "https://example.com/cal"})
 
 	router := routerForUser(db, admin.ID)
 	router.DELETE("/admin/users/:id", DeleteUser)
@@ -655,5 +658,9 @@ func TestDeleteUser_RemovesAPITokens(t *testing.T) {
 
 	var remaining int64
 	db.Model(&models.ApiToken{}).Where("user_id = ?", target.ID).Count(&remaining)
+	assert.Zero(t, remaining)
+
+	// Stored credentials must not survive even as soft-deleted rows
+	db.Unscoped().Model(&models.CalendarSubscription{}).Where("user_id = ?", target.ID).Count(&remaining)
 	assert.Zero(t, remaining)
 }

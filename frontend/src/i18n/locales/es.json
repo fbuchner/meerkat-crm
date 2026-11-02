@@ -742,6 +742,11 @@
       "test": "Probar",
       "testSuccess": "Prueba entregada ({{statusCode}})",
       "testFailed": "Prueba fallida: {{error}}",
+      "deliveryErrors": {
+        "invalidUrl": "La URL del webhook no es válida",
+        "connectionFailed": "No se pudo conectar con la URL del webhook",
+        "privateAddress": "La URL del webhook apunta a una dirección privada o de bucle invertido"
+      },
       "deliveries": "Entregas Recientes",
       "loadingDeliveries": "Cargando entregas...",
       "noDeliveries": "Aún no hay entregas.",

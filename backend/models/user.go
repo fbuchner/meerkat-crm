@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -27,4 +28,29 @@ type User struct {
 	HideEmptyContactFields bool     `gorm:"default:false" json:"hide_empty_contact_fields"`
 	OIDCSubject            *string  `gorm:"column:oidc_subject"`
 	OIDCProvider           *string  `gorm:"column:oidc_provider"`
+}
+
+// dummyPasswordHash lets a failed login for an account without a password hash cost the same
+// as a wrong password, so timing does not reveal which accounts exist.
+var dummyPasswordHash = func() []byte {
+	hash, err := bcrypt.GenerateFromPassword([]byte("meerkat-timing-equalizer"), bcrypt.DefaultCost)
+	if err != nil {
+		panic(err)
+	}
+	return hash
+}()
+
+// BurnPasswordCheck spends the cost of a password comparison and discards the result.
+func BurnPasswordCheck(password string) {
+	_ = bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(password))
+}
+
+// CheckPassword compares password to the stored hash. OIDC-only accounts have no hash, and
+// comparing against an empty one returns immediately, so they burn the same cost and always fail.
+func (u User) CheckPassword(password string) error {
+	if u.Password == "" {
+		BurnPasswordCheck(password)
+		return bcrypt.ErrMismatchedHashAndPassword
+	}
+	return bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
 }

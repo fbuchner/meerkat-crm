@@ -25,15 +25,6 @@ import (
 // passwordResetCooldown limits how often one account can be sent a reset email.
 const passwordResetCooldown = time.Minute
 
-// dummyPasswordHash lets a login for an unknown user cost the same as a wrong password.
-var dummyPasswordHash = func() []byte {
-	hash, err := bcrypt.GenerateFromPassword([]byte("meerkat-timing-equalizer"), bcrypt.DefaultCost)
-	if err != nil {
-		panic(err)
-	}
-	return hash
-}()
-
 func RegisterUser(cfg *config.Config) gin.HandlerFunc {
 	return func(context *gin.Context) {
 		if cfg.RegistrationDisabled {
@@ -147,7 +138,7 @@ func LoginUser(context *gin.Context, cfg *config.Config) {
 	if err := query.First(&foundUser).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// Burn the same bcrypt cost as a real comparison to not reveal if an account exists
-			_ = bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(input.Password))
+			models.BurnPasswordCheck(input.Password)
 			// Record failed attempt even for non-existent users to prevent enumeration
 			accountLimiter.RecordFailedAttempt(identifier)
 			apperrors.AbortWithError(context, apperrors.ErrInvalidCredentials())
@@ -157,16 +148,8 @@ func LoginUser(context *gin.Context, cfg *config.Config) {
 		return
 	}
 
-	// Compare the hashed password. OIDC-only accounts have none, and comparing against an
-	// empty hash returns immediately, so they burn the dummy cost and always fail.
-	var passwordErr error
-	if foundUser.Password == "" {
-		_ = bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(input.Password))
-		passwordErr = bcrypt.ErrMismatchedHashAndPassword
-	} else {
-		passwordErr = bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(input.Password))
-	}
-	if passwordErr != nil {
+	// Compare the hashed password
+	if err := foundUser.CheckPassword(input.Password); err != nil {
 		// Record failed attempt for password mismatch
 		isLocked, lockoutSecs := accountLimiter.RecordFailedAttempt(identifier)
 		if isLocked {
@@ -281,11 +264,24 @@ func RequestPasswordReset(context *gin.Context, cfg *config.Config) {
 // processPasswordResetRequest stores a new reset token and emails it. Failures are only logged,
 // since the caller has already been answered.
 func processPasswordResetRequest(db *gorm.DB, cfg *config.Config, log *zerolog.Logger, email string) {
+	// This runs outside Gin's recovery middleware, so a panic would take the server down.
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error().Interface("panic", r).Msg("Panic while processing password reset request")
+		}
+	}()
+
 	var user models.User
 	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			log.Error().Err(err).Msg("Failed to lookup user for password reset")
 		}
+		return
+	}
+
+	now := time.Now()
+	if user.PasswordResetRequestedAt != nil && now.Sub(*user.PasswordResetRequestedAt) < passwordResetCooldown {
+		log.Info().Uint("user_id", user.ID).Msg("Password reset request ignored during cooldown")
 		return
 	}
 
@@ -295,26 +291,21 @@ func processPasswordResetRequest(db *gorm.DB, cfg *config.Config, log *zerolog.L
 		return
 	}
 
-	// The cooldown is part of the update so concurrent requests cannot both pass it.
-	now := time.Now()
-	result := db.Model(&models.User{}).
-		Where("id = ? AND (password_reset_requested_at IS NULL OR password_reset_requested_at <= ?)", user.ID, now.Add(-passwordResetCooldown)).
-		Updates(map[string]any{
-			"password_reset_token_hash":   hash,
-			"password_reset_expires_at":   services.PasswordResetExpiry(),
-			"password_reset_requested_at": now,
-		})
-	if result.Error != nil {
-		log.Error().Err(result.Error).Uint("user_id", user.ID).Msg("Failed to persist password reset token")
-		return
-	}
-	if result.RowsAffected == 0 {
-		log.Info().Uint("user_id", user.ID).Msg("Password reset request ignored during cooldown")
+	if err := db.Model(&models.User{}).Where("id = ?", user.ID).Updates(map[string]any{
+		"password_reset_token_hash":   hash,
+		"password_reset_expires_at":   services.PasswordResetExpiry(),
+		"password_reset_requested_at": now,
+	}).Error; err != nil {
+		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to persist password reset token")
 		return
 	}
 
 	if err := services.SendPasswordResetEmail(user.Email, token, user.Language, cfg); err != nil {
 		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to send password reset email")
+		// Nothing was delivered, so a retry should not have to wait out the cooldown
+		if err := db.Model(&models.User{}).Where("id = ?", user.ID).Update("password_reset_requested_at", nil).Error; err != nil {
+			log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to clear password reset cooldown")
+		}
 	}
 }
 

@@ -77,8 +77,20 @@ const emptyForm = (): WebhookFormState => ({
   is_active: true,
 });
 
+// Known messages from backend/services/webhook_service.go. Older deliveries may hold other text,
+// which is shown as stored.
+const DELIVERY_ERROR_KEYS: Record<string, string> = {
+  'webhook URL is invalid': 'settings.webhooks.deliveryErrors.invalidUrl',
+  'could not connect to the webhook URL': 'settings.webhooks.deliveryErrors.connectionFailed',
+  'webhook URL resolves to a private or loopback address': 'settings.webhooks.deliveryErrors.privateAddress',
+};
+
 export default function WebhooksSettings() {
   const { t } = useTranslation();
+  const deliveryErrorText = (error: string) => {
+    const key = DELIVERY_ERROR_KEYS[error];
+    return key ? t(key) : error;
+  };
   const [webhooks, setWebhooks] = useState<Webhook[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -183,7 +195,7 @@ export default function WebhooksSettings() {
       if (d.status_code && d.status_code >= 200 && d.status_code < 300) {
         setSuccess(t('settings.webhooks.testSuccess', { statusCode: d.status_code }));
       } else {
-        setError(t('settings.webhooks.testFailed', { error: d.error || `status ${d.status_code ?? 'unknown'}` }));
+        setError(t('settings.webhooks.testFailed', { error: d.error ? deliveryErrorText(d.error) : `status ${d.status_code ?? 'unknown'}` }));
       }
       // Prepend the new delivery into the cached list so it shows immediately
       setDeliveries(prev => ({ ...prev, [wh.id]: [d, ...(prev[wh.id] || [])] }));
@@ -375,7 +387,7 @@ export default function WebhooksSettings() {
                                       color: "error.main",
                                       ml: 0.5
                                     }}>
-                                    {d.error}
+                                    {deliveryErrorText(d.error)}
                                   </Typography>
                                 )}
                               </Box>

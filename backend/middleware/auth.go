@@ -54,6 +54,13 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 				c.Abort()
 				return
 			}
+			// Tokens of users deleted before tokens were removed with the account still exist
+			var user models.User
+			if err := db.Select("id").First(&user, apiToken.UserID).Error; err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+				c.Abort()
+				return
+			}
 			c.Set("userID", apiToken.UserID)
 			c.Set("isAPIToken", true)
 			go func(id uint) {

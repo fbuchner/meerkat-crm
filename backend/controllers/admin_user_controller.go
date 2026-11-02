@@ -340,6 +340,11 @@ func DeleteUser(c *gin.Context) {
 			return err
 		}
 
+		// Delete API tokens
+		if err := tx.Where("user_id = ?", userID).Delete(&models.ApiToken{}).Error; err != nil {
+			return err
+		}
+
 		// Delete user
 		if err := tx.Delete(&user).Error; err != nil {
 			return err

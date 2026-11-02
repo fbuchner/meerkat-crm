@@ -256,7 +256,7 @@ func TestSendReminders(t *testing.T) {
 		ContactID:             &contact.ID,
 		Message:               "Test reminder",
 		ByMail:                &byMailTrue,
-		RemindAt:              time.Now().Add(-1 * time.Hour), // already due today
+		RemindAt:              time.Now().UTC().Add(-1 * time.Hour), // already due today
 		Recurrence:            "once",
 		ReoccurFromCompletion: &reoccurFalse,
 	}
@@ -328,7 +328,7 @@ func TestSendRemindersWithRateLimit_FirstRun(t *testing.T) {
 		ContactID:  &contact.ID,
 		Message:    "Rate limit test",
 		ByMail:     &byMailTrue,
-		RemindAt:   time.Now().Add(-1 * time.Hour),
+		RemindAt:   time.Now().UTC().Add(-1 * time.Hour),
 		Recurrence: "weekly",
 	}
 	db.Create(&reminder)
@@ -384,7 +384,7 @@ func TestSendRemindersWithRateLimit_RateLimited(t *testing.T) {
 		ContactID:  &contact.ID,
 		Message:    "Rate limit test 2",
 		ByMail:     &byMailTrue,
-		RemindAt:   time.Now().Add(-1 * time.Hour),
+		RemindAt:   time.Now().UTC().Add(-1 * time.Hour),
 		Recurrence: "weekly",
 	}
 	db.Create(&reminder)
@@ -439,7 +439,7 @@ func TestSendRemindersWithRateLimit_AllowsAfterInterval(t *testing.T) {
 		ContactID:  &contact.ID,
 		Message:    "Rate limit test 3",
 		ByMail:     &byMailTrue,
-		RemindAt:   time.Now().Add(-1 * time.Hour),
+		RemindAt:   time.Now().UTC().Add(-1 * time.Hour),
 		Recurrence: "weekly",
 	}
 	db.Create(&reminder)
@@ -478,7 +478,7 @@ func TestSendRemindersWithRateLimit_AllowsAfterInterval(t *testing.T) {
 		ContactID:  &contact.ID,
 		Message:    "Rate limit test 3 - second",
 		ByMail:     &byMailTrue,
-		RemindAt:   time.Now().Add(-1 * time.Hour),
+		RemindAt:   time.Now().UTC().Add(-1 * time.Hour),
 		Recurrence: "weekly",
 	}
 	db.Create(&reminder2)

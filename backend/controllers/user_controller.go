@@ -17,9 +17,22 @@ import (
 	"meerkat/services"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
+
+// passwordResetCooldown limits how often one account can be sent a reset email.
+const passwordResetCooldown = time.Minute
+
+// dummyPasswordHash lets a login for an unknown user cost the same as a wrong password.
+var dummyPasswordHash = func() []byte {
+	hash, err := bcrypt.GenerateFromPassword([]byte("meerkat-timing-equalizer"), bcrypt.DefaultCost)
+	if err != nil {
+		panic(err)
+	}
+	return hash
+}()
 
 func RegisterUser(cfg *config.Config) gin.HandlerFunc {
 	return func(context *gin.Context) {
@@ -133,6 +146,8 @@ func LoginUser(context *gin.Context, cfg *config.Config) {
 
 	if err := query.First(&foundUser).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Burn the same bcrypt cost as a real comparison to not reveal if an account exists
+			_ = bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(input.Password))
 			// Record failed attempt even for non-existent users to prevent enumeration
 			accountLimiter.RecordFailedAttempt(identifier)
 			apperrors.AbortWithError(context, apperrors.ErrInvalidCredentials())
@@ -142,8 +157,16 @@ func LoginUser(context *gin.Context, cfg *config.Config) {
 		return
 	}
 
-	// Compare the hashed password
-	if err := bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(input.Password)); err != nil {
+	// Compare the hashed password. OIDC-only accounts have none, and comparing against an
+	// empty hash returns immediately, so they burn the dummy cost and always fail.
+	var passwordErr error
+	if foundUser.Password == "" {
+		_ = bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(input.Password))
+		passwordErr = bcrypt.ErrMismatchedHashAndPassword
+	} else {
+		passwordErr = bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(input.Password))
+	}
+	if passwordErr != nil {
 		// Record failed attempt for password mismatch
 		isLocked, lockoutSecs := accountLimiter.RecordFailedAttempt(identifier)
 		if isLocked {
@@ -248,45 +271,51 @@ func RequestPasswordReset(context *gin.Context, cfg *config.Config) {
 
 	db := context.MustGet("db").(*gorm.DB)
 
+	// Everything after this point runs in the background: known and unknown addresses must get
+	// the same response in the same time, including when the lookup or the mail provider fails.
+	go processPasswordResetRequest(db, cfg, log, email)
+
+	context.JSON(http.StatusOK, gin.H{"message": "If an account exists, password reset instructions were sent"})
+}
+
+// processPasswordResetRequest stores a new reset token and emails it. Failures are only logged,
+// since the caller has already been answered.
+func processPasswordResetRequest(db *gorm.DB, cfg *config.Config, log *zerolog.Logger, email string) {
 	var user models.User
 	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			context.JSON(http.StatusOK, gin.H{"message": "If an account exists, password reset instructions were sent"})
-			return
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Error().Err(err).Msg("Failed to lookup user for password reset")
 		}
-
-		log.Error().Err(err).Msg("Failed to lookup user for password reset")
-		apperrors.AbortWithError(context, apperrors.ErrDatabase("query user").WithError(err))
 		return
 	}
 
 	token, hash, err := services.GeneratePasswordResetToken()
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to generate password reset token")
-		apperrors.AbortWithError(context, apperrors.ErrInternal("Could not generate password reset token").WithError(err))
 		return
 	}
 
-	expires := services.PasswordResetExpiry()
-	requested := time.Now()
-
-	user.PasswordResetTokenHash = &hash
-	user.PasswordResetExpiresAt = &expires
-	user.PasswordResetRequestedAt = &requested
-
-	if err := db.Save(&user).Error; err != nil {
-		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to persist password reset token")
-		apperrors.AbortWithError(context, apperrors.ErrDatabase("update user").WithError(err))
+	// The cooldown is part of the update so concurrent requests cannot both pass it.
+	now := time.Now()
+	result := db.Model(&models.User{}).
+		Where("id = ? AND (password_reset_requested_at IS NULL OR password_reset_requested_at <= ?)", user.ID, now.Add(-passwordResetCooldown)).
+		Updates(map[string]any{
+			"password_reset_token_hash":   hash,
+			"password_reset_expires_at":   services.PasswordResetExpiry(),
+			"password_reset_requested_at": now,
+		})
+	if result.Error != nil {
+		log.Error().Err(result.Error).Uint("user_id", user.ID).Msg("Failed to persist password reset token")
+		return
+	}
+	if result.RowsAffected == 0 {
+		log.Info().Uint("user_id", user.ID).Msg("Password reset request ignored during cooldown")
 		return
 	}
 
 	if err := services.SendPasswordResetEmail(user.Email, token, user.Language, cfg); err != nil {
 		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to send password reset email")
-		apperrors.AbortWithError(context, apperrors.ErrExternal("email", "Failed to send password reset email").WithError(err))
-		return
 	}
-
-	context.JSON(http.StatusOK, gin.H{"message": "If an account exists, password reset instructions were sent"})
 }
 
 // ConfirmPasswordReset validates the token and updates the password.

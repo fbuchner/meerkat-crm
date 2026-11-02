@@ -5,24 +5,44 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"meerkat/config"
 	"meerkat/logger"
 	"meerkat/models"
-	"net"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
-const maxDeliveryAttempts = 3
+const (
+	maxDeliveryAttempts    = 3
+	webhookDeliveryTimeout = 15 * time.Second
+
+	// Stored on the delivery and shown to its owner. Deliberately generic: the raw transport
+	// error says whether a port is closed, filtered or unresolvable, which would turn the
+	// test endpoint into a port scanner for any signed-in user. The detail goes to the log.
+	webhookErrInvalidURL     = "webhook URL is invalid"
+	webhookErrDeliveryFailed = "could not connect to the webhook URL"
+	webhookErrPrivateBlocked = "webhook URL resolves to a private or loopback address"
+)
 
 var (
-	deliveryClient = &http.Client{Timeout: 15 * time.Second}
+	errWebhookUnreachable    = errors.New("webhook host unreachable")
+	errWebhookPrivateAddress = errors.New("webhook host resolves to a private address")
+
+	deliveryClient = &http.Client{Timeout: webhookDeliveryTimeout}
+	// guardedDeliveryClient checks the address at dial time, so the check also covers
+	// redirects and cannot be bypassed by a DNS answer that changes after validation.
+	guardedDeliveryClient = &http.Client{
+		Timeout: webhookDeliveryTimeout,
+		Transport: &http.Transport{
+			DialContext: newPrivateBlockingDialContext(errWebhookUnreachable, errWebhookPrivateAddress),
+		},
+	}
 	// semaphore limits concurrent outbound webhook HTTP calls
 	deliverySem = make(chan struct{}, 10)
 )
@@ -44,25 +64,6 @@ func buildPayloadBody(eventType string, data interface{}) ([]byte, error) {
 		Data:      data,
 	}
 	return json.Marshal(payload)
-}
-
-// returns true if the URL resolves to a loopback, private, or link-local address
-func isPrivateURL(rawURL string) bool {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return true
-	}
-	addrs, err := net.LookupHost(u.Hostname())
-	if err != nil {
-		return false
-	}
-	for _, addr := range addrs {
-		ip := net.ParseIP(addr)
-		if ip != nil && (ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast()) {
-			return true
-		}
-	}
-	return false
 }
 
 // TriggerWebhooks fires webhooks for all active subscriptions matching eventType for the user.
@@ -117,24 +118,30 @@ func TestWebhookDelivery(db *gorm.DB, cfg config.Config, wh models.Webhook) mode
 }
 
 func deliverWebhook(db *gorm.DB, cfg config.Config, wh models.Webhook, eventType string, body []byte, attempt int) models.WebhookDelivery {
-	if cfg.WebhookBlockPrivateURLs && isPrivateURL(wh.URL) {
-		errStr := "webhook URL resolves to a private or loopback address"
-		return saveDelivery(db, wh.ID, eventType, string(body), nil, &errStr, attempt, nil)
+	client := deliveryClient
+	if cfg.WebhookBlockPrivateURLs {
+		client = guardedDeliveryClient
 	}
 
 	sig := computeSignature(wh.Secret, body)
 	req, err := http.NewRequest("POST", wh.URL, bytes.NewReader(body))
 	if err != nil {
-		errStr := err.Error()
-		return saveDelivery(db, wh.ID, eventType, string(body), nil, &errStr, attempt, retryAt(attempt))
+		logger.Warn().Err(err).Uint("webhook_id", wh.ID).Msg("Failed to build webhook request")
+		errStr := webhookErrInvalidURL
+		return saveDelivery(db, wh.ID, eventType, string(body), nil, &errStr, attempt, nil)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Webhook-Signature", "sha256="+sig)
 	req.Header.Set("X-Meerkat-Event", eventType)
 
-	resp, err := deliveryClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
-		errStr := err.Error()
+		if errors.Is(err, errWebhookPrivateAddress) {
+			errStr := webhookErrPrivateBlocked
+			return saveDelivery(db, wh.ID, eventType, string(body), nil, &errStr, attempt, nil)
+		}
+		logger.Warn().Err(err).Uint("webhook_id", wh.ID).Msg("Webhook delivery failed")
+		errStr := webhookErrDeliveryFailed
 		return saveDelivery(db, wh.ID, eventType, string(body), nil, &errStr, attempt, retryAt(attempt))
 	}
 	defer func() {

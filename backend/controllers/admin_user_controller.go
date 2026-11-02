@@ -310,6 +310,11 @@ func DeleteUser(c *gin.Context) {
 			return err
 		}
 
+		// Delete reminder completions
+		if err := tx.Where("user_id = ?", userID).Delete(&models.ReminderCompletion{}).Error; err != nil {
+			return err
+		}
+
 		// Delete notes
 		if err := tx.Where("user_id = ?", userID).Delete(&models.Note{}).Error; err != nil {
 			return err

@@ -150,9 +150,19 @@ func refreshCookie(c *gin.Context, cfg *config.Config, claims jwt.MapClaims) {
 	if !ok {
 		return
 	}
-	username, _ := claims["username"].(string)
-	user := models.User{Username: username}
-	user.ID = id
+	// Claims can't tell whether the session should still be alive: a deleted user or
+	// a password change must end it at its current expiry instead of extending it.
+	db := c.MustGet("db").(*gorm.DB)
+	var user models.User
+	if err := db.First(&user, id).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			logger.Logger.Warn().Err(err).Uint("user_id", id).Msg("Failed to load user for auth token refresh")
+		}
+		return
+	}
+	if user.PasswordChangedAt != nil && user.PasswordChangedAt.Unix() > int64(authTime) {
+		return
+	}
 	tokenString, newExp, err := signToken(user, cfg, time.Unix(int64(authTime), 0))
 	if err != nil {
 		logger.Logger.Warn().Err(err).Uint("user_id", id).Msg("Failed to refresh auth token")

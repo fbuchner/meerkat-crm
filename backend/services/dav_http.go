@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"meerkat/httputil"
 	"net"
 	"net/http"
 	"regexp"
@@ -27,18 +28,20 @@ func newPrivateBlockingDialContext(errUnreachable, errPrivateAddress error) func
 		if err != nil {
 			return nil, fmt.Errorf("%w: could not resolve host", errUnreachable)
 		}
-		var safeIP net.IP
-		for _, ip := range ips {
-			if !(ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified()) {
-				safeIP = ip
-				break
-			}
-		}
-		if safeIP == nil {
-			return nil, errPrivateAddress
-		}
 		dialer := &net.Dialer{Timeout: 10 * time.Second, KeepAlive: 10 * time.Second}
-		return dialer.DialContext(ctx, network, net.JoinHostPort(safeIP.String(), port))
+		// Try each allowed address in turn, as the standard dialer would.
+		dialErr := errPrivateAddress
+		for _, ip := range ips {
+			if httputil.IsPrivateIP(ip) {
+				continue
+			}
+			conn, err := dialer.DialContext(ctx, network, net.JoinHostPort(ip.String(), port))
+			if err == nil {
+				return conn, nil
+			}
+			dialErr = err
+		}
+		return nil, dialErr
 	}
 }
 

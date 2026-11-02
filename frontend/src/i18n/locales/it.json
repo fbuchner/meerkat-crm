@@ -742,6 +742,11 @@
       "test": "Testa",
       "testSuccess": "Test consegnato ({{statusCode}})",
       "testFailed": "Test fallito: {{error}}",
+      "deliveryErrors": {
+        "invalidUrl": "L'URL del webhook non è valido",
+        "connectionFailed": "Impossibile connettersi all'URL del webhook",
+        "privateAddress": "L'URL del webhook punta a un indirizzo privato o di loopback"
+      },
       "deliveries": "Consegne recenti",
       "loadingDeliveries": "Caricamento consegne...",
       "noDeliveries": "Nessuna consegna ancora.",

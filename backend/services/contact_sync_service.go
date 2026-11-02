@@ -1277,7 +1277,7 @@ func (r *contactSyncRun) markLinkDropped(link *models.CardDAVContactLink) {
 // connection are recorded on it and do not stop the others.
 func SyncAllContactConnections(db *gorm.DB, cfg config.Config) {
 	var connections []models.CardDAVConnection
-	if err := db.Where("sync_enabled = ?", true).Find(&connections).Error; err != nil {
+	if err := db.Where("sync_enabled = ? AND user_id IN (SELECT id FROM users WHERE deleted_at IS NULL)", true).Find(&connections).Error; err != nil {
 		logger.Error().Err(err).Msg("Failed to load CardDAV connections for scheduled sync")
 		return
 	}

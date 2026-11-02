@@ -742,6 +742,11 @@
       "test": "Testen",
       "testSuccess": "Test zugestellt ({{statusCode}})",
       "testFailed": "Test fehlgeschlagen: {{error}}",
+      "deliveryErrors": {
+        "invalidUrl": "Webhook-URL ist ungültig",
+        "connectionFailed": "Verbindung zur Webhook-URL fehlgeschlagen",
+        "privateAddress": "Webhook-URL verweist auf eine private oder Loopback-Adresse"
+      },
       "deliveries": "Letzte Zustellungen",
       "loadingDeliveries": "Zustellungen werden geladen...",
       "noDeliveries": "Noch keine Zustellungen.",

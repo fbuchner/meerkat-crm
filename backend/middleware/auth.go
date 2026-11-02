@@ -54,6 +54,10 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 				c.Abort()
 				return
 			}
+			// Tokens of users deleted before tokens were removed with the account still exist
+			if !requireExistingUser(c, db, apiToken.UserID) {
+				return
+			}
 			c.Set("userID", apiToken.UserID)
 			c.Set("isAPIToken", true)
 			go func(id uint) {
@@ -124,12 +128,35 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			}
 		}
 
+		// A valid signature says nothing about whether the account still exists
+		if id, ok := c.MustGet("userID").(uint); !ok || !requireExistingUser(c, c.MustGet("db").(*gorm.DB), id) {
+			return
+		}
+
 		if fromCookie {
 			refreshCookie(c, cfg, token.Claims.(jwt.MapClaims))
 		}
 
 		c.Next()
 	}
+}
+
+// requireExistingUser aborts the request unless the user exists. Only a missing user is a 401,
+// because the frontend logs out on 401 and a database error should not end the session.
+func requireExistingUser(c *gin.Context, db *gorm.DB, userID uint) bool {
+	var user models.User
+	err := db.Select("id").First(&user, userID).Error
+	if err == nil {
+		return true
+	}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+	} else {
+		logger.Logger.Error().Err(err).Uint("user_id", userID).Msg("Failed to load user for authentication")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not verify user"})
+	}
+	c.Abort()
+	return false
 }
 
 // refreshCookie re-issues the auth cookie once less than half of its lifetime is left,
@@ -154,8 +181,8 @@ func refreshCookie(c *gin.Context, cfg *config.Config, claims jwt.MapClaims) {
 	if !ok {
 		return
 	}
-	// Claims can't tell whether the session should still be alive: a deleted user or
-	// a password change must end it at its current expiry instead of extending it.
+	// Claims can't tell whether the session should still be alive: a password change
+	// must end it at its current expiry instead of extending it.
 	db := c.MustGet("db").(*gorm.DB)
 	var user models.User
 	if err := db.First(&user, id).Error; err != nil {

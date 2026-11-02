@@ -102,9 +102,31 @@ func TestAuthCookieSlidingRefresh(t *testing.T) {
 	w = call(tokenAt(2*time.Hour, time.Second), true)
 	assert.Len(t, w.Result().Cookies(), 1)
 
-	// deleted user: no refresh
+	// deleted user: rejected, no refresh
 	assert.NoError(t, db.Delete(&user).Error)
 	w = call(tokenWithExp(2*time.Hour), true)
-	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, 401, w.Code)
 	assert.Empty(t, w.Header().Get("Set-Cookie"))
+}
+
+func TestAuthJWTOfDeletedUserRejected(t *testing.T) {
+	db, router := setupAuthTestRouter()
+	cfg := &config.Config{JWTSecretKey: "test-secret-key-32-chars-minimum!"}
+	var user models.User
+	db.First(&user)
+	tok, _ := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"username": user.Username, "user_id": user.ID, "exp": time.Now().Add(time.Hour).Unix(),
+	}).SignedString([]byte(cfg.JWTSecretKey))
+
+	call := func() int {
+		req, _ := http.NewRequest("GET", "/protected", nil)
+		req.Header.Set("Authorization", "Bearer "+tok)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		return w.Code
+	}
+
+	assert.Equal(t, http.StatusOK, call())
+	db.Delete(&user)
+	assert.Equal(t, http.StatusUnauthorized, call())
 }

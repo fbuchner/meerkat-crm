@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"meerkat/httputil"
 	"net"
 	"net/http"
 	"net/url"
@@ -106,7 +107,7 @@ func privateBlockingDialContext(ctx context.Context, network, addr string) (net.
 	}
 	var safeIP net.IP
 	for _, ip := range ips {
-		if !(ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified()) {
+		if !httputil.IsPrivateIP(ip) {
 			safeIP = ip
 			break
 		}

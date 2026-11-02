@@ -11,8 +11,12 @@ import (
 	"time"
 )
 
-// isPrivateIP checks if an IP address is in a private/reserved range
-func isPrivateIP(ip net.IP) bool {
+// carrierGradeNAT is shared address space (RFC 6598). Go's IsPrivate leaves it out, but cloud
+// providers use it for internal services such as metadata endpoints.
+var carrierGradeNAT = &net.IPNet{IP: net.IPv4(100, 64, 0, 0), Mask: net.CIDRMask(10, 32)}
+
+// IsPrivateIP checks if an IP address is in a private/reserved range
+func IsPrivateIP(ip net.IP) bool {
 	if ip == nil {
 		return true
 	}
@@ -34,6 +38,10 @@ func isPrivateIP(ip net.IP) bool {
 
 	// Check for unspecified (0.0.0.0 or ::)
 	if ip.IsUnspecified() {
+		return true
+	}
+
+	if carrierGradeNAT.Contains(ip) {
 		return true
 	}
 
@@ -74,7 +82,7 @@ func validateURLForSSRF(rawURL string) (*url.URL, error) {
 
 	// Check all resolved IPs
 	for _, ip := range ips {
-		if isPrivateIP(ip) {
+		if IsPrivateIP(ip) {
 			return nil, errors.New("access to internal IP addresses is not allowed")
 		}
 	}
@@ -120,7 +128,7 @@ func FetchImageFromURL(imageURL string) ([]byte, string, error) {
 		// Find a safe IP to connect to
 		var safeIP net.IP
 		for _, ip := range ips {
-			if !isPrivateIP(ip) {
+			if !IsPrivateIP(ip) {
 				safeIP = ip
 				break
 			}

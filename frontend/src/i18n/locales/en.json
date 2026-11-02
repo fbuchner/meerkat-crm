@@ -742,6 +742,11 @@
       "test": "Test",
       "testSuccess": "Test delivered ({{statusCode}})",
       "testFailed": "Test failed: {{error}}",
+      "deliveryErrors": {
+        "invalidUrl": "Webhook URL is invalid",
+        "connectionFailed": "Could not connect to the webhook URL",
+        "privateAddress": "Webhook URL resolves to a private or loopback address"
+      },
       "deliveries": "Recent Deliveries",
       "loadingDeliveries": "Loading deliveries...",
       "noDeliveries": "No deliveries yet.",

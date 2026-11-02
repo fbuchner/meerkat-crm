@@ -719,7 +719,7 @@ func clampRunes(value string, maxRunes int) string {
 // subscription are recorded on it and do not stop the others.
 func SyncAllCalendars(db *gorm.DB, cfg config.Config) {
 	var subscriptions []models.CalendarSubscription
-	if err := db.Where("sync_enabled = ?", true).Find(&subscriptions).Error; err != nil {
+	if err := db.Where("sync_enabled = ? AND user_id IN (SELECT id FROM users WHERE deleted_at IS NULL)", true).Find(&subscriptions).Error; err != nil {
 		logger.Error().Err(err).Msg("Failed to load calendar subscriptions for scheduled sync")
 		return
 	}

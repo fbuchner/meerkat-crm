@@ -742,6 +742,11 @@
       "test": "Tester",
       "testSuccess": "Test livré ({{statusCode}})",
       "testFailed": "Test échoué : {{error}}",
+      "deliveryErrors": {
+        "invalidUrl": "L'URL du webhook n'est pas valide",
+        "connectionFailed": "Impossible de se connecter à l'URL du webhook",
+        "privateAddress": "L'URL du webhook pointe vers une adresse privée ou de bouclage"
+      },
       "deliveries": "Livraisons récentes",
       "loadingDeliveries": "Chargement des livraisons...",
       "noDeliveries": "Aucune livraison pour l'instant.",

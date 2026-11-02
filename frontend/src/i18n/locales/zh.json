@@ -742,6 +742,11 @@
       "test": "测试",
       "testSuccess": "测试已送达（{{statusCode}}）",
       "testFailed": "测试失败：{{error}}",
+      "deliveryErrors": {
+        "invalidUrl": "Webhook URL 无效",
+        "connectionFailed": "无法连接到 Webhook URL",
+        "privateAddress": "Webhook URL 解析为私有或环回地址"
+      },
       "deliveries": "最近投递",
       "loadingDeliveries": "正在加载投递记录...",
       "noDeliveries": "暂无投递记录。",

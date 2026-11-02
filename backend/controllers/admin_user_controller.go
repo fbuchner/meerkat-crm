@@ -340,6 +340,31 @@ func DeleteUser(c *gin.Context) {
 			return err
 		}
 
+		// Delete API tokens
+		if err := tx.Where("user_id = ?", userID).Delete(&models.ApiToken{}).Error; err != nil {
+			return err
+		}
+
+		// Delete webhook deliveries, which only reference the webhook
+		if err := tx.Unscoped().Where("webhook_id IN (SELECT id FROM webhooks WHERE user_id = ?)", userID).Delete(&models.WebhookDelivery{}).Error; err != nil {
+			return err
+		}
+
+		// Delete integrations for good: these rows hold stored credentials and secrets
+		for _, model := range []any{
+			&models.Webhook{},
+			&models.CalendarEventLink{},
+			&models.CalendarSubscription{},
+			&models.CardDAVContactLink{},
+			&models.CardDAVConnection{},
+			&models.CardDAVSync{},
+			&models.ContactDuplicateDismissal{},
+		} {
+			if err := tx.Unscoped().Where("user_id = ?", userID).Delete(model).Error; err != nil {
+				return err
+			}
+		}
+
 		// Delete user
 		if err := tx.Delete(&user).Error; err != nil {
 			return err

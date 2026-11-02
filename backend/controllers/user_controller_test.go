@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"meerkat/services"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -314,8 +316,13 @@ func TestRequestPasswordReset_Succeeds(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
+	// The token is stored in the background, after the response
 	var updated models.User
-	db.Where("email = ?", "reset@example.com").First(&updated)
+	assert.Eventually(t, func() bool {
+		updated = models.User{}
+		db.Where("email = ?", "reset@example.com").First(&updated)
+		return updated.PasswordResetTokenHash != nil
+	}, 2*time.Second, 10*time.Millisecond)
 	if assert.NotNil(t, updated.PasswordResetTokenHash) {
 		assert.NotEmpty(t, *updated.PasswordResetTokenHash)
 	}
@@ -564,4 +571,96 @@ func TestContactFieldDisplayRoundTrip(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, patch(`{"hide_empty_contact_fields":false}`))
 	assert.False(t, fromMe())
+}
+
+func TestRequestPasswordReset_UnknownEmailGetsSameResponse(t *testing.T) {
+	cfg := config.Config{}
+	_, router := setupRouter()
+	router.POST("/password-reset/request", func(c *gin.Context) {
+		c.Set("validated", &models.PasswordResetRequestInput{Email: "nobody@example.com"})
+		RequestPasswordReset(c, &cfg)
+	})
+
+	req, _ := http.NewRequest("POST", "/password-reset/request", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "If an account exists")
+}
+
+func TestProcessPasswordResetRequest_Cooldown(t *testing.T) {
+	cfg := config.Config{}
+	db, _ := setupRouter()
+	log := zerolog.Nop()
+
+	hashed, _ := services.HashPassword(strongPassword)
+	user := models.User{Username: "cooldownuser", Email: "cooldown@example.com", Password: hashed}
+	db.Create(&user)
+
+	processPasswordResetRequest(db, &cfg, &log, user.Email)
+	var first models.User
+	db.First(&first, user.ID)
+	if !assert.NotNil(t, first.PasswordResetTokenHash) {
+		return
+	}
+
+	// A second request inside the cooldown leaves the token alone
+	processPasswordResetRequest(db, &cfg, &log, user.Email)
+	var second models.User
+	db.First(&second, user.ID)
+	assert.Equal(t, *first.PasswordResetTokenHash, *second.PasswordResetTokenHash)
+
+	// Once it has passed, a new token is issued
+	past := time.Now().Add(-2 * passwordResetCooldown)
+	db.Model(&models.User{}).Where("id = ?", user.ID).Update("password_reset_requested_at", past)
+	processPasswordResetRequest(db, &cfg, &log, user.Email)
+	var third models.User
+	db.First(&third, user.ID)
+	assert.NotEqual(t, *first.PasswordResetTokenHash, *third.PasswordResetTokenHash)
+}
+
+func TestLoginUser_PasswordlessAccountIsRejected(t *testing.T) {
+	cfg := &config.Config{JWTSecretKey: "test-secret-key-32-chars-minimum!", JWTExpiryHours: 1}
+	db, router := setupRouter()
+	db.Create(&models.User{Username: "oidconly", Email: "oidc@example.com", Password: ""})
+	router.POST("/login", func(c *gin.Context) { LoginUser(c, cfg) })
+
+	for _, password := range []string{"anything", "meerkat-timing-equalizer"} {
+		body, _ := json.Marshal(LoginInput{Identifier: "oidconly", Password: password})
+		req, _ := http.NewRequest("POST", "/login", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	}
+}
+
+func TestDeleteUser_RemovesAPITokens(t *testing.T) {
+	db, _ := setupRouter()
+	db.AutoMigrate(&models.ApiToken{}, &models.Webhook{}, &models.WebhookDelivery{}, &models.CalendarEventLink{},
+		&models.CalendarSubscription{}, &models.CardDAVContactLink{}, &models.CardDAVConnection{}, &models.CardDAVSync{},
+		&models.ContactDuplicateDismissal{})
+	admin := models.User{Username: "tokenadmin", Email: "tokenadmin@example.com", Password: "x", IsAdmin: true}
+	target := models.User{Username: "tokentarget", Email: "tokentarget@example.com", Password: "x"}
+	db.Create(&admin)
+	db.Create(&target)
+	db.Create(&models.ApiToken{UserID: target.ID, Name: "cli", TokenHash: "deleted-user-token"})
+	db.Create(&models.CalendarSubscription{UserID: target.ID, Name: "cal", URL: "https://example.com/cal"})
+
+	router := routerForUser(db, admin.ID)
+	router.DELETE("/admin/users/:id", DeleteUser)
+
+	req, _ := http.NewRequest("DELETE", "/admin/users/"+strconv.Itoa(int(target.ID)), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var remaining int64
+	db.Model(&models.ApiToken{}).Where("user_id = ?", target.ID).Count(&remaining)
+	assert.Zero(t, remaining)
+
+	// Stored credentials must not survive even as soft-deleted rows
+	db.Unscoped().Model(&models.CalendarSubscription{}).Where("user_id = ?", target.ID).Count(&remaining)
+	assert.Zero(t, remaining)
 }

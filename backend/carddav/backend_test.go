@@ -25,7 +25,7 @@ func setupCircleFilterBackend(t *testing.T, mode string, circles []string) (*Bac
 	}
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(1)
-	if err := db.AutoMigrate(&models.User{}, &models.Contact{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.Contact{}, &models.EmploymentHistory{}); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 

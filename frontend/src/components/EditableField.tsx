@@ -13,6 +13,7 @@ interface EditableFieldProps {
   displaySuffix?: string;
   formattedDisplayValue?: string; // Optional formatted value for display (raw value used for editing)
   isEditing: boolean;
+  readOnly?: boolean;
   editValue: string;
   validationError: string;
   onEditStart: (field: string, value: string) => void;
@@ -31,6 +32,7 @@ export default function EditableField({
   displaySuffix,
   formattedDisplayValue,
   isEditing,
+  readOnly = false,
   editValue,
   validationError,
   onEditStart,
@@ -92,7 +94,7 @@ export default function EditableField({
             </Typography>
           )}
         </Box>
-        {!isEditing && (
+        {!isEditing && !readOnly && (
           <IconButton
             className="edit-icon"
             size="small"

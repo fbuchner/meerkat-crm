@@ -21,7 +21,7 @@ const preview = (targetId: number, sourceId: number): MergePreview => ({
     { field: 'birthday', target_value: '1990-01-02', source_value: '1991-03-04' },
     { field: 'custom_fields.Shoe size', target_value: '38', source_value: '39' },
   ],
-  moved: { notes: 2, activities: 1, reminders: 0, relationships: 0 },
+  moved: { notes: 2, activities: 1, reminders: 0, relationships: 0, employment_histories: 0 },
 });
 
 beforeEach(() => {

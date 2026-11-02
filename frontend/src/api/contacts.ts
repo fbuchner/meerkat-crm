@@ -353,6 +353,7 @@ export interface MergePreview {
     activities: number;
     reminders: number;
     relationships: number;
+    employment_histories: number;
   };
 }
 

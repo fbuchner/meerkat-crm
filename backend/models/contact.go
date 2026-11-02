@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -45,26 +46,27 @@ type ContactAddress struct {
 
 type Contact struct {
 	gorm.Model
-	UserID             uint           `gorm:"not null;index" json:"-"`
-	Firstname          string         `gorm:"type:text not null COLLATE NOCASE" json:"firstname" validate:"required,min=1,max=100"`
-	Lastname           string         `gorm:"type:text COLLATE NOCASE" json:"lastname" validate:"max=100"`
-	Nickname           string         `gorm:"type:text COLLATE NOCASE" json:"nickname" validate:"max=50"`
-	Gender             string         `json:"gender" validate:"omitempty,oneof=male female other prefer_not_to_say"`
-	Email              string         `gorm:"type:text COLLATE NOCASE" json:"email" validate:"omitempty,email"`
-	Phone              string         `json:"phone" validate:"omitempty,phone"`
-	Birthday           string         `json:"birthday" validate:"omitempty,birthday"`
-	Photo              string         `json:"photo"`                                     // Path to the profile photo
-	PhotoThumbnail     string         `json:"-"`                                         // Base64 data URL of thumbnail (not exposed in JSON directly)
-	Relationships      []Relationship `gorm:"foreignKey:ContactID" json:"relationships"` // Has many relationships
-	Address            string         `json:"address" validate:"max=500"`                // Full address as a string
-	HowWeMet           string         `json:"how_we_met" validate:"max=1000"`            // Text field
-	FoodPreference     string         `json:"food_preference" validate:"max=500"`        // Text field
-	WorkInformation    string         `json:"work_information" validate:"max=1000"`      // Text field
-	ContactInformation string         `json:"contact_information" validate:"max=1000"`   // Additional contact information
-	Circles            []string       `gorm:"type:text;serializer:json" json:"circles"`  // Serialize Circles properly
-	Activities         []Activity     `gorm:"many2many:activity_contacts;foreignKey:ID;joinForeignKey:ContactID;References:ID;joinReferences:ActivityID" json:"activities,omitempty"`
-	Notes              []Note         `json:"notes,omitempty"`     // One-to-many relationship with notes
-	Reminders          []Reminder     `json:"reminders,omitempty"` // One-to-many relationship with reminders
+	UserID              uint                `gorm:"not null;index" json:"-"`
+	Firstname           string              `gorm:"type:text not null COLLATE NOCASE" json:"firstname" validate:"required,min=1,max=100"`
+	Lastname            string              `gorm:"type:text COLLATE NOCASE" json:"lastname" validate:"max=100"`
+	Nickname            string              `gorm:"type:text COLLATE NOCASE" json:"nickname" validate:"max=50"`
+	Gender              string              `json:"gender" validate:"omitempty,oneof=male female other prefer_not_to_say"`
+	Email               string              `gorm:"type:text COLLATE NOCASE" json:"email" validate:"omitempty,email"`
+	Phone               string              `json:"phone" validate:"omitempty,phone"`
+	Birthday            string              `json:"birthday" validate:"omitempty,birthday"`
+	Photo               string              `json:"photo"`                                     // Path to the profile photo
+	PhotoThumbnail      string              `json:"-"`                                         // Base64 data URL of thumbnail (not exposed in JSON directly)
+	Relationships       []Relationship      `gorm:"foreignKey:ContactID" json:"relationships"` // Has many relationships
+	Address             string              `json:"address" validate:"max=500"`                // Full address as a string
+	HowWeMet            string              `json:"how_we_met" validate:"max=1000"`            // Text field
+	FoodPreference      string              `json:"food_preference" validate:"max=500"`        // Text field
+	WorkInformation     string              `json:"work_information" validate:"max=1000"`      // Text field
+	ContactInformation  string              `json:"contact_information" validate:"max=1000"`   // Additional contact information
+	Circles             []string            `gorm:"type:text;serializer:json" json:"circles"`  // Serialize Circles properly
+	Activities          []Activity          `gorm:"many2many:activity_contacts;foreignKey:ID;joinForeignKey:ContactID;References:ID;joinReferences:ActivityID" json:"activities,omitempty"`
+	Notes               []Note              `json:"notes,omitempty"`                // One-to-many relationship with notes
+	Reminders           []Reminder          `json:"reminders,omitempty"`            // One-to-many relationship with reminders
+	EmploymentHistories []EmploymentHistory `json:"employment_histories,omitempty"` // One-to-many relationship with employment history entries
 
 	// Multi-valued vCard fields (stored as JSON arrays). The legacy Email/Phone/Address
 	// scalars above are kept in sync (see BeforeSave) as the denormalized "primary" value
@@ -103,6 +105,12 @@ type Contact struct {
 	CustomFields map[string]string `gorm:"type:text;serializer:json" json:"custom_fields"`
 
 	Archived bool `gorm:"default:false" json:"archived"`
+
+	// RevertStaleEmployment is set by CardDAV and remote address book pulls so a
+	// re-push of the job the user just ended doesn't resurrect it. Not persisted. Imports leave
+	// it unset on purpose: they are deliberate writes (e.g. rehired at the same
+	// company) and reopen the job.
+	RevertStaleEmployment bool `gorm:"-" json:"-"`
 }
 
 // renders a structured address as a single human-readable line, used to keep the legacy Address scalar in sync for search/list views.
@@ -154,7 +162,130 @@ func (c *Contact) AfterSave(tx *gorm.DB) error {
 	newETag := fmt.Sprintf("e-%d-%d", c.ID, c.UpdatedAt.Unix())
 	if newETag != c.ETag {
 		c.ETag = newETag
-		return tx.Model(c).UpdateColumn("etag", c.ETag).Error
+		if err := tx.Model(c).UpdateColumn("etag", c.ETag).Error; err != nil {
+			return err
+		}
 	}
-	return nil
+	return c.syncCurrentEmploymentHistory(tx)
+}
+
+// syncCurrentEmploymentHistory keeps the "current" (open-ended) EmploymentHistory
+// entry in step with the denormalized Organization/Department/JobTitle/Role
+// scalars whenever a Contact is saved directly (CSV/Monica import, CardDAV
+// sync; PUT /contacts/:id ignores these fields). Editing history
+// through its own CRUD endpoints is the other half of the sync: those
+// recompute the scalars and save the Contact (services.RecomputeContactEmploymentScalars),
+// which lands back here as a no-op because the values already match.
+//
+// Cost: one extra SELECT per saved contact, including bulk imports and CardDAV
+// syncs. Accepted at current scale; batch it if import volume grows.
+func (c *Contact) syncCurrentEmploymentHistory(tx *gorm.DB) error {
+	var openEntries []EmploymentHistory
+	if err := tx.Where("user_id = ? AND contact_id = ? AND end_date = ''", c.UserID, c.ID).Order("id").Find(&openEntries).Error; err != nil {
+		return err
+	}
+	current := MostRecentOpenEntry(openEntries)
+
+	// A save that blanks all four scalars can't express "this contact has no
+	// employer": that goes through the EmploymentHistory endpoints (ending or
+	// deleting the entry). Re-derive them so the contact keeps matching its history.
+	if c.Organization == "" && c.Department == "" && c.JobTitle == "" && c.Role == "" {
+		if current == nil {
+			return nil
+		}
+		return c.resetEmploymentScalars(tx, current)
+	}
+
+	if current != nil && c.employmentMatches(current) {
+		return nil
+	}
+
+	// A stale CardDAV client or remote address book re-pushing the job the user
+	// just ended must neither resurrect it nor overwrite a newer current job.
+	if c.RevertStaleEmployment {
+		last, err := c.latestClosedEntry(tx)
+		if err != nil {
+			return err
+		}
+		if last != nil && c.employmentMatches(last) {
+			return c.resetEmploymentScalars(tx, current)
+		}
+	}
+
+	if current == nil {
+		return tx.Create(&EmploymentHistory{
+			UserID:       c.UserID,
+			ContactID:    c.ID,
+			Organization: c.Organization,
+			Department:   c.Department,
+			JobTitle:     c.JobTitle,
+			Role:         c.Role,
+		}).Error
+	}
+
+	return tx.Model(current).Updates(map[string]interface{}{
+		"organization": c.Organization,
+		"department":   c.Department,
+		"job_title":    c.JobTitle,
+		"role":         c.Role,
+	}).Error
+}
+
+func (c *Contact) employmentMatches(e *EmploymentHistory) bool {
+	return e.Organization == c.Organization && e.Department == c.Department &&
+		e.JobTitle == c.JobTitle && e.Role == c.Role
+}
+
+// resetEmploymentScalars writes the scalars of the given entry to the contact,
+// or blanks them when entry is nil (no current job).
+func (c *Contact) resetEmploymentScalars(tx *gorm.DB, entry *EmploymentHistory) error {
+	if entry == nil {
+		entry = &EmploymentHistory{}
+	}
+	c.Organization, c.Department, c.JobTitle, c.Role = entry.Organization, entry.Department, entry.JobTitle, entry.Role
+	return tx.Model(c).UpdateColumns(map[string]interface{}{
+		"organization": c.Organization, "department": c.Department, "job_title": c.JobTitle, "role": c.Role,
+	}).Error
+}
+
+// latestClosedEntry returns the entry with the latest end date, or nil if there
+// is none. Compares parsed dates: end dates may be partial, so string order is wrong.
+func (c *Contact) latestClosedEntry(tx *gorm.DB) (*EmploymentHistory, error) {
+	var closed []EmploymentHistory
+	if err := tx.Where("user_id = ? AND contact_id = ? AND end_date != ''", c.UserID, c.ID).Find(&closed).Error; err != nil {
+		return nil, err
+	}
+	var last *EmploymentHistory
+	var lastEnd time.Time
+	for i := range closed {
+		if end, ok := PartialDateEnd(closed[i].EndDate); ok && (last == nil || end.After(lastEnd)) {
+			last, lastEnd = &closed[i], end
+		}
+	}
+	return last, nil
+}
+
+// MostRecentOpenEntry picks the open entry whose StartDate is latest. An
+// entry with no parseable StartDate loses to any entry that has one; if none
+// have a parseable StartDate, the first entry is returned as a deterministic
+// fallback. Ties go to the first entry, so callers
+// load entries ordered by id (the oldest wins, e.g. the target after a merge).
+func MostRecentOpenEntry(entries []EmploymentHistory) *EmploymentHistory {
+	var best *EmploymentHistory
+	var bestTime time.Time
+	for i := range entries {
+		e := &entries[i]
+		t, ok := PartialDateStart(e.StartDate)
+		if !ok {
+			continue
+		}
+		if best == nil || t.After(bestTime) {
+			best = e
+			bestTime = t
+		}
+	}
+	if best == nil && len(entries) > 0 {
+		return &entries[0]
+	}
+	return best
 }

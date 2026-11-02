@@ -30,7 +30,7 @@ func newContactSyncDB(t *testing.T) *gorm.DB {
 	sqlDB.SetMaxOpenConns(1)
 	require.NoError(t, db.AutoMigrate(
 		&models.User{}, &models.Contact{}, &models.JobExecution{},
-		&models.CardDAVConnection{}, &models.CardDAVContactLink{},
+		&models.CardDAVConnection{}, &models.CardDAVContactLink{}, &models.EmploymentHistory{},
 	))
 	return db
 }
@@ -119,6 +119,32 @@ func TestContactSyncInitialPullCreatesContacts(t *testing.T) {
 		}
 		assert.True(t, uids["uid-alice"] && uids["uid-bob"])
 		assert.Len(t, env.links(t), 2)
+	})
+}
+
+func TestContactSyncPullCreatesEmploymentHistoryFromOrg(t *testing.T) {
+	runContactSync(t, models.CardDAVDirectionTwoWay, func(t *testing.T, env *contactSyncEnv) {
+		env.remote.putRaw(t, "uid-employed", strings.Join([]string{
+			"BEGIN:VCARD", "VERSION:3.0",
+			"UID:uid-employed",
+			"FN:Grace Employed",
+			"N:Employed;Grace;;;",
+			"ORG:Acme",
+			"END:VCARD", "",
+		}, "\r\n"))
+
+		stats := env.sync(t)
+		assert.Equal(t, 1, stats.PulledCreated)
+
+		contacts := env.localContacts(t)
+		require.Len(t, contacts, 1)
+		contact := contacts[0]
+		assert.Equal(t, "Acme", contact.Organization)
+
+		var entries []models.EmploymentHistory
+		require.NoError(t, env.db.Where("contact_id = ? AND end_date = ''", contact.ID).Find(&entries).Error)
+		require.Len(t, entries, 1, "expected exactly one open employment history entry")
+		assert.Equal(t, "Acme", entries[0].Organization)
 	})
 }
 
@@ -744,4 +770,41 @@ func TestDiscoverFiltersGeneratedAddressBooks(t *testing.T) {
 				"ordinary address books must still be discoverable")
 		})
 	}
+}
+
+// On a pull-only connection the remote keeps the old ORG after the user ends a
+// job in Meerkat, so any later remote edit carries it again.
+func TestContactSyncPullDoesNotReopenEndedJob(t *testing.T) {
+	card := func(tel string) string {
+		return strings.Join([]string{
+			"BEGIN:VCARD", "VERSION:3.0",
+			"UID:uid-ended",
+			"FN:Grace Ended",
+			"N:Ended;Grace;;;",
+			"ORG:Acme",
+			"TEL:" + tel,
+			"END:VCARD", "",
+		}, "\r\n")
+	}
+	runContactSync(t, models.CardDAVDirectionPull, func(t *testing.T, env *contactSyncEnv) {
+		env.remote.putRaw(t, "uid-ended", card("+491511111"))
+		env.sync(t)
+		contact := env.localContacts(t)[0]
+
+		require.NoError(t, env.db.Model(&models.EmploymentHistory{}).
+			Where("contact_id = ?", contact.ID).Update("end_date", "2026-01-01").Error)
+		require.NoError(t, RecomputeContactEmploymentScalars(env.db, contact.UserID, contact.ID))
+
+		env.remote.putRaw(t, "uid-ended", card("+491522222"))
+		env.sync(t)
+
+		var open int64
+		require.NoError(t, env.db.Model(&models.EmploymentHistory{}).
+			Where("contact_id = ? AND end_date = ''", contact.ID).Count(&open).Error)
+		assert.Zero(t, open, "the ended job must stay ended")
+
+		updated := env.localContacts(t)[0]
+		assert.Equal(t, "", updated.Organization)
+		assert.Equal(t, "+491522222", updated.Phone, "the rest of the remote edit still applies")
+	})
 }

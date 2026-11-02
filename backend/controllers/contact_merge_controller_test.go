@@ -25,8 +25,8 @@ func TestContactMergeEndpoints(t *testing.T) {
 	router.GET("/contacts/:id/merge-preview", GetContactMergePreview)
 	router.POST("/contacts/:id/merge", withValidated(func() any { return &models.ContactMergeInput{} }), MergeContact)
 
-	target := models.Contact{UserID: user.ID, Firstname: "Anna", Lastname: "Schmidt", JobTitle: "Engineer"}
-	source := models.Contact{UserID: user.ID, Firstname: "anna", Lastname: "schmidt", JobTitle: "Manager"}
+	target := models.Contact{UserID: user.ID, Firstname: "Anna", Lastname: "Schmidt", Nickname: "Annie"}
+	source := models.Contact{UserID: user.ID, Firstname: "anna", Lastname: "schmidt", Nickname: "Ann"}
 	require.NoError(t, db.Create(&target).Error)
 	require.NoError(t, db.Create(&source).Error)
 
@@ -56,7 +56,7 @@ func TestContactMergeEndpoints(t *testing.T) {
 	var preview models.MergePreview
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &preview))
 	assert.Equal(t, target.ID, preview.Target.ID)
-	assert.Equal(t, []string{"firstname", "lastname", "job_title"},
+	assert.Equal(t, []string{"firstname", "lastname", "nickname"},
 		[]string{preview.Conflicts[0].Field, preview.Conflicts[1].Field, preview.Conflicts[2].Field})
 
 	w = do("GET", fmt.Sprintf("/contacts/%d/merge-preview?source_id=%d", target.ID, target.ID), nil)
@@ -68,12 +68,12 @@ func TestContactMergeEndpoints(t *testing.T) {
 
 	w = do("POST", fmt.Sprintf("/contacts/%d/merge", target.ID), map[string]any{
 		"source_id":   source.ID,
-		"resolutions": map[string]string{"job_title": "source"},
+		"resolutions": map[string]string{"nickname": "source"},
 	})
 	require.Equal(t, http.StatusOK, w.Code)
 	var merged models.Contact
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &merged))
-	assert.Equal(t, "Manager", merged.JobTitle)
+	assert.Equal(t, "Ann", merged.Nickname)
 	assert.Equal(t, "Anna", merged.Firstname)
 
 	w = do("GET", "/contacts/duplicates", nil)

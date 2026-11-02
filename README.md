@@ -29,6 +29,7 @@ You can find the detailed documentation here: [fbuchner.github.io/meerkat-crm/](
     - add and search contacts
     - group contacts by circles (e.g. friends, family, work)
     - store relationships of contacts (e.g. spouses, children)
+    - employment history with current and past jobs
     - CardDAV server for two-way synchronization with your phone's contact list and CardDAV client to use with your own external server
     - Network graph to visualize your contacts and relationships
 - Notes and activities

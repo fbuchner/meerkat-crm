@@ -377,3 +377,73 @@ func TestValidateDeceasedDate_AcceptsTodaysDate(t *testing.T) {
 	err := validate.Struct(s)
 	assert.NoError(t, err, "today's UTC date (%s) should be accepted", todayUTC)
 }
+
+// TestValidateStruct_PartialDate tests partial date validation through ValidateStruct
+func TestValidateStruct_PartialDate(t *testing.T) {
+	type TestStruct struct {
+		Date string `validate:"partialdate"`
+	}
+
+	tests := []struct {
+		name    string
+		date    string
+		isValid bool
+	}{
+		{
+			name:    "valid year only",
+			date:    "2020",
+			isValid: true,
+		},
+		{
+			name:    "valid year and month",
+			date:    "2020-05",
+			isValid: true,
+		},
+		{
+			name:    "valid full date",
+			date:    "2020-05-03",
+			isValid: true,
+		},
+		{
+			name:    "empty string is valid (omitempty semantics)",
+			date:    "",
+			isValid: true,
+		},
+		{
+			name:    "invalid - not a date",
+			date:    "not-a-date",
+			isValid: false,
+		},
+		{
+			name:    "invalid - bad month (13)",
+			date:    "2020-13",
+			isValid: false,
+		},
+		{
+			name:    "invalid - bad day (32)",
+			date:    "2020-05-32",
+			isValid: false,
+		},
+		{
+			name:    "invalid - wrong format (slashes)",
+			date:    "2020/05/03",
+			isValid: false,
+		},
+		{
+			name:    "invalid - partial year",
+			date:    "202",
+			isValid: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			obj := TestStruct{Date: tt.date}
+			errors := ValidateStruct(obj)
+			hasErrors := len(errors) > 0
+			if hasErrors == tt.isValid {
+				t.Errorf("ValidateStruct with date %q: hasErrors=%v, want isValid=%v", tt.date, hasErrors, tt.isValid)
+			}
+		})
+	}
+}

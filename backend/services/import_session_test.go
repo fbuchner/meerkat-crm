@@ -22,7 +22,7 @@ func newImportSessionTestDB(t *testing.T) *gorm.DB {
 	require.NoError(t, err)
 	sqlDB.SetMaxOpenConns(1)
 	require.NoError(t, db.AutoMigrate(
-		&models.User{}, &models.Contact{}, &models.Note{},
+		&models.User{}, &models.Contact{}, &models.Note{}, &models.EmploymentHistory{},
 	))
 	// Recreate the partial unique index the real migration adds, since
 	// AutoMigrate doesn't run raw-SQL migrations.

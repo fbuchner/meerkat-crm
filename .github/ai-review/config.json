@@ -28,6 +28,7 @@
   ],
   "human_review_paths": [
     ".github/*",
+    ".claude/*",
     "*CODEOWNERS",
     "LICENSE*",
     "*Dockerfile*",
@@ -39,6 +40,7 @@
     "frontend/yarn.lock",
     "frontend/e2e/*",
     "backend/middleware/auth*",
+    "backend/middleware/password_strength*",
     "backend/carddav/auth*",
     "backend/controllers/oidc*",
     "backend/controllers/api_token*",

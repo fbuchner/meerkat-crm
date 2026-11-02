@@ -55,6 +55,8 @@ NETWORK_ERRORS = (OSError, http.client.HTTPException)
 # GitHub rejects comment bodies over 65536 characters.
 MAX_COMMENT_CHARS = 60000
 
+CODE_SPAN = re.compile(r"(?<![`\\])`[^`\n]+`(?!`)")
+
 SEVERITY_RANK = {"nit": 0, "minor": 1, "major": 2, "blocker": 3}
 SEVERITY_LABEL = {"blocker": "🚫 Blocker", "major": "⚠️ Major", "minor": "🔸 Minor", "nit": "💬 Nit"}
 RISK_FLAGS = [
@@ -177,20 +179,21 @@ def matches_any(path, patterns):
     return any(fnmatch.fnmatch(path, pattern) for pattern in patterns)
 
 
-def decide(pr, config, action, label):
+def decide(pr, config, action, label, event_sha=None):
     """Return "skip", "wait" or "review" for this PR and event.
 
     Strangers can open PRs on this public repo, and every review spends OpenRouter
     credit, so an untrusted author only gets a review when a maintainer adds the
     trigger label. Adding a label requires triage access. A push does not count,
-    which keeps an approved author from re-spending by pushing again.
+    which keeps an approved author from re-spending by pushing again, and the label
+    only covers the commit it was added to, not one pushed before the job started.
     """
     author = pr["user"]["login"]
     if author in config["skip_authors"]:
         return "skip"
     if pr["author_association"] in config["trusted_associations"] or author in config["trusted_authors"]:
         return "review"
-    if action == "labeled" and label == config["trigger_label"]:
+    if action == "labeled" and label == config["trigger_label"] and pr["head"]["sha"] == event_sha:
         return "review"
     return "wait"
 
@@ -405,16 +408,35 @@ def request_review(messages, api_key, config):
     raise RuntimeError(f"every model failed; last error: {last_error}")
 
 
+def defuse(text):
+    # Backslashes first, or a PR's own "\\[" would turn into an escaped backslash and a live "[".
+    text = text.replace("\\", "\\\\").replace("[", "\\[").replace("<", "&lt;")
+    return re.sub(r"@(?=[A-Za-z0-9])", "@\u200b", text)
+
+
 def neutralise(text):
-    """Stop text that PR content can influence from pinging people or hiding content."""
-    return re.sub(r"@(?=[A-Za-z0-9])", "@​", str(text)).replace("<!--", "&lt;!--")
+    """Stop text PR content can influence from pinging people, or adding links, images or HTML.
+
+    The bot posts it under its own name, so a crafted PR could otherwise use it to phish.
+    Plain code spans render literally, so they are left readable. The pattern is deliberately
+    narrow: anything it does not recognise as one gets defused, which is the safe direction.
+    """
+    text = str(text)
+    parts, position = [], 0
+    for span in CODE_SPAN.finditer(text):
+        parts += [defuse(text[position : span.start()]), span.group()]
+        position = span.end()
+    return "".join(parts + [defuse(text[position:])])
 
 
 def format_finding(finding):
-    text = f"**{SEVERITY_LABEL[finding['severity']]}: {finding['title'].strip()}**\n\n{finding['explanation'].strip()}"
-    if finding["suggestion"].strip():
-        text += f"\n\nSuggested fix:\n````\n{finding['suggestion'].strip()}\n````"
-    return neutralise(text)[:MAX_COMMENT_CHARS]
+    text = f"**{SEVERITY_LABEL[finding['severity']]}: {neutralise(finding['title'].strip())}**\n\n{neutralise(finding['explanation'].strip())}"
+    suggestion = finding["suggestion"].strip()
+    if suggestion:
+        # Longer than any backtick run inside, so the suggestion cannot close its own fence.
+        fence = "`" * max(4, 1 + max(len(run) for run in re.findall(r"`*", suggestion)))
+        text += f"\n\nSuggested fix:\n{fence}\n{suggestion}\n{fence}"
+    return text[:MAX_COMMENT_CHARS]
 
 
 def conclude(review, omitted, config):
@@ -496,24 +518,27 @@ def post_inline(github, pr, inline):
 
 def render_summary(review, general, omitted, state, description, sha, model, usage, reasons, repeated=()):
     verdict = "✅ Passed" if state == "success" else "❌ Failed"
-    parts = [f"## AI review: {verdict} · {sha[:7]}", description, review["summary"]]
+    parts = [f"## AI review: {verdict} · {sha[:7]}", description, neutralise(review["summary"])]
     if review["prompt_injection"]["detected"]:
-        parts.append(f"**Possible prompt injection:**\n\n> {review['prompt_injection']['evidence']}")
+        parts.append(f"**Possible prompt injection:**\n\n> {neutralise(review['prompt_injection']['evidence'])}")
     if omitted:
-        parts.append("**Not reviewed, because it did not fit:** " + ", ".join(f"`{p}`" for p in omitted))
+        parts.append("**Not reviewed, because it did not fit:** " + neutralise(", ".join(f"`{p}`" for p in omitted)))
     if reasons:
-        parts.append("**Needs a human:**\n" + "\n".join(f"- {r}" for r in reasons))
+        parts.append("**Needs a human:**\n" + "\n".join(f"- {neutralise(r)}" for r in reasons))
     for finding in general:
         location = f"`{finding['path']}`" + (f" line {finding['line']}" if finding["line"] else "")
-        parts.append(f"{format_finding(finding)}\n\n{location}")
+        parts.append(f"{format_finding(finding)}\n\n{neutralise(location)}")
     if repeated:
-        rows = [f"- {SEVERITY_LABEL[f['severity']]}: {f['title'].strip()} (`{f['path']}` line {f['line']})" for f in repeated]
+        rows = [
+            f"- {SEVERITY_LABEL[f['severity']]}: " + neutralise(f"{f['title'].strip()} (`{f['path']}` line {f['line']})")
+            for f in repeated
+        ]
         parts.append("**Still present, already commented on:**\n" + "\n".join(rows))
     if model:
         cost = f", ${usage['cost']:.4f}" if isinstance(usage.get("cost"), (int, float)) else ""
         tokens = f"{usage.get('prompt_tokens', '?')} in / {usage.get('completion_tokens', '?')} out"
         parts.append(f"<sub>Reviewed by `{model}` via OpenRouter ({tokens}{cost}). Automated and advisory, not an approval.</sub>")
-    body = neutralise("\n\n".join(parts))
+    body = "\n\n".join(parts)
     if len(body) > MAX_COMMENT_CHARS:
         body = body[:MAX_COMMENT_CHARS] + "\n\n…cut off here. The full review is in the workflow run log."
     return f"{SUMMARY_MARKER}\n\n{body}"
@@ -695,7 +720,7 @@ def main():
     parser.add_argument("--pr", type=int)
     args = parser.parse_args()
 
-    action = label = None
+    action = label = event_sha = None
     number = args.pr
     scheduled = not number and os.environ.get("GITHUB_EVENT_NAME") in ("schedule", "workflow_dispatch")
     if os.environ.get("GITHUB_EVENT_PATH") and not number and not scheduled:
@@ -703,6 +728,7 @@ def main():
         number = event["pull_request"]["number"]
         action = event.get("action")
         label = (event.get("label") or {}).get("name")
+        event_sha = event["pull_request"]["head"]["sha"]
     if not args.repo or not (number or scheduled):
         parser.error("--repo and --pr are required outside GitHub Actions")
 
@@ -725,7 +751,7 @@ def main():
         if status and status["state"] in ("success", "failure"):
             print(f"PR #{number}: {sha[:7]} already has a verdict")
             return
-    decision = "review" if args.dry_run else decide(pr, config, action, label)
+    decision = "review" if args.dry_run else decide(pr, config, action, label, event_sha)
     print(f"PR #{number} by {pr['user']['login']} ({pr['author_association']}): {decision}")
     if decision == "skip":
         try:

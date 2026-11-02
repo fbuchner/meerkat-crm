@@ -32,8 +32,9 @@ func TestHashPassword_Error(t *testing.T) {
 
 func TestGenerateToken(t *testing.T) {
 	config := config.Config{
-		JWTSecretKey:   "mysecretkey",
-		JWTExpiryHours: 24,
+		JWTSecretKey:       "mysecretkey",
+		JWTExpiryHours:     24,
+		JWTMaxSessionHours: 720,
 	}
 
 	user := models.User{

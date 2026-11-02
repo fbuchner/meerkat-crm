@@ -43,6 +43,7 @@ type Config struct {
 	SMTPUseTLS               bool // implicit TLS (e.g. port 465); otherwise STARTTLS is used when available
 	JWTSecretKey             string
 	JWTExpiryHours           int
+	JWTMaxSessionHours       int    // absolute cap on a session, however active (sliding refresh stops here)
 	ReadTimeout              int    // HTTP server read timeout in seconds
 	WriteTimeout             int    // HTTP server write timeout in seconds
 	IdleTimeout              int    // HTTP server idle timeout in seconds
@@ -69,6 +70,14 @@ func LoadConfig() *Config {
 		jwtExpiryHours = defaultJWTExpiry
 	}
 
+	// Never default below JWT_EXPIRY_HOURS, or deployments with a long expiry fail validation on upgrade.
+	defaultJWTMaxSession := max(720, jwtExpiryHours)
+	jwtMaxSessionHours, err := strconv.Atoi(getEnv("JWT_MAX_SESSION_HOURS", strconv.Itoa(defaultJWTMaxSession)))
+	if err != nil {
+		log.Println("WARN: Invalid JWT max session set. Please provide an integer value.")
+		jwtMaxSessionHours = defaultJWTMaxSession
+	}
+
 	// Parse timeout values with defaults
 	readTimeout := getIntEnv("HTTP_READ_TIMEOUT", 15)
 	writeTimeout := getIntEnv("HTTP_WRITE_TIMEOUT", 15)
@@ -90,6 +99,7 @@ func LoadConfig() *Config {
 		SMTPUseTLS:              getBoolEnv("SMTP_USE_TLS", false),
 		JWTSecretKey:            getEnv("JWT_SECRET_KEY", ""),
 		JWTExpiryHours:          jwtExpiryHours,
+		JWTMaxSessionHours:      jwtMaxSessionHours,
 		TrustedProxies:          getProxies(getEnv("TRUSTED_PROXIES", "")),
 		ReadTimeout:             readTimeout,
 		WriteTimeout:            writeTimeout,
@@ -274,6 +284,14 @@ func (c *Config) Validate() []ValidationError {
 		errors = append(errors, ValidationError{
 			Field:   "JWT_EXPIRY_HOURS",
 			Message: fmt.Sprintf("Invalid JWT expiry hours '%d'. Must be between 1 and 8760 (1 year).", c.JWTExpiryHours),
+		})
+	}
+
+	// Validate JWT Max Session Hours
+	if c.JWTMaxSessionHours < c.JWTExpiryHours || c.JWTMaxSessionHours > 8760 {
+		errors = append(errors, ValidationError{
+			Field:   "JWT_MAX_SESSION_HOURS",
+			Message: fmt.Sprintf("Invalid JWT max session hours '%d'. Must be between JWT_EXPIRY_HOURS (%d) and 8760 (1 year).", c.JWTMaxSessionHours, c.JWTExpiryHours),
 		})
 	}
 

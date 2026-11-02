@@ -351,6 +351,8 @@ func ConfirmPasswordReset(context *gin.Context) {
 	}
 
 	user.Password = hashedPassword
+	passwordChangedAt := time.Now()
+	user.PasswordChangedAt = &passwordChangedAt
 	user.PasswordResetTokenHash = nil
 	user.PasswordResetExpiresAt = nil
 	user.PasswordResetRequestedAt = nil
@@ -796,6 +798,8 @@ func ChangePassword(context *gin.Context) {
 	}
 
 	user.Password = hashedPassword
+	passwordChangedAt := time.Now()
+	user.PasswordChangedAt = &passwordChangedAt
 	user.PasswordResetTokenHash = nil
 	user.PasswordResetExpiresAt = nil
 	user.PasswordResetRequestedAt = nil

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"meerkat/config"
 	apperrors "meerkat/errors"
@@ -223,6 +224,8 @@ func UpdateUser(c *gin.Context) {
 			return
 		}
 		user.Password = hashedPassword
+		passwordChangedAt := time.Now()
+		user.PasswordChangedAt = &passwordChangedAt
 	}
 	if input.IsAdmin != nil {
 		user.IsAdmin = *input.IsAdmin

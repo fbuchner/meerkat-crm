@@ -17,6 +17,7 @@ type User struct {
 	PasswordResetTokenHash   *string    `gorm:"column:password_reset_token_hash"`
 	PasswordResetExpiresAt   *time.Time `gorm:"column:password_reset_expires_at"`
 	PasswordResetRequestedAt *time.Time `gorm:"column:password_reset_requested_at"`
+	PasswordChangedAt        *time.Time `gorm:"column:password_changed_at" json:"-"` // sessions signed in before this are not renewed
 	CustomFieldNames         []string   `gorm:"type:text;serializer:json" json:"custom_field_names"`
 	EnabledContactFields     []string   `gorm:"type:text;serializer:json" json:"enabled_contact_fields"`
 	// Limits which contacts the built-in CardDAV server shows this user's devices.

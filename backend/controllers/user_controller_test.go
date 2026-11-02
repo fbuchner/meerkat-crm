@@ -362,6 +362,7 @@ func TestConfirmPasswordReset_Succeeds(t *testing.T) {
 	assert.Nil(t, updated.PasswordResetExpiresAt)
 	assert.Nil(t, updated.PasswordResetRequestedAt)
 	assert.NoError(t, bcrypt.CompareHashAndPassword([]byte(updated.Password), []byte(strongPasswordAlt)))
+	assert.NotNil(t, updated.PasswordChangedAt)
 }
 
 func TestChangePassword_Succeeds(t *testing.T) {
@@ -393,6 +394,7 @@ func TestChangePassword_Succeeds(t *testing.T) {
 	var updated models.User
 	db.Where("username = ?", "changeme").First(&updated)
 	assert.NoError(t, bcrypt.CompareHashAndPassword([]byte(updated.Password), []byte(strongPasswordAnother)))
+	assert.NotNil(t, updated.PasswordChangedAt)
 	assert.Nil(t, updated.PasswordResetTokenHash)
 	assert.Nil(t, updated.PasswordResetExpiresAt)
 	assert.Nil(t, updated.PasswordResetRequestedAt)

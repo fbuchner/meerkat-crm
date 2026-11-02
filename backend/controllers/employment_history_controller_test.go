@@ -153,6 +153,42 @@ func TestValidateEmploymentHistoryDates_RejectsFutureEndDate(t *testing.T) {
 	assert.Nil(t, validateEmploymentHistoryDates("", "2020-01"))
 }
 
+func TestEndEmploymentHistory_UsesClientDate(t *testing.T) {
+	db, router := setupRouter()
+
+	var user models.User
+	db.First(&user)
+	router.POST("/contacts/:id/employment-history/:eid/end", EndEmploymentHistory)
+
+	contact := models.Contact{UserID: user.ID, Firstname: "Erin"}
+	db.Create(&contact)
+	entry := models.EmploymentHistory{UserID: user.ID, ContactID: contact.ID, Organization: "Acme"}
+	db.Create(&entry)
+	path := "/contacts/" + strconv.Itoa(int(contact.ID)) + "/employment-history/" + strconv.Itoa(int(entry.ID)) + "/end"
+
+	req, _ := http.NewRequest("POST", path+"?date=not-a-date", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	req, _ = http.NewRequest("POST", path+"?date=2024-03-05", nil)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var closed models.EmploymentHistory
+	db.First(&closed, entry.ID)
+	assert.Equal(t, "2024-03-05", closed.EndDate)
+}
+
+// Today in the furthest-ahead timezone is tomorrow in UTC for part of the day.
+func TestValidateEmploymentHistoryDates_AllowsTodayAheadOfUTC(t *testing.T) {
+	localToday := time.Now().UTC().Add(maxUTCOffset).Format("2006-01-02")
+	assert.Nil(t, validateEmploymentHistoryDates("", localToday))
+	tooFar := time.Now().UTC().Add(maxUTCOffset + 24*time.Hour).Format("2006-01-02")
+	assert.NotNil(t, validateEmploymentHistoryDates("", tooFar))
+}
+
 func TestValidateEmploymentHistoryContent(t *testing.T) {
 	assert.NotNil(t, validateEmploymentHistoryContent(&models.EmploymentHistoryInput{Notes: "x", Organization: " "}))
 	assert.Nil(t, validateEmploymentHistoryContent(&models.EmploymentHistoryInput{JobTitle: "Engineer"}))

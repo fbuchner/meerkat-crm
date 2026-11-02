@@ -1004,6 +1004,7 @@ func (r *contactSyncRun) pullUpdate(obj *remoteObject, link *models.CardDAVConta
 	updated.UserID = r.conn.UserID
 	r.applyPhoto(updated, photoData, mediaType, photoURL)
 	r.invalidateLocalHash(updated.ID) // the contact just changed
+	updated.RevertStaleEmployment = true
 
 	var hash string
 	err := r.db.Transaction(func(tx *gorm.DB) error {

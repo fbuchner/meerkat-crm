@@ -88,3 +88,16 @@ func TestSortEmploymentHistory_OpenEntriesFirst(t *testing.T) {
 		t.Errorf("unexpected order: %v", got)
 	}
 }
+
+// A closed entry's position follows the end of its period, so a year-only end
+// date ranks after a month in that same year.
+func TestSortEmploymentHistory_ComparesEndOfPeriod(t *testing.T) {
+	entries := []models.EmploymentHistory{
+		{Organization: "Month", EndDate: "2020-06"},
+		{Organization: "Year", EndDate: "2020"},
+	}
+	SortEmploymentHistory(entries)
+	if entries[0].Organization != "Year" {
+		t.Errorf("expected the year-only end date first, got %q", entries[0].Organization)
+	}
+}

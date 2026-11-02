@@ -70,7 +70,7 @@ func SortEmploymentHistory(entries []models.EmploymentHistory) {
 // group: EndDate for a closed entry, StartDate for an open one.
 func sortKey(e models.EmploymentHistory) (time.Time, bool) {
 	if e.EndDate != "" {
-		return models.PartialDateStart(e.EndDate)
+		return models.PartialDateEnd(e.EndDate)
 	}
 	return models.PartialDateStart(e.StartDate)
 }

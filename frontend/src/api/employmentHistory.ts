@@ -1,3 +1,4 @@
+import { format } from 'date-fns';
 import { apiFetch, API_BASE_URL, getAuthHeaders, parseErrorResponse } from './client';
 
 export interface EmploymentHistoryEntry {
@@ -79,8 +80,10 @@ export async function endEmploymentHistory(
   contactId: number | string,
   entryId: number
 ): Promise<{ employment_history: EmploymentHistoryEntry }> {
+  // The user's local today, which can differ from the server's UTC date.
+  const today = format(new Date(), 'yyyy-MM-dd');
   const response = await apiFetch(
-    `${API_BASE_URL}/contacts/${contactId}/employment-history/${entryId}/end`,
+    `${API_BASE_URL}/contacts/${contactId}/employment-history/${entryId}/end?date=${today}`,
     { method: 'POST', headers: getAuthHeaders() }
   );
   if (!response.ok) throw await parseErrorResponse(response);

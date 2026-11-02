@@ -771,3 +771,40 @@ func TestDiscoverFiltersGeneratedAddressBooks(t *testing.T) {
 		})
 	}
 }
+
+// On a pull-only connection the remote keeps the old ORG after the user ends a
+// job in Meerkat, so any later remote edit carries it again.
+func TestContactSyncPullDoesNotReopenEndedJob(t *testing.T) {
+	card := func(tel string) string {
+		return strings.Join([]string{
+			"BEGIN:VCARD", "VERSION:3.0",
+			"UID:uid-ended",
+			"FN:Grace Ended",
+			"N:Ended;Grace;;;",
+			"ORG:Acme",
+			"TEL:" + tel,
+			"END:VCARD", "",
+		}, "\r\n")
+	}
+	runContactSync(t, models.CardDAVDirectionPull, func(t *testing.T, env *contactSyncEnv) {
+		env.remote.putRaw(t, "uid-ended", card("+491511111"))
+		env.sync(t)
+		contact := env.localContacts(t)[0]
+
+		require.NoError(t, env.db.Model(&models.EmploymentHistory{}).
+			Where("contact_id = ?", contact.ID).Update("end_date", "2026-01-01").Error)
+		require.NoError(t, RecomputeContactEmploymentScalars(env.db, contact.UserID, contact.ID))
+
+		env.remote.putRaw(t, "uid-ended", card("+491522222"))
+		env.sync(t)
+
+		var open int64
+		require.NoError(t, env.db.Model(&models.EmploymentHistory{}).
+			Where("contact_id = ? AND end_date = ''", contact.ID).Count(&open).Error)
+		assert.Zero(t, open, "the ended job must stay ended")
+
+		updated := env.localContacts(t)[0]
+		assert.Equal(t, "", updated.Organization)
+		assert.Equal(t, "+491522222", updated.Phone, "the rest of the remote edit still applies")
+	})
+}

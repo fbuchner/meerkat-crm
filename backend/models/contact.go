@@ -106,8 +106,8 @@ type Contact struct {
 
 	Archived bool `gorm:"default:false" json:"archived"`
 
-	// RevertStaleEmployment is set by CardDAV so a client re-pushing the job the
-	// user just ended doesn't resurrect it. Not persisted. Imports leave
+	// RevertStaleEmployment is set by CardDAV and remote address book pulls so a
+	// re-push of the job the user just ended doesn't resurrect it. Not persisted. Imports leave
 	// it unset on purpose: they are deliberate writes (e.g. rehired at the same
 	// company) and reopen the job.
 	RevertStaleEmployment bool `gorm:"-" json:"-"`
@@ -177,57 +177,42 @@ func (c *Contact) AfterSave(tx *gorm.DB) error {
 // recompute the scalars and save the Contact (services.RecomputeContactEmploymentScalars),
 // which lands back here as a no-op because the values already match.
 //
-// Cost: one extra SELECT per saved contact with a non-empty scalar, including
-// bulk imports and CardDAV syncs. Accepted at current scale; batch it if import
-// volume grows.
+// Cost: one extra SELECT per saved contact, including bulk imports and CardDAV
+// syncs. Accepted at current scale; batch it if import volume grows.
 func (c *Contact) syncCurrentEmploymentHistory(tx *gorm.DB) error {
-	// This is not just a "nothing to sync" shortcut: a Contact save that blanks
-	// all four scalars (e.g. clearing Organization via the API or an import)
-	// does NOT close out or clear the underlying EmploymentHistory entry here.
-	// There is no way to express "this contact now has no employer" purely
-	// through the Contact scalars — that must go through the EmploymentHistory
-	// CRUD API directly (ending or deleting the entry).
-	// The blank scalars are still written, so until the next history change
-	// recomputes them the contact can show no employer while an open entry exists.
-	// Re-deriving them here would cost a query on every save of a contact without
-	// a job, so this divergence is accepted.
-	if c.Organization == "" && c.Department == "" && c.JobTitle == "" && c.Role == "" {
-		return nil
-	}
-
 	var openEntries []EmploymentHistory
 	if err := tx.Where("user_id = ? AND contact_id = ? AND end_date = ''", c.UserID, c.ID).Order("id").Find(&openEntries).Error; err != nil {
 		return err
 	}
-
 	current := MostRecentOpenEntry(openEntries)
+
+	// A save that blanks all four scalars can't express "this contact has no
+	// employer": that goes through the EmploymentHistory endpoints (ending or
+	// deleting the entry). Re-derive them so the contact keeps matching its history.
+	if c.Organization == "" && c.Department == "" && c.JobTitle == "" && c.Role == "" {
+		if current == nil {
+			return nil
+		}
+		return c.resetEmploymentScalars(tx, current)
+	}
+
+	if current != nil && c.employmentMatches(current) {
+		return nil
+	}
+
+	// A stale CardDAV client or remote address book re-pushing the job the user
+	// just ended must neither resurrect it nor overwrite a newer current job.
+	if c.RevertStaleEmployment {
+		last, err := c.latestClosedEntry(tx)
+		if err != nil {
+			return err
+		}
+		if last != nil && c.employmentMatches(last) {
+			return c.resetEmploymentScalars(tx, current)
+		}
+	}
+
 	if current == nil {
-		// A stale CardDAV client re-pushing the job the user just ended must not
-		// resurrect it: if it equals the latest closed entry, revert the scalars
-		// instead of creating a new open entry. Other paths (API, import) are
-		// deliberate writes and always create the entry.
-		var last EmploymentHistory
-		if c.RevertStaleEmployment {
-			var closed []EmploymentHistory
-			if err := tx.Where("user_id = ? AND contact_id = ? AND end_date != ''", c.UserID, c.ID).
-				Find(&closed).Error; err != nil {
-				return err
-			}
-			// Compare parsed dates: end dates may be partial, so string order is wrong.
-			var lastEnd time.Time
-			for _, e := range closed {
-				if end, ok := PartialDateEnd(e.EndDate); ok && (last.ID == 0 || end.After(lastEnd)) {
-					last, lastEnd = e, end
-				}
-			}
-		}
-		if last.ID != 0 && last.Organization == c.Organization && last.Department == c.Department &&
-			last.JobTitle == c.JobTitle && last.Role == c.Role {
-			c.Organization, c.Department, c.JobTitle, c.Role = "", "", "", ""
-			return tx.Model(c).UpdateColumns(map[string]interface{}{
-				"organization": "", "department": "", "job_title": "", "role": "",
-			}).Error
-		}
 		return tx.Create(&EmploymentHistory{
 			UserID:       c.UserID,
 			ContactID:    c.ID,
@@ -238,17 +223,46 @@ func (c *Contact) syncCurrentEmploymentHistory(tx *gorm.DB) error {
 		}).Error
 	}
 
-	if current.Organization == c.Organization && current.Department == c.Department &&
-		current.JobTitle == c.JobTitle && current.Role == c.Role {
-		return nil
-	}
-
 	return tx.Model(current).Updates(map[string]interface{}{
 		"organization": c.Organization,
 		"department":   c.Department,
 		"job_title":    c.JobTitle,
 		"role":         c.Role,
 	}).Error
+}
+
+func (c *Contact) employmentMatches(e *EmploymentHistory) bool {
+	return e.Organization == c.Organization && e.Department == c.Department &&
+		e.JobTitle == c.JobTitle && e.Role == c.Role
+}
+
+// resetEmploymentScalars writes the scalars of the given entry to the contact,
+// or blanks them when entry is nil (no current job).
+func (c *Contact) resetEmploymentScalars(tx *gorm.DB, entry *EmploymentHistory) error {
+	if entry == nil {
+		entry = &EmploymentHistory{}
+	}
+	c.Organization, c.Department, c.JobTitle, c.Role = entry.Organization, entry.Department, entry.JobTitle, entry.Role
+	return tx.Model(c).UpdateColumns(map[string]interface{}{
+		"organization": c.Organization, "department": c.Department, "job_title": c.JobTitle, "role": c.Role,
+	}).Error
+}
+
+// latestClosedEntry returns the entry with the latest end date, or nil if there
+// is none. Compares parsed dates: end dates may be partial, so string order is wrong.
+func (c *Contact) latestClosedEntry(tx *gorm.DB) (*EmploymentHistory, error) {
+	var closed []EmploymentHistory
+	if err := tx.Where("user_id = ? AND contact_id = ? AND end_date != ''", c.UserID, c.ID).Find(&closed).Error; err != nil {
+		return nil, err
+	}
+	var last *EmploymentHistory
+	var lastEnd time.Time
+	for i := range closed {
+		if end, ok := PartialDateEnd(closed[i].EndDate); ok && (last == nil || end.After(lastEnd)) {
+			last, lastEnd = &closed[i], end
+		}
+	}
+	return last, nil
 }
 
 // MostRecentOpenEntry picks the open entry whose StartDate is latest. An

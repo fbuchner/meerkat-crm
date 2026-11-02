@@ -121,7 +121,7 @@ Every request and response carries an `X-Request-ID` header created by the middl
 | `POST` | `/contacts/:id/employment-history` | Create an entry |
 | `PUT` | `/contacts/:id/employment-history/:eid` | Update an entry |
 | `DELETE` | `/contacts/:id/employment-history/:eid` | Delete an entry |
-| `POST` | `/contacts/:id/employment-history/:eid/end` | End a current entry (sets `end_date` to today); `400` if already ended |
+| `POST` | `/contacts/:id/employment-history/:eid/end` | End a current entry (sets `end_date` to the optional `date` query parameter, `YYYY-MM-DD`, or else today in UTC); `400` if already ended |
 
 `POST` / `PUT` body:
 
@@ -141,7 +141,7 @@ At least one of `organization`, `department`, `job_title` or `role` is required 
 
 Every change recomputes the contact's `organization`, `department`, `job_title` and `role` from the current entry with the latest `start_date`. Entries can be embedded in `GET /contacts` with `includes=employment_history`, and are included in `GET /contacts/:id` as `employment_histories` (not when the `fields` filter is used). Webhook events: `employment_history.created`, `employment_history.updated`, `employment_history.deleted`.
 
-**Breaking change:** `PUT /contacts/:id` now ignores `organization`, `department`, `job_title` and `role`; they only change through the employment history endpoints. Creating a contact with them, importing, or a CardDAV sync with non-empty values creates or updates the current entry, but blanking all four does nothing (end or delete the entry instead). CardDAV additionally treats values identical to the most recently ended entry, with no current entry, as a stale client re-push: the scalars are reset to empty and no entry is created.
+**Breaking change:** `PUT /contacts/:id` now ignores `organization`, `department`, `job_title` and `role`; they only change through the employment history endpoints. Creating a contact with them, importing, or a CardDAV sync with non-empty values creates or updates the current entry. Blanking all four does not end or delete the entry: the values are re-derived from it (end or delete the entry instead). CardDAV and remote address book sync additionally treat values identical to the most recently ended entry as a stale re-push: the values are re-derived from the current entry, or emptied if there is none, and no entry is created or changed.
 
 ### Notes
 

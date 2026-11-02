@@ -154,3 +154,81 @@ func TestContactSaveRevertsAgainstLatestEndedEntryAcrossPrecisions(t *testing.T)
 		t.Errorf("expected scalars reverted, got %q", got.Organization)
 	}
 }
+
+// A stale push of the old job must not overwrite the job that replaced it.
+func TestContactSaveStalePushKeepsNewerCurrentJob(t *testing.T) {
+	db := setupTestDB(t)
+
+	contact := Contact{UserID: 1, Firstname: "Jane"}
+	db.Create(&contact)
+	db.Create(&EmploymentHistory{UserID: 1, ContactID: contact.ID, Organization: "OldCo", EndDate: "2023-01-01"})
+	current := EmploymentHistory{UserID: 1, ContactID: contact.ID, Organization: "NewCo", StartDate: "2023-02"}
+	db.Create(&current)
+
+	contact.Organization = "OldCo"
+	contact.RevertStaleEmployment = true
+	if err := db.Save(&contact).Error; err != nil {
+		t.Fatalf("save failed: %v", err)
+	}
+
+	var entry EmploymentHistory
+	db.First(&entry, current.ID)
+	if entry.Organization != "NewCo" {
+		t.Errorf("current entry overwritten with %q", entry.Organization)
+	}
+	var got Contact
+	db.First(&got, contact.ID)
+	if got.Organization != "NewCo" {
+		t.Errorf("expected scalars reset to the current job, got %q", got.Organization)
+	}
+}
+
+// New values from the same stale-guarded path still update the current entry.
+func TestContactSaveRevertFlagStillAppliesNewValues(t *testing.T) {
+	db := setupTestDB(t)
+
+	contact := Contact{UserID: 1, Firstname: "Jane"}
+	db.Create(&contact)
+	db.Create(&EmploymentHistory{UserID: 1, ContactID: contact.ID, Organization: "OldCo", EndDate: "2023-01-01"})
+	current := EmploymentHistory{UserID: 1, ContactID: contact.ID, Organization: "NewCo"}
+	db.Create(&current)
+
+	contact.Organization = "RenamedCo"
+	contact.RevertStaleEmployment = true
+	if err := db.Save(&contact).Error; err != nil {
+		t.Fatalf("save failed: %v", err)
+	}
+
+	var entry EmploymentHistory
+	db.First(&entry, current.ID)
+	if entry.Organization != "RenamedCo" {
+		t.Errorf("expected current entry updated, got %q", entry.Organization)
+	}
+}
+
+// Blanking the scalars doesn't end the job, so the contact must keep showing it.
+func TestContactSaveBlankScalarsRederivedFromCurrentEntry(t *testing.T) {
+	db := setupTestDB(t)
+
+	contact := Contact{UserID: 1, Firstname: "Jane", Organization: "Acme", JobTitle: "Engineer"}
+	db.Create(&contact)
+
+	contact.Organization, contact.JobTitle = "", ""
+	if err := db.Save(&contact).Error; err != nil {
+		t.Fatalf("save failed: %v", err)
+	}
+
+	var open int64
+	db.Model(&EmploymentHistory{}).Where("contact_id = ? AND end_date = ''", contact.ID).Count(&open)
+	if open != 1 {
+		t.Errorf("expected the entry to stay open, got %d", open)
+	}
+	if contact.Organization != "Acme" {
+		t.Errorf("expected in-memory scalars restored, got %q", contact.Organization)
+	}
+	var got Contact
+	db.First(&got, contact.ID)
+	if got.Organization != "Acme" || got.JobTitle != "Engineer" {
+		t.Errorf("expected scalars restored, got %q / %q", got.Organization, got.JobTitle)
+	}
+}

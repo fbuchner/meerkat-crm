@@ -198,8 +198,8 @@ func ProcessWebhookRetries(db *gorm.DB, cfg config.Config) {
 
 	for _, d := range deliveries {
 		var wh models.Webhook
-		if err := db.Where("id = ? AND is_active = ?", d.WebhookID, true).First(&wh).Error; err != nil {
-			logger.Warn().Err(err).Uint("webhook_id", d.WebhookID).Msg("Webhook not found or inactive for retry")
+		if err := db.Where("id = ? AND is_active = ? AND user_id IN (SELECT id FROM users WHERE deleted_at IS NULL)", d.WebhookID, true).First(&wh).Error; err != nil {
+			logger.Warn().Err(err).Uint("webhook_id", d.WebhookID).Msg("Webhook not found, inactive or its user deleted, skipping retry")
 			db.Model(&d).Update("next_retry_at", nil)
 			continue
 		}

@@ -640,7 +640,7 @@ func TestDeleteUser_RemovesAPITokens(t *testing.T) {
 	db, _ := setupRouter()
 	db.AutoMigrate(&models.ApiToken{}, &models.Webhook{}, &models.WebhookDelivery{}, &models.CalendarEventLink{},
 		&models.CalendarSubscription{}, &models.CardDAVContactLink{}, &models.CardDAVConnection{}, &models.CardDAVSync{},
-		&models.ContactDuplicateDismissal{})
+		&models.ContactDuplicateDismissal{}, &models.ReminderCompletion{})
 	admin := models.User{Username: "tokenadmin", Email: "tokenadmin@example.com", Password: "x", IsAdmin: true}
 	target := models.User{Username: "tokentarget", Email: "tokentarget@example.com", Password: "x"}
 	db.Create(&admin)

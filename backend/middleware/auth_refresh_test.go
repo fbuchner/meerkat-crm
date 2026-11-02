@@ -130,3 +130,21 @@ func TestAuthJWTOfDeletedUserRejected(t *testing.T) {
 	db.Delete(&user)
 	assert.Equal(t, http.StatusUnauthorized, call())
 }
+
+func TestAuthJWTDatabaseErrorDoesNotLogOut(t *testing.T) {
+	db, router := setupAuthTestRouter()
+	cfg := &config.Config{JWTSecretKey: "test-secret-key-32-chars-minimum!"}
+	var user models.User
+	db.First(&user)
+	tok, _ := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"username": user.Username, "user_id": user.ID, "exp": time.Now().Add(time.Hour).Unix(),
+	}).SignedString([]byte(cfg.JWTSecretKey))
+	assert.NoError(t, db.Migrator().DropTable(&models.User{}))
+
+	req, _ := http.NewRequest("GET", "/protected", nil)
+	req.Header.Set("Authorization", "Bearer "+tok)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}

@@ -6,6 +6,20 @@ on:
   pull_request:
 
 jobs:
+  ai-review:
+    permissions:
+      contents: read
+    name: AI review script
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run tests
+        run: python3 -m unittest discover -s .github/ai-review
+
   backend:
     permissions:
       contents: read

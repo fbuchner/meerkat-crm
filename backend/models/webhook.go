@@ -13,16 +13,16 @@ type Webhook struct {
 	URL      string   `gorm:"not null"`
 	Events   []string `gorm:"type:text;serializer:json"`
 	Secret   string   `gorm:"not null"`
-	IsActive bool     `gorm:"default:true"`
+	IsActive bool     // no gorm default tag: GORM would replace false with it on create
 }
 
 type WebhookDelivery struct {
 	gorm.Model
-	WebhookID   uint       `gorm:"not null;index"`
-	EventType   string     `gorm:"not null"`
-	Payload     string     `gorm:"not null"`
+	WebhookID   uint   `gorm:"not null;index"`
+	EventType   string `gorm:"not null"`
+	Payload     string `gorm:"not null"`
 	StatusCode  *int
 	Error       *string
-	Attempts    int        `gorm:"default:1"`
+	Attempts    int `gorm:"default:1"`
 	NextRetryAt *time.Time
 }

@@ -30,7 +30,7 @@ type CardDAVConnection struct {
 	Username          string     `json:"username"`
 	PasswordEncrypted string     `json:"-"`
 	Direction         string     `gorm:"not null;default:two_way" json:"direction"`
-	SyncEnabled       bool       `gorm:"default:true" json:"sync_enabled"`
+	SyncEnabled       bool       `json:"sync_enabled"` // no gorm default tag: GORM would replace false with it on create
 	SyncToken         string     `json:"-"`
 	LastSyncedAt      *time.Time `json:"last_synced_at"`
 	LastSyncStatus    string     `json:"last_sync_status"`

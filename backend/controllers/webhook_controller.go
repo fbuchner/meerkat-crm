@@ -68,7 +68,7 @@ func CreateWebhook(c *gin.Context) {
 		URL:      input.URL,
 		Events:   input.Events,
 		Secret:   secret,
-		IsActive: input.IsActive,
+		IsActive: input.IsActive == nil || *input.IsActive,
 	}
 	if err := db.Create(&wh).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("insert"))
@@ -122,7 +122,9 @@ func UpdateWebhook(c *gin.Context) {
 	wh.Name = input.Name
 	wh.URL = input.URL
 	wh.Events = input.Events
-	wh.IsActive = input.IsActive
+	if input.IsActive != nil {
+		wh.IsActive = *input.IsActive
+	}
 
 	if err := db.Save(&wh).Error; err != nil {
 		apperrors.AbortWithError(c, apperrors.ErrDatabase("update"))

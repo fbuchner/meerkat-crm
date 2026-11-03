@@ -328,7 +328,7 @@ type WebhookInput struct {
 	Name     string   `json:"name" validate:"required,min=1,max=200"`
 	URL      string   `json:"url" validate:"required,http_url"`
 	Events   []string `json:"events" validate:"required,min=1,dive,oneof=contact.created contact.updated contact.deleted note.created note.updated note.deleted activity.created activity.updated activity.deleted reminder.triggered birthday.occurred employment_history.created employment_history.updated employment_history.deleted"`
-	IsActive bool     `json:"is_active"`
+	IsActive *bool    `json:"is_active"` // omitted means active on create and unchanged on update
 }
 
 // WebhookResponse is the DTO returned for a webhook (no secret)

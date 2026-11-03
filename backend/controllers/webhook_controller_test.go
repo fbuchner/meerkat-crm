@@ -67,11 +67,12 @@ func TestCreateWebhook(t *testing.T) {
 	router := routerForUser(db, user.ID)
 	router.POST("/webhooks", withValidated(func() any { return &models.WebhookInput{} }), CreateWebhook)
 
+	active := true
 	input := models.WebhookInput{
 		Name:     "My Hook",
 		URL:      "https://example.com/hook",
 		Events:   []string{"contact.created", "note.created"},
-		IsActive: true,
+		IsActive: &active,
 	}
 	body, _ := json.Marshal(input)
 
@@ -91,6 +92,60 @@ func TestCreateWebhook(t *testing.T) {
 	var count int64
 	db.Model(&models.Webhook{}).Where("user_id = ?", user.ID).Count(&count)
 	assert.Equal(t, int64(1), count)
+}
+
+func TestCreateWebhook_IsActive(t *testing.T) {
+	inactive, active := false, true
+	for _, tc := range []struct {
+		name  string
+		input *bool
+		want  bool
+	}{
+		{"an inactive webhook stays inactive", &inactive, false},
+		{"explicitly active", &active, true},
+		{"omitted means active", nil, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db, _ := setupRouter()
+			var user models.User
+			db.First(&user)
+			router := routerForUser(db, user.ID)
+			router.POST("/webhooks", withValidated(func() any { return &models.WebhookInput{} }), CreateWebhook)
+
+			body, _ := json.Marshal(models.WebhookInput{Name: "Hook", URL: "https://example.com/hook", Events: []string{"contact.created"}, IsActive: tc.input})
+			req, _ := http.NewRequest("POST", "/webhooks", bytes.NewBuffer(body))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+			assert.Equal(t, http.StatusCreated, w.Code, w.Body.String())
+
+			var stored models.Webhook
+			assert.NoError(t, db.Where("user_id = ?", user.ID).First(&stored).Error)
+			assert.Equal(t, tc.want, stored.IsActive)
+		})
+	}
+}
+
+func TestUpdateWebhook_OmittedIsActiveKeepsTheState(t *testing.T) {
+	db, _ := setupRouter()
+	var user models.User
+	db.First(&user)
+	router := routerForUser(db, user.ID)
+	router.PUT("/webhooks/:id", withValidated(func() any { return &models.WebhookInput{} }), UpdateWebhook)
+	wh := seedWebhook(db, user.ID, "https://example.com/a")
+	assert.NoError(t, db.Model(&wh).Update("is_active", false).Error)
+
+	body, _ := json.Marshal(gin.H{"name": "Renamed", "url": "https://example.com/a", "events": []string{"contact.created"}})
+	req, _ := http.NewRequest("PUT", "/webhooks/"+strconv.Itoa(int(wh.ID)), bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var stored models.Webhook
+	assert.NoError(t, db.First(&stored, wh.ID).Error)
+	assert.False(t, stored.IsActive)
+	assert.Equal(t, "Renamed", stored.Name)
 }
 
 func TestCreateWebhookLimit(t *testing.T) {
@@ -172,7 +227,7 @@ func TestUpdateWebhook(t *testing.T) {
 		Name:     "Renamed Hook",
 		URL:      "https://example.com/new",
 		Events:   []string{"activity.created"},
-		IsActive: false,
+		IsActive: new(bool),
 	}
 	body, _ := json.Marshal(update)
 

@@ -16,17 +16,18 @@ const (
 // Credentials are optional (public calendars) and the password is stored encrypted.
 type CalendarSubscription struct {
 	gorm.Model
-	UserID            uint       `gorm:"not null;index" json:"-"`
-	Name              string     `gorm:"not null" json:"name"`
-	URL               string     `gorm:"not null" json:"url"`
-	Username          string     `json:"username"`
-	PasswordEncrypted string     `json:"-"`
-	SyncEnabled       bool       `gorm:"default:true" json:"sync_enabled"`
-	PastDays          int        `gorm:"default:5" json:"past_days"`
-	FutureDays        int        `gorm:"default:10" json:"future_days"`
-	LastSyncedAt      *time.Time `json:"last_synced_at"`
-	LastSyncStatus    string     `json:"last_sync_status"`
-	LastSyncError     string     `json:"last_sync_error"`
+	UserID            uint   `gorm:"not null;index" json:"-"`
+	Name              string `gorm:"not null" json:"name"`
+	URL               string `gorm:"not null" json:"url"`
+	Username          string `json:"username"`
+	PasswordEncrypted string `json:"-"`
+	// No gorm default tags on these three: GORM would replace false and 0 with them on create.
+	SyncEnabled    bool       `json:"sync_enabled"`
+	PastDays       int        `json:"past_days"`
+	FutureDays     int        `json:"future_days"`
+	LastSyncedAt   *time.Time `json:"last_synced_at"`
+	LastSyncStatus string     `json:"last_sync_status"`
+	LastSyncError  string     `json:"last_sync_error"`
 }
 
 // CalendarEventLink maps an imported iCalendar event (by UID) to the activity it

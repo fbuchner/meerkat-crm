@@ -105,6 +105,12 @@ func FetchImageFromURL(imageURL string) ([]byte, string, error) {
 		return nil, "", err
 	}
 
+	return fetchImage(newSafeClient(), parsedURL.String())
+}
+
+// newSafeClient returns an HTTP client that refuses internal addresses, both at
+// connection time and on redirects.
+func newSafeClient() *http.Client {
 	// Create a custom dialer that validates IP addresses at connection time
 	// This prevents DNS rebinding/TOCTOU attacks
 	safeDialer := &net.Dialer{
@@ -144,26 +150,32 @@ func FetchImageFromURL(imageURL string) ([]byte, string, error) {
 	}
 
 	// Create HTTP client with custom transport that validates IPs at connection time
-	client := &http.Client{
+	return &http.Client{
 		Timeout: 15 * time.Second,
 		Transport: &http.Transport{
 			DialContext: safeDialContext,
 		},
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			// Validate redirect target URL format
-			_, err := validateURLForSSRF(req.URL.String())
-			if err != nil {
-				return errors.New("redirect to disallowed location")
-			}
-			if len(via) >= 3 {
-				return errors.New("too many redirects")
-			}
-			return nil
-		},
+		CheckRedirect: checkImageRedirect,
 	}
+}
 
+// checkImageRedirect validates each redirect target and limits the number of hops.
+func checkImageRedirect(req *http.Request, via []*http.Request) error {
+	// Validate redirect target URL format
+	_, err := validateURLForSSRF(req.URL.String())
+	if err != nil {
+		return errors.New("redirect to disallowed location")
+	}
+	if len(via) >= 3 {
+		return errors.New("too many redirects")
+	}
+	return nil
+}
+
+// fetchImage downloads an already validated URL with the given client.
+func fetchImage(client *http.Client, imageURL string) ([]byte, string, error) {
 	// Fetch the image using the validated URL
-	req, err := http.NewRequest("GET", parsedURL.String(), nil)
+	req, err := http.NewRequest("GET", imageURL, nil)
 	if err != nil {
 		return nil, "", err
 	}

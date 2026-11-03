@@ -11,7 +11,7 @@ type User struct {
 	gorm.Model
 	Username                 string     `gorm:"unique" validate:"required,min=1,max=50,no_at_sign"`
 	Password                 string     `validate:"required,min=8,strong_password"`
-	Email                    string     `gorm:"unique" validate:"required,email"`
+	Email                    string     `gorm:"uniqueIndex:idx_users_email,where:email <> ''" validate:"required,email"` // empty for OIDC accounts whose provider sends none
 	Language                 string     `gorm:"default:'en'" json:"language" validate:"omitempty,oneof=en de it es fr zh"`
 	DateFormat               string     `gorm:"default:'eu'" json:"date_format" validate:"omitempty,oneof=eu us iso"`
 	IsAdmin                  bool       `gorm:"default:false" json:"is_admin"`

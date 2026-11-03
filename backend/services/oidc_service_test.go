@@ -797,8 +797,6 @@ func TestFindOrProvisionUser_AutoProvision(t *testing.T) {
 	})
 
 	t.Run("a second provider user without an email can also sign up", func(t *testing.T) {
-		t.Skip("bug: FindOrProvisionUser stores email as an empty string, which collides on the UNIQUE email column")
-
 		db := newImportSessionTestDB(t)
 		_, err := FindOrProvisionUser(db, &OIDCClaims{Subject: "subject-1", Provider: testOIDCProvider, Name: "Jane"}, oidcConfig(true, false))
 		require.NoError(t, err)

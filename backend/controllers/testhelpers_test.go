@@ -9,7 +9,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -102,13 +101,4 @@ func decodeJSON[T any](t *testing.T, w *httptest.ResponseRecorder) T {
 	var out T
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &out), w.Body.String())
 	return out
-}
-
-// skipKnownBug marks a test that asserts the correct behaviour of a production bug that is
-// not fixed yet. Set MEERKAT_RUN_KNOWN_BUGS=1 to run it and see the bug reproduce.
-func skipKnownBug(t *testing.T, reason string) {
-	t.Helper()
-	if os.Getenv("MEERKAT_RUN_KNOWN_BUGS") == "" {
-		t.Skip("known bug: " + reason)
-	}
 }

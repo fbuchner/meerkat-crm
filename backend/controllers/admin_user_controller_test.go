@@ -317,7 +317,6 @@ func TestDeleteUser_AnotherAdminCanBeDeleted(t *testing.T) {
 }
 
 func TestDeleteUser_FreesTheUsernameAndEmailForReuse(t *testing.T) {
-	skipKnownBug(t, "admin_user_controller.go:370 soft-deletes the user, so the UNIQUE username and email stay taken forever")
 	db := newTestDB(t)
 	admin := newTestUser(t, db, "admin", true)
 	target := newTestUser(t, db, "target", false)

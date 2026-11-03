@@ -810,8 +810,6 @@ func TestFindOrProvisionUser_AutoProvision(t *testing.T) {
 	})
 
 	t.Run("username held by a deleted account gets a suffix", func(t *testing.T) {
-		t.Skip("bug: the username availability check skips soft-deleted rows, which still hold the UNIQUE username")
-
 		db := newImportSessionTestDB(t)
 		gone := seedLocalUser(t, db, "jane", "gone@example.com")
 		require.NoError(t, db.Delete(&gone).Error)

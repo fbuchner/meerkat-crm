@@ -370,8 +370,8 @@ func DeleteUser(c *gin.Context) {
 			}
 		}
 
-		// Delete user
-		if err := tx.Delete(&user).Error; err != nil {
+		// Delete user for good: a soft-deleted row would keep the UNIQUE username, email and OIDC subject taken
+		if err := tx.Unscoped().Delete(&user).Error; err != nil {
 			return err
 		}
 

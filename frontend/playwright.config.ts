@@ -32,7 +32,7 @@ export default defineConfig({
   
   // Shared settings for all projects
   use: {
-    baseURL: 'http://localhost:7300',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:7300',
     
     // Collect trace when retrying the failed test
     trace: 'on-first-retry',

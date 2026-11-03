@@ -38,11 +38,19 @@ test.describe('Authentication', () => {
     });
 
     test('should stay on login page with empty credentials', async ({ page }) => {
+      const loginRequests: string[] = [];
+      page.on('request', (request) => {
+        if (request.method() === 'POST' && request.url().endsWith('/login')) {
+          loginRequests.push(request.url());
+        }
+      });
       await page.goto('/');
 
       // Required fields prevent submission; we should remain on the login page.
       await page.getByRole('button', { name: /login/i }).click();
+      await expect(page.getByLabel(/username or email/i)).toHaveJSProperty('validity.valueMissing', true);
       await expect(page.getByRole('heading', { name: /login/i })).toBeVisible();
+      expect(loginRequests).toEqual([]);
     });
   });
 

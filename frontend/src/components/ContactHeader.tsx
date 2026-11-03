@@ -115,6 +115,7 @@ export default function ContactHeader({
           >
             <Avatar
               src={profilePic || undefined}
+              alt={contact.firstname}
               sx={{
                 width: 90,
                 height: 90,
@@ -130,6 +131,7 @@ export default function ContactHeader({
             <IconButton
               className="camera-badge"
               size="small"
+              aria-label={t('profilePicture.title')}
               onClick={onUploadProfilePicture}
               sx={{
                 position: 'absolute',
@@ -220,10 +222,10 @@ export default function ContactHeader({
                     <DeleteIcon />
                   </IconButton>
                   <Box sx={{ display: 'flex', gap: 1 }}>
-                    <IconButton size="small" color="primary" onClick={onSaveProfile}>
+                    <IconButton size="small" color="primary" onClick={onSaveProfile} aria-label={t('common.save')}>
                       <SaveIcon />
                     </IconButton>
-                    <IconButton size="small" onClick={onCancelEditProfile}>
+                    <IconButton size="small" onClick={onCancelEditProfile} aria-label={t('common.cancel')}>
                       <CloseIcon />
                     </IconButton>
                   </Box>

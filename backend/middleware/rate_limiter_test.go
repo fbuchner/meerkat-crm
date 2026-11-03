@@ -541,3 +541,13 @@ func TestGetAccountRateLimiter(t *testing.T) {
 		t.Error("Expected same global rate limiter instance")
 	}
 }
+
+func TestBurstFromEnv(t *testing.T) {
+	tests := map[string]int{"": 50, "abc": 50, "0": 50, "-5": 50, "1000": 1000}
+	for value, want := range tests {
+		t.Setenv("TEST_RATE_LIMIT_BURST", value)
+		if got := burstFromEnv("TEST_RATE_LIMIT_BURST", 50); got != want {
+			t.Errorf("burstFromEnv with %q = %d, want %d", value, got, want)
+		}
+	}
+}

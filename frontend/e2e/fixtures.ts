@@ -1,4 +1,4 @@
-import { test as base, Page, APIRequestContext, expect } from '@playwright/test';
+import { Page, Locator, APIRequestContext, expect, request as playwrightRequest } from '@playwright/test';
 import { TEST_USER, API_BASE_URL, E2E_CONTACT_PREFIX } from './global-setup';
 
 export { test } from '@playwright/test';
@@ -27,25 +27,15 @@ export async function loginUser(page: Page, credentials = TEST_USER): Promise<vo
 }
 
 /**
- * Logs the current user out via the UI and waits for the login form.
- */
-export async function logoutUser(page: Page): Promise<void> {
-  await page.getByRole('button', { name: /logout/i }).click();
-  await expect(page.getByRole('heading', { name: /login/i })).toBeVisible({ timeout: 10000 });
-}
-
-/**
  * Waits for any MUI loading spinners to disappear.
  */
 export async function waitForLoading(page: Page): Promise<void> {
-  await page
-    .waitForSelector('[role="progressbar"]', { state: 'hidden', timeout: 10000 })
-    .catch(() => {});
+  await page.waitForSelector('[role="progressbar"]', { state: 'hidden', timeout: 10000 });
 }
 
 /**
- * Searches the contacts list and returns once the matching contact is visible.
- * Replaces the previous fill + fixed-sleep pattern with an auto-waiting assertion.
+ * Submits a search on the contacts list. It doesn't wait for results, so follow
+ * it with an auto-waiting assertion on the contact you expect.
  */
 export async function searchContact(page: Page, query: string): Promise<void> {
   const searchInput = page.locator('input[placeholder*="earch"]').first();
@@ -89,4 +79,61 @@ export async function deleteTestContact(
   id: number | string
 ): Promise<void> {
   await request.delete(`${API_BASE_URL}/contacts/${id}`).catch(() => {});
+}
+
+export interface UserCredentials {
+  username: string;
+  email: string;
+  password: string;
+}
+
+/**
+ * Registers a user (an existing account is fine, any other failure is not) and
+ * returns an API context logged in as them. The caller disposes it.
+ */
+export async function loginAsNewUser(user: UserCredentials): Promise<APIRequestContext> {
+  // Without an explicit storageState this inherits the seeded user's cookies
+  // from the config, and a cookie outranks any Authorization header.
+  const context = await playwrightRequest.newContext({ storageState: LOGGED_OUT });
+  const registered = await context.post(`${API_BASE_URL}/register`, { data: user });
+  expect(
+    registered.ok() || registered.status() === 409,
+    `registering ${user.username} failed: ${registered.status()}`
+  ).toBeTruthy();
+
+  const login = await context.post(`${API_BASE_URL}/login`, {
+    data: { identifier: user.username, password: user.password },
+  });
+  expect(login.ok(), `logging in ${user.username} failed: ${login.status()}`).toBeTruthy();
+  return context;
+}
+
+let uniqueCounter = 0;
+
+/**
+ * Credentials nobody has used yet, for specs that change per-user settings or
+ * need a clean slate and so can't share the seeded user.
+ */
+export function uniqueUser(prefix: string): UserCredentials {
+  const id = `${prefix}_${Date.now()}_${process.pid}_${uniqueCounter++}`;
+  return { username: id, email: `${id}@example.com`, password: 'E2eUniquePass123!' };
+}
+
+/** Registers a user, then signs the page in through the UI. */
+export async function signInAsNewUser(page: Page, user: UserCredentials): Promise<void> {
+  const context = await loginAsNewUser(user);
+  await context.dispose();
+  await loginUser(page, user);
+}
+
+/**
+ * The innermost element holding both the text and a button with that exact name,
+ * for lists whose items have no landmark or list role of their own.
+ */
+export function itemWithButton(page: Page, text: string, buttonName: string): Locator {
+  return page
+    .locator('div, li, tr')
+    .filter({ hasText: text })
+    .filter({ has: page.getByRole('button', { name: buttonName, exact: true }) })
+    .last();
 }

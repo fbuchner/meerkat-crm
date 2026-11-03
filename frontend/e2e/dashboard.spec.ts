@@ -16,14 +16,6 @@ test.describe('Dashboard', () => {
     await expect(page.getByText('Upcoming Reminders').first()).toBeVisible();
     await expect(page.getByText('Stay in Touch').first()).toBeVisible();
   });
-
-  test('should render the Stay in Touch section', async ({ page }) => {
-    await page.goto('/');
-    await waitForLoading(page);
-
-    const stayInTouchSection = page.getByText('Stay in Touch').locator('..');
-    await expect(stayInTouchSection).toBeVisible();
-  });
 });
 
 test.describe('Navigation', () => {
@@ -38,13 +30,15 @@ test.describe('Navigation', () => {
     await page.goto('/');
     await page.getByRole('link', { name: /activities/i }).click();
     await expect(page).toHaveURL(/\/activities/);
+    await expect(page.getByRole('heading', { name: /activities/i })).toBeVisible();
   });
 
   test('should navigate to settings from sidebar', async ({ page }) => {
     await page.goto('/');
     // Settings is a collapsible submenu — expand it, then open Profile.
-    await page.locator('.MuiDrawer-root').getByText('Settings').click();
-    await page.locator('.MuiDrawer-root').getByText('Profile').click();
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    await page.getByRole('link', { name: 'Profile', exact: true }).click();
     await expect(page).toHaveURL(/\/settings/);
+    await expect(page.getByRole('heading', { name: /settings/i }).first()).toBeVisible();
   });
 });

@@ -397,8 +397,9 @@ export default function AddRelationshipDialog({
 
           {/* Relationship type */}
           <FormControl fullWidth required>
-            <InputLabel>{t('relationships.type')}</InputLabel>
+            <InputLabel id="relationship-type-label">{t('relationships.type')}</InputLabel>
             <Select
+              labelId="relationship-type-label"
               value={type}
               label={t('relationships.type')}
               onChange={(e) => {
@@ -433,8 +434,9 @@ export default function AddRelationshipDialog({
           {/* Gender - stored on the relationship (manual) or on the new contact */}
           {entryMode !== 'linked' && (
             <FormControl fullWidth disabled={!!createdContact}>
-              <InputLabel>{t('contacts.gender')}</InputLabel>
+              <InputLabel id="relationship-gender-label">{t('contacts.gender')}</InputLabel>
               <Select
+                labelId="relationship-gender-label"
                 value={gender}
                 label={t('contacts.gender')}
                 onChange={(e) => setGender(e.target.value)}

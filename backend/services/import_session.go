@@ -8,6 +8,7 @@ import (
 	"meerkat/config"
 	apperrors "meerkat/errors"
 	"meerkat/models"
+	"strings"
 	"sync"
 	"time"
 
@@ -219,6 +220,13 @@ func (m *ImportSessionManager) Confirm(db *gorm.DB, userID uint, req models.Impo
 
 			result.TotalProcessed++
 
+			// The client's action cannot force in a row that failed validation.
+			if action != "skip" && len(preview.ValidationErrors) > 0 {
+				result.Errors = append(result.Errors, fmt.Sprintf("Row %d: Failed validation: %s", preview.RowIndex+1, strings.Join(preview.ValidationErrors, "; ")))
+				result.Skipped++
+				continue
+			}
+
 			switch action {
 			case "skip":
 				result.Skipped++
@@ -354,6 +362,14 @@ func (m *ImportSessionManager) ConfirmVCF(db *gorm.DB, userID uint, req models.I
 			}
 
 			result.TotalProcessed++
+
+			// The client's action cannot force in a row that failed validation.
+			if action != "skip" && len(preview.ValidationErrors) > 0 {
+				result.Errors = append(result.Errors, fmt.Sprintf("Row %d: Failed validation: %s", preview.RowIndex+1, strings.Join(preview.ValidationErrors, "; ")))
+				result.Skipped++
+				continue
+			}
+
 			vcfData := sessionData.vcfContacts[preview.RowIndex]
 
 			switch action {

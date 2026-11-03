@@ -791,8 +791,6 @@ func TestImportSession_ConfirmVCFPhotos(t *testing.T) {
 }
 
 func TestImportSession_RowFailingValidationCannotBeForcedIn(t *testing.T) {
-	t.Skip("bug: Confirm and ConfirmVCF act on the client's action without checking the row's ValidationErrors")
-
 	db := newImportSessionTestDB(t)
 	log := zerolog.Nop()
 	mgr := NewImportSessionManager()

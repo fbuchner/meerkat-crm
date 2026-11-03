@@ -11,9 +11,50 @@ import (
 	"time"
 )
 
-// carrierGradeNAT is shared address space (RFC 6598). Go's IsPrivate leaves it out, but cloud
-// providers use it for internal services such as metadata endpoints.
-var carrierGradeNAT = &net.IPNet{IP: net.IPv4(100, 64, 0, 0), Mask: net.CIDRMask(10, 32)}
+func mustCIDRs(cidrs ...string) []*net.IPNet {
+	nets := make([]*net.IPNet, 0, len(cidrs))
+	for _, cidr := range cidrs {
+		_, ipNet, err := net.ParseCIDR(cidr)
+		if err != nil {
+			panic(err)
+		}
+		nets = append(nets, ipNet)
+	}
+	return nets
+}
+
+// reservedRanges are special-purpose ranges that Go's Is* helpers leave out. The documentation
+// ranges are not listed: they are not routable, so they cannot reach anything.
+var reservedRanges = mustCIDRs(
+	"0.0.0.0/8",      // "this network"
+	"100.64.0.0/10",  // shared address space (RFC 6598), used by cloud providers for metadata endpoints
+	"192.0.0.0/24",   // IETF protocol assignments
+	"198.18.0.0/15",  // benchmarking
+	"240.0.0.0/4",    // reserved, including broadcast
+	"64:ff9b:1::/48", // local-use NAT64
+	"100::/64",       // discard-only
+	"2001::/32",      // Teredo, which tunnels to an address the prefix does not reveal
+)
+
+// embeddedIPv4 returns the IPv4 address an IPv6 transition address forwards to, or nil.
+func embeddedIPv4(ip net.IP) net.IP {
+	ip16 := ip.To16()
+	if ip16 == nil || ip.To4() != nil {
+		return nil
+	}
+	switch {
+	case ip16[0] == 0x20 && ip16[1] == 0x02: // 6to4, 2002::/16
+		return net.IPv4(ip16[2], ip16[3], ip16[4], ip16[5])
+	case nat64Prefix.Contains(ip16), ipv4CompatiblePrefix.Contains(ip16):
+		return net.IPv4(ip16[12], ip16[13], ip16[14], ip16[15])
+	}
+	return nil
+}
+
+var (
+	nat64Prefix          = mustCIDRs("64:ff9b::/96")[0]
+	ipv4CompatiblePrefix = mustCIDRs("::/96")[0]
+)
 
 // IsPrivateIP checks if an IP address is in a private/reserved range
 func IsPrivateIP(ip net.IP) bool {
@@ -26,8 +67,8 @@ func IsPrivateIP(ip net.IP) bool {
 		return true
 	}
 
-	// Check for link-local (includes cloud metadata endpoint 169.254.169.254)
-	if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+	// Check for link-local (includes cloud metadata endpoint 169.254.169.254) and multicast
+	if ip.IsLinkLocalUnicast() || ip.IsMulticast() {
 		return true
 	}
 
@@ -41,8 +82,15 @@ func IsPrivateIP(ip net.IP) bool {
 		return true
 	}
 
-	if carrierGradeNAT.Contains(ip) {
-		return true
+	for _, reserved := range reservedRanges {
+		if reserved.Contains(ip) {
+			return true
+		}
+	}
+
+	// A transition address reaches whatever IPv4 address it embeds
+	if embedded := embeddedIPv4(ip); embedded != nil {
+		return IsPrivateIP(embedded)
 	}
 
 	return false

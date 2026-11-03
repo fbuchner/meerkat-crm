@@ -147,6 +147,8 @@ func TestIsPrivateIP(t *testing.T) {
 		{"100.63.255.255", false},
 		{"100.128.0.1", false},
 		{"2606:4700:4700::1111", false},
+		{"64:ff9b::808:808", false}, // NAT64 embedding 8.8.8.8, which DNS64 networks resolve to
+		{"2002:808:808::", false},   // 6to4 embedding 8.8.8.8
 	}
 	for _, tt := range tests {
 		t.Run(tt.ip, func(t *testing.T) {
@@ -162,8 +164,6 @@ func TestIsPrivateIP(t *testing.T) {
 }
 
 func TestIsPrivateIP_ReservedRangesThatReachInternalHosts(t *testing.T) {
-	t.Skip("known gap: IsPrivateIP misses NAT64/6to4 addresses embedding private IPv4, and other reserved ranges")
-
 	for _, s := range []string{
 		"64:ff9b::a9fe:a9fe", // NAT64 embedding 169.254.169.254
 		"64:ff9b::7f00:1",    // NAT64 embedding 127.0.0.1

@@ -22,7 +22,7 @@
 - Root `Makefile` runs both apps: `make install`, `make precommit` (gofmt on changed Go files, go vet, ESLint, tsc, unit tests). `make help` lists all targets.
 - Source backend/my_environment.env to `.env` before running the server
 - Start the backend with `go run main.go` (or `make dev`) from backend/ after `go mod tidy`; migrations are embedded in the binary and auto-run on boot. Use `make migrate-up` or cmd/migrate for manual control during development.
-- Frontend uses Yarn: `yarn install` then `yarn start` from frontend/; CRA proxies should point at the backend URL defined in `.env`.
+- Frontend uses Yarn: `yarn install` then `yarn start` from frontend/; the dev server does not proxy, so `.env` must set `REACT_APP_API_URL` to the backend URL.
 - Logs use zerolog via [backend/logger/logger.go](backend/logger/logger.go); set LOG_LEVEL and LOG_PRETTY for debugging, and rely on request IDs threaded through middleware.
 - Rate limiting is IP-based via [backend/middleware/rate_limiter.go](backend/middleware/rate_limiter.go); respect separate auth/general buckets when adding endpoints.
 

@@ -12,7 +12,7 @@ variable). Read those instead of guessing; do not copy them into this file.
 ## Stack
 
 - **Backend:** Go 1.26 + Gin + GORM + SQLite (migrations embedded, auto-run on startup)
-- **Frontend:** React 19 + TypeScript + MUI + i18next (CRA, dev server on 7300)
+- **Frontend:** React 19 + TypeScript + MUI + i18next (Vite, dev server on 7300)
 
 ## Commands
 

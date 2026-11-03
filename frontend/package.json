@@ -11,7 +11,6 @@
     "@mui/system": "^9",
     "@mui/x-date-pickers": "^9",
     "@types/d3-force": "^3.0.10",
-    "cra-template-pwa-typescript": "2.0.0",
     "d3-force": "^3.0.0",
     "date-fns": "^4",
     "i18next": "^26",
@@ -22,39 +21,18 @@
     "react-force-graph-2d": "^1.29.0",
     "react-i18next": "^17",
     "react-router-dom": "^7.18.0",
-    "react-scripts": "5.0.1",
     "web-vitals": "^6"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "eject": "react-scripts eject",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app"
-    ],
-    "rules": {
-      "react/no-deprecated": "warn"
-    }
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
@@ -66,7 +44,6 @@
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^6",
     "eslint": "^10",
-    "eslint-config-react-app": "7.0.1",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.5",

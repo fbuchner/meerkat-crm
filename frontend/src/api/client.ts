@@ -5,7 +5,7 @@ import { API_BASE_URL } from '../auth';
 export { API_BASE_URL };
 
 // Default request timeout in milliseconds (30 seconds)
-const DEFAULT_TIMEOUT = parseInt(process.env.REACT_APP_REQUEST_TIMEOUT || '30000', 10);
+const DEFAULT_TIMEOUT = parseInt(import.meta.env.REACT_APP_REQUEST_TIMEOUT || '30000', 10);
 
 // Backend error response structure
 interface BackendErrorResponse {

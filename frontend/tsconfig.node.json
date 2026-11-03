@@ -14,5 +14,5 @@
     "skipLibCheck": true,
     "strict": true
   },
-  "include": ["playwright.config.ts", "e2e/**/*.ts"]
+  "include": ["playwright.config.ts", "vite.config.mts", "e2e/**/*.ts"]
 }

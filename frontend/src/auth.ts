@@ -3,7 +3,7 @@
 // Token is stored in httpOnly cookie (not accessible from JS for security)
 // User info is cached in localStorage for UI purposes
 
-const API_SERVER_URL = process.env.REACT_APP_API_URL || '';
+const API_SERVER_URL = import.meta.env.REACT_APP_API_URL || '';
 export const API_BASE_URL = `${API_SERVER_URL}/api/v1`;
 
 const USER_INFO_KEY = 'user_info';

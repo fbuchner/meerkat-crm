@@ -9,7 +9,6 @@ import (
 	"meerkat/services"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -116,10 +115,10 @@ func UpdateCalendarSubscription(c *gin.Context) {
 		return
 	}
 
-	// The stored password belongs to the host it was entered for, so it must not
+	// The stored password belongs to the origin it was entered for, so it must not
 	// follow the subscription to another server.
 	storedURL, urlErr := services.NormalizeCalendarURL(subscription.URL)
-	hostChanged := urlErr != nil || !strings.EqualFold(storedURL.Hostname(), normalized.Hostname())
+	originChanged := urlErr != nil || !services.SameCredentialOrigin(storedURL, normalized)
 
 	subscription.Name = input.Name
 	subscription.URL = input.URL
@@ -134,7 +133,7 @@ func UpdateCalendarSubscription(c *gin.Context) {
 		subscription.FutureDays = *input.FutureDays
 	}
 
-	if input.ClearPassword || (hostChanged && input.Password == "") {
+	if input.ClearPassword || (originChanged && input.Password == "") {
 		subscription.PasswordEncrypted = ""
 	} else if input.Password != "" {
 		passwordEncrypted, err := services.EncryptCredential(currentConfig(c).JWTSecretKey, input.Password)

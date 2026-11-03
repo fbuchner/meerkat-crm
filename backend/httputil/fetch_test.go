@@ -169,6 +169,8 @@ func TestIsPrivateIP_ReservedRangesThatReachInternalHosts(t *testing.T) {
 		"64:ff9b::7f00:1",    // NAT64 embedding 127.0.0.1
 		"2002:7f00:1::",      // 6to4 embedding 127.0.0.1
 		"::7f00:1",           // IPv4-compatible embedding 127.0.0.1
+		"::ffff:0:a00:1",     // IPv4-translated embedding 10.0.0.1
+		"fec0::1",            // site-local
 		"0.0.0.1",            // "this network"
 		"192.0.0.192",        // IETF protocol assignments
 		"198.18.0.1",         // benchmarking

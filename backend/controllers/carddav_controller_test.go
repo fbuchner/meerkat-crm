@@ -145,6 +145,20 @@ func TestSaveCardDAVConnection_ChangingServerDropsTheStoredPassword(t *testing.T
 	assert.Empty(t, f.connection(t, f.user.ID).PasswordEncrypted, "credentials stored for one host must not follow the connection to another")
 }
 
+func TestSaveCardDAVConnection_ChangingPortOrSchemeDropsTheStoredPassword(t *testing.T) {
+	for _, target := range []string{"https://dav.example.com:8443/", "http://dav.example.com/"} {
+		t.Run(target, func(t *testing.T) {
+			f := setupCardDAV(t)
+			f.seedConnection(t, "https://dav.example.com/", "original")
+
+			w := doJSON(t, f.router, http.MethodPut, "/carddav/connection", gin.H{"base_url": target, "address_book_path": "/books/personal/"})
+			require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+			assert.Empty(t, f.connection(t, f.user.ID).PasswordEncrypted)
+		})
+	}
+}
+
 func TestSaveCardDAVConnection_ChangingAddressBookResetsSyncState(t *testing.T) {
 	f := setupCardDAV(t)
 	conn := f.seedConnection(t, "https://dav.example.com/", "original")

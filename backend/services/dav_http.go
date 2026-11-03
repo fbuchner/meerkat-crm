@@ -9,6 +9,7 @@ import (
 	"meerkat/httputil"
 	"net"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -114,4 +115,18 @@ func quoteETag(etag string) string {
 		etag = etag[1 : len(etag)-1]
 	}
 	return strconv.Quote(etag)
+}
+
+// SameCredentialOrigin reports whether a password stored for one URL may be sent to another:
+// same scheme, host and port, so it follows neither a new server nor a downgrade to http.
+func SameCredentialOrigin(stored, target *url.URL) bool {
+	port := func(u *url.URL) string {
+		if p := u.Port(); p != "" {
+			return p
+		}
+		return strings.ToLower(u.Scheme)
+	}
+	return strings.EqualFold(stored.Scheme, target.Scheme) &&
+		strings.EqualFold(stored.Hostname(), target.Hostname()) &&
+		port(stored) == port(target)
 }

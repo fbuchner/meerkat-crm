@@ -26,14 +26,16 @@ func mustCIDRs(cidrs ...string) []*net.IPNet {
 // reservedRanges are special-purpose ranges that Go's Is* helpers leave out. The documentation
 // ranges are not listed: they are not routable, so they cannot reach anything.
 var reservedRanges = mustCIDRs(
-	"0.0.0.0/8",      // "this network"
-	"100.64.0.0/10",  // shared address space (RFC 6598), used by cloud providers for metadata endpoints
-	"192.0.0.0/24",   // IETF protocol assignments
-	"198.18.0.0/15",  // benchmarking
-	"240.0.0.0/4",    // reserved, including broadcast
-	"64:ff9b:1::/48", // local-use NAT64
-	"100::/64",       // discard-only
-	"2001::/32",      // Teredo, which tunnels to an address the prefix does not reveal
+	"0.0.0.0/8",       // "this network"
+	"100.64.0.0/10",   // shared address space (RFC 6598), used by cloud providers for metadata endpoints
+	"192.0.0.0/24",    // IETF protocol assignments
+	"198.18.0.0/15",   // benchmarking
+	"240.0.0.0/4",     // reserved, including broadcast
+	"64:ff9b:1::/48",  // local-use NAT64
+	"::ffff:0:0:0/96", // IPv4-translated (SIIT); not ::ffff:0:0/96, which is every mapped IPv4 address
+	"fec0::/10",       // deprecated site-local, which Go's IsPrivate leaves out
+	"100::/64",        // discard-only
+	"2001::/32",       // Teredo, which tunnels to an address the prefix does not reveal
 )
 
 // embeddedIPv4 returns the IPv4 address an IPv6 transition address forwards to, or nil.

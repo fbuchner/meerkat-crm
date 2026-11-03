@@ -2,8 +2,9 @@
 -- for good (9c7e93f, shipped from v0.6.0 to v1.7.0). Nothing else leaves a recurring reminder
 -- completed, so every such row is one of those. They come back at the first occurrence after
 -- today on their original schedule: an overdue date would send a mail for each at once.
--- Skipped: rows of deleted contacts or users, rows the user has already replaced with an active
--- reminder, and all but the newest of identical ended rows.
+-- Skipped: rows of deleted users, deleted or deceased contacts, rows the user has already replaced
+-- with an active reminder, all but the newest of identical ended rows, and dates too old for the
+-- step limit below, which would otherwise leave no next date and fail the migration.
 UPDATE reminders
 SET completed = 0,
     email_sent = 0,
@@ -30,8 +31,8 @@ SET completed = 0,
 WHERE completed = 1
   AND deleted_at IS NULL
   AND recurrence IN ('weekly', 'monthly', 'quarterly', 'six-months', 'yearly')
-  AND datetime(remind_at) IS NOT NULL
-  AND contact_id IN (SELECT id FROM contacts WHERE deleted_at IS NULL)
+  AND date(remind_at) > date('now', '-90 years')
+  AND contact_id IN (SELECT id FROM contacts WHERE deleted_at IS NULL AND is_deceased = 0)
   AND user_id IN (SELECT id FROM users WHERE deleted_at IS NULL)
   AND NOT EXISTS (
       SELECT 1 FROM reminders AS other

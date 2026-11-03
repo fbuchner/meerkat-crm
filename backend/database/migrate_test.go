@@ -91,6 +91,7 @@ func TestMigration32_RevivesRecurringRemindersTheBugEnded(t *testing.T) {
 	exec(`INSERT INTO users (id, username, password, email) VALUES (1, 'a', 'x', 'a@example.com')`)
 	exec(`INSERT INTO contacts (id, user_id, firstname, lastname) VALUES (1, 1, 'A', ''), (2, 1, 'B', ''), (3, 1, 'C', '')`)
 	exec(`UPDATE contacts SET deleted_at = '2026-01-01 00:00:00+00:00' WHERE id = 3`)
+	exec(`INSERT INTO contacts (id, user_id, firstname, lastname, is_deceased) VALUES (4, 1, 'D', '', 1)`)
 
 	insert := func(id, contact int, message, recurrence, remindAt string, completed int, deletedAt any) {
 		t.Helper()
@@ -113,6 +114,8 @@ func TestMigration32_RevivesRecurringRemindersTheBugEnded(t *testing.T) {
 	insert(12, 3, "deleted contact", "weekly", old, 1, nil)
 	insert(13, 1, "deleted reminder", "weekly", old, 1, "2026-01-01 00:00:00+00:00")
 	insert(14, 1, "active and overdue", "weekly", old, 0, nil)
+	insert(15, 4, "deceased contact", "yearly", old, 1, nil)
+	insert(16, 1, "older than the step limit", "weekly", "0001-01-01 00:00:00+00:00", 1, nil)
 
 	require.NoError(t, m.Migrate(32))
 
@@ -153,6 +156,8 @@ func TestMigration32_RevivesRecurringRemindersTheBugEnded(t *testing.T) {
 		10: "an identical newer row is revived instead",
 		12: "the contact is deleted",
 		13: "the reminder is deleted",
+		15: "the contact is deceased",
+		16: "too old to step forward, and must not fail the migration",
 	} {
 		at, completed := read(id)
 		assert.True(t, completed, why)

@@ -76,12 +76,12 @@ func SaveCardDAVConnection(c *gin.Context) {
 	// re-pair losslessly by UID).
 	addressBookChanged := !isNew && (conn.BaseURL != baseURL || conn.AddressBookPath != input.AddressBookPath)
 
-	// The stored password belongs to the host it was entered for, so it must not
+	// The stored password belongs to the origin it was entered for, so it must not
 	// follow the connection to another server (discovery has the same guard).
-	hostChanged := false
+	originChanged := false
 	if !isNew {
 		storedURL, urlErr := services.NormalizeCardDAVURL(conn.BaseURL)
-		hostChanged = urlErr != nil || !strings.EqualFold(storedURL.Hostname(), normalized.Hostname())
+		originChanged = urlErr != nil || !services.SameCredentialOrigin(storedURL, normalized)
 	}
 
 	conn.UserID = userID
@@ -100,7 +100,7 @@ func SaveCardDAVConnection(c *gin.Context) {
 		conn.SyncEnabled = true
 	}
 
-	if input.ClearPassword || (hostChanged && input.Password == "") {
+	if input.ClearPassword || (originChanged && input.Password == "") {
 		conn.PasswordEncrypted = ""
 	} else if input.Password != "" {
 		passwordEncrypted, err := services.EncryptCredential(currentConfig(c).JWTSecretKey, input.Password)
@@ -188,12 +188,12 @@ func DiscoverCardDAVAddressBooks(c *gin.Context) {
 
 	password := input.Password
 	if password == "" {
-		// Reuse the stored password only for the host it was stored for, so
+		// Reuse the stored password only for the origin it was stored for, so
 		// re-discovering against a different server cannot carry it along.
 		var conn models.CardDAVConnection
 		if db.Where("user_id = ?", userID).First(&conn).Error == nil {
 			storedURL, urlErr := services.NormalizeCardDAVURL(conn.BaseURL)
-			if urlErr == nil && strings.EqualFold(storedURL.Hostname(), normalized.Hostname()) {
+			if urlErr == nil && services.SameCredentialOrigin(storedURL, normalized) {
 				if stored, decErr := services.DecryptCredential(cfg.JWTSecretKey, conn.PasswordEncrypted); decErr == nil {
 					password = stored
 				}

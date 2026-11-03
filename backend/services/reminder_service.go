@@ -481,6 +481,20 @@ func addYears(t time.Time, years int) time.Time {
 	return result
 }
 
+// NextOccurrenceAfterToday steps a reminder forward until it is no longer due, so completing
+// one that is several periods overdue does not mail it again straight away.
+func NextOccurrenceAfterToday(reminder models.Reminder) time.Time {
+	now := time.Now().UTC()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	for {
+		next := CalculateNextReminderTime(reminder)
+		if next.After(today) || next.Equal(reminder.RemindAt) {
+			return next
+		}
+		reminder.RemindAt = next
+	}
+}
+
 // CalculateNextReminderTime determines the next reminder date based on recurrence settings.
 // All calculations are done in UTC to ensure consistency.
 func CalculateNextReminderTime(reminder models.Reminder) time.Time {

@@ -806,3 +806,29 @@ func TestImportSession_RowFailingValidationCannotBeForcedIn(t *testing.T) {
 	assert.Zero(t, result.Created)
 	assert.Zero(t, countContacts(t, db, importOwner))
 }
+
+func TestImportSession_VCFCardThatFailsToDecodeKeepsRowsAligned(t *testing.T) {
+	db := newImportSessionTestDB(t)
+	log := zerolog.Nop()
+	mgr := NewImportSessionManager()
+	vcf := "HELLO:world\r\nEND:VCARD\r\n" +
+		"BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ben\r\nN:;Ben;;;\r\nEND:VCARD\r\n"
+
+	contacts, previews, _, err := ParseVCF(strings.NewReader(vcf), db, importOwner)
+	require.NoError(t, err)
+	require.Len(t, contacts, len(previews))
+	last := previews[len(previews)-1]
+	require.Empty(t, last.ValidationErrors)
+	assert.Equal(t, "Ben", contacts[last.RowIndex].Contact.Firstname)
+
+	actions := make([]models.RowImportAction, 0, len(previews))
+	for _, preview := range previews {
+		actions = append(actions, models.RowImportAction{RowIndex: preview.RowIndex, Action: "add"})
+	}
+	sessionID := mgr.CreateVCFSession(importOwner, contacts, previews)
+	result, appErr := mgr.ConfirmVCF(db, importOwner, models.ImportConfirmRequest{SessionID: sessionID, Actions: actions}, &config.Config{}, &log)
+
+	require.Nil(t, appErr)
+	assert.Equal(t, 1, result.Created)
+	assert.Equal(t, int64(1), countContacts(t, db, importOwner))
+}

@@ -118,9 +118,12 @@ test.describe('Reminders', () => {
           .toBeGreaterThan(scheduled);
 
         if (!fromCompletion) {
-          // Stays on the original schedule rather than moving relative to today.
+          // Stays on the original schedule, at its first date after today.
           const moved = await (await page.request.get(`${API_BASE_URL}/reminders/${reminder.ID}`)).json();
-          expect((moved.reminder ?? moved).remind_at.slice(0, 10)).toBe('2026-02-15');
+          const next = new Date((moved.reminder ?? moved).remind_at);
+          expect(next.getUTCDate()).toBe(15);
+          expect(next.getTime()).toBeGreaterThan(Date.now() - 24 * 60 * 60 * 1000);
+          expect(next.getTime()).toBeLessThan(Date.now() + 32 * 24 * 60 * 60 * 1000);
         }
 
         const completions = await (

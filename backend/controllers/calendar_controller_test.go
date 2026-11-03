@@ -205,6 +205,20 @@ func TestUpdateCalendarSubscription_ChangingHostDropsTheStoredPassword(t *testin
 	assert.Empty(t, f.reload(t, subscription.ID).PasswordEncrypted, "credentials stored for one host must not follow the subscription to another")
 }
 
+func TestUpdateCalendarSubscription_WebcalKeepsThePasswordButADowngradeDropsIt(t *testing.T) {
+	f := setupCalendars(t)
+	subscription := f.seed(t, f.user.ID, "https://cal.example.com/", "original")
+	path := fmt.Sprintf("/calendars/%d", subscription.ID)
+
+	w := doJSON(t, f.router, http.MethodPut, path, gin.H{"name": "n", "url": "webcal://cal.example.com/feed"})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	assert.NotEmpty(t, f.reload(t, subscription.ID).PasswordEncrypted, "webcal means https, on the same host")
+
+	w = doJSON(t, f.router, http.MethodPut, path, gin.H{"name": "n", "url": "http://cal.example.com/"})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	assert.Empty(t, f.reload(t, subscription.ID).PasswordEncrypted)
+}
+
 func TestDeleteCalendarSubscription_RemovesLinksButKeepsActivities(t *testing.T) {
 	f := setupCalendars(t)
 	subscription := f.seed(t, f.user.ID, "https://cal.example.com/", "secret")

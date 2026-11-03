@@ -12,6 +12,7 @@ import {
   Box,
   Alert
 } from '@mui/material';
+import { addDays, addMonths, addYears, format } from 'date-fns';
 import AppDialog from './AppDialog';
 import { Reminder, ReminderFormData } from '../api/reminders';
 import { getErrorMessage } from '../utils/errorHandler';
@@ -50,15 +51,16 @@ export default function ReminderDialog({
   const [loading, setLoading] = useState(false);
 
   const getDateForRecurrence = (rec: ReminderFormData['recurrence']): string => {
-    const d = new Date();
+    // date-fns stays in the target month (31 Jan + 1 month is 28 Feb), and format uses the local day.
+    const today = new Date();
     switch (rec) {
-      case 'weekly':      d.setDate(d.getDate() + 7); break;
-      case 'monthly':     d.setMonth(d.getMonth() + 1); break;
-      case 'quarterly':   d.setMonth(d.getMonth() + 3); break;
-      case 'six-months':  d.setMonth(d.getMonth() + 6); break;
-      case 'yearly':      d.setFullYear(d.getFullYear() + 1); break;
+      case 'weekly':      return format(addDays(today, 7), 'yyyy-MM-dd');
+      case 'monthly':     return format(addMonths(today, 1), 'yyyy-MM-dd');
+      case 'quarterly':   return format(addMonths(today, 3), 'yyyy-MM-dd');
+      case 'six-months':  return format(addMonths(today, 6), 'yyyy-MM-dd');
+      case 'yearly':      return format(addYears(today, 1), 'yyyy-MM-dd');
+      default:            return format(today, 'yyyy-MM-dd');
     }
-    return d.toISOString().split('T')[0];
   };
 
   useEffect(() => {

@@ -11,7 +11,7 @@ import { DEFAULT_ENABLED_CONTACT_FIELDS, ContactFieldKey } from '../contactField
 vi.mock('../api/contacts');
 vi.mock('../api/reminders');
 
-const snackbar = vi.hoisted(() => ({ showError: vi.fn(), showSuccess: vi.fn() }));
+const snackbar = vi.hoisted(() => ({ showError: vi.fn(), showSuccess: vi.fn(), showWarning: vi.fn() }));
 vi.mock('../context/SnackbarContext', () => ({ useSnackbar: () => snackbar }));
 
 // MUI role queries on these large dialogs are slow; a busy machine must not turn that into a failure.
@@ -65,14 +65,12 @@ test.each(['', '   '])('first name %j is rejected', (value) => {
   submit();
   expect(contacts.createContact).not.toHaveBeenCalled();
   expect(p.onContactAdded).not.toHaveBeenCalled();
-  expect(screen.getByRole('dialog')).toHaveTextContent(/are required/);
+  expect(screen.getByRole('dialog')).toHaveTextContent(/is required/);
 });
-
-// BUG en.json says "First name and last name are required", but only the first name is (AddContactDialog.tsx).
-test.skip('BUG: the validation message asks only for what is actually required', () => {
+test('the validation message asks only for what is actually required', () => {
   renderDialog();
   submit();
-  expect(screen.getByRole('dialog')).not.toHaveTextContent(/last name/i);
+  expect(screen.getByRole('dialog')).toHaveTextContent('First name is required');
 });
 
 test('a contact with only a first name is accepted', async () => {
@@ -82,9 +80,7 @@ test('a contact with only a first name is accepted', async () => {
   await waitFor(() => expect(p.onContactAdded).toHaveBeenCalledWith(42));
   expect(payload()).toMatchObject({ firstname: 'Anna', lastname: '', birthday: '', email: '', phone: '' });
 });
-
-// BUG AddContactDialog.tsx checks the trimmed first name but sends the untrimmed one; the backend does not trim either.
-test.skip('BUG: the first name is saved without surrounding spaces', async () => {
+test('the first name is saved without surrounding spaces', async () => {
   const p = renderDialog();
   firstName('  Anna ');
   submit();
@@ -240,9 +236,7 @@ test('with the option off, no reminder is created', async () => {
   await waitFor(() => expect(p.onContactAdded).toHaveBeenCalled());
   expect(reminders.createReminder).not.toHaveBeenCalled();
 });
-
-// BUG AddContactDialog.tsx shares one try block: the contact exists but the dialog reports failure, and a retry duplicates it.
-test.skip('BUG: a failed birthday reminder does not lose or duplicate the created contact', async () => {
+test('a failed birthday reminder does not lose or duplicate the created contact', async () => {
   quietLogs();
   reminders.createReminder.mockRejectedValue(new Error('reminder failed'));
   const p = renderDialog();
@@ -252,6 +246,9 @@ test.skip('BUG: a failed birthday reminder does not lose or duplicate the create
   submit();
   await waitFor(() => expect(p.onContactAdded).toHaveBeenCalledWith(42));
   expect(contacts.createContact).toHaveBeenCalledTimes(1);
+  expect(snackbar.showWarning).toHaveBeenCalledWith('Contact created, but the birthday reminder could not be saved');
+  expect(snackbar.showSuccess).not.toHaveBeenCalled();
+  expect(p.onClose).toHaveBeenCalled();
 });
 
 test('success reports, notifies the parent and resets the form', async () => {

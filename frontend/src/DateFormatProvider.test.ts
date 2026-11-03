@@ -2,7 +2,10 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   calculateAgeFromBirthday,
   calculateAgeAtDate,
+  DateFormat,
   formatDateWithFormat,
+  formatDateTimeWithFormat,
+  parseDateInputWithFormat,
   formatBirthdayWithFormat,
   formatBirthdayForInputWithFormat,
   parseBirthdayInputWithFormat,
@@ -29,6 +32,36 @@ describe('formatDateWithFormat', () => {
 
   test('returns unparseable input unchanged', () => {
     expect(formatDateWithFormat('not-a-date', 'eu')).toBe('not-a-date');
+  });
+});
+
+describe('formatDateTimeWithFormat', () => {
+  test('uses the preferred date format with the local time', () => {
+    const local = new Date(2026, 2, 5, 9, 7).toISOString();
+    expect(formatDateTimeWithFormat(local, 'eu')).toBe('05.03.2026 09:07');
+    expect(formatDateTimeWithFormat(local, 'us')).toBe('03/05/2026 09:07');
+    expect(formatDateTimeWithFormat(local, 'iso')).toBe('2026-03-05 09:07');
+  });
+
+  test('empty and unparseable values do not become "Invalid Date"', () => {
+    expect(formatDateTimeWithFormat('', 'eu')).toBe('');
+    expect(formatDateTimeWithFormat('sometime', 'eu')).toBe('sometime');
+  });
+});
+
+describe('parseDateInputWithFormat', () => {
+  test.each<[string, DateFormat]>([
+    ['31.02.2026', 'eu'],
+    ['31.04.2026', 'eu'],
+    ['29.02.2026', 'eu'],
+    ['02/31/2026', 'us'],
+    ['2026-02-31', 'iso'],
+  ])('%s does not exist in %s format', (input, format) => {
+    expect(parseDateInputWithFormat(input, format)).toBeNull();
+  });
+
+  test('a leap day is accepted in a leap year', () => {
+    expect(parseDateInputWithFormat('29.02.2028', 'eu')).toBe('2028-02-29');
   });
 });
 

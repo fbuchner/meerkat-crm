@@ -126,10 +126,11 @@
       "title": "Add New Contact",
       "create": "Create",
       "addCircle": "Add",
-      "requiredFields": "First name and last name are required",
+      "requiredFields": "First name is required",
       "error": "Failed to create contact. Please try again.",
       "success": "Contact created successfully!",
-      "createBirthdayReminder": "Create birthday reminder"
+      "createBirthdayReminder": "Create birthday reminder",
+      "birthdayReminderFailed": "Contact created, but the birthday reminder could not be saved"
     },
     "sortBy": "Sort by",
     "sort": {
@@ -205,8 +206,8 @@
         "done": "Done"
       },
       "errors": {
-        "invalidFile": "Please select a valid CSV file",
-        "fileTooLarge": "File is too large. Maximum size is 5MB",
+        "invalidFile": "Please select a valid CSV or VCF file",
+        "fileTooLarge": "File is too large. Maximum size is {{size}}MB",
         "emptyFile": "The CSV file is empty",
         "noMappings": "Please map at least one column",
         "uploadFailed": "Failed to upload file. Please try again.",
@@ -285,6 +286,7 @@
     }
   },
   "timeline": {
+    "noDate": "No date",
     "reminderCompleted": "Reminder Completed",
     "deleteCompletion": "Delete",
     "deleteCompletionConfirm": "Are you sure you want to remove this completed reminder from the timeline?"
@@ -652,7 +654,7 @@
       "username": "Username",
       "password": "Password",
       "credentialsOptional": "Optional, only for protected calendars",
-      "passwordKeep": "Leave empty to keep the stored password",
+      "passwordKeep": "Leave empty to keep the stored password. It is removed if the server host changes.",
       "pastDays": "Days in the past",
       "futureDays": "Days ahead",
       "autoSync": "Sync automatically",
@@ -685,7 +687,7 @@
       "username": "Username",
       "password": "Password",
       "passwordHelp": "Use an app password if your server supports them",
-      "passwordKeep": "Leave empty to keep the stored password",
+      "passwordKeep": "Leave empty to keep the stored password. It is removed if the server host changes.",
       "clearPassword": "Remove the stored password (server needs no authentication)",
       "chooseAddressBook": "Choose the address book to sync your contacts with:",
       "directionLabel": "Sync direction",

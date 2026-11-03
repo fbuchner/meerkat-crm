@@ -123,9 +123,7 @@ test('the action on a completed reminder deletes that completion', () => {
   expect(p.onDeleteCompletion).toHaveBeenCalledWith(3);
   expect(p.onEditItem).not.toHaveBeenCalled();
 });
-
-// BUG ContactTimeline.tsx: the completion delete icon button has no aria-label, so screen readers announce nothing.
-test.skip('BUG: edit and delete actions have accessible names', () => {
+test('edit and delete actions have accessible names', () => {
   renderTimeline([noteItem, completionItem]);
   expect(screen.getByRole('button', { name: /edit/i })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument();
@@ -144,9 +142,7 @@ test('a missing date does not crash or print "Invalid Date"', () => {
   expect(item).toHaveTextContent('Met for coffee');
   expect(item).not.toHaveTextContent('Invalid Date');
 });
-
-// BUG ContactTimeline.tsx hard-codes the fallback "N/A" instead of using useTranslation.
-test.skip('BUG: the missing-date fallback is translated', async () => {
+test('the missing-date fallback is translated', async () => {
   await i18n.changeLanguage('de');
   try {
     renderTimeline([{ ...noteItem, date: '' }]);

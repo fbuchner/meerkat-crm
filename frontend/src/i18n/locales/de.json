@@ -126,10 +126,11 @@
       "title": "Neuen Kontakt hinzufügen",
       "create": "Erstellen",
       "addCircle": "Hinzufügen",
-      "requiredFields": "Vorname und Nachname sind erforderlich",
+      "requiredFields": "Vorname ist erforderlich",
       "error": "Kontakt konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
       "success": "Kontakt erfolgreich erstellt!",
-      "createBirthdayReminder": "Geburtstagserinnerung erstellen"
+      "createBirthdayReminder": "Geburtstagserinnerung erstellen",
+      "birthdayReminderFailed": "Kontakt erstellt, aber die Geburtstagserinnerung konnte nicht gespeichert werden"
     },
     "sortBy": "Sortieren nach",
     "sort": {
@@ -205,8 +206,8 @@
         "done": "Fertig"
       },
       "errors": {
-        "invalidFile": "Bitte wählen Sie eine gültige CSV-Datei",
-        "fileTooLarge": "Datei ist zu groß. Maximale Größe ist 5MB",
+        "invalidFile": "Bitte wählen Sie eine gültige CSV- oder VCF-Datei",
+        "fileTooLarge": "Datei ist zu groß. Maximale Größe ist {{size}}MB",
         "emptyFile": "Die CSV-Datei ist leer",
         "noMappings": "Bitte ordnen Sie mindestens eine Spalte zu",
         "uploadFailed": "Datei konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut.",
@@ -285,6 +286,7 @@
     }
   },
   "timeline": {
+    "noDate": "Kein Datum",
     "reminderCompleted": "Erinnerung erledigt",
     "deleteCompletion": "Löschen",
     "deleteCompletionConfirm": "Möchten Sie diese erledigte Erinnerung wirklich aus der Zeitachse entfernen?"
@@ -652,7 +654,7 @@
       "username": "Benutzername",
       "password": "Passwort",
       "credentialsOptional": "Optional, nur für geschützte Kalender",
-      "passwordKeep": "Leer lassen, um das gespeicherte Passwort zu behalten",
+      "passwordKeep": "Leer lassen, um das gespeicherte Passwort zu behalten. Es wird entfernt, wenn sich der Server-Host ändert.",
       "pastDays": "Tage in der Vergangenheit",
       "futureDays": "Tage in der Zukunft",
       "autoSync": "Automatisch synchronisieren",
@@ -685,7 +687,7 @@
       "username": "Benutzername",
       "password": "Passwort",
       "passwordHelp": "Wenn dein Server App-Passwörter unterstützt, verwende eines",
-      "passwordKeep": "Leer lassen, um das gespeicherte Passwort zu behalten",
+      "passwordKeep": "Leer lassen, um das gespeicherte Passwort zu behalten. Es wird entfernt, wenn sich der Server-Host ändert.",
       "clearPassword": "Gespeichertes Passwort entfernen (Server benötigt keine Anmeldung)",
       "chooseAddressBook": "Wähle das Adressbuch, mit dem deine Kontakte synchronisiert werden sollen:",
       "directionLabel": "Synchronisationsrichtung",

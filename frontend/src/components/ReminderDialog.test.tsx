@@ -91,9 +91,7 @@ test.each<[DateFormat, string]>([
   expect(screen.getByRole('alert')).toHaveTextContent('Invalid date format');
   expect(p.onSave).not.toHaveBeenCalled();
 });
-
-// BUG ReminderDialog.tsx trusts parseDateInput, which only checks day <= 31; V8 then rolls 31.02 over to 03.03.
-test.skip('BUG: a date that does not exist in the calendar is rejected', () => {
+test('a date that does not exist in the calendar is rejected', () => {
   const p = renderDialog();
   typeInto(messageField(), 'Call');
   typeInto(dateField(), '31.02.2026');
@@ -147,17 +145,13 @@ test('typing digits inserts the separators of the preferred format', () => {
   typeInto(dateField(), '25122026');
   expect(dateField()).toHaveValue('25.12.2026');
 });
-
-// BUG ReminderDialog.tsx uses setMonth, so 31 Jan + 1 month overflows into March.
-test.skip('BUG: a monthly suggestion from 31 January stays in February', async () => {
+test('a monthly suggestion from 31 January stays in February', async () => {
   vi.setSystemTime(new Date('2026-01-31T12:00:00Z'));
   renderDialog();
   await chooseRecurrence('Monthly');
   expect(dateField()).toHaveValue('28.02.2026');
 });
-
-// BUG ReminderDialog.tsx takes the UTC day, so just after local midnight east of UTC it suggests yesterday.
-test.skip('BUG: the suggested date is the local calendar day', () => {
+test('the suggested date is the local calendar day', () => {
   vi.stubEnv('TZ', 'Europe/Berlin');
   vi.setSystemTime(new Date('2026-02-28T23:30:00Z')); // 00:30 on 1 March in Berlin
   renderDialog();

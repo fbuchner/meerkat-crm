@@ -63,7 +63,7 @@ export default function AddContactDialog({
   enabledFields
 }: AddContactDialogProps) {
   const { t } = useTranslation();
-  const { showError, showSuccess } = useSnackbar();
+  const { showError, showSuccess, showWarning } = useSnackbar();
   const { parseBirthdayInput, getBirthdayPlaceholder, autoFormatBirthdayInput } = useDateFormat();
   const enabled = enabledFields ?? resolveEnabledFields(null);
   const isOn = (key: ContactFieldKey) => enabled.has(key);
@@ -155,8 +155,8 @@ export default function AddContactDialog({
       );
 
       const contactData = {
-        firstname: formData.firstname,
-        lastname: formData.lastname,
+        firstname: formData.firstname.trim(),
+        lastname: formData.lastname.trim(),
         prefix: formData.prefix,
         middle_name: formData.middle_name,
         suffix: formData.suffix,
@@ -186,6 +186,9 @@ export default function AddContactDialog({
 
       const newContact = await createContact(contactData);
 
+      // The contact exists from here on: a failed reminder must not report the whole
+      // create as failed, or a retry would create the contact twice.
+      let reminderFailed = false;
       if (createBirthdayReminder && birthdayISO) {
         const payload = buildBirthdayReminderPayload(
           newContact.ID,
@@ -193,12 +196,21 @@ export default function AddContactDialog({
           t('reminders.birthdayMessage', { name: `${newContact.firstname} ${newContact.lastname}` })
         );
         if (payload) {
-          await createReminder(newContact.ID, payload);
+          try {
+            await createReminder(newContact.ID, payload);
+          } catch (reminderErr) {
+            handleError(reminderErr, { operation: 'creating birthday reminder' });
+            reminderFailed = true;
+          }
         }
       }
 
       onContactAdded(newContact.ID);
-      showSuccess(t('contacts.add.success'));
+      if (reminderFailed) {
+        showWarning(t('contacts.add.birthdayReminderFailed'));
+      } else {
+        showSuccess(t('contacts.add.success'));
+      }
       handleClose();
     } catch (err) {
       handleError(err, { operation: 'creating contact' }, { showError });

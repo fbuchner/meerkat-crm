@@ -126,10 +126,11 @@
       "title": "Agregar Nuevo Contacto",
       "create": "Crear",
       "addCircle": "Agregar",
-      "requiredFields": "El nombre y el apellido son obligatorios",
+      "requiredFields": "El nombre es obligatorio",
       "error": "Error al crear el contacto. Inténtalo de nuevo.",
       "success": "¡Contacto creado exitosamente!",
-      "createBirthdayReminder": "Crear recordatorio de cumpleaños"
+      "createBirthdayReminder": "Crear recordatorio de cumpleaños",
+      "birthdayReminderFailed": "Contacto creado, pero no se pudo guardar el recordatorio de cumpleaños"
     },
     "sortBy": "Ordenar por",
     "sort": {
@@ -205,8 +206,8 @@
         "done": "Listo"
       },
       "errors": {
-        "invalidFile": "Selecciona un archivo CSV válido",
-        "fileTooLarge": "El archivo es demasiado grande. El tamaño máximo es 5MB",
+        "invalidFile": "Selecciona un archivo CSV o VCF válido",
+        "fileTooLarge": "El archivo es demasiado grande. El tamaño máximo es {{size}}MB",
         "emptyFile": "El archivo CSV está vacío",
         "noMappings": "Mapea al menos una columna",
         "uploadFailed": "Error al subir el archivo. Inténtalo de nuevo.",
@@ -285,6 +286,7 @@
     }
   },
   "timeline": {
+    "noDate": "Sin fecha",
     "reminderCompleted": "Recordatorio Completado",
     "deleteCompletion": "Eliminar",
     "deleteCompletionConfirm": "¿Estás seguro de que quieres eliminar este recordatorio completado de la línea de tiempo?"
@@ -652,7 +654,7 @@
       "username": "Nombre de usuario",
       "password": "Contraseña",
       "credentialsOptional": "Opcional, solo para calendarios protegidos",
-      "passwordKeep": "Dejar vacío para conservar la contraseña guardada",
+      "passwordKeep": "Dejar vacío para conservar la contraseña guardada. Se elimina si cambia el host del servidor.",
       "pastDays": "Días en el pasado",
       "futureDays": "Días por delante",
       "autoSync": "Sincronizar automáticamente",
@@ -685,7 +687,7 @@
       "username": "Usuario",
       "password": "Contraseña",
       "passwordHelp": "Usa una contraseña de aplicación si tu servidor lo permite",
-      "passwordKeep": "Déjalo vacío para conservar la contraseña guardada",
+      "passwordKeep": "Déjalo vacío para conservar la contraseña guardada. Se elimina si cambia el host del servidor.",
       "clearPassword": "Eliminar la contraseña guardada (el servidor no requiere autenticación)",
       "chooseAddressBook": "Elige la libreta de direcciones con la que sincronizar tus contactos:",
       "directionLabel": "Dirección de sincronización",

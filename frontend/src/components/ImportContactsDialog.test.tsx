@@ -121,9 +121,7 @@ test('a file that is neither CSV nor VCF is rejected', () => {
   expect(mocked.uploadCSVForImport).not.toHaveBeenCalled();
   expect(mocked.uploadVCFForImport).not.toHaveBeenCalled();
 });
-
-// BUG en.json says "valid CSV file" and hides the VCF option that ImportContactsDialog.tsx accepts.
-test.skip('BUG: the invalid file message names both accepted types', () => {
+test('the invalid file message names both accepted types', () => {
   renderDialog();
   selectFile(file('people.xlsx'));
   expect(screen.getByRole('alert')).toHaveTextContent(/VCF/);
@@ -142,9 +140,7 @@ test('VCF files above 10 MB are refused before uploading', () => {
   expect(screen.getByRole('alert')).toHaveTextContent(/too large/);
   expect(mocked.uploadVCFForImport).not.toHaveBeenCalled();
 });
-
-// BUG en.json hard-codes 5MB and ignores {{size}} from ImportContactsDialog.tsx, so VCF users see the wrong limit.
-test.skip('BUG: the size error states the 10 MB limit for VCF files', () => {
+test('the size error states the 10 MB limit for VCF files', () => {
   renderDialog();
   selectFile(file('people.vcf', 10 * MB + 1));
   expect(screen.getByRole('alert')).toHaveTextContent(/10\s?MB/);

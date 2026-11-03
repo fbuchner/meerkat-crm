@@ -126,10 +126,11 @@
       "title": "Ajouter un nouveau contact",
       "create": "Créer",
       "addCircle": "Ajouter",
-      "requiredFields": "Le prénom et le nom sont requis",
+      "requiredFields": "Le prénom est requis",
       "error": "Échec de la création du contact. Veuillez réessayer.",
       "success": "Contact créé avec succès !",
-      "createBirthdayReminder": "Créer un rappel d'anniversaire"
+      "createBirthdayReminder": "Créer un rappel d'anniversaire",
+      "birthdayReminderFailed": "Contact créé, mais le rappel d'anniversaire n'a pas pu être enregistré"
     },
     "sortBy": "Trier par",
     "sort": {
@@ -205,8 +206,8 @@
         "done": "Terminé"
       },
       "errors": {
-        "invalidFile": "Veuillez sélectionner un fichier CSV valide",
-        "fileTooLarge": "Le fichier est trop volumineux. La taille maximale est de 5 Mo",
+        "invalidFile": "Veuillez sélectionner un fichier CSV ou VCF valide",
+        "fileTooLarge": "Le fichier est trop volumineux. La taille maximale est de {{size}} Mo",
         "emptyFile": "Le fichier CSV est vide",
         "noMappings": "Veuillez mapper au moins une colonne",
         "uploadFailed": "Échec du téléchargement du fichier. Veuillez réessayer.",
@@ -285,6 +286,7 @@
     }
   },
   "timeline": {
+    "noDate": "Pas de date",
     "reminderCompleted": "Rappel terminé",
     "deleteCompletion": "Supprimer",
     "deleteCompletionConfirm": "Êtes-vous sûr de vouloir supprimer ce rappel terminé de la chronologie ?"
@@ -652,7 +654,7 @@
       "username": "Nom d'utilisateur",
       "password": "Mot de passe",
       "credentialsOptional": "Facultatif, uniquement pour les calendriers protégés",
-      "passwordKeep": "Laisser vide pour conserver le mot de passe enregistré",
+      "passwordKeep": "Laisser vide pour conserver le mot de passe enregistré. Il est supprimé si l'hôte du serveur change.",
       "pastDays": "Jours dans le passé",
       "futureDays": "Jours à venir",
       "autoSync": "Synchroniser automatiquement",
@@ -685,7 +687,7 @@
       "username": "Nom d'utilisateur",
       "password": "Mot de passe",
       "passwordHelp": "Utilisez un mot de passe d'application si votre serveur le permet",
-      "passwordKeep": "Laissez vide pour conserver le mot de passe enregistré",
+      "passwordKeep": "Laissez vide pour conserver le mot de passe enregistré. Il est supprimé si l'hôte du serveur change.",
       "clearPassword": "Supprimer le mot de passe enregistré (le serveur ne requiert pas d'authentification)",
       "chooseAddressBook": "Choisissez le carnet d'adresses avec lequel synchroniser vos contacts :",
       "directionLabel": "Sens de synchronisation",

@@ -6,6 +6,7 @@ interface DateFormatContextValue {
   dateFormat: DateFormat;
   setDateFormat: (format: DateFormat) => void;
   formatDate: (dateString: string) => string;
+  formatDateTime: (dateString: string) => string;
   formatBirthday: (birthday: string, includeAge?: boolean) => string;
   formatBirthdayForInput: (birthday: string) => string;
   parseBirthdayInput: (input: string) => string | null;
@@ -170,6 +171,20 @@ export function formatDateWithFormat(dateString: string, format: DateFormat): st
     default: // us
       return `${month}/${day}/${year}`;
   }
+}
+
+/**
+ * Format a timestamp to the user's preferred date format plus the local 24-hour time
+ */
+export function formatDateTimeWithFormat(dateString: string, format: DateFormat): string {
+  if (!dateString) return '';
+
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
+
+  const pad = (value: number) => String(value).padStart(2, '0');
+  const localDay = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  return `${formatDateWithFormat(localDay, format)} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 /**
@@ -373,6 +388,12 @@ export function parseBirthdayInputWithFormat(input: string, format: DateFormat):
  * Unlike parseBirthdayInputWithFormat, the year is always required.
  * Returns null if input is invalid
  */
+// Rejects days the month does not have, which new Date() would silently roll into the next month.
+function isCalendarDate(year: string, month: string, day: string): boolean {
+  const date = new Date(Date.UTC(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10)));
+  return date.getUTCMonth() === parseInt(month, 10) - 1 && date.getUTCDate() === parseInt(day, 10);
+}
+
 export function parseDateInputWithFormat(input: string, format: DateFormat): string | null {
   if (!input || input.trim() === '') return '';
 
@@ -384,9 +405,7 @@ export function parseDateInputWithFormat(input: string, format: DateFormat): str
     const year = isoMatch[1];
     const month = isoMatch[2].padStart(2, '0');
     const day = isoMatch[3].padStart(2, '0');
-    const monthNum = parseInt(month, 10);
-    const dayNum = parseInt(day, 10);
-    if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) {
+    if (!isCalendarDate(year, month, day)) {
       return null;
     }
     return `${year}-${month}-${day}`;
@@ -399,9 +418,7 @@ export function parseDateInputWithFormat(input: string, format: DateFormat): str
       const month = euMatch[2].padStart(2, '0');
       const year = euMatch[3];
 
-      const dayNum = parseInt(day, 10);
-      const monthNum = parseInt(month, 10);
-      if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) {
+      if (!isCalendarDate(year, month, day)) {
         return null;
       }
 
@@ -414,9 +431,7 @@ export function parseDateInputWithFormat(input: string, format: DateFormat): str
       const day = usMatch[2].padStart(2, '0');
       const year = usMatch[3];
 
-      const dayNum = parseInt(day, 10);
-      const monthNum = parseInt(month, 10);
-      if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) {
+      if (!isCalendarDate(year, month, day)) {
         return null;
       }
 
@@ -498,6 +513,11 @@ export function DateFormatProvider({ children }: { children: ReactNode }) {
     [dateFormat]
   );
 
+  const formatDateTime = useCallback(
+    (dateString: string) => formatDateTimeWithFormat(dateString, dateFormat),
+    [dateFormat]
+  );
+
   const formatBirthday = useCallback(
     (birthday: string, includeAge: boolean = false) => formatBirthdayWithFormat(birthday, dateFormat, includeAge),
     [dateFormat]
@@ -575,6 +595,7 @@ export function DateFormatProvider({ children }: { children: ReactNode }) {
       dateFormat,
       setDateFormat,
       formatDate,
+      formatDateTime,
       formatBirthday,
       formatBirthdayForInput,
       parseBirthdayInput,
@@ -587,7 +608,7 @@ export function DateFormatProvider({ children }: { children: ReactNode }) {
       getDateFnsFormat,
       calculateAge,
     }),
-    [dateFormat, formatDate, formatBirthday, formatBirthdayForInput, parseBirthdayInput, autoFormatBirthdayInput, parseDateInput, autoFormatDateInput, getBirthdayPlaceholder, getBirthdayFormatHint, getDatePlaceholder, getDateFnsFormat, calculateAge]
+    [dateFormat, formatDate, formatDateTime, formatBirthday, formatBirthdayForInput, parseBirthdayInput, autoFormatBirthdayInput, parseDateInput, autoFormatDateInput, getBirthdayPlaceholder, getBirthdayFormatHint, getDatePlaceholder, getDateFnsFormat, calculateAge]
   );
 
   return (

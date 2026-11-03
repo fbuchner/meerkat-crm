@@ -62,7 +62,7 @@ export default function ContactTimeline({ timelineItems, onEditItem, onDeleteCom
                 flex: 0.3
               }}>
               <Typography variant="caption">
-                {isValidDate ? formatDate(item.date) : (item.date || 'N/A')}
+                {isValidDate ? formatDate(item.date) : (item.date || t('timeline.noDate'))}
               </Typography>
             </TimelineOppositeContent>
             <TimelineSeparator>
@@ -151,6 +151,7 @@ export default function ContactTimeline({ timelineItems, onEditItem, onDeleteCom
                     className="action-icon"
                     size="small"
                     color="error"
+                    aria-label={t('common.delete')}
                     onClick={() => onDeleteCompletion?.((item.data as ReminderCompletion).ID)}
                     sx={{
                       position: 'absolute',

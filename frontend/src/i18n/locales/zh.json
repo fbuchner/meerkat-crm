@@ -126,10 +126,11 @@
       "title": "添加新联系人",
       "create": "创建",
       "addCircle": "添加",
-      "requiredFields": "名和姓为必填项",
+      "requiredFields": "名为必填项",
       "error": "创建联系人失败。请重试。",
       "success": "联系人创建成功！",
-      "createBirthdayReminder": "创建生日提醒"
+      "createBirthdayReminder": "创建生日提醒",
+      "birthdayReminderFailed": "联系人已创建，但无法保存生日提醒"
     },
     "sortBy": "排序方式",
     "sort": {
@@ -205,8 +206,8 @@
         "done": "完成"
       },
       "errors": {
-        "invalidFile": "请选择有效的 CSV 文件",
-        "fileTooLarge": "文件过大。最大为 5MB",
+        "invalidFile": "请选择有效的 CSV 或 VCF 文件",
+        "fileTooLarge": "文件过大。最大为 {{size}}MB",
         "emptyFile": "CSV 文件为空",
         "noMappings": "请至少映射一列",
         "uploadFailed": "上传文件失败。请重试。",
@@ -285,6 +286,7 @@
     }
   },
   "timeline": {
+    "noDate": "无日期",
     "reminderCompleted": "提醒已完成",
     "deleteCompletion": "删除",
     "deleteCompletionConfirm": "确定要从时间线中移除此已完成的提醒吗？"
@@ -652,7 +654,7 @@
       "username": "用户名",
       "password": "密码",
       "credentialsOptional": "可选，仅用于受保护的日历",
-      "passwordKeep": "留空以保留已存储的密码",
+      "passwordKeep": "留空以保留已存储的密码。如果服务器主机变更，该密码将被移除。",
       "pastDays": "过去天数",
       "futureDays": "未来天数",
       "autoSync": "自动同步",
@@ -685,7 +687,7 @@
       "username": "用户名",
       "password": "密码",
       "passwordHelp": "如果服务器支持，请使用应用专用密码",
-      "passwordKeep": "留空以保留已存储的密码",
+      "passwordKeep": "留空以保留已存储的密码。如果服务器主机变更，该密码将被移除。",
       "clearPassword": "移除已存储的密码（服务器无需身份验证）",
       "chooseAddressBook": "选择要与您的联系人同步的通讯录：",
       "directionLabel": "同步方向",

@@ -45,6 +45,8 @@ export default function AddActivityDialog({
   const [searchInput, setSearchInput] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  // Saving before the preselected contact arrives would store the activity without it.
+  const [loadingPreselected, setLoadingPreselected] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const loadContacts = useCallback(async (search: string = '') => {
@@ -63,6 +65,7 @@ export default function AddActivityDialog({
   useEffect(() => {
     if (open && preselectedContactId) {
       const loadPreselected = async () => {
+        setLoadingPreselected(true);
         try {
           const response = await getContacts({ limit: 100 });
           const preselected = response.contacts.find((c: Contact) => c.ID === preselectedContactId);
@@ -72,6 +75,8 @@ export default function AddActivityDialog({
           setContacts(response.contacts || []);
         } catch (err) {
           console.error('Failed to load preselected contact:', err);
+        } finally {
+          setLoadingPreselected(false);
         }
       };
       loadPreselected();
@@ -229,7 +234,7 @@ export default function AddActivityDialog({
         <Button onClick={handleClose} disabled={saving}>
           {t('activityDialog.cancel')}
         </Button>
-        <Button onClick={handleSave} variant="contained" disabled={saving}>
+        <Button onClick={handleSave} variant="contained" disabled={saving || loadingPreselected}>
           {t('activityDialog.save')}
         </Button>
       </DialogActions>

@@ -34,6 +34,16 @@ export function useTimelineEditing(
       const activity = item as Activity;
 
       // Fetch all contacts for the autocomplete if not already loaded
+      // Before the fetch below: the dialog is already open, so setting these afterwards
+      // would overwrite whatever was typed in the meantime.
+      setEditTimelineValues({
+        activityTitle: activity.title || '',
+        activityDescription: activity.description || '',
+        activityLocation: activity.location || '',
+        activityDate: activity.date ? new Date(activity.date).toISOString().split('T')[0] : '',
+        activityContacts: activity.contacts || []
+      });
+
       if (allContacts.length === 0) {
         try {
           const data = await getContacts({ page: 1, limit: 1000 });
@@ -42,14 +52,6 @@ export function useTimelineEditing(
           handleFetchError(err, 'fetching contacts for autocomplete');
         }
       }
-
-      setEditTimelineValues({
-        activityTitle: activity.title || '',
-        activityDescription: activity.description || '',
-        activityLocation: activity.location || '',
-        activityDate: activity.date ? new Date(activity.date).toISOString().split('T')[0] : '',
-        activityContacts: activity.contacts || []
-      });
     }
   };
 

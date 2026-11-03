@@ -132,6 +132,15 @@ const ActivitiesPage: React.FC = () => {
   const handleEditClick = async (activity: Activity) => {
     setEditingActivity(activity);
     setEditError('');
+    // Before the fetch below: the dialog is already open, so setting these afterwards
+    // would overwrite whatever was typed in the meantime.
+    setEditValues({
+      activityTitle: activity.title || '',
+      activityDescription: activity.description || '',
+      activityLocation: activity.location || '',
+      activityDate: activity.date ? formatDate(activity.date) : '',
+      activityContacts: activity.contacts || [],
+    });
 
     // Fetch all contacts if not already loaded
     if (allContacts.length === 0) {
@@ -142,14 +151,6 @@ const ActivitiesPage: React.FC = () => {
         console.error('Failed to fetch contacts:', err);
       }
     }
-    
-    setEditValues({
-      activityTitle: activity.title || '',
-      activityDescription: activity.description || '',
-      activityLocation: activity.location || '',
-      activityDate: activity.date ? formatDate(activity.date) : '',
-      activityContacts: activity.contacts || [],
-    });
   };
 
   const handleSaveEdit = async () => {

@@ -87,6 +87,20 @@ test('the activity form still opens when the contact picker fails to load', asyn
   expect(result.current.allContacts).toEqual([]);
 });
 
+test('text typed while the contact picker loads is not overwritten', async () => {
+  let resolve!: (r: contactsApi.ContactsResponse) => void;
+  contacts.getContacts.mockImplementation(() => new Promise((r) => { resolve = r; }));
+  const { result } = setup();
+
+  await act(async () => { void result.current.handleStartEditTimelineItem('activity', activity); });
+  expect(result.current.editTimelineValues.activityTitle).toBe('Lunch');
+
+  act(() => result.current.setEditTimelineValues({ ...result.current.editTimelineValues, activityTitle: 'Typed' }));
+  await act(async () => resolve(directory));
+
+  expect(result.current.editTimelineValues.activityTitle).toBe('Typed');
+});
+
 test('cancel leaves edit mode and clears the form', async () => {
   const { result } = setup();
   await act(() => result.current.handleStartEditTimelineItem('note', note));

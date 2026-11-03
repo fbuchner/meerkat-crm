@@ -113,7 +113,7 @@ export default function AddActivityDialog({
         contact_ids: selectedContacts.map((c) => c.ID),
       });
       handleClose();
-    } catch (err) {
+    } catch {
       setError('Failed to save activity');
     } finally {
       setSaving(false);

@@ -45,7 +45,7 @@ export async function handleResponse(response: Response, fallback: string): Prom
   if (raw) {
     try {
       data = JSON.parse(raw);
-    } catch (error) {
+    } catch {
       data = raw;
     }
   }

@@ -609,7 +609,7 @@ function App() {
         if (info) setToken(getToken());
       });
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     // Listen for storage changes (e.g., logout in another tab)

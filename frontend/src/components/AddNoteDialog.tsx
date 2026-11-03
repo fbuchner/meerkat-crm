@@ -41,7 +41,7 @@ export default function AddNoteDialog({ open, onClose, onSave }: AddNoteDialogPr
     try {
       await onSave(content, parsedDate || new Date().toISOString().split('T')[0]);
       handleClose();
-    } catch (err) {
+    } catch {
       setError(t('noteDialog.saveError'));
     } finally {
       setSaving(false);

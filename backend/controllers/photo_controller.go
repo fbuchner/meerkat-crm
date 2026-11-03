@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"image"
 	"image/jpeg"
 	"image/png"
+	"io"
 	"meerkat/config"
 	apperrors "meerkat/errors"
 	"meerkat/httputil"
@@ -141,6 +143,16 @@ func AddPhotoToContact(c *gin.Context, cfg *config.Config) {
 
 	// Check if there's an uploaded file
 	file, err := c.FormFile("photo")
+	if err != nil && !errors.Is(err, http.ErrMissingFile) && !errors.Is(err, http.ErrNotMultipart) {
+		// The form could not be read, so a photo was sent but cannot be stored.
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			apperrors.AbortWithError(c, apperrors.ErrValidation("File too large. Maximum size is 10MB"))
+		} else {
+			apperrors.AbortWithError(c, apperrors.ErrValidation("The uploaded file could not be read"))
+		}
+		return
+	}
 	if err == nil {
 		// Validate file size (10MB limit to prevent DoS)
 		const maxFileSize = 10 * 1024 * 1024 // 10MB
@@ -156,6 +168,10 @@ func AddPhotoToContact(c *gin.Context, cfg *config.Config) {
 		}
 		photoPath, thumbnailPath, err := processAndSavePhoto(file, cfg.ProfilePhotoDir)
 		if err != nil {
+			if errors.Is(err, errInvalidPhoto) {
+				apperrors.AbortWithError(c, apperrors.ErrValidation("Unsupported or damaged image. Use a JPEG, PNG or HEIC file"))
+				return
+			}
 			apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to process photo").WithError(err))
 			return
 		}
@@ -192,6 +208,9 @@ func AddPhotoToContact(c *gin.Context, cfg *config.Config) {
 // processAndSavePhoto processes an uploaded photo and returns:
 // - photoPath: filename of the saved full-size photo
 // - thumbnailBase64: base64 data URL of the thumbnail (stored in DB)
+// errInvalidPhoto marks a processing failure caused by the uploaded file rather than the server.
+var errInvalidPhoto = errors.New("invalid photo")
+
 func processAndSavePhoto(file *multipart.FileHeader, uploadDir string) (string, string, error) {
 	// Open the uploaded file
 	src, err := file.Open()
@@ -203,6 +222,9 @@ func processAndSavePhoto(file *multipart.FileHeader, uploadDir string) (string, 
 	// Detect the image format
 	buf := make([]byte, 512)
 	_, err = src.Read(buf)
+	if errors.Is(err, io.EOF) {
+		return "", "", fmt.Errorf("%w: empty file", errInvalidPhoto)
+	}
 	if err != nil {
 		return "", "", err
 	}
@@ -222,7 +244,7 @@ func processAndSavePhoto(file *multipart.FileHeader, uploadDir string) (string, 
 	// Validate supported content types
 	if contentType != "image/jpeg" && contentType != "image/png" &&
 		contentType != "image/heic" && contentType != "image/heif" {
-		return "", "", errors.New("unsupported file format")
+		return "", "", fmt.Errorf("%w: unsupported file format", errInvalidPhoto)
 	}
 
 	// Rewind the file reader
@@ -239,7 +261,7 @@ func processAndSavePhoto(file *multipart.FileHeader, uploadDir string) (string, 
 		img, err = heic.Decode(src)
 	}
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("%w: %v", errInvalidPhoto, err)
 	}
 
 	// Crop to centered square if rectangular

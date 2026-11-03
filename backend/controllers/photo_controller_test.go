@@ -200,7 +200,6 @@ func TestAddPhoto_RejectsContentThatIsNotASupportedImage(t *testing.T) {
 }
 
 func TestAddPhoto_WrongFileTypeIsAClientError(t *testing.T) {
-	skipKnownBug(t, "photo_controller.go:159 maps every processing failure, including an unsupported format, to a 500")
 	f := setupPhotoFixture(t)
 
 	w := doUpload(t, f.router, f.picturePath(f.contact.ID), "photo", "notes.txt", []byte("this is not an image"))
@@ -220,7 +219,6 @@ func TestAddPhoto_OversizeFileIsRejected(t *testing.T) {
 }
 
 func TestAddPhoto_OversizeFileBehindTheBodyLimitIsNotReportedAsSuccess(t *testing.T) {
-	skipKnownBug(t, "photo_controller.go:146 treats any FormFile error as no file, so main.go's 10MB body limit turns an oversize upload into a 200")
 	f := setupPhotoFixture(t)
 	cfg := &config.Config{ProfilePhotoDir: f.dir}
 	router := routerAs(f.db, f.user.ID, *cfg)

@@ -182,7 +182,7 @@ async function createResources(userA: APIRequestContext, stamp: string): Promise
   const webhook = idOf(
     await postJson(userA, '/webhooks', {
       name: 'hook',
-      url: 'https://example.com/hook',
+      url: 'https://203.0.113.1/hook', // reserved address, so a stray delivery stays offline
       events: ['contact.created'],
       is_active: false,
     }),
@@ -191,7 +191,7 @@ async function createResources(userA: APIRequestContext, stamp: string): Promise
   const calendar = idOf(
     await postJson(userA, '/calendars', {
       name: 'cal',
-      url: 'https://example.com/cal.ics',
+      url: 'https://203.0.113.1/cal.ics', // reserved address, so a stray sync stays offline
       sync_enabled: false,
     }),
     'calendar',

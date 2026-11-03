@@ -551,3 +551,22 @@ func TestBurstFromEnv(t *testing.T) {
 		}
 	}
 }
+
+func TestLimiterBurstsComeFromTheirEnvVars(t *testing.T) {
+	if got := newAuthLimiter().b; got != 50 {
+		t.Errorf("default auth burst = %d, want 50", got)
+	}
+	if got := newAPILimiter().b; got != 500 {
+		t.Errorf("default API burst = %d, want 500", got)
+	}
+
+	t.Setenv("AUTH_RATE_LIMIT_BURST", "111")
+	t.Setenv("API_RATE_LIMIT_BURST", "222")
+
+	if got := newAuthLimiter().b; got != 111 {
+		t.Errorf("auth burst = %d, want 111", got)
+	}
+	if got := newAPILimiter().b; got != 222 {
+		t.Errorf("API burst = %d, want 222", got)
+	}
+}

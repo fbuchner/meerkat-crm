@@ -411,7 +411,6 @@ func TestCompleteReminder_SkippingRecurringReschedulesWithoutATimelineEntry(t *t
 }
 
 func TestCompleteReminder_RecurringNotFromCompletionKeepsRecurring(t *testing.T) {
-	skipKnownBug(t, "reminder_controller.go:315-316 reschedules only when reoccur_from_completion is true, so completing any other recurring reminder ends it for good")
 	f := setupReminders(t)
 	notFromCompletion := false
 	due := todayUTC().AddDate(0, 0, -2)
@@ -445,7 +444,6 @@ func TestCreateReminder_NormalizesDateAndForcesOwner(t *testing.T) {
 }
 
 func TestCreateReminder_BodyCannotRetargetTheContact(t *testing.T) {
-	skipKnownBug(t, "reminder_controller.go:55 creates the reminder with the client-supplied contact association, which overrides the contact from the URL")
 	f := setupReminders(t)
 
 	w := doJSON(t, f.router, http.MethodPost, fmt.Sprintf("/contacts/%d/reminders", f.contact.ID), gin.H{

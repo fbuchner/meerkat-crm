@@ -42,8 +42,10 @@ func CreateReminder(c *gin.Context) {
 		return
 	}
 
-	// Assign the ContactID to the reminder to link it to the contact
+	// Assign the ContactID to the reminder to link it to the contact. A contact nested
+	// in the body must go: on create GORM would let it override ContactID.
 	reminder.ContactID = &contact.ID
+	reminder.Contact = models.Contact{}
 	reminder.UserID = userID
 
 	// Set hours, minutes, seconds to 0 to ensure reminders are found when comparing for "until date"
@@ -310,10 +312,9 @@ func CompleteReminder(c *gin.Context) {
 		action = "skipped"
 	}
 
-	// If reoccur from completion, calculate next reminder time
-	// Default to true if not specified (nil)
-	reoccurFromCompletion := reminder.ReoccurFromCompletion == nil || *reminder.ReoccurFromCompletion
-	if reoccurFromCompletion && reminder.Recurrence != "once" {
+	// Recurring reminders always come back; CalculateNextReminderTime picks the base date
+	// according to ReoccurFromCompletion.
+	if reminder.Recurrence != "once" {
 		reminder.RemindAt = services.CalculateNextReminderTime(reminder)
 		// Reset completed and email_sent flags for recurring reminders
 		reminder.Completed = false

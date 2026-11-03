@@ -75,6 +75,7 @@ test.describe('Reminders', () => {
 
       await itemWithButton(page, message, 'Delete').getByRole('button', { name: 'Delete', exact: true }).click({ force: true });
       await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
+      await expect(page.getByText(message)).toHaveCount(0);
 
       await page.reload();
       await page.getByRole('tab', { name: /reminders/i }).click();

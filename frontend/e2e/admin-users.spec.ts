@@ -1,4 +1,5 @@
-import { test, expect, loginAsNewUser, uniqueUser } from './fixtures';
+import { request } from '@playwright/test';
+import { test, expect, LOGGED_OUT, loginAsNewUser, uniqueUser } from './fixtures';
 import { API_BASE_URL, TEST_USER } from './global-setup';
 
 // The first account registered on a stack becomes its admin, and global setup
@@ -25,11 +26,12 @@ test.describe('Admin users', () => {
     await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
     await expect(row).toHaveCount(0);
 
-    const deleted = await page.request.post(`${API_BASE_URL}/login`, {
-      headers: { Cookie: '' },
+    const anonymous = await request.newContext({ storageState: LOGGED_OUT });
+    const login = await anonymous.post(`${API_BASE_URL}/login`, {
       data: { identifier: user.username, password: user.password },
     });
-    expect(deleted.status()).toBe(401);
+    expect(login.status()).toBe(401);
+    await anonymous.dispose();
 
     await page.reload();
     await expect(page.getByRole('row').filter({ hasText: TEST_USER.username })).toBeVisible();

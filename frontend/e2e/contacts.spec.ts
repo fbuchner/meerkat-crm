@@ -93,7 +93,6 @@ test.describe('Contacts', () => {
 
     try {
       await page.goto(`/contacts/${contact.ID}`);
-      await page.reload();
       await expect(page.getByRole('heading', { name: `${contact.firstname} Before` })).toBeVisible();
 
       await page.locator('.edit-icon').first().click();

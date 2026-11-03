@@ -1,40 +1,18 @@
 import { test, expect, createTestContact, deleteTestContact } from './fixtures';
 import { API_BASE_URL } from './global-setup';
-import { deflateSync } from 'node:zlib';
+import type { Page } from '@playwright/test';
 
-// A valid solid-colour PNG, large enough for the cropper to work with.
-function solidPng(size: number): Buffer {
-  const crcTable = Array.from({ length: 256 }, (_, n) => {
-    let c = n;
-    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-    return c >>> 0;
+// A real image large enough for the cropper to work with.
+async function solidPng(page: Page): Promise<Buffer> {
+  const dataUrl = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 400;
+    const context = canvas.getContext('2d') as CanvasRenderingContext2D;
+    context.fillStyle = '#666';
+    context.fillRect(0, 0, 400, 400);
+    return canvas.toDataURL('image/png');
   });
-  const crc32 = (data: Buffer) => {
-    let c = 0xffffffff;
-    for (const byte of data) c = crcTable[(c ^ byte) & 0xff] ^ (c >>> 8);
-    return (c ^ 0xffffffff) >>> 0;
-  };
-  const chunk = (type: string, data: Buffer) => {
-    const length = Buffer.alloc(4);
-    length.writeUInt32BE(data.length);
-    const body = Buffer.concat([Buffer.from(type), data]);
-    const crc = Buffer.alloc(4);
-    crc.writeUInt32BE(crc32(body));
-    return Buffer.concat([length, body, crc]);
-  };
-  const header = Buffer.alloc(13);
-  header.writeUInt32BE(size, 0);
-  header.writeUInt32BE(size, 4);
-  header[8] = 8; // bit depth
-  header[9] = 2; // RGB
-  const row = Buffer.concat([Buffer.from([0]), Buffer.alloc(size * 3, 0x66)]);
-  const pixels = Buffer.concat(Array.from({ length: size }, () => row));
-  return Buffer.concat([
-    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-    chunk('IHDR', header),
-    chunk('IDAT', deflateSync(pixels)),
-    chunk('IEND', Buffer.alloc(0)),
-  ]);
+  return Buffer.from(dataUrl.split(',')[1], 'base64');
 }
 
 test.describe('Profile photo', () => {
@@ -47,7 +25,7 @@ test.describe('Profile photo', () => {
       const dialog = page.getByRole('dialog');
       await dialog
         .locator('input[type="file"]')
-        .setInputFiles({ name: 'photo.png', mimeType: 'image/png', buffer: solidPng(400) });
+        .setInputFiles({ name: 'photo.png', mimeType: 'image/png', buffer: await solidPng(page) });
       const uploaded = page.waitForResponse(
         (r) => r.request().method() === 'POST' && r.url().endsWith(`/contacts/${contact.ID}/profile_picture`)
       );

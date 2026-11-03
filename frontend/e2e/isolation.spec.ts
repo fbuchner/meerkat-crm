@@ -56,8 +56,30 @@ test.describe('Multi-user isolation', () => {
         const response = await userB.fetch(`${API_BASE_URL}${probe.path}`, {
           method: probe.method,
           ...(probe.data ? { data: probe.data } : {}),
+          ...(probe.multipart ? { multipart: probe.multipart } : {}),
         });
         expect.soft(response.status(), `${probe.method} ${probe.path}`).toBe(probe.expected);
+      }
+
+      // userB's own resources must not be able to reach into userA's data either.
+      const ownContact = idOf(
+        await postJson(userB, '/contacts', { firstname: 'E2EFixtureOwn', lastname: stamp }),
+        'contact'
+      );
+      const date = new Date().toISOString();
+      for (const probe of [
+        { method: 'GET', path: `/contacts/${ownContact}/merge-preview?source_id=${created.contact}` },
+        { method: 'POST', path: `/contacts/${ownContact}/merge`, data: { source_id: created.contact } },
+        { method: 'POST', path: '/activities', data: { title: 'linked', date, contact_ids: [created.contact] } },
+        { method: 'POST', path: `/contacts/${ownContact}/relationships`, data: { name: 'x', type: 'Friend', related_contact_id: created.contact } },
+        { method: 'POST', path: '/notes', data: { content: 'moved', date, contact_id: created.contact } },
+        { method: 'POST', path: '/contacts/duplicates/dismiss', data: { contact_a_id: ownContact, contact_b_id: created.contact } },
+      ]) {
+        const response = await userB.fetch(`${API_BASE_URL}${probe.path}`, {
+          method: probe.method,
+          ...(probe.data ? { data: probe.data } : {}),
+        });
+        expect.soft(response.status(), `${probe.method} ${probe.path}`).toBe(404);
       }
 
       expect(await snapshot(userA, created)).toEqual(before);
@@ -101,7 +123,7 @@ interface Resources {
   note: number;
   activity: number;
   reminder: number;
-  completion: number | null;
+  completion: number;
   webhook: number;
   calendar: number;
   apiToken: number;
@@ -113,11 +135,12 @@ async function postJson(context: APIRequestContext, path: string, data: unknown)
   return response.json();
 }
 
+// Fails on a missing ID: a probe of /notes/undefined would pass as a 404.
 function idOf(body: any, ...wrappers: string[]): number {
-  for (const key of wrappers) {
-    if (body?.[key]) return body[key].ID ?? body[key].id;
-  }
-  return body.ID ?? body.id;
+  const wrapped = wrappers.map((key) => body?.[key]).find(Boolean) ?? body;
+  const id = wrapped.ID ?? wrapped.id;
+  expect(Number.isInteger(id), `no ID in ${JSON.stringify(body)}`).toBeTruthy();
+  return id;
 }
 
 async function createResources(userA: APIRequestContext, stamp: string): Promise<Resources> {
@@ -155,7 +178,7 @@ async function createResources(userA: APIRequestContext, stamp: string): Promise
   );
   await postJson(userA, `/reminders/${reminder}/complete`, {});
   const completions = await (await userA.get(`${API_BASE_URL}/contacts/${contact}/reminder-completions`)).json();
-  const completion = (completions.completions ?? completions)?.[0]?.ID ?? null;
+  const completion = idOf((completions.completions ?? completions)[0]);
   const webhook = idOf(
     await postJson(userA, '/webhooks', {
       name: 'hook',
@@ -222,7 +245,8 @@ async function snapshot(userA: APIRequestContext, r: Resources): Promise<Record<
   const result: Record<string, unknown> = {};
   for (const path of paths) {
     const response = await userA.get(`${API_BASE_URL}${path}`);
-    result[path] = { status: response.status(), body: await response.json() };
+    expect(response.status(), `userA reading ${path}`).toBe(200);
+    result[path] = await response.json();
   }
   return result;
 }
@@ -231,6 +255,7 @@ interface Probe {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   path: string;
   data?: unknown;
+  multipart?: Record<string, { name: string; mimeType: string; buffer: Buffer }>;
   expected: number;
 }
 
@@ -256,6 +281,19 @@ function crossUserProbes(r: Resources): Probe[] {
     notFound('POST', `${contact}/merge`, { source_id: r.otherContact }),
     notFound('GET', `${contact}/vcf`),
     notFound('GET', `${contact}/profile_picture`),
+    {
+      method: 'POST',
+      path: `${contact}/profile_picture`,
+      multipart: { photo: { name: 'photo.png', mimeType: 'image/png', buffer: Buffer.from('not an image') } },
+      expected: 404,
+    },
+    notFound('GET', `${contact}/incoming-relationships`),
+    notFound('GET', `${contact}/notes`),
+    notFound('POST', `${contact}/notes`, { content: 'hacked', date }),
+    notFound('GET', `${contact}/activities`),
+    notFound('GET', `${contact}/reminders`),
+    notFound('POST', `${contact}/reminders`, reminderBody),
+    notFound('GET', `${contact}/reminder-completions`),
 
     notFound('GET', `${contact}/relationships`),
     notFound('POST', `${contact}/relationships`, { name: 'Hacked', type: 'Friend' }),
@@ -280,7 +318,7 @@ function crossUserProbes(r: Resources): Probe[] {
     notFound('PUT', `/reminders/${r.reminder}`, reminderBody),
     notFound('POST', `/reminders/${r.reminder}/complete`),
     notFound('DELETE', `/reminders/${r.reminder}`),
-    ...(r.completion ? [notFound('DELETE', `/reminder-completions/${r.completion}`)] : []),
+    notFound('DELETE', `/reminder-completions/${r.completion}`),
 
     notFound('GET', `/webhooks/${r.webhook}`),
     notFound('PUT', `/webhooks/${r.webhook}`, webhookBody),

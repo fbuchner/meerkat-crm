@@ -76,6 +76,7 @@ test.describe('Timeline', () => {
       await page.getByRole('listitem').filter({ hasText: content }).getByRole('button', { name: 'Edit' }).click({ force: true });
       page.once('dialog', (confirm) => confirm.accept());
       await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
+      await expect(page.getByText(content)).toHaveCount(0);
 
       await page.reload();
       await expect(page.getByRole('tab', { name: /reminders/i })).toBeVisible();
@@ -107,6 +108,7 @@ test.describe('Timeline', () => {
       await page.getByRole('listitem').filter({ hasText: title }).getByRole('button', { name: 'Edit' }).click({ force: true });
       page.once('dialog', (confirm) => confirm.accept());
       await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
+      await expect(page.getByText(title)).toHaveCount(0);
 
       await page.reload();
       await expect(page.getByRole('tab', { name: /reminders/i })).toBeVisible();

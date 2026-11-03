@@ -121,3 +121,17 @@ test('ReminderList asks for confirmation before deleting', async () => {
   });
   expect(onDelete).toHaveBeenCalledWith(2);
 });
+
+const sources = import.meta.glob<string>(['../**/*.{ts,tsx}', '!../**/*.test.{ts,tsx}'], {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+});
+
+test('no source formats a date with the browser locale instead of the preference', () => {
+  expect(Object.keys(sources).length).toBeGreaterThan(50);
+  const offenders = Object.entries(sources)
+    .filter(([, source]) => /\.toLocale(Date|Time)?String\(/.test(source))
+    .map(([path]) => path);
+  expect(offenders).toEqual([]);
+});

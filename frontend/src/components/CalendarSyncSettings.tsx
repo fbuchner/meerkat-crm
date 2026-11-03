@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDateFormat } from '../DateFormatProvider';
 import {
   Box,
   Card,
@@ -61,6 +62,7 @@ const emptyForm = (): CalendarFormState => ({
 
 export default function CalendarSyncSettings() {
   const { t } = useTranslation();
+  const { formatDateTime } = useDateFormat();
   const [calendars, setCalendars] = useState<CalendarSubscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -210,7 +212,7 @@ export default function CalendarSyncSettings() {
   const formatLastSync = (cal: CalendarSubscription) => {
     if (!cal.last_synced_at) return t('settings.calendarSync.neverSynced');
     return t('settings.calendarSync.lastSynced', {
-      date: new Date(cal.last_synced_at).toLocaleString(),
+      date: formatDateTime(cal.last_synced_at),
     });
   };
 

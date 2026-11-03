@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDateFormat } from '../DateFormatProvider';
 import {
   Box,
   Card,
@@ -51,6 +52,7 @@ const SYNC_POLL_INTERVAL_MS = 2000;
 
 export default function ContactSyncSettings() {
   const { t } = useTranslation();
+  const { formatDateTime } = useDateFormat();
   const [connection, setConnection] = useState<CardDAVConnection | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -234,7 +236,7 @@ export default function ContactSyncSettings() {
   const formatLastSync = (conn: CardDAVConnection) => {
     if (!conn.last_synced_at) return t('settings.contactSync.neverSynced');
     return t('settings.contactSync.lastSynced', {
-      date: new Date(conn.last_synced_at).toLocaleString(),
+      date: formatDateTime(conn.last_synced_at),
     });
   };
 

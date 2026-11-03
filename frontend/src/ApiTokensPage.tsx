@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDateFormat } from './DateFormatProvider';
 import {
   Box,
   Card,
@@ -37,6 +38,7 @@ import WebhooksSettings from './components/WebhooksSettings';
 
 export default function ApiTokensPage() {
   const { t } = useTranslation();
+  const { formatDateTime } = useDateFormat();
   const { showSuccess, showError } = useSnackbar();
 
   const [tokens, setTokens] = useState<ApiToken[]>([]);
@@ -117,7 +119,7 @@ export default function ApiTokensPage() {
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return t('apiTokens.neverUsed');
-    return new Date(dateStr).toLocaleString();
+    return formatDateTime(dateStr);
   };
 
   return (
@@ -176,7 +178,7 @@ export default function ApiTokensPage() {
                     tokens.map((token) => (
                       <TableRow key={token.id}>
                         <TableCell>{token.name}</TableCell>
-                        <TableCell>{new Date(token.created_at).toLocaleString()}</TableCell>
+                        <TableCell>{formatDateTime(token.created_at)}</TableCell>
                         <TableCell>{formatDate(token.last_used_at)}</TableCell>
                         <TableCell>
                           {token.revoked_at ? (

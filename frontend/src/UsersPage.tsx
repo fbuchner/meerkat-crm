@@ -1,5 +1,6 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDateFormat } from './DateFormatProvider';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -37,6 +38,7 @@ import type { User, UserUpdateInput } from './types';
 
 export default function UsersPage() {
   const { t } = useTranslation();
+  const { formatDate } = useDateFormat();
   const navigate = useNavigate();
   const { showSuccess, showError } = useSnackbar();
   const [users, setUsers] = useState<User[]>([]);
@@ -97,9 +99,6 @@ export default function UsersPage() {
     setPage(0);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
 
   // Edit handlers
   const handleEditClick = (user: User) => {

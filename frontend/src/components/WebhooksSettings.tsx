@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDateFormat } from '../DateFormatProvider';
 import {
   Box,
   Card,
@@ -87,6 +88,7 @@ const DELIVERY_ERROR_KEYS: Record<string, string> = {
 
 export default function WebhooksSettings() {
   const { t } = useTranslation();
+  const { formatDateTime } = useDateFormat();
   const deliveryErrorText = (error: string) => {
     const key = DELIVERY_ERROR_KEYS[error];
     return key ? t(key) : error;
@@ -378,7 +380,7 @@ export default function WebhooksSettings() {
                                 <Typography variant="caption" sx={{
                                   color: "text.secondary"
                                 }}>
-                                  {new Date(d.created_at).toLocaleString()}
+                                  {formatDateTime(d.created_at)}
                                 </Typography>
                                 {d.error && (
                                   <Typography

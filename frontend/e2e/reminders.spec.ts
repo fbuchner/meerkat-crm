@@ -85,47 +85,55 @@ test.describe('Reminders', () => {
     }
   });
 
-  test('completing a monthly reminder moves it to the next occurrence', async ({ page }) => {
-    const contact = await createTestContact(page.request);
-    const message = `E2E recurring ${Date.now()}`;
-    const remindAt = new Date('2026-01-15T09:00:00Z');
-    const created = await page.request.post(`${API_BASE_URL}/contacts/${contact.ID}/reminders`, {
-      data: {
-        message,
-        remind_at: remindAt.toISOString(),
-        recurrence: 'monthly',
-        reoccur_from_completion: true,
-        contact_id: contact.ID,
-      },
+  for (const fromCompletion of [true, false]) {
+    test(`completing a monthly reminder with reoccur_from_completion=${fromCompletion} moves it to the next occurrence`, async ({ page }) => {
+      const contact = await createTestContact(page.request);
+      const message = `E2E recurring ${Date.now()}`;
+      const remindAt = new Date('2026-01-15T09:00:00Z');
+      const created = await page.request.post(`${API_BASE_URL}/contacts/${contact.ID}/reminders`, {
+        data: {
+          message,
+          remind_at: remindAt.toISOString(),
+          recurrence: 'monthly',
+          reoccur_from_completion: fromCompletion,
+          contact_id: contact.ID,
+        },
+      });
+      expect(created.ok(), await created.text()).toBeTruthy();
+      const body = await created.json();
+      const reminder = body.reminder ?? body;
+      const scheduled = new Date(reminder.remind_at).getTime();
+
+      try {
+        await page.goto(`/contacts/${contact.ID}`);
+        await page.getByRole('tab', { name: /reminders/i }).click();
+        await page.getByRole('button', { name: 'Complete', exact: true }).click();
+
+        // Still listed, now scheduled later, and the completion is on record.
+        await expect
+          .poll(async () => {
+            const body = await (await page.request.get(`${API_BASE_URL}/reminders/${reminder.ID}`)).json();
+            return new Date((body.reminder ?? body).remind_at).getTime();
+          })
+          .toBeGreaterThan(scheduled);
+
+        if (!fromCompletion) {
+          // Stays on the original schedule rather than moving relative to today.
+          const moved = await (await page.request.get(`${API_BASE_URL}/reminders/${reminder.ID}`)).json();
+          expect((moved.reminder ?? moved).remind_at.slice(0, 10)).toBe('2026-02-15');
+        }
+
+        const completions = await (
+          await page.request.get(`${API_BASE_URL}/contacts/${contact.ID}/reminder-completions`)
+        ).json();
+        expect(completions.completions ?? completions).toHaveLength(1);
+
+        await page.reload();
+        await page.getByRole('tab', { name: /reminders/i }).click();
+        await expect(page.getByText(message).first()).toBeVisible();
+      } finally {
+        await deleteTestContact(page.request, contact.ID);
+      }
     });
-    expect(created.ok(), await created.text()).toBeTruthy();
-    const body = await created.json();
-    const reminder = body.reminder ?? body;
-    const scheduled = new Date(reminder.remind_at).getTime();
-
-    try {
-      await page.goto(`/contacts/${contact.ID}`);
-      await page.getByRole('tab', { name: /reminders/i }).click();
-      await page.getByRole('button', { name: 'Complete', exact: true }).click();
-
-      // Still listed, now scheduled later, and the completion is on record.
-      await expect
-        .poll(async () => {
-          const body = await (await page.request.get(`${API_BASE_URL}/reminders/${reminder.ID}`)).json();
-          return new Date((body.reminder ?? body).remind_at).getTime();
-        })
-        .toBeGreaterThan(scheduled);
-
-      const completions = await (
-        await page.request.get(`${API_BASE_URL}/contacts/${contact.ID}/reminder-completions`)
-      ).json();
-      expect(completions.completions ?? completions).toHaveLength(1);
-
-      await page.reload();
-      await page.getByRole('tab', { name: /reminders/i }).click();
-      await expect(page.getByText(message).first()).toBeVisible();
-    } finally {
-      await deleteTestContact(page.request, contact.ID);
-    }
-  });
+  }
 });

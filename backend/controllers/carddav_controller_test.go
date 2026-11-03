@@ -96,7 +96,6 @@ func TestSaveCardDAVConnection_CreatesWithDefaultsAndEncryptsThePassword(t *test
 }
 
 func TestSaveCardDAVConnection_CanBeCreatedWithSyncDisabled(t *testing.T) {
-	skipKnownBug(t, "carddav_controller.go:119 tx.Save inserts a new row without false for a gorm default:true column, so sync_enabled=false is stored as true")
 	f := setupCardDAV(t)
 
 	w := doJSON(t, f.router, http.MethodPut, "/carddav/connection", gin.H{"base_url": "https://dav.example.com/", "address_book_path": "/x/", "sync_enabled": false})
@@ -137,7 +136,6 @@ func TestSaveCardDAVConnection_PasswordHandlingOnUpdate(t *testing.T) {
 }
 
 func TestSaveCardDAVConnection_ChangingServerDropsTheStoredPassword(t *testing.T) {
-	skipKnownBug(t, "carddav_controller.go:95-104 keeps the stored password when base_url moves to another host, so the next sync sends it there; discover guards against exactly this")
 	f := setupCardDAV(t)
 	f.seedConnection(t, "https://dav.example.com/", "original")
 

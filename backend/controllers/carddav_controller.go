@@ -76,6 +76,14 @@ func SaveCardDAVConnection(c *gin.Context) {
 	// re-pair losslessly by UID).
 	addressBookChanged := !isNew && (conn.BaseURL != baseURL || conn.AddressBookPath != input.AddressBookPath)
 
+	// The stored password belongs to the host it was entered for, so it must not
+	// follow the connection to another server (discovery has the same guard).
+	hostChanged := false
+	if !isNew {
+		storedURL, urlErr := services.NormalizeCardDAVURL(conn.BaseURL)
+		hostChanged = urlErr != nil || !strings.EqualFold(storedURL.Hostname(), normalized.Hostname())
+	}
+
 	conn.UserID = userID
 	conn.BaseURL = baseURL
 	conn.AddressBookPath = input.AddressBookPath
@@ -92,7 +100,7 @@ func SaveCardDAVConnection(c *gin.Context) {
 		conn.SyncEnabled = true
 	}
 
-	if input.ClearPassword {
+	if input.ClearPassword || (hostChanged && input.Password == "") {
 		conn.PasswordEncrypted = ""
 	} else if input.Password != "" {
 		passwordEncrypted, err := services.EncryptCredential(currentConfig(c).JWTSecretKey, input.Password)

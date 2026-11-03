@@ -74,10 +74,42 @@ test.describe('Contacts', () => {
 
       const lastName = page.getByLabel('Last Name', { exact: true });
       await lastName.fill('After');
-      // Save is the only primary-coloured icon button in the header card.
-      await page.locator('.MuiCard-root').first().locator('.MuiIconButton-colorPrimary').click();
+      await page.getByRole('button', { name: 'Save', exact: true }).click();
 
       await expect(page.getByRole('heading', { name: `${contact.firstname} After` })).toBeVisible();
+    } finally {
+      await deleteTestContact(page.request, contact.ID);
+    }
+  });
+
+  // Guards commit 348a46f: a column the detail page doesn't read comes back as a
+  // zero value, overwrites local state, and the next save persists the wipe.
+  test('should keep deceased status when a later save edits another field', async ({ page }) => {
+    const contact = await createTestContact(page.request, {
+      lastname: 'Before',
+      is_deceased: true,
+      deceased_date: '2020-01-15',
+    });
+
+    try {
+      await page.goto(`/contacts/${contact.ID}`);
+      await expect(page.getByRole('heading', { name: `${contact.firstname} Before` })).toBeVisible();
+
+      await page.locator('.edit-icon').first().click();
+      await page.getByLabel('Last Name', { exact: true }).fill('After');
+      const saved = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'PUT' && response.url().endsWith(`/contacts/${contact.ID}`)
+      );
+      await page.getByRole('button', { name: 'Save', exact: true }).click();
+      expect((await saved).ok()).toBeTruthy();
+
+      await page.reload();
+      await expect(page.getByRole('heading', { name: `${contact.firstname} After` })).toBeVisible();
+
+      const stored = await (await page.request.get(`${API_BASE_URL}/contacts/${contact.ID}`)).json();
+      expect(stored.is_deceased).toBe(true);
+      expect(stored.deceased_date).toBe('2020-01-15');
     } finally {
       await deleteTestContact(page.request, contact.ID);
     }

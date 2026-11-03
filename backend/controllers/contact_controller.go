@@ -19,6 +19,19 @@ import (
 	"gorm.io/gorm"
 )
 
+// contactSelectableFields lists the columns a client may request via ?fields=.
+// CONTACT_DETAIL_COLUMNS in frontend/src/ContactDetailPage.tsx must stay in sync;
+// frontend/src/contactColumns.test.ts fails when the two drift apart.
+var contactSelectableFields = []string{
+	"ID", "firstname", "lastname", "nickname", "gender",
+	"email", "phone", "birthday", "address", "how_we_met",
+	"food_preference", "work_information", "contact_information",
+	"circles", "photo", "photo_thumbnail", "custom_fields", "archived",
+	"emails", "phones", "addresses", "urls", "impps",
+	"prefix", "middle_name", "suffix", "organization", "department",
+	"job_title", "role", "anniversary", "is_deceased", "deceased_date",
+}
+
 func CreateContact(c *gin.Context) {
 	// Save to the database
 	db := c.MustGet("db").(*gorm.DB)
@@ -104,18 +117,17 @@ func GetContacts(c *gin.Context) {
 
 	pagination := GetPaginationParams(c)
 
-	// Define allowed fields and parse requested fields with validation
-	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail", "custom_fields", "archived", "emails", "phones", "addresses", "urls", "impps", "prefix", "middle_name", "suffix", "organization", "department", "job_title", "role", "anniversary", "is_deceased", "deceased_date"}
+	// Parse requested fields with validation
 	var selectedFields []string
 	fields := c.Query("fields")
 	if fields != "" {
 		for _, field := range strings.Split(fields, ",") {
-			if slices.Contains(allowedFields, field) { // Validate field
+			if slices.Contains(contactSelectableFields, field) { // Validate field
 				selectedFields = append(selectedFields, field)
 			}
 		}
 	} else {
-		selectedFields = allowedFields // Use all allowed fields if none are specified
+		selectedFields = slices.Clone(contactSelectableFields) // Use all allowed fields if none are specified
 	}
 
 	// Parse relationships to include with validation
@@ -321,12 +333,11 @@ func GetContact(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
 	// Check for fields query parameter to enable partial fetching
-	allowedFields := []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "photo_thumbnail", "custom_fields", "archived", "emails", "phones", "addresses", "urls", "impps", "prefix", "middle_name", "suffix", "organization", "department", "job_title", "role", "anniversary", "is_deceased", "deceased_date"}
 	var selectedFields []string
 	fields := c.Query("fields")
 	if fields != "" {
 		for _, field := range strings.Split(fields, ",") {
-			if slices.Contains(allowedFields, field) {
+			if slices.Contains(contactSelectableFields, field) {
 				selectedFields = append(selectedFields, field)
 			}
 		}

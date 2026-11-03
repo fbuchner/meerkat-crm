@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"net/http"
+	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -228,16 +230,33 @@ func (i *IPRateLimiter) EntryCount() int {
 	return len(i.ips)
 }
 
+// burstFromEnv reads a rate limiter burst size, falling back on missing or invalid values.
+func burstFromEnv(name string, fallback int) int {
+	burst, err := strconv.Atoi(os.Getenv(name))
+	if err != nil || burst <= 0 {
+		return fallback
+	}
+	return burst
+}
+
+func newAuthLimiter() *IPRateLimiter {
+	return NewIPRateLimiter(rate.Every(500*time.Millisecond), burstFromEnv("AUTH_RATE_LIMIT_BURST", 50))
+}
+
+func newAPILimiter() *IPRateLimiter {
+	return NewIPRateLimiter(rate.Every(600*time.Millisecond), burstFromEnv("API_RATE_LIMIT_BURST", 500))
+}
+
 // Global rate limiters for different use cases
 var (
 	// Rate limiter for authentication endpoints (login, register)
 	// Higher limits since per-account lockout handles brute force protection
 	// 2 requests per second with burst of 50 (allows rapid legitimate logins, e.g., E2E tests)
-	authLimiter = NewIPRateLimiter(rate.Every(500*time.Millisecond), 50)
+	authLimiter = newAuthLimiter()
 
 	// General API rate limiter
 	// 100 requests per minute with burst of 500
-	apiLimiter = NewIPRateLimiter(rate.Every(600*time.Millisecond), 500)
+	apiLimiter = newAPILimiter()
 
 	// CardDAV rate limiter — higher burst to accommodate bulk sync from clients like vdirsyncer
 	// 10 requests per second sustained, burst of 2500 for initial address book sync

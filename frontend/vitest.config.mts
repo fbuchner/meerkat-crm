@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  // contactColumns.test.ts reads the backend's column allowlist
+  server: { fs: { allow: ['..'] } },
   test: {
     environment: 'jsdom',
     setupFiles: './src/setupTests.ts',
@@ -12,5 +14,11 @@ export default defineConfig({
     // undefined without --localstorage-file and shadows jsdom's working one
     pool: 'forks',
     execArgv: ['--no-experimental-webstorage'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text-summary', 'html'],
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/**/*.{test,spec}.{ts,tsx}', 'src/setupTests.ts', 'src/i18n/locales/**'],
+    },
   },
 });

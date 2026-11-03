@@ -45,6 +45,8 @@
 - Start the test stack: `docker compose -f docker-compose.test.yml up -d --build`
 - Run tests: `cd frontend && npm run test:e2e` (or `test:e2e:ui` for interactive mode)
 - Stop and clean up: `docker compose -f docker-compose.test.yml down -v`
+- The suite seeds and deletes data on whatever it points at, so never run it against a dev database. It targets `http://localhost:7300` unless `PLAYWRIGHT_BASE_URL` says otherwise, and the dev server uses that port too: check that the test stack is what's listening there.
+- The suite expects a fresh stack. Users created by the registration and isolation specs are not removed, and the first account registered on a stack becomes its admin, so run `down -v` before a new run.
 - Tests run automatically in CI on push/PR to main via [.github/workflows/e2e-tests.yml](.github/workflows/e2e-tests.yml).
 
 **CardDAV client sync tests**

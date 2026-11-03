@@ -2,16 +2,21 @@ package controllers
 
 import (
 	"fmt"
+	"meerkat/config"
 	"meerkat/database"
+	"meerkat/middleware"
 	"meerkat/models"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -115,4 +120,230 @@ func TestDeleteUser_RemovesEverythingTheUserOwns(t *testing.T) {
 	assert.Equal(t, otherDeliveries, countRows(t, db, "SELECT COUNT(*) FROM webhook_deliveries"),
 		"only the other user's deliveries may remain, not those of the deleted user's soft-deleted webhooks")
 	assert.Equal(t, int64(1), countRows(t, db, "SELECT COUNT(*) FROM activity_contacts"))
+}
+
+func adminRouter(db *gorm.DB, callerID uint, setup ...gin.HandlerFunc) *gin.Engine {
+	router := routerForUser(db, callerID)
+	router.Use(setup...)
+	validated := middleware.ValidateJSONMiddleware(&models.AdminUserUpdateInput{})
+	group := router.Group("/admin", middleware.AdminMiddleware())
+	group.GET("/users", ListUsers)
+	group.GET("/users/:id", GetUser)
+	group.PATCH("/users/:id", validated, UpdateUser)
+	group.DELETE("/users/:id", DeleteUser)
+	return router
+}
+
+func TestAdminEndpoints_RefuseNonAdmins(t *testing.T) {
+	db := newTestDB(t)
+	caller := newTestUser(t, db, "caller", false)
+	target := newTestUser(t, db, "target", false)
+	router := adminRouter(db, caller.ID)
+	targetPath := fmt.Sprintf("/admin/users/%d", target.ID)
+
+	assert.Equal(t, http.StatusForbidden, doRequest(router, http.MethodGet, "/admin/users", nil, "").Code)
+	assert.Equal(t, http.StatusForbidden, doRequest(router, http.MethodGet, targetPath, nil, "").Code)
+	assert.Equal(t, http.StatusForbidden, doRequest(router, http.MethodDelete, targetPath, nil, "").Code)
+	assert.Equal(t, http.StatusForbidden, doJSON(t, router, http.MethodPatch, fmt.Sprintf("/admin/users/%d", caller.ID), gin.H{"is_admin": true}).Code)
+
+	var survivor, reloaded models.User
+	require.NoError(t, db.First(&survivor, target.ID).Error, "the target must survive")
+	require.NoError(t, db.First(&reloaded, caller.ID).Error)
+	assert.False(t, reloaded.IsAdmin, "a non-admin must not be able to promote themselves")
+}
+
+func TestAdminEndpoints_RefuseAPITokensEvenForAdmins(t *testing.T) {
+	db := newTestDB(t)
+	admin := newTestUser(t, db, "admin", true)
+	router := adminRouter(db, admin.ID, func(c *gin.Context) { c.Set("isAPIToken", true); c.Next() })
+
+	assert.Equal(t, http.StatusForbidden, doRequest(router, http.MethodGet, "/admin/users", nil, "").Code)
+}
+
+func TestListUsers_PaginatesAndOmitsSecrets(t *testing.T) {
+	db := newTestDB(t)
+	admin := newTestUser(t, db, "admin", true)
+	for i := range 4 {
+		newTestUser(t, db, fmt.Sprintf("user%d", i), false)
+	}
+	router := adminRouter(db, admin.ID)
+
+	w := doRequest(router, http.MethodGet, "/admin/users?page=2&limit=2", nil, "")
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.NotContains(t, strings.ToLower(w.Body.String()), "password")
+
+	body := decodeJSON[models.AdminUsersListResponse](t, w)
+	assert.EqualValues(t, 5, body.Total)
+	assert.Equal(t, 3, body.TotalPages)
+	assert.Equal(t, 2, body.Page)
+	require.Len(t, body.Users, 2)
+	assert.Equal(t, "user1", body.Users[0].Username)
+}
+
+func TestGetUser(t *testing.T) {
+	db := newTestDB(t)
+	admin := newTestUser(t, db, "admin", true)
+	router := adminRouter(db, admin.ID)
+
+	w := doRequest(router, http.MethodGet, fmt.Sprintf("/admin/users/%d", admin.ID), nil, "")
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "admin", decodeJSON[models.AdminUserResponse](t, w).Username)
+	assert.NotContains(t, strings.ToLower(w.Body.String()), "password")
+
+	assert.Equal(t, http.StatusBadRequest, doRequest(router, http.MethodGet, "/admin/users/abc", nil, "").Code)
+	assert.Equal(t, http.StatusNotFound, doRequest(router, http.MethodGet, "/admin/users/9999", nil, "").Code)
+}
+
+func TestGetCurrentUser(t *testing.T) {
+	db := newTestDB(t)
+	user := newTestUser(t, db, "me", false)
+	router := routerForUser(db, user.ID)
+	router.GET("/users/me", GetCurrentUser)
+
+	w := doRequest(router, http.MethodGet, "/users/me", nil, "")
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "me", decodeJSON[models.CurrentUserResponse](t, w).Username)
+	assert.NotContains(t, strings.ToLower(w.Body.String()), "password")
+
+	gone := routerForUser(db, 9999)
+	gone.GET("/users/me", GetCurrentUser)
+	assert.Equal(t, http.StatusNotFound, doRequest(gone, http.MethodGet, "/users/me", nil, "").Code)
+}
+
+func TestUpdateUser_AppliesFields(t *testing.T) {
+	db := newTestDB(t)
+	admin := newTestUser(t, db, "admin", true)
+	target := newTestUser(t, db, "target", false)
+	router := adminRouter(db, admin.ID)
+
+	w := doJSON(t, router, http.MethodPatch, fmt.Sprintf("/admin/users/%d", target.ID), gin.H{
+		"username": "NewName", "email": "New@Example.com", "password": "Sup3r-Secret-Pass!", "is_admin": true,
+	})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	assert.NotContains(t, w.Body.String(), "Sup3r-Secret-Pass!")
+
+	var reloaded models.User
+	require.NoError(t, db.First(&reloaded, target.ID).Error)
+	assert.Equal(t, "newname", reloaded.Username)
+	assert.Equal(t, "new@example.com", reloaded.Email)
+	assert.True(t, reloaded.IsAdmin)
+	assert.NoError(t, bcrypt.CompareHashAndPassword([]byte(reloaded.Password), []byte("Sup3r-Secret-Pass!")), "the password must be stored hashed")
+	assert.NotNil(t, reloaded.PasswordChangedAt, "existing sessions must stop being renewed")
+}
+
+func TestUpdateUser_Errors(t *testing.T) {
+	db := newTestDB(t)
+	admin := newTestUser(t, db, "admin", true)
+	target := newTestUser(t, db, "target", false)
+	router := adminRouter(db, admin.ID)
+	targetPath := fmt.Sprintf("/admin/users/%d", target.ID)
+
+	assert.Equal(t, http.StatusBadRequest, doJSON(t, router, http.MethodPatch, "/admin/users/abc", gin.H{}).Code)
+	assert.Equal(t, http.StatusNotFound, doJSON(t, router, http.MethodPatch, "/admin/users/9999", gin.H{}).Code)
+	assert.Equal(t, http.StatusConflict, doJSON(t, router, http.MethodPatch, targetPath, gin.H{"username": "admin"}).Code, "duplicate username")
+
+	var reloaded models.User
+	require.NoError(t, db.First(&reloaded, target.ID).Error)
+	assert.Equal(t, "target", reloaded.Username)
+}
+
+func TestUpdateUser_CannotRemoveOwnAdminStatus(t *testing.T) {
+	db := newTestDB(t)
+	admin := newTestUser(t, db, "admin", true)
+	newTestUser(t, db, "second", true)
+	router := adminRouter(db, admin.ID)
+
+	w := doJSON(t, router, http.MethodPatch, fmt.Sprintf("/admin/users/%d", admin.ID), gin.H{"is_admin": false})
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	var reloaded models.User
+	require.NoError(t, db.First(&reloaded, admin.ID).Error)
+	assert.True(t, reloaded.IsAdmin)
+}
+
+func TestUpdateUser_AnotherAdminCanBeDemotedButNotTheLastOne(t *testing.T) {
+	db := newTestDB(t)
+	admin := newTestUser(t, db, "admin", true)
+	second := newTestUser(t, db, "second", true)
+	router := adminRouter(db, admin.ID)
+
+	w := doJSON(t, router, http.MethodPatch, fmt.Sprintf("/admin/users/%d", second.ID), gin.H{"is_admin": false})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var reloaded models.User
+	require.NoError(t, db.First(&reloaded, second.ID).Error)
+	assert.False(t, reloaded.IsAdmin)
+
+	// The route can only be reached by an admin, who cannot demote themselves, so this guard
+	// only matters if the caller lost their admin flag mid-request. Call the handler directly.
+	direct := routerForUser(db, second.ID)
+	direct.PATCH("/users/:id", middleware.ValidateJSONMiddleware(&models.AdminUserUpdateInput{}), UpdateUser)
+	w = doJSON(t, direct, http.MethodPatch, fmt.Sprintf("/users/%d", admin.ID), gin.H{"is_admin": false})
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	var lastAdmin models.User
+	require.NoError(t, db.First(&lastAdmin, admin.ID).Error)
+	assert.True(t, lastAdmin.IsAdmin, "the last admin must stay an admin")
+}
+
+func TestDeleteUser_Guards(t *testing.T) {
+	db := newTestDB(t)
+	admin := newTestUser(t, db, "admin", true)
+	router := adminRouter(db, admin.ID)
+
+	assert.Equal(t, http.StatusBadRequest, doRequest(router, http.MethodDelete, "/admin/users/abc", nil, "").Code)
+	assert.Equal(t, http.StatusNotFound, doRequest(router, http.MethodDelete, "/admin/users/9999", nil, "").Code)
+	assert.Equal(t, http.StatusForbidden, doRequest(router, http.MethodDelete, fmt.Sprintf("/admin/users/%d", admin.ID), nil, "").Code, "cannot delete yourself")
+
+	// Same mid-request case as for demotion: only reachable when the caller is no longer an admin.
+	formerAdmin := newTestUser(t, db, "former", false)
+	direct := routerForUser(db, formerAdmin.ID)
+	direct.DELETE("/users/:id", DeleteUser)
+	assert.Equal(t, http.StatusForbidden, doRequest(direct, http.MethodDelete, fmt.Sprintf("/users/%d", admin.ID), nil, "").Code, "cannot delete the last admin")
+
+	var reloaded models.User
+	assert.NoError(t, db.First(&reloaded, admin.ID).Error)
+}
+
+func TestDeleteUser_AnotherAdminCanBeDeleted(t *testing.T) {
+	db := newTestDB(t)
+	admin := newTestUser(t, db, "admin", true)
+	second := newTestUser(t, db, "second", true)
+	router := adminRouter(db, admin.ID)
+
+	w := doRequest(router, http.MethodDelete, fmt.Sprintf("/admin/users/%d", second.ID), nil, "")
+
+	assert.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var reloaded models.User
+	assert.ErrorIs(t, db.First(&reloaded, second.ID).Error, gorm.ErrRecordNotFound)
+}
+
+func TestDeleteUser_FreesTheUsernameAndEmailForReuse(t *testing.T) {
+	skipKnownBug(t, "admin_user_controller.go:370 soft-deletes the user, so the UNIQUE username and email stay taken forever")
+	db := newTestDB(t)
+	admin := newTestUser(t, db, "admin", true)
+	target := newTestUser(t, db, "target", false)
+	router := adminRouter(db, admin.ID)
+	require.Equal(t, http.StatusOK, doRequest(router, http.MethodDelete, fmt.Sprintf("/admin/users/%d", target.ID), nil, "").Code)
+
+	again := models.User{Username: "target", Email: "target@example.com", Password: "x"}
+	assert.NoError(t, db.Create(&again).Error)
+}
+
+func TestTriggerReminders(t *testing.T) {
+	db := newTestDB(t)
+	user := newTestUser(t, db, "admin", true)
+	contact := newTestContact(t, db, user.ID, "Due")
+	byMail := true
+	reminder := models.Reminder{UserID: user.ID, ContactID: &contact.ID, Message: "m", ByMail: &byMail, Recurrence: "once", RemindAt: time.Now().Add(-time.Hour)}
+	require.NoError(t, db.Create(&reminder).Error)
+
+	cfg := config.Config{ReminderTimezone: "UTC"}
+	router := routerForUser(db, user.ID)
+	router.POST("/trigger", func(c *gin.Context) { TriggerReminders(c, cfg) })
+
+	w := doRequest(router, http.MethodPost, "/trigger", nil, "")
+
+	assert.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var reloaded models.Reminder
+	require.NoError(t, db.First(&reloaded, reminder.ID).Error)
+	assert.False(t, reloaded.EmailSent, "with no email channel configured the reminder must stay pending")
 }

@@ -22,6 +22,14 @@ services:
       - PROFILE_PHOTO_DIR=/app/static/photos
       - FRONTEND_URL=http://localhost:7300
       - DISABLE_REGISTRATION=false
+      - CARDDAV_ENABLED=true
+      # The whole suite shares one client IP, so the default limits would trip
+      - AUTH_RATE_LIMIT_BURST=100000
+      - API_RATE_LIMIT_BURST=100000
+      # Password reset mail goes to Mailpit, where the E2E suite reads the token
+      - SMTP_HOST=mailpit
+      - SMTP_PORT=1025
+      - SMTP_FROM_EMAIL=meerkat@example.com
     volumes:
       - test-data:/app/data
       - test-photos:/app/static/photos
@@ -34,6 +42,12 @@ services:
       timeout: 5s
       retries: 15
       start_period: 5s
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    container_name: meerkat-test-mailpit
+    ports:
+      - "8025:8025"
 
 volumes:
   test-data:

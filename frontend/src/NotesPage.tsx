@@ -299,7 +299,7 @@ const NotesPage: React.FC = () => {
                         className="edit-actions"
                         sx={{ opacity: 0, transition: 'opacity 0.2s', display: 'flex', gap: 1 }}
                       >
-                        <IconButton size="small" onClick={() => handleEditClick(note)}>
+                        <IconButton size="small" onClick={() => handleEditClick(note)} aria-label={t('common.edit')}>
                           <EditIcon fontSize="small" />
                         </IconButton>
                       </Box>

@@ -16,6 +16,16 @@ const logError = (error: Error, errorInfo: React.ErrorInfo) => {
   
 };
 
+// A tab left open across a release can request page files that no longer exist.
+// Reload to pick up the current ones, but only once so a real outage can't loop.
+window.addEventListener('vite:preloadError', () => {
+  const lastReload = Number(sessionStorage.getItem('staleChunkReloadAt'));
+  if (Date.now() - lastReload > 10000) {
+    sessionStorage.setItem('staleChunkReloadAt', String(Date.now()));
+    window.location.reload();
+  }
+});
+
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );

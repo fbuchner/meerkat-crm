@@ -1,15 +1,4 @@
-import { useState, useEffect, Suspense, useMemo, MouseEvent as ReactMouseEvent } from 'react';
-import ContactsPage from './ContactsPage';
-import DuplicatesPage from './DuplicatesPage';
-import ContactDetailPage from './ContactDetailPage';
-import ActivitiesPage from './ActivitiesPage';
-import NotesPage from './NotesPage';
-import DashboardPage from './DashboardPage';
-import SettingsPage from './SettingsPage';
-import NetworkPage from './NetworkPage';
-import UsersPage from './UsersPage';
-import ApiTokensPage from './ApiTokensPage';
-import DataSettingsPage from './DataSettingsPage';
+import { lazy, useState, useEffect, Suspense, useMemo, MouseEvent as ReactMouseEvent } from 'react';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
 import { getToken, logoutAndRedirect, isAdmin, fetchAndCacheUserInfo } from './auth';
@@ -58,6 +47,18 @@ import ExpandMore from '@mui/icons-material/ExpandMore';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import './App.css';
+
+const ContactsPage = lazy(() => import('./ContactsPage'));
+const DuplicatesPage = lazy(() => import('./DuplicatesPage'));
+const ContactDetailPage = lazy(() => import('./ContactDetailPage'));
+const ActivitiesPage = lazy(() => import('./ActivitiesPage'));
+const NotesPage = lazy(() => import('./NotesPage'));
+const DashboardPage = lazy(() => import('./DashboardPage'));
+const SettingsPage = lazy(() => import('./SettingsPage'));
+const NetworkPage = lazy(() => import('./NetworkPage'));
+const UsersPage = lazy(() => import('./UsersPage'));
+const ApiTokensPage = lazy(() => import('./ApiTokensPage'));
+const DataSettingsPage = lazy(() => import('./DataSettingsPage'));
 
 const EXPANDED_DRAWER_WIDTH = 240;
 const COLLAPSED_DRAWER_WIDTH = 64;

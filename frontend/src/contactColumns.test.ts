@@ -1,17 +1,12 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { expect, test } from 'vitest';
 import { CONTACT_DETAIL_COLUMNS } from './ContactDetailPage';
+import contactController from '../../backend/controllers/contact_controller.go?raw';
 
 // Columns the backend may serve that the detail page deliberately never reads.
 const BACKEND_ONLY = ['photo_thumbnail'];
 
 function parseBackendColumns(): string[] {
-  const source = readFileSync(
-    resolve(__dirname, '../../backend/controllers/contact_controller.go'),
-    'utf8'
-  );
-  const body = source.match(/var contactSelectableFields = \[\]string\{([\s\S]*?)\n\}/)?.[1];
+  const body = contactController.match(/var contactSelectableFields = \[\]string\{([\s\S]*?)\n\}/)?.[1];
   if (!body) throw new Error('contactSelectableFields not found in contact_controller.go');
   return [...body.matchAll(/"([^"]+)"/g)].map((match) => match[1]);
 }

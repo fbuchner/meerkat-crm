@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  // contactColumns.test.ts reads the backend's column allowlist
+  server: { fs: { allow: ['..'] } },
   test: {
     environment: 'jsdom',
     setupFiles: './src/setupTests.ts',

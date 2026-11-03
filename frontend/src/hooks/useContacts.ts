@@ -1,5 +1,5 @@
 // Custom hook for fetching and managing contacts
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { isAuthenticated } from '../auth';
 import {
   getContacts,
@@ -29,7 +29,11 @@ export function useContacts(params: GetContactsParams = {}): UseContactsResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Only the newest request may update state; a slower older one is ignored.
+  const latestRequest = useRef(0);
+
   const fetchContacts = useCallback(async () => {
+    const requestId = ++latestRequest.current;
     setLoading(true);
     setError(null);
 
@@ -49,14 +53,15 @@ export function useContacts(params: GetContactsParams = {}): UseContactsResult {
         archived,
       };
       const data: ContactsResponse = await getContacts(fetchParams);
+      if (requestId !== latestRequest.current) return;
       setContacts(data.contacts || []);
       setTotal(data.total || 0);
       setPage(data.page || 1);
     } catch (err) {
       const message = handleFetchError(err, 'fetching contacts');
-      setError(message);
+      if (requestId === latestRequest.current) setError(message);
     } finally {
-      setLoading(false);
+      if (requestId === latestRequest.current) setLoading(false);
     }
   }, [paramPage, limit, search, circle, sort, order, includeArchived, archived]);
 

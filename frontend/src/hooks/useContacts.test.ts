@@ -92,9 +92,7 @@ test('missing response fields fall back to an empty first page', async () => {
   expect(result.current.total).toBe(0);
   expect(result.current.page).toBe(1);
 });
-
-// BUG useContacts.ts has no request guard, so a slow older search overwrites the newer results.
-test.skip('BUG: a slow response for an old search does not overwrite newer results', async () => {
+test('a slow response for an old search does not overwrite newer results', async () => {
   let resolveOld!: (r: ContactsResponse) => void;
   mocked.getContacts.mockImplementationOnce(() => new Promise((resolve) => { resolveOld = resolve; }));
   const { result, rerender } = setup({ search: 'a' });

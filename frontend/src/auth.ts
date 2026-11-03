@@ -34,7 +34,10 @@ export async function loginUser(identifier: string, password: string): Promise<L
   const data = await response.json();
 
   // Fetch user info and cache it (since we can't read the httpOnly cookie)
-  await fetchAndCacheUserInfo();
+  // Without it isAuthenticated() stays false, and the login page would show no error.
+  if (!(await fetchAndCacheUserInfo())) {
+    throw new Error('Login failed');
+  }
 
   return {
     language: data.language,

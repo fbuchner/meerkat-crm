@@ -50,9 +50,7 @@ describe('loginUser', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(isAuthenticated()).toBe(false);
   });
-
-  // BUG auth.ts ignores a failed /users/me, so LoginPage stays on the form with no error shown.
-  test.skip('BUG: a login whose user lookup fails rejects instead of resolving logged out', async () => {
+  test('a login whose user lookup fails rejects instead of resolving logged out', async () => {
     fetchMock.mockResolvedValueOnce(ok({}));
     fetchMock.mockResolvedValueOnce(denied);
     await expect(loginUser('anna', 'pw')).rejects.toThrow();

@@ -17,11 +17,13 @@ const logError = (error: Error, errorInfo: React.ErrorInfo) => {
 };
 
 // A tab left open across a release can request page files that no longer exist.
-// Reload to pick up the current ones, but only once so a real outage can't loop.
-window.addEventListener('vite:preloadError', () => {
-  const lastReload = Number(sessionStorage.getItem('staleChunkReloadAt'));
-  if (Date.now() - lastReload > 10000) {
-    sessionStorage.setItem('staleChunkReloadAt', String(Date.now()));
+// Reload to pick up the current ones, but not twice for the same failure, so a
+// file that stays missing can't loop. While offline a reload would only replace
+// the app with the browser's error page.
+window.addEventListener('vite:preloadError', (event) => {
+  const failure = event.payload?.message ?? 'unknown';
+  if (navigator.onLine && sessionStorage.getItem('staleChunkFailure') !== failure) {
+    sessionStorage.setItem('staleChunkFailure', failure);
     window.location.reload();
   }
 });

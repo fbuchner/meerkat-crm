@@ -34,7 +34,7 @@ test.describe('Lazy-loaded pages', () => {
 
     // The single reload lands on an error screen and stays there.
     await expect(page.getByRole('button', { name: /try again|reload|retry/i }).first()).toBeVisible();
-    await page.waitForTimeout(1500);
+    await page.waitForLoadState('networkidle');
     expect(loads).toBeLessThanOrEqual(1);
   });
 });

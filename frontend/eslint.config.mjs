@@ -13,6 +13,7 @@ export default [
       parser: tseslint.parser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    // eslint-plugin-react's 'detect' crashes on ESLint 10, so update this with React.
     settings: { react: { version: '19' } },
     plugins: {
       '@typescript-eslint': tseslint.plugin,

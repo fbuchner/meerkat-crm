@@ -29,13 +29,13 @@ export function withErrorBoundary<P extends object>(
       return (
         <ErrorBoundary
           name={name || WrappedComponent.displayName || WrappedComponent.name}
-          showDetails={showDetails ?? process.env.NODE_ENV === 'development'}
+          showDetails={showDetails ?? import.meta.env.MODE === 'development'}
           onError={onError}
           fallback={
             <ErrorFallback
               title={`Error in ${name || 'component'}`}
               size={fallbackSize}
-              showDetails={showDetails ?? process.env.NODE_ENV === 'development'}
+              showDetails={showDetails ?? import.meta.env.MODE === 'development'}
             />
           }
         >
@@ -111,12 +111,12 @@ export const SafeComponent: React.FC<SafeComponentProps> = ({
   return (
     <ErrorBoundary
       name={name}
-      showDetails={showDetails ?? process.env.NODE_ENV === 'development'}
+      showDetails={showDetails ?? import.meta.env.MODE === 'development'}
       fallback={
         <ErrorFallback
           title={`Error in ${name}`}
           size={fallbackSize}
-          showDetails={showDetails ?? process.env.NODE_ENV === 'development'}
+          showDetails={showDetails ?? import.meta.env.MODE === 'development'}
         />
       }
     >

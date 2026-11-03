@@ -1,4 +1,4 @@
-.PHONY: migrate-up migrate-down migrate-create migrate-status migrate-force migrate-version help
+.PHONY: migrate-up migrate-down migrate-create migrate-status migrate-force migrate-version help coverage
 
 # Database path
 DB_PATH ?= meerkat.db
@@ -51,6 +51,10 @@ dev: ## Build and run the server in development mode
 
 test: ## Run all tests
 	@go test ./... -v
+
+coverage: ## Run all tests with cross-package coverage and print the total
+	@go test -coverpkg=./... -coverprofile=coverage.out ./...
+	@go tool cover -func=coverage.out | tail -n 1
 
 build: ## Build the application
 	@go build -o meerkat .

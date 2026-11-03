@@ -74,7 +74,7 @@ interface ContactWithRelations extends Contact {
   activities?: Activity[];
 }
 
-const CONTACT_FIELDS = [
+export const CONTACT_DETAIL_COLUMNS = [
   'ID', 'firstname', 'lastname', 'nickname', 'gender',
   'email', 'phone', 'birthday', 'address', 'how_we_met',
   'food_preference', 'work_information', 'contact_information',
@@ -211,7 +211,7 @@ export default function ContactDetailPage() {
   const refreshContact = useCallback(async () => {
     if (!id) return;
     try {
-      const contactData = await getContact(id, CONTACT_FIELDS);
+      const contactData = await getContact(id, CONTACT_DETAIL_COLUMNS);
       setContact(contactData);
     } catch (err) {
       console.error('Error refreshing contact:', err);
@@ -253,7 +253,7 @@ export default function ContactDetailPage() {
       try {
         // First batch: parallel fetch of core data
         const [contactData, notesData, activitiesData, completionsData, user] = await Promise.all([
-          getContact(id, CONTACT_FIELDS),
+          getContact(id, CONTACT_DETAIL_COLUMNS),
           getContactNotes(id),
           getContactActivities(id),
           getCompletionsForContact(parseInt(id)),

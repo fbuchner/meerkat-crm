@@ -39,7 +39,11 @@ jobs:
 
       - name: Run tests
         working-directory: backend
-        run: go test ./...
+        run: go test -race -coverpkg=./... -coverprofile=coverage.out ./...
+
+      - name: Print coverage total
+        working-directory: backend
+        run: go tool cover -func=coverage.out | tail -n 1
 
   frontend:
     permissions:
